@@ -1,0 +1,22 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import path from "node:path";
+
+export default defineConfig({
+  plugins: [react()],
+  root: path.resolve(process.cwd(), "src/renderer"),
+  build: {
+    outDir: path.resolve(process.cwd(), "dist/renderer"),
+    rollupOptions: {
+      input: {
+        main_app: path.resolve(process.cwd(), "src/renderer/main_app/index.html"),
+        recoder: path.resolve(process.cwd(), "src/renderer/recoder/index.html"),
+      },
+    },
+  },
+  server: {
+    port: 5173,
+  },
+});
+
+

@@ -1,0 +1,37 @@
+{
+  "name": "multi-window-app",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"tsc -p tsconfig.main.json -w\" \"wait-on http://localhost:5173/main_app/index.html && electron .\"",
+    "dev:logs": "concurrently -n VITE,TS,APP -c blue,magenta,green \"vite --clearScreen false --debug\" \"tsc -p tsconfig.main.json -w\" \"wait-on --log http-get://127.0.0.1:5173/main_app/index.html && electron --enable-logging --v=1 .\"",
+    "build": "tsc -p tsconfig.main.json && vite build",
+    "start": "concurrently \"vite\" \"tsc -p tsconfig.main.json -w\" \"wait-on http://localhost:5173/main_app/index.html && electron .\"",
+    "start:prod": "npm run build && electron .",
+    "start:prod:logs": "npm run build && electron --enable-logging --v=1 --log-net-log=electron-net-log.json ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@azure/msal-browser": "^4.23.0",
+    "@azure/msal-node": "^3.7.4",
+    "dotenv": "^17.2.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.1",
+    "react-toastify": "^11.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^4.7.0",
+    "concurrently": "^9.2.1",
+    "electron": "^38.1.2",
+    "typescript": "^5.9.2",
+    "vite": "^6.3.6",
+    "wait-on": "^9.0.1"
+  }
+}
