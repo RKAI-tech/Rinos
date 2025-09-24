@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import './Login.css';
 
 const Login: React.FC = () => {
   const { login, microsoftLogin, isLoading } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -15,14 +17,16 @@ const Login: React.FC = () => {
     setError(null);
     try {
       if (!email || !password) {
-        const msg = 'Email và mật khẩu là bắt buộc';
+        const msg = 'Email and password are required';
         setError(msg);
         toast.error(msg);
         return;
       }
       await login(email, password);
+      toast.success('Login successful! Redirecting to Dashboard...');
+      // AuthContext will automatically redirect through ProtectedRoute
     } catch (err: any) {
-      const msg = err?.message || 'Đăng nhập thất bại';
+      const msg = err?.message || 'Login failed';
       setError(msg);
       toast.error(msg);
     }
@@ -32,13 +36,18 @@ const Login: React.FC = () => {
     setError(null);
     try {
       await microsoftLogin();
+      toast.success('Microsoft login successful! Redirecting to Dashboard...');
+      // AuthContext will automatically redirect through ProtectedRoute
     } catch (err: any) {
-      const msg = err?.message || 'Microsoft login thất bại';
+      const msg = err?.message || 'Microsoft login failed';
       setError(msg);
       toast.error(msg);
     }
   };
 
+  const handleRegister = () => {
+    navigate('/register');
+  };
   return (
     <div className="login-container">
       <div className="login-main">
@@ -58,7 +67,7 @@ const Login: React.FC = () => {
             <h1 className="login-title">Automation Test Execution</h1>
             <p className="login-subtitle">Enter your credentials to access the tool.</p>
 
-            {/* Errors được hiển thị qua toast */}
+            {/* Errors are displayed via toast */}
 
             <div className="form-group">
               <label>Email <span className="required">*</span></label>
@@ -114,7 +123,7 @@ const Login: React.FC = () => {
             </div>
             <div className="register-link">
               <span>Don't have an account?</span>
-              <button type="button" className="register-button" disabled={isLoading}>Register</button>
+              <button type="button" className="register-button-login" onClick={handleRegister} disabled={isLoading}>Register</button>
             </div>
           </form>
         </div>
