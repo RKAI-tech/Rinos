@@ -1,3 +1,7 @@
+export interface ProjectGetAllResponse {
+    projects: Project[];
+    number_project: number;
+}
 
 export interface ProjectCreateRequest {
     name: string;
@@ -20,12 +24,9 @@ export interface Project {
     number_member: number;
     userRole: string;
 }
+
 export interface ProjectUpdateRequest {
     project_id: string;
     name?: string;
     description?: string;
-}
-export interface ProjectGetAllResponse {
-    projects: Project[];
-    number_project: number;
 }
