@@ -258,6 +258,16 @@ const Testcases: React.FC = () => {
     setSelectedTestcase(null);
   };
 
+  const handleOpenRecorder = async (id: string) => {
+    try {
+      console.log('[Testcases] Opening recorder for testcase:', id);
+      const result = await (window as any).screenHandleAPI?.openRecorder?.(id);
+      console.log('[Testcases] openRecorder result:', result);
+    } catch (err) {
+      console.error('[Testcases] openRecorder error:', err);
+    }
+  };
+
   const handleSaveEditTestcase = async ({ id, name, tag }: { id: string; name: string; tag: string }) => {
     try {
       const resp = await testCaseService.updateTestCase({ testcase_id: id, name, tag: tag || undefined });
@@ -381,7 +391,7 @@ const Testcases: React.FC = () => {
               </thead>
               <tbody>
                 {currentTestcases.map((testcase) => (
-                  <tr key={testcase.id}>
+                  <tr key={testcase.id} onClick={() => handleOpenRecorder(testcase.id)} style={{ cursor: 'pointer' }}>
                     <td className="testcase-name">{testcase.name}</td>
                     <td className="testcase-tag">{testcase.tag}</td>
                     <td className="testcase-actions-count">{testcase.actionsCount}</td>

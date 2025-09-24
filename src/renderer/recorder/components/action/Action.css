@@ -1,0 +1,10 @@
+.rcd-action { display: flex; gap: 10px; align-items: flex-start; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+.rcd-action-icon { width: 28px; height: 28px; border-radius: 9999px; background: #eef2ff; color: #6366f1; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.rcd-action-body { flex: 1; }
+.rcd-action-title { color: #0f172a; font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.rcd-action-meta { color: #6b7280; font-size: 12px; margin-bottom: 4px; }
+.rcd-action-value { color: #2563eb; font-size: 13px; margin-bottom: 4px; }
+.rcd-action-time { color: #64748b; font-size: 11px; }
+.rcd-action-remove { background: transparent; border: none; color: #9ca3af; cursor: pointer; }
+.rcd-action-remove:hover { color: #ef4444; }
+

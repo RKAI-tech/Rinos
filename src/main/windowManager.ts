@@ -1,10 +1,10 @@
 import { BrowserWindow, app, screen } from "electron";
 import { MainEnv } from "./env.js";
 import path from "path";
-import { fileURLToPath } from "url";
 
 const isDev = !app.isPackaged;
-const __dirnameResolved = typeof __dirname !== "undefined" ? __dirname : path.dirname(fileURLToPath(import.meta.url));
+// Build target is CJS, so __dirname is available; avoid import.meta to silence warnings
+const __dirnameResolved = __dirname;
 console.log(__dirnameResolved)
 async function tryLoadDevPaths(win: BrowserWindow, page: string) {
   const candidates = [
@@ -63,6 +63,6 @@ export function createMainAppWindow() {
 }
 
 export function createRecorderWindow() {
-  return createWindow({ width: 500, height: 800 }, "recoder");
+  return createWindow({ width: 500, height: 800 }, "recorder");
 }
 

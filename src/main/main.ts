@@ -3,6 +3,7 @@ import { createMainAppWindow } from "./windowManager.js";
 import { registerIpcHandlers } from "./ipc/index.js";
 import { registerMicrosoftLoginIpc } from "./ipc/microsoftLogin.js";
 import { registerTokenIpc } from "./ipc/token.js";
+import { registerScreenHandlersIpc } from "./ipc/screen_handle.js";
 app.whenReady().then(() => {
   try {
     Menu.setApplicationMenu(null);
@@ -10,6 +11,7 @@ app.whenReady().then(() => {
   registerIpcHandlers();
   registerTokenIpc();
   registerMicrosoftLoginIpc();
+  registerScreenHandlersIpc();
   createMainAppWindow();
 
   app.on("activate", () => {

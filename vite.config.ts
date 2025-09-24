@@ -11,7 +11,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main_app: path.resolve(process.cwd(), "src/renderer/main_app/index.html"),
-        recoder: path.resolve(process.cwd(), "src/renderer/recoder/index.html"),
+        recorder: path.resolve(process.cwd(), "src/renderer/recorder/index.html"),
       },
     },
   },
