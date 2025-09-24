@@ -7,6 +7,7 @@ export default defineConfig({
   root: path.resolve(process.cwd(), "src/renderer"),
   build: {
     outDir: path.resolve(process.cwd(), "dist/renderer"),
+    emptyOutDir: true,
     rollupOptions: {
       input: {
         main_app: path.resolve(process.cwd(), "src/renderer/main_app/index.html"),

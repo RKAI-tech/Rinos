@@ -6,8 +6,8 @@ app.whenReady().then(() => {
   try {
     Menu.setApplicationMenu(null);
   } catch {}
-//   registerIpcHandlers();
-//   registerMicrosoftLoginIpc();
+  registerIpcHandlers();
+  registerMicrosoftLoginIpc();
   createMainAppWindow();
 
   app.on("activate", () => {

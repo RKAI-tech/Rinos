@@ -4,8 +4,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const isDev = !app.isPackaged;
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-console.log(__dirname)
+const __dirnameResolved = typeof __dirname !== "undefined" ? __dirname : path.dirname(fileURLToPath(import.meta.url));
+console.log(__dirnameResolved)
 async function tryLoadDevPaths(win: BrowserWindow, page: string) {
   const candidates = [
     `${MainEnv.API_URL}/${page}/index.html`,
@@ -27,11 +27,11 @@ async function tryLoadDevPaths(win: BrowserWindow, page: string) {
 
 function createWindow(options: Electron.BrowserWindowConstructorOptions, page: string) {
   console.log('createWindow', options, page);
-  console.log('__dirname', __dirname);
+  console.log('__dirname', __dirnameResolved);
   const win = new BrowserWindow({
     ...options,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirnameResolved, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -47,7 +47,7 @@ function createWindow(options: Electron.BrowserWindowConstructorOptions, page: s
       } catch {}
     }
   } else {
-    win.loadFile(path.join(__dirname, `../renderer/${page}/index.html`));
+    win.loadFile(path.join(__dirnameResolved, `../renderer/${page}/index.html`));
   }
 
   return win;

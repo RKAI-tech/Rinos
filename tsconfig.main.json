@@ -9,6 +9,11 @@
       "moduleResolution": "NodeNext",
       "jsx": "react-jsx"
     },
-    "include": ["src/main"]
-  }
+    "include": ["src/main"],
+    "exclude": [
+      "src/main/preload.ts",
+      "src/main/preload/**"
+    ]
+}
+  
   

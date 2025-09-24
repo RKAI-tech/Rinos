@@ -1,3 +1,3 @@
 // Export preload APIs
-export { exposeAPIs } from "./api.js";
-export { exposeMicrosoftAPI } from "./microsoft.js";
+export { exposeAPIs } from "./api";
+export { exposeMicrosoftAPI } from "./microsoft";
