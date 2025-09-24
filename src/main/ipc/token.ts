@@ -1,21 +1,22 @@
 import { ipcMain } from "electron";
 import Store from "electron-store";
+import { MainEnv } from "../env.js";
 
 export function registerTokenIpc() {
-  const store = new Store<{ access_token?: string }>();
+  const store = new Store<Record<string, unknown>>();
 
   ipcMain.handle("token:get", () => {
-    return store.get("access_token") || null;
+    return (store.get(MainEnv.ACCESS_TOKEN_KEY) as string | undefined) || null;
   });
 
   ipcMain.handle("token:set", (_evt, token: string | null) => {
-    if (token) store.set("access_token", token);
-    else store.delete("access_token");
+    if (token) store.set(MainEnv.ACCESS_TOKEN_KEY, token);
+    else store.delete(MainEnv.ACCESS_TOKEN_KEY);
     return true;
   });
 
   ipcMain.handle("token:remove", () => {
-    store.delete("access_token");
+    store.delete(MainEnv.ACCESS_TOKEN_KEY);
     return true;
   });
 }
