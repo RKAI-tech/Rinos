@@ -29,4 +29,5 @@ export function exposeAPIs() {
 
   // Legacy support (giữ lại để tương thích)
   contextBridge.exposeInMainWorld("appInfo", systemAPI);
+
 }

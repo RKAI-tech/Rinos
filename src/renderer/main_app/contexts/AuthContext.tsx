@@ -29,28 +29,31 @@ interface AuthProviderProps {
 
 // Helper functions for token storage in Electron
 const tokenStorage = {
-  get: (key: string): string | null => {
+  get: async (key: string): Promise<string | null> => {
     try {
-      return localStorage.getItem(key);
+      if (key !== config.ACCESS_TOKEN_KEY) return null;
+      return await (window as any).tokenStore.get();
     } catch (error) {
-      console.error('[AuthContext] Error getting from localStorage:', error);
+      console.error('[AuthContext] Error getting from tokenStore:', error);
       return null;
     }
   },
   
-  set: (key: string, value: string): void => {
+  set: async (key: string, value: string): Promise<void> => {
     try {
-      localStorage.setItem(key, value);
+      if (key !== config.ACCESS_TOKEN_KEY) return;
+      await (window as any).tokenStore.set(value);
     } catch (error) {
-      console.error('Error setting to localStorage:', error);
+      console.error('Error setting to tokenStore:', error);
     }
   },
   
-  remove: (key: string): void => {
+  remove: async (key: string): Promise<void> => {
     try {
-      localStorage.removeItem(key);
+      if (key !== config.ACCESS_TOKEN_KEY) return;
+      await (window as any).tokenStore.remove();
     } catch (error) {
-      console.error('Error removing from localStorage:', error);
+      console.error('Error removing from tokenStore:', error);
     }
   }
 };
@@ -65,9 +68,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     log('initializeAuth: start');
     const initializeAuth = async () => {
       try {
-        const token = tokenStorage.get(config.ACCESS_TOKEN_KEY);
+        const token = await tokenStorage.get(config.ACCESS_TOKEN_KEY);
         log('initializeAuth: token exists =', Boolean(token));
-        
+        log('initializeAuth: token =', token);
         if (token) {
           // Set token vào authService
           setIsAuthenticated(true);
@@ -103,7 +106,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (response.success && response.data) {
         // Chỉ lưu token
-        tokenStorage.set(config.ACCESS_TOKEN_KEY, response.data.access_token);
+        await tokenStorage.set(config.ACCESS_TOKEN_KEY, response.data.access_token);
         setIsAuthenticated(true);
         log('login: authenticated');
       } else {
@@ -130,7 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (response.success && response.data) {
         // Chỉ lưu token
-        tokenStorage.set(config.ACCESS_TOKEN_KEY, response.data.access_token);
+        await tokenStorage.set(config.ACCESS_TOKEN_KEY, response.data.access_token);
         setIsAuthenticated(true);
         log('register: authenticated');
       } else {
@@ -191,7 +194,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (response.success && response.data) {
         // Chỉ lưu token
-        tokenStorage.set(config.ACCESS_TOKEN_KEY, response.data.access_token);
+        await tokenStorage.set(config.ACCESS_TOKEN_KEY, response.data.access_token);
         setIsAuthenticated(true);
         log('microsoftLogin: authenticated');
       } else {

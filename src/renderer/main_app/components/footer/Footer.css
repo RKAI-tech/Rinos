@@ -4,6 +4,7 @@
   background: #ffffff;
   padding: 24px 0;
   margin-top: auto;
+  z-index: 1000;
 }
 
 .footer-content {

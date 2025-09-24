@@ -2,9 +2,10 @@
 .header {
   width: 100%;
   background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-  position: sticky;
+  border-bottom: none;
+  position: fixed;
   top: 0;
+  left: 0;
   z-index: 1000;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;

@@ -1,0 +1,111 @@
+import React, { useEffect, useState } from 'react';
+import './EditTestSuite.css';
+
+interface MinimalTestSuite {
+  testsuite_id: string;
+  name: string;
+  description?: string;
+}
+
+interface EditTestSuiteProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: { id: string; name: string; description?: string }) => void;
+  testsuite: MinimalTestSuite | null;
+}
+
+const EditTestSuite: React.FC<EditTestSuiteProps> = ({ isOpen, onClose, onSave, testsuite }) => {
+  const [suiteName, setSuiteName] = useState('');
+  const [suiteDescription, setSuiteDescription] = useState('');
+  const [errors, setErrors] = useState<{ name?: string }>({});
+
+  useEffect(() => {
+    if (testsuite) {
+      setSuiteName(testsuite.name || '');
+      setSuiteDescription(testsuite.description || '');
+      setErrors({});
+    }
+  }, [testsuite]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testsuite) return;
+
+    const newErrors: { name?: string } = {};
+    if (!suiteName.trim()) {
+      newErrors.name = 'Testsuite name is required';
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    onSave({ id: testsuite.testsuite_id, name: suiteName.trim(), description: suiteDescription.trim() || undefined });
+    handleClose();
+  };
+
+  const handleClose = () => {
+    setSuiteName('');
+    setSuiteDescription('');
+    setErrors({});
+    onClose();
+  };
+
+  if (!isOpen || !testsuite) return null;
+
+  return (
+    <div className="tsuite-edit-modal-overlay" onClick={handleClose}>
+      <div className="tsuite-edit-modal-container" onClick={(e) => e.stopPropagation()}>
+        <div className="tsuite-edit-modal-header">
+          <h2 className="tsuite-edit-modal-title">Edit Test Suite</h2>
+          <button className="tsuite-edit-modal-close-btn" onClick={handleClose}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <p className="tsuite-edit-modal-instructions">Update the test suite details below.</p>
+
+        <form onSubmit={handleSubmit} className="tsuite-edit-modal-form">
+          <div className="tsuite-edit-form-group">
+            <label htmlFor="suiteName" className="tsuite-edit-form-label">
+              Test Suite Name <span className="tsuite-edit-required-asterisk">*</span>
+            </label>
+            <input
+              type="text"
+              id="suiteName"
+              value={suiteName}
+              onChange={(e) => setSuiteName(e.target.value)}
+              placeholder="Enter test suite name"
+              className={`tsuite-edit-form-input ${errors.name ? 'tsuite-edit-error' : ''}`}
+            />
+            {errors.name && <span className="tsuite-edit-error-message">{errors.name}</span>}
+          </div>
+
+          <div className="tsuite-edit-form-group">
+            <label htmlFor="suiteDescription" className="tsuite-edit-form-label">Description</label>
+            <textarea
+              id="suiteDescription"
+              value={suiteDescription}
+              onChange={(e) => setSuiteDescription(e.target.value)}
+              placeholder="Enter test suite description"
+              className="tsuite-edit-form-textarea"
+              rows={4}
+            />
+          </div>
+
+          <div className="tsuite-edit-modal-actions">
+            <button type="button" className="tsuite-edit-btn-cancel" onClick={handleClose}>Cancel</button>
+            <button type="submit" className="tsuite-edit-btn-save">Update</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default EditTestSuite;
+
+

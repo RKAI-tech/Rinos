@@ -1,0 +1,112 @@
+import React, { useState } from 'react';
+import './CreateTestSuite.css';
+
+interface CreateTestSuiteProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (payload: { projectId: string; name: string; description: string }) => void;
+  projectId?: string;
+}
+
+const CreateTestSuite: React.FC<CreateTestSuiteProps> = ({ isOpen, onClose, onSave, projectId = '' }) => {
+  const [suiteName, setSuiteName] = useState('');
+  const [suiteDescription, setSuiteDescription] = useState('');
+  const [errors, setErrors] = useState<{ name?: string }>({});
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const newErrors: { name?: string } = {};
+    if (!suiteName.trim()) {
+      newErrors.name = 'Testsuite name is required';
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    onSave({
+      projectId,
+      name: suiteName.trim(),
+      description: suiteDescription.trim(),
+    });
+
+    setSuiteName('');
+    setSuiteDescription('');
+    setErrors({});
+    onClose();
+  };
+
+  const handleClose = () => {
+    setSuiteName('');
+    setSuiteDescription('');
+    setErrors({});
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="tsuite-modal-overlay" onClick={handleClose}>
+      <div className="tsuite-modal-container" onClick={(e) => e.stopPropagation()}>
+        <div className="tsuite-modal-header">
+          <h2 className="tsuite-modal-title">Create New Test Suite</h2>
+          <button className="tsuite-modal-close-btn" onClick={handleClose}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <p className="tsuite-modal-instructions">
+          Fill in the details below to create a new test suite.
+        </p>
+
+        <form onSubmit={handleSubmit} className="tsuite-modal-form">
+          <div className="tsuite-form-group">
+            <label htmlFor="suiteName" className="tsuite-form-label">
+              Test Suite Name <span className="tsuite-required-asterisk">*</span>
+            </label>
+            <input
+              type="text"
+              id="suiteName"
+              value={suiteName}
+              onChange={(e) => setSuiteName(e.target.value)}
+              placeholder="Enter test suite name"
+              className={`tsuite-form-input ${errors.name ? 'tsuite-error' : ''}`}
+            />
+            {errors.name && <span className="tsuite-error-message">{errors.name}</span>}
+          </div>
+
+          <div className="tsuite-form-group">
+            <label htmlFor="suiteDescription" className="tsuite-form-label">
+              Description
+            </label>
+            <textarea
+              id="suiteDescription"
+              value={suiteDescription}
+              onChange={(e) => setSuiteDescription(e.target.value)}
+              placeholder="Enter test suite description"
+              className="tsuite-form-textarea"
+              rows={4}
+            />
+          </div>
+
+          <div className="tsuite-modal-actions">
+            <button type="button" className="tsuite-btn-cancel" onClick={handleClose}>
+              Cancel
+            </button>
+            <button type="submit" className="tsuite-btn-save">
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default CreateTestSuite;
+
+

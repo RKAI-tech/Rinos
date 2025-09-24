@@ -1,0 +1,48 @@
+/* Modal Overlay */
+.tsuite-edit-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+
+/* Container */
+.tsuite-edit-modal-container { background: #fff; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; animation: tsuiteEditModalSlideIn 0.3s ease-out; }
+@keyframes tsuiteEditModalSlideIn { from { opacity: 0; transform: translateY(-20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+/* Header */
+.tsuite-edit-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 24px 24px 0 24px; margin-bottom: 8px; }
+.tsuite-edit-modal-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin: 0; line-height: 1.2; }
+.tsuite-edit-modal-close-btn { background: none; border: none; padding: 8px; border-radius: 6px; cursor: pointer; color: #6b7280; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
+.tsuite-edit-modal-close-btn:hover { background: #f3f4f6; color: #374151; }
+
+/* Instructions */
+.tsuite-edit-modal-instructions { padding: 0 24px; margin: 0 0 24px 0; font-size: 14px; color: #6b7280; line-height: 1.5; }
+
+/* Form */
+.tsuite-edit-modal-form { padding: 0 24px 24px 24px; }
+.tsuite-edit-form-group { margin-bottom: 20px; }
+.tsuite-edit-form-label { display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 6px; line-height: 1.4; }
+.tsuite-edit-required-asterisk { color: #dc2626; margin-left: 2px; }
+.tsuite-edit-form-input, .tsuite-edit-form-textarea { width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; color: #374151; background: white; transition: all 0.2s ease; box-sizing: border-box; font-family: inherit; }
+.tsuite-edit-form-input:focus, .tsuite-edit-form-textarea:focus { outline: none; border-color: #5549f5; box-shadow: 0 0 0 3px rgba(85, 73, 245, 0.1); }
+.tsuite-edit-form-input::placeholder, .tsuite-edit-form-textarea::placeholder { color: #9ca3af; }
+.tsuite-edit-error-message { display: block; font-size: 12px; color: #dc2626; margin-top: 4px; font-weight: 500; }
+
+/* Actions */
+.tsuite-edit-modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+.tsuite-edit-btn-cancel, .tsuite-edit-btn-save { padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; border: none; min-width: 80px; }
+.tsuite-edit-btn-cancel { background: white; color: #374151; border: 1px solid #d1d5db; }
+.tsuite-edit-btn-cancel:hover { background: #f9fafb; border-color: #9ca3af; }
+.tsuite-edit-btn-save { background: linear-gradient(135deg, #5549f5 0%, #7c3aed 100%); color: white; box-shadow: 0 4px 12px rgba(85,73,245,0.3); }
+.tsuite-edit-btn-save:hover { background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(85,73,245,0.4); }
+.tsuite-edit-btn-save:active { transform: translateY(0); box-shadow: 0 4px 12px rgba(85,73,245,0.3); }
+
+/* Responsive */
+@media (max-width: 640px) {
+  .tsuite-edit-modal-overlay { padding: 16px; }
+  .tsuite-edit-modal-container { max-width: 100%; }
+  .tsuite-edit-modal-header { padding: 20px 20px 0 20px; }
+  .tsuite-edit-modal-instructions { padding: 0 20px; margin-bottom: 20px; }
+  .tsuite-edit-modal-form { padding: 0 20px 20px 20px; }
+  .tsuite-edit-modal-title { font-size: 18px; }
+  .tsuite-edit-modal-actions { flex-direction: column; gap: 8px; }
+  .tsuite-edit-btn-cancel, .tsuite-edit-btn-save { width: 100%; justify-content: center; }
+}
+
+

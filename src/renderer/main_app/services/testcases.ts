@@ -43,8 +43,8 @@ export class TestCaseService {
                 error: 'Test case name is required'
             };
         }
-
-        if (!testCase.project_id || testCase.project_id <= 0) {
+        console.log('testCase', testCase.project_id);
+        if (!testCase.project_id ) {
             return {
                 success: false,
                 error: 'Valid project ID is required'

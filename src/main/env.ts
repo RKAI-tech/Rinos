@@ -17,6 +17,9 @@ export const MainEnv = {
   DEBUG_MSAL: (process.env.VITE_DEBUG_MSAL === "true") || (process.env.DEBUG_MSAL === "true") || false,
   NODE_ENV: process.env.NODE_ENV || "development",
   OPEN_DEVTOOLS: process.env.OPEN_DEVTOOLS === "1",
+
+  // Token store config
+  ACCESS_TOKEN_KEY: process.env.ACCESS_TOKEN_KEY || 'access_token',
 };
 
 export const MainEnvArrays = {

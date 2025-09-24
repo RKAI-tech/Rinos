@@ -31,6 +31,15 @@ export class DatabaseService {
         });
     }
 
+    async deleteDatabaseConnection(connectionId: string): Promise<ApiResponse<DefaultResponse>> {
+        if (!connectionId) {
+            return { success: false, error: 'connection_id is required' };
+        }
+        return await apiRouter.request<DefaultResponse>(`/database-connections/${connectionId}`, {
+            method: 'DELETE'
+        });
+    }
+
     async getDatabaseConnections(payload: DatabaseConnectionListRequest): Promise<ApiResponse<DatabaseConnectionListResponse>> {
         if (!payload || !payload.project_id) {
             return {

@@ -120,6 +120,23 @@ export class ProjectService {
         return response;
     }
 
+    async getProjectById(projectId: string): Promise<ApiResponse<Project>> {
+        try {
+            const all = await this.getProjects();
+            if (all.success && all.data) {
+                const projects = (all.data as any).projects as Project[];
+                const found = projects.find(p => String((p as any).project_id) === String(projectId));
+                if (found) {
+                    return { success: true, data: found } as unknown as ApiResponse<Project>;
+                }
+                return { success: false, error: 'Project not found' } as ApiResponse<Project>;
+            }
+            return { success: false, error: all.error || 'Failed to load projects' } as ApiResponse<Project>;
+        } catch (error) {
+            return { success: false, error: 'Failed to get project by id' } as ApiResponse<Project>;
+        }
+    }
+
     async createProject(project: ProjectCreateRequest): Promise<ApiResponse<Project>> {
         // Input validation
         if (!project.name || project.name.trim().length === 0) {

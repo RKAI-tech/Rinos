@@ -1,0 +1,31 @@
+.cc-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.cc-modal-container { width: 720px; max-width: calc(100vw - 32px); background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
+.cc-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 0px solid #e5e7eb; }
+.cc-modal-title { font-size: 18px; font-weight: 700; color: #111827; margin: 0; }
+.cc-modal-close-btn { background: transparent; border: none; padding: 6px; border-radius: 6px; cursor: pointer; color: #6b7280; }
+.cc-modal-close-btn:hover { background: #f3f4f6; color: #111827; }
+.cc-modal-instructions { margin: 0; padding: 12px 20px; color: #6b7280; font-size: 14px; border-bottom: 1px solid #f3f4f6; }
+.cc-modal-form { padding: 16px 20px; }
+.cc-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; }
+.cc-form-group { display: flex; flex-direction: column; gap: 6px; }
+.cc-form-label { font-size: 14px; color: #374151; font-weight: 600; }
+.cc-required { color: #dc2626; }
+.cc-form-input, .cc-form-select { padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; color: #111827; outline: none; transition: border-color .2s ease, box-shadow .2s ease; }
+.cc-form-select { appearance: none; -webkit-appearance: none; -moz-appearance: none; background-clip: padding-box; overflow: hidden; border-radius: 8px; }
+.cc-form-select:focus { border-radius: 8px; }
+.cc-form-select option { border-radius: 8px; }
+.cc-form-input:focus, .cc-form-select:focus { border-color: #5549f5; box-shadow: 0 0 0 3px rgba(85, 73, 245, .1); }
+.cc-form-input.cc-error { border-color: #ef4444; }
+.cc-error-message { color: #ef4444; font-size: 12px; }
+.cc-modal-actions { display: flex; justify-content: flex-end; gap: 12px; padding-top: 8px; }
+.cc-btn { padding: 10px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; border: 1px solid transparent; cursor: pointer; }
+.cc-btn-cancel { background: #fff; color: #374151; border-color: #e5e7eb; }
+.cc-btn-cancel:hover { background: #f9fafb; }
+.cc-btn-save { background: #5549f5; color: #fff; }
+.cc-btn-save:hover { background: #4338ca; }
+
+@media (max-width: 640px) {
+  .cc-form-row { grid-template-columns: 1fr; }
+}
+
+

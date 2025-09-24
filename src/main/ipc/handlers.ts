@@ -1,4 +1,5 @@
 import { ipcMain, BrowserWindow } from "electron";
+import { registerTokenIpc } from "./token.js";
 import { createRecorderWindow } from "../windowManager.js";
 
 // Đăng ký tất cả IPC handlers

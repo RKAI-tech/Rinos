@@ -1,5 +1,6 @@
 import { config} from '../env.config';
 import { ApiResponse } from '../types/api_responses';
+;
 export class ApiRouter {
   private baseUrl: string;
   private token: string | null = null;
@@ -7,8 +8,8 @@ export class ApiRouter {
   constructor() {
     this.baseUrl = config.API_BASE_URL;
     console.log('[ApiRouter] Initialized with base URL:', this.baseUrl);
-  }
 
+  }
   setAuthToken(token: string | null) {
     this.token = token;
     console.log('[ApiRouter] Auth token set:', token ? '***' : 'null');

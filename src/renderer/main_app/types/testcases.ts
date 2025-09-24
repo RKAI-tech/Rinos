@@ -13,7 +13,7 @@ export interface TestCase {
 }
 
 export interface TestCaseCreateRequest {
-    project_id: number;
+    project_id: string;
     name: string;
     tag?: string;
 }

@@ -1,0 +1,189 @@
+/* Testcase Delete Modal Overlay */
+.tcase-delete-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+/* Testcase Delete Modal Container */
+.tcase-delete-modal-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: tcaseDeleteModalSlideIn 0.3s ease-out;
+}
+
+@keyframes tcaseDeleteModalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header */
+.tcase-delete-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 24px 0 24px;
+  margin-bottom: 8px;
+}
+
+.tcase-delete-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.tcase-delete-modal-close-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tcase-delete-modal-close-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* Content */
+.tcase-delete-modal-content {
+  padding: 0 24px 24px 24px;
+}
+
+.tcase-delete-modal-message {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Actions */
+.tcase-delete-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0 24px 24px 24px;
+}
+
+.tcase-delete-btn-cancel,
+.tcase-delete-btn-delete {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  min-width: 80px;
+}
+
+.tcase-delete-btn-cancel {
+  background: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.tcase-delete-btn-cancel:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.tcase-delete-btn-delete {
+  background: #dc2626;
+  color: white;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.tcase-delete-btn-delete:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
+}
+
+.tcase-delete-btn-delete:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .tcase-delete-modal-overlay {
+    padding: 16px;
+  }
+  
+  .tcase-delete-modal-container {
+    max-width: 100%;
+  }
+  
+  .tcase-delete-modal-header {
+    padding: 20px 20px 0 20px;
+  }
+  
+  .tcase-delete-modal-content {
+    padding: 0 20px 20px 20px;
+  }
+  
+  .tcase-delete-modal-actions {
+    padding: 0 20px 20px 20px;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .tcase-delete-modal-title {
+    font-size: 18px;
+  }
+  
+  .tcase-delete-btn-cancel,
+  .tcase-delete-btn-delete {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Focus Management */
+.tcase-delete-modal-container:focus-within {
+  outline: none;
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .tcase-delete-modal-container {
+    animation: none;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .tcase-delete-modal-container {
+    border: 2px solid #000;
+  }
+}
+
+

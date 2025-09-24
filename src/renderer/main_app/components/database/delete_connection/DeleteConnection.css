@@ -1,0 +1,15 @@
+.dc-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.dc-modal-container { width: 560px; max-width: calc(100vw - 32px); background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
+.dc-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 0px solid #e5e7eb; }
+.dc-modal-title { font-size: 18px; font-weight: 700; color: #111827; margin: 0; }
+.dc-modal-close-btn { background: transparent; border: none; padding: 6px; border-radius: 6px; cursor: pointer; color: #6b7280; }
+.dc-modal-close-btn:hover { background: #f3f4f6; color: #111827; }
+.dc-modal-content { padding: 16px 20px; }
+.dc-modal-message { margin: 0; color: #374151; font-size: 14px; line-height: 1.5; }
+.dc-modal-actions { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 20px; border-top: 1px solid #f3f4f6; }
+.dc-btn-cancel { padding: 10px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; border: 1px solid #e5e7eb; background: #fff; color: #374151; cursor: pointer; }
+.dc-btn-cancel:hover { background: #f9fafb; }
+.dc-btn-delete { padding: 10px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; border: 1px solid transparent; background: #dc2626; color: #fff; cursor: pointer; }
+.dc-btn-delete:hover { background: #b91c1c; }
+
+
