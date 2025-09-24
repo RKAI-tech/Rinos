@@ -6,11 +6,17 @@ import Breadcrumb from '../../components/breadcumb/Breadcrumb';
 import SidebarNavigator from '../../components/sidebar_navigator/SidebarNavigator';
 import './Variables.css';
 import { VariableService } from '../../services/variables';
+import DeleteVariable from '../../components/variable/delete_variable/DeleteVariable';
+import { toast } from 'react-toastify';
 
 interface VariableItem {
   id: string;
-  name: string;
+  customName: string;
+  originalName: string;
   value: string;
+  databaseName: string;
+  databaseType: string;
+  queryName: string;
 }
 
 const Variables: React.FC = () => {
@@ -22,6 +28,8 @@ const Variables: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [itemsPerPage, setItemsPerPage] = useState('5 rows/page');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedVar, setSelectedVar] = useState<{ id: string; name?: string } | null>(null);
 
   useEffect(() => {
     const loadVariables = async () => {
@@ -32,8 +40,12 @@ const Variables: React.FC = () => {
         if (resp.success && resp.data) {
           const items: VariableItem[] = resp.data.items.map(v => ({
             id: v.variable_id,
-            name: v.user_defined_name || v.original_name,
+            customName: v.user_defined_name || v.original_name,
+            originalName: v.original_name,
             value: v.value,
+            databaseName: v.database_name,
+            databaseType: v.database_type,
+            queryName: v.query_name,
           }));
           setVariables(items);
         } else {
@@ -61,7 +73,14 @@ const Variables: React.FC = () => {
 
   const filtered = variables.filter(v => {
     const q = searchText.toLowerCase();
-    return (v.name || '').toLowerCase().includes(q) || (v.value || '').toLowerCase().includes(q);
+    return (
+      (v.customName || '').toLowerCase().includes(q) ||
+      (v.originalName || '').toLowerCase().includes(q) ||
+      (v.value || '').toLowerCase().includes(q) ||
+      (v.databaseName || '').toLowerCase().includes(q) ||
+      (v.databaseType || '').toLowerCase().includes(q) ||
+      (v.queryName || '').toLowerCase().includes(q)
+    );
   });
 
   const getItemsPerPageNumber = () => parseInt(itemsPerPage.split(' ')[0]);
@@ -131,19 +150,27 @@ const Variables: React.FC = () => {
               <table className="vars-table">
                 <thead>
                   <tr>
-                    <th>Variable Name</th>
+                    <th>Custom name</th>
+                    <th>Original name</th>
                     <th>Value</th>
+                    <th>Database name</th>
+                    <th>Database type</th>
+                    <th>Query name</th>
                     <th>Options</th>
                   </tr>
                 </thead>
                 <tbody>
                   {currentItems.map((v) => (
                     <tr key={v.id}>
-                      <td className="vars-name">{v.name}</td>
+                      <td className="vars-name">{v.customName}</td>
+                      <td className="vars-original">{v.originalName}</td>
                       <td className="vars-value">{v.value}</td>
+                      <td className="vars-db-name">{v.databaseName}</td>
+                      <td className="vars-db-type">{v.databaseType}</td>
+                      <td className="vars-query-name">{v.queryName}</td>
                       <td className="vars-actions">
                         <div className="actions-container">
-                          <button className="actions-btn">
+                          <button className="actions-btn" onClick={() => { setSelectedVar({ id: v.id, name: v.customName }); setIsDeleteOpen(true); }}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <circle cx="12" cy="12" r="1" fill="currentColor"/>
                               <circle cx="19" cy="12" r="1" fill="currentColor"/>
@@ -187,6 +214,41 @@ const Variables: React.FC = () => {
       </div>
 
       <Footer />
+      <DeleteVariable
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        variable={selectedVar}
+        onDelete={async (id) => {
+          try {
+            const svc = new VariableService();
+            const resp = await svc.deleteVariable(id);
+            if (resp.success) {
+              toast.success('Variable deleted');
+              setIsDeleteOpen(false);
+              // reload
+              if (projectId) {
+                const list = await svc.getVariablesByProject(projectId);
+                if (list.success && list.data) {
+                  const items: VariableItem[] = list.data.items.map(v => ({
+                    id: v.variable_id,
+                    customName: v.user_defined_name || v.original_name,
+                    originalName: v.original_name,
+                    value: v.value,
+                    databaseName: v.database_name,
+                    databaseType: v.database_type,
+                    queryName: v.query_name,
+                  }));
+                  setVariables(items);
+                }
+              }
+            } else {
+              toast.error(resp.error || 'Failed to delete variable');
+            }
+          } catch (e) {
+            toast.error('Failed to delete variable');
+          }
+        }}
+      />
     </div>
   );
 };

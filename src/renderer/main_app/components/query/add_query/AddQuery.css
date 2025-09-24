@@ -1,0 +1,28 @@
+.aq-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.aq-modal-container { width: 800px; max-width: calc(100vw - 32px); background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
+.aq-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }
+.aq-modal-title { font-size: 18px; font-weight: 700; color: #111827; margin: 0; }
+.aq-modal-close-btn { background: transparent; border: none; padding: 6px; border-radius: 6px; cursor: pointer; color: #6b7280; }
+.aq-modal-close-btn:hover { background: #f3f4f6; color: #111827; }
+.aq-modal-instructions { margin: 0; padding: 12px 20px; color: #6b7280; font-size: 14px; border-bottom: 1px solid #f3f4f6; }
+.aq-modal-form { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.aq-form-group { display: flex; flex-direction: column; gap: 6px; }
+.aq-form-label { font-size: 14px; color: #374151; font-weight: 600; }
+.aq-required { color: #dc2626; }
+.aq-form-input, .aq-form-textarea, .aq-form-select { padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; color: #111827; outline: none; transition: border-color .2s ease, box-shadow .2s ease; background: #fff; }
+.aq-form-textarea { resize: vertical; }
+.aq-form-input:focus, .aq-form-textarea:focus, .aq-form-select:focus { border-color: #5549f5; box-shadow: 0 0 0 3px rgba(85, 73, 245, .1); }
+.aq-error { border-color: #ef4444 !important; }
+.aq-error-message { color: #ef4444; font-size: 12px; }
+.aq-modal-actions { display: flex; justify-content: flex-end; gap: 12px; padding-top: 4px; }
+.aq-btn { padding: 10px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; border: 1px solid transparent; cursor: pointer; }
+.aq-btn-cancel { background: #fff; color: #374151; border-color: #e5e7eb; }
+.aq-btn-cancel:hover { background: #f9fafb; }
+.aq-btn-save { background: #5549f5; color: #fff; }
+.aq-btn-save:hover { background: #4338ca; }
+
+@media (max-width: 640px) {
+  .aq-modal-container { width: 100%; }
+}
+
+

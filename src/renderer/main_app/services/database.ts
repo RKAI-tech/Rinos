@@ -5,13 +5,7 @@ import {
     DatabaseConnectionListRequest,
     DatabaseConnection,
     DatabaseConnectionListResponse,
-    StatementCreateRequest,
-    StatementRunResponse,
-    Statement,
-    StatementListResponse,
-    StatementResponse,
-    StatementRunByIdResponse,
-    StatementDeleteResponse,
+
 } from '../types/databases';
 import { DefaultResponse } from '../types/api_responses';
 

@@ -6,7 +6,11 @@ import Breadcrumb from '../../components/breadcumb/Breadcrumb';
 import SidebarNavigator from '../../components/sidebar_navigator/SidebarNavigator';
 import './Queries.css';
 import { ProjectService } from '../../services/projects';
-import { DatabaseService } from '../../services/database';
+import { StatementService } from '../../services/statements';
+import AddQuery from '../../components/query/add_query/AddQuery';
+import { toast } from 'react-toastify';
+import DeleteQuery from '../../components/query/delete_query/DeleteQuery';
+import RunQuery from '../../components/query/run_query/RunQuery';
 
 interface QueryItem {
   id: string;
@@ -28,20 +32,25 @@ const Queries: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [itemsPerPage, setItemsPerPage] = useState('5 rows/page');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedQuery, setSelectedQuery] = useState<{ id: string; name?: string } | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [isRunOpen, setIsRunOpen] = useState(false);
+  const [runSql, setRunSql] = useState('');
+  const [runItems, setRunItems] = useState<{ name: string; value: string }[]>([]);
 
   const fetchQueries = async () => {
     if (!projectId) return;
     try {
       setIsLoading(true);
       setError(null);
-      const state = (location.state as { connectionId?: string } | null);
-      const connectionId = state?.connectionId;
-      if (!connectionId) {
+      if (!projectId) {
         setQueries([]);
         return;
       }
-      const svc = new DatabaseService();
-      const resp = await svc.getStatementsByConnection(connectionId);
+      const svc = new StatementService();
+      const resp = await svc.getStatementsByProject(projectId);
       if (resp.success && resp.data) {
         const items: QueryItem[] = resp.data.items.map(it => ({
           id: it.statement_id,
@@ -169,7 +178,7 @@ const Queries: React.FC = () => {
                   <option value="20 rows/page">20 rows/page</option>
                   <option value="50 rows/page">50 rows/page</option>
                 </select>
-                <button className="qry-create-query-btn" onClick={() => {}}>
+                <button className="qry-create-query-btn" onClick={() => setIsAddOpen(true)}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -179,7 +188,7 @@ const Queries: React.FC = () => {
               </div>
             </div>
 
-            <div className="qry-table-container">
+            <div className={`qry-table-container`}>
               <table className="qry-table">
                 <thead>
                   <tr>
@@ -201,16 +210,59 @@ const Queries: React.FC = () => {
                       <tr key={q.id}>
                         <td className="qry-name">{q.name}</td>
                         <td className="qry-description">{q.description || '-'}</td>
-                        <td className="qry-status">{q.status || '-'}</td>
+                        <td className="qry-status">
+                          {q.status ? (
+                            <span className={`status-badge ${(q.status || '').toLowerCase()}`}>
+                              {q.status}
+                            </span>
+                          ) : '-'}
+                        </td>
                         <td className="qry-actions">
                           <div className="actions-container">
-                            <button className="actions-btn">
+                            <button className="actions-btn" onClick={() => setOpenDropdownId(openDropdownId === q.id ? null : q.id)}>
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <circle cx="12" cy="12" r="1" fill="currentColor"/>
                                 <circle cx="19" cy="12" r="1" fill="currentColor"/>
                                 <circle cx="5" cy="12" r="1" fill="currentColor"/>
                               </svg>
                             </button>
+                            {openDropdownId === q.id && (
+                              <div className="actions-dropdown">
+                                <button className="dropdown-item" onClick={async () => {
+                                  try {
+                                    const svc = new StatementService();
+                                    setSelectedQuery({ id: q.id, name: q.name });
+                                    const resp = await svc.runStatementById(q.id);
+                                    if (resp.success) {
+                                      toast.success('Query is running');
+                                      // StatementRunByIdResponse does not include statement_text; keep last known
+                                      setRunSql(q.name);
+                                      const items = (resp.data?.data || []).map((d: any) => ({ name: d.name, value: String(d.value) }));
+                                      setRunItems(items);
+                                      setIsRunOpen(true);
+                                    } else {
+                                      toast.error(resp.error || 'Failed to run query');
+                                    }
+                                  } catch (e) {
+                                    toast.error('Failed to run query');
+                                  } finally {
+                                    setOpenDropdownId(null);
+                                  }
+                                }}>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <polygon points="8,5 19,12 8,19" fill="currentColor" />
+                                  </svg>
+                                  Run
+                                </button>
+                                <button className="dropdown-item delete" onClick={() => { setSelectedQuery({ id: q.id, name: q.name }); setIsDeleteOpen(true); setOpenDropdownId(null); }}>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                  Delete
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -249,6 +301,67 @@ const Queries: React.FC = () => {
       </div>
 
       <Footer />
+      <AddQuery
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        projectId={projectId}
+        onSave={async ({ connection_id, name, description, statement_text }) => {
+          try {
+            const svc = new StatementService();
+            const resp = await svc.createAndRunStatement({ connection_id, name, description, statement_text });
+            if (resp.success) {
+              toast.success('Query created');
+              setIsAddOpen(false);
+              // refresh list by project
+              if (projectId) {
+                const list = await svc.getStatementsByProject(projectId);
+                if (list.success && list.data) {
+                  const items: QueryItem[] = list.data.items.map(it => ({ id: it.statement_id, name: it.name, description: it.description, status: it.status }));
+                  setQueries(items);
+                }
+              }
+            } else {
+              toast.error(resp.error || 'Failed to create query');
+            }
+          } catch (e) {
+            toast.error('Failed to create query');
+          }
+        }}
+      />
+      <DeleteQuery
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        query={selectedQuery}
+        onDelete={async (id) => {
+          try {
+            const svc = new StatementService();
+            const resp = await svc.deleteStatement(id);
+            if (resp.success) {
+              toast.success('Query deleted');
+              setIsDeleteOpen(false);
+              if (projectId) {
+                const list = await svc.getStatementsByProject(projectId);
+                if (list.success && list.data) {
+                  const items: QueryItem[] = list.data.items.map(it => ({ id: it.statement_id, name: it.name, description: it.description, status: it.status }));
+                  setQueries(items);
+                }
+              }
+            } else {
+              toast.error(resp.error || 'Failed to delete query');
+            }
+          } catch (e) {
+            toast.error('Failed to delete query');
+          }
+        }}
+      />
+      <RunQuery
+        isOpen={isRunOpen}
+        sql={runSql}
+        items={runItems}
+        projectId={projectId}
+        statementId={selectedQuery?.id || undefined}
+        onClose={() => setIsRunOpen(false)}
+      />
     </div>
   );
 };
