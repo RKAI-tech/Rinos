@@ -5,6 +5,7 @@ import TestScriptTab from '../../components/code_convert/TestScriptTab';
 import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab';
 import { ActionService } from '../../services/actions';
 import { ActionGetResponse } from '../../types/actions';
+import { actionToCode } from '../../utils/action_to_code';
 
 
 
@@ -95,6 +96,16 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     setActiveTab(prev => prev === 'actions' ? 'script' : 'actions');
   };
 
+  const handleDeleteAction = (actionId: string) => {
+    // Local-only delete (no server request)
+    setActions(prev => prev.filter(a => a.action_id !== actionId));
+  };
+
+  const handleDeleteAllActions = () => {
+    // Local-only delete all
+    setActions([]);
+  };
+
   return (
     <div className="rcd-page">
       <div className="rcd-topbar">
@@ -164,9 +175,9 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
 
       <div className="rcd-content">
         {activeTab === 'actions' ? (
-          <ActionTab actions={actions} isLoading={isLoading} />
+          <ActionTab actions={actions} isLoading={isLoading} onDeleteAction={handleDeleteAction} onDeleteAll={handleDeleteAllActions} />
         ) : (
-          <TestScriptTab />
+          <TestScriptTab script={actionToCode(actions)} />
         )}
       </div>
       <ActionToCodeTab onConvert={handleTabSwitch} />
