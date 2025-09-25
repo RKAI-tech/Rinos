@@ -1,11 +1,33 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import authService from '../../services/auth';
 import './Header.css';
 
 const Header: React.FC = () => {
   const { logout, isLoading } = useAuth();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [userEmail] = useState('hunghd@rikkeisoft.com'); // This should come from auth context in real app
+  const [userEmail, setUserEmail] = useState<string>('');
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const resp = await authService.getCurrentUser();
+        if (mounted && resp.success && (resp as any).data) {
+          const email = (resp as any).data.email || '';
+          setUserEmail(email);
+        }
+      } catch (e) {
+        // silent fail; keep placeholder
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  const userEmailShort = useMemo(() => {
+    if (!userEmail) return '';
+    return userEmail.length > 16 ? `${userEmail.slice(0, 14)}...` : userEmail;
+  }, [userEmail]);
 
   const handleLogout = async () => {
     try {
@@ -41,8 +63,8 @@ const Header: React.FC = () => {
               />
             </div>
             <div className="user-info">
-              <div className="user-email-short">hunghd@rikkeisoft...</div>
-              <div className="user-email-full">{userEmail}</div>
+              <div className="user-email-short">{userEmailShort || '...'}</div>
+              <div className="user-email-full">{userEmail || '...'}</div>
             </div>
             <div className="dropdown-chevron">
               <svg 

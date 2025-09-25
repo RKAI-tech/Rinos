@@ -15,6 +15,7 @@
   flex-direction: column;
   background: #fff;
   border-bottom: 1px solid #e5e7eb;
+  min-height: 0; /* allow inner scroller and ensure 50/50 split */
 }
 
 .test-script-header {
@@ -66,6 +67,7 @@
   flex: 1;
   padding: 20px;
   background: #fff;
+  overflow: hidden; /* keep scrollbar inside textarea */
 }
 
 .test-script-textarea {
@@ -79,6 +81,9 @@
   line-height: 1.5;
   color: #374151;
   background: transparent;
+  overflow: auto; /* enable scrolling inside */
+  white-space: pre; /* keep code formatting */
+  -webkit-overflow-scrolling: touch;
 }
 
 .test-script-textarea::placeholder {
@@ -93,6 +98,7 @@
   display: flex;
   flex-direction: column;
   background: #fff;
+  min-height: 0; /* allow inner scroller and ensure 50/50 split */
 }
 
 .test-terminal-header {
@@ -140,6 +146,7 @@
   flex-direction: column;
   padding: 20px;
   background: #fff;
+  overflow: hidden; /* keep inner scroller only */
 }
 
 .terminal-output {
@@ -148,7 +155,10 @@
   border: 1px solid #e5e7eb; /* viền nhẹ */
   border-radius: 8px;
   padding: 16px;
-  overflow-y: auto;
+  overflow-y: auto; /* enable vertical scroll */
+  overflow-x: auto; /* allow horizontal scroll for long lines */
+  height: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
 .terminal-text {

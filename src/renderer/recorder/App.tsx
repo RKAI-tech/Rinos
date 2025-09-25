@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Main from './pages/main/Main';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function App() {
   const [testcaseId, setTestcaseId] = useState<string | null>(null);
@@ -69,5 +71,10 @@ export default function App() {
     );
   }
 
-  return <Main testcaseId={testcaseId} />;
+  return (
+    <>
+      <Main testcaseId={testcaseId} />
+      <ToastContainer position="top-right" autoClose={3000} newestOnTop closeOnClick pauseOnHover theme="colored" />
+    </>
+  );
 }

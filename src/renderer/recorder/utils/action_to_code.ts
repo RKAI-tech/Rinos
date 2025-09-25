@@ -135,27 +135,20 @@ export function getResolveUniqueSelectorFunctionString(): string {
 }
 export function actionToCode(actions: ActionGetResponse[]):string {
     let code = "";
-    // Required imports and bootstrap for a runnable Playwright JS script
-    code += `const { chromium } = require('@playwright/test');\n`;
+    // Playwright Test format (using built-in test runner fixtures)
+    code += `import { test, expect } from '@playwright/test';\n`;
     code += `\n`;
     // Helper to resolve a unique selector at runtime
     code += getResolveUniqueSelectorFunctionString();
     code += `\n`;
-    // Main runner
-    code += `async function main() {\n`;
-    code += `  const browser = await chromium.launch({ headless: false });\n`;
-    code += `  const context = await browser.newContext();\n`;
-    code += `  const page = await context.newPage();\n`;
+    // Test block
+    code += `test('Generated Test', async ({ page }) => {\n`;
     code += `  let candidates; let sel;\n`;
-    for (const action of actions) {
-        code += generateActionCode(action, action.order_index);
+    for (let i = 0; i < actions.length; i++) {
+        const action = actions[i];
+        // Use the current position (1-based) to ensure numbering matches UI after local deletes/reorders
+        code += generateActionCode(action, i + 1);
     }
-    code += `  await browser.close();\n`;
-    code += `}\n`;
-    code += `\n`;
-    code += `main().catch(err => {\n`;
-    code += `  console.error(err);\n`;
-    code += `  process.exit(1);\n`;
     code += `});\n`;
     return code;
 }

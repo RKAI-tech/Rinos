@@ -3,11 +3,21 @@ import './TestScriptTab.css';
 
 interface TestScriptTabProps {
   script: string;
+  runResult?: string;
+  onScriptChange?: (code: string) => void;
 }
 
-const TestScriptTab: React.FC<TestScriptTabProps> = ({ script }) => {
+import { useEffect } from 'react';
+
+const TestScriptTab: React.FC<TestScriptTabProps> = ({ script, runResult, onScriptChange }) => {
   const [localScript, setLocalScript] = useState(script);
   const [terminalOutput, setTerminalOutput] = useState('');
+
+  useEffect(() => {
+    if (runResult !== undefined) {
+      setTerminalOutput(runResult || '');
+    }
+  }, [runResult]);
 
   const handleCopyScript = () => {
     if (localScript) {
@@ -69,7 +79,7 @@ const TestScriptTab: React.FC<TestScriptTabProps> = ({ script }) => {
         <div className="test-script-content">
           <textarea
             value={localScript}
-            onChange={(e) => setLocalScript(e.target.value)}
+            onChange={(e) => { setLocalScript(e.target.value); onScriptChange && onScriptChange(e.target.value); }}
             placeholder="// Generated test script will appear here..."
             className="test-script-textarea"
           />
