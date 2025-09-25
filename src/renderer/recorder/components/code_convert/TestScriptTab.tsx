@@ -1,20 +1,34 @@
 import React, { useState } from 'react';
 import './TestScriptTab.css';
 
-const TestScriptTab: React.FC = () => {
-  const [script, setScript] = useState('');
+interface TestScriptTabProps {
+  script: string;
+  runResult?: string;
+  onScriptChange?: (code: string) => void;
+}
+
+import { useEffect } from 'react';
+
+const TestScriptTab: React.FC<TestScriptTabProps> = ({ script, runResult, onScriptChange }) => {
+  const [localScript, setLocalScript] = useState(script);
   const [terminalOutput, setTerminalOutput] = useState('');
 
+  useEffect(() => {
+    if (runResult !== undefined) {
+      setTerminalOutput(runResult || '');
+    }
+  }, [runResult]);
+
   const handleCopyScript = () => {
-    if (script) {
-      navigator.clipboard.writeText(script);
+    if (localScript) {
+      navigator.clipboard.writeText(localScript);
       // TODO: Show toast notification
     }
   };
 
   const handleDownloadScript = () => {
-    if (script) {
-      const blob = new Blob([script], { type: 'text/plain' });
+    if (localScript) {
+      const blob = new Blob([localScript], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -64,8 +78,8 @@ const TestScriptTab: React.FC = () => {
         </div>
         <div className="test-script-content">
           <textarea
-            value={script}
-            onChange={(e) => setScript(e.target.value)}
+            value={localScript}
+            onChange={(e) => { setLocalScript(e.target.value); onScriptChange && onScriptChange(e.target.value); }}
             placeholder="// Generated test script will appear here..."
             className="test-script-textarea"
           />

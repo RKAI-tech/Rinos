@@ -1,6 +1,6 @@
 
 export enum ActionType {
-    INPUT = 'INPUT',
+    INPUT = '',
     CLICK = 'CLICK',
     SELECT = 'SELECT',
     CHECKBOX = 'CHECKBOX',
@@ -16,7 +16,6 @@ export enum ActionType {
     CONNECT_DB = 'CONNECT_DB',
     NAVIGATE = 'NAVIGATE',
     DOUBLE_CLICK = 'DOUBLE_CLICK',
-    
     RIGHT_CLICK = 'RIGHT_CLICK',
     SHIFT_CLICK = 'SHIFT_CLICK',
     KEYDOWN = 'KEYDOWN',

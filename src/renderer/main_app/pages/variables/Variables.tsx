@@ -6,6 +6,7 @@ import Breadcrumb from '../../components/breadcumb/Breadcrumb';
 import SidebarNavigator from '../../components/sidebar_navigator/SidebarNavigator';
 import './Variables.css';
 import { VariableService } from '../../services/variables';
+import { ProjectService } from '../../services/projects';
 import DeleteVariable from '../../components/variable/delete_variable/DeleteVariable';
 import { toast } from 'react-toastify';
 
@@ -23,6 +24,8 @@ const Variables: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { projectId } = useParams();
+  const projectData = { projectId, projectName: (location.state as { projectName?: string } | null)?.projectName };
+  const [resolvedProjectName, setResolvedProjectName] = useState<string>(projectData.projectName || 'Project');
 
   const [variables, setVariables] = useState<VariableItem[]>([]);
   const [searchText, setSearchText] = useState('');
@@ -58,6 +61,22 @@ const Variables: React.FC = () => {
     loadVariables();
   }, [projectId]);
 
+  useEffect(() => {
+    const loadProjectName = async () => {
+      if (!projectId) return;
+      if (projectData.projectName) {
+        setResolvedProjectName(projectData.projectName);
+        return;
+      }
+      const svc = new ProjectService();
+      const resp = await svc.getProjectById(projectId);
+      if (resp.success && resp.data) {
+        setResolvedProjectName((resp.data as any).name || 'Project');
+      }
+    };
+    loadProjectName();
+  }, [projectId]);
+
   const sidebarItems = [
     { id: 'testcases', label: 'Testcases', path: `/testcases/${projectId}`, isActive: false },
     { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
@@ -68,7 +87,7 @@ const Variables: React.FC = () => {
 
   const breadcrumbItems = [
     { label: 'Projects', path: '/dashboard', isActive: false },
-    { label: 'Variables', path: `/variables/${projectId}`, isActive: true },
+    { label: resolvedProjectName, path: `/variables/${projectId}`, isActive: true },
   ];
 
   const filtered = variables.filter(v => {

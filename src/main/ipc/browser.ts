@@ -5,6 +5,10 @@ import { Page } from "playwright";
 
 const browserManager = new BrowserManager();
 
+browserManager.on('action', (action: Action) => {
+    console.log('[BROWSER] Action received:', action);
+});
+
 export function registerBrowserIpc() {
     ipcMain.handle("browser:start", async () => {
         await browserManager.start();

@@ -149,6 +149,10 @@ export class BrowserManager extends EventEmitter {
         }
 
         try {
+            await this.context.exposeFunction('sendActionToMain', (action: Action) => {
+                this.emit('action', action);
+            });
+            
             const script = readFileSync(path, 'utf8');
             await this.context.addInitScript((script) => {
                 try {

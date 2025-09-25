@@ -6,9 +6,11 @@ import { ActionGetResponse } from '../../types/actions';
 interface ActionTabProps {
   actions: ActionGetResponse[];
   isLoading: boolean;
+  onDeleteAction?: (actionId: string) => void;
+  onDeleteAll?: () => void;
 }
 
-const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading }) => {
+const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteAction, onDeleteAll }) => {
   return (
     <div className="rcd-actions-section">
       <div className="rcd-actions-header">
@@ -28,7 +30,7 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading }) => {
               <polyline points="7,3 7,8 15,8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <button className="rcd-action-btn delete" title="Delete">
+          <button className="rcd-action-btn delete" title="Delete all" onClick={() => onDeleteAll && onDeleteAll()}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -45,7 +47,7 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading }) => {
           </div>
         ) : actions.length > 0 ? (
           actions.map((action) => (
-            <Action key={action.action_id} action={action} />
+            <Action key={action.action_id} action={action} onDelete={onDeleteAction} />
           ))
         ) : (
           <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>

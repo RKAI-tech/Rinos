@@ -8,6 +8,7 @@ import './Databases.css';
 import CreateConnection from '../../components/database/create_connection/CreateConnection';
 import DeleteConnection from '../../components/database/delete_connection/DeleteConnection';
 import { DatabaseService } from '../../services/database';
+import { ProjectService } from '../../services/projects';
 import { toast } from 'react-toastify';
 
 interface DatabaseItem {
@@ -23,6 +24,7 @@ const Databases: React.FC = () => {
   const navigate = useNavigate();
   const { projectId } = useParams();
   const projectData = { projectId, projectName: (location.state as { projectName?: string } | null)?.projectName };
+  const [resolvedProjectName, setResolvedProjectName] = useState<string>(projectData.projectName || 'Project');
 
   const [databases, setDatabases] = useState<DatabaseItem[]>([]);
   const [searchText, setSearchText] = useState('');
@@ -58,6 +60,22 @@ const Databases: React.FC = () => {
     loadConnections();
   }, [projectId]);
 
+  useEffect(() => {
+    const loadProjectName = async () => {
+      if (!projectId) return;
+      if (projectData.projectName) {
+        setResolvedProjectName(projectData.projectName);
+        return;
+      }
+      const svc = new ProjectService();
+      const resp = await svc.getProjectById(projectId);
+      if (resp.success && resp.data) {
+        setResolvedProjectName((resp.data as any).name || 'Project');
+      }
+    };
+    loadProjectName();
+  }, [projectId]);
+
   const sidebarItems = [
     { id: 'testcases', label: 'Testcases', path: `/testcases/${projectId}`, isActive: false },
     { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
@@ -68,7 +86,7 @@ const Databases: React.FC = () => {
 
   const breadcrumbItems = [
     { label: 'Projects', path: '/dashboard', isActive: false },
-    { label: projectData.projectName || 'Project', path: `/databases/${projectId}`, isActive: true },
+    { label: resolvedProjectName, path: `/databases/${projectId}`, isActive: true },
   ];
 
   const filtered = databases.filter(db => {
