@@ -8,7 +8,6 @@ import { ActionGetResponse } from '../../types/actions';
 import { actionToCode } from '../../utils/action_to_code';
 
 
-
 interface MainProps {
   testcaseId?: string | null;
 }
@@ -85,6 +84,24 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     }
   };
 
+  const startBrowser = async (url: string) => {
+    if (actions.length > 0) {
+      await (window as any).browserAPI?.browser?.start();
+      await (window as any).browserAPI?.browser?.executeActions(actions);
+    }
+    else {
+      if (!url) {
+        alert('Please enter a URL');
+        return;
+      }
+      await (window as any).browserAPI?.browser?.start();
+      if (!url.startsWith('http')) {
+        url = 'https://' + url;
+      }
+      await (window as any).browserAPI?.browser?.navigate(url);
+    }
+  };
+
   const handleAssertSelect = (assertType: string) => {
     setSelectedAssert(assertType);
     setIsAssertDropdownOpen(false);
@@ -111,7 +128,9 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
       <div className="rcd-topbar">
         <input className="rcd-url" placeholder="Type your URL here.." value={url} onChange={(e) => setUrl(e.target.value)} />
         <div className="rcd-topbar-actions">
-          <button className="rcd-ctrl rcd-record" title="Record">
+          <button className="rcd-ctrl rcd-record" title="Record"
+            onClick={() => startBrowser(url)}
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <polygon points="5,3 19,12 5,21" fill="currentColor"/>
             </svg>

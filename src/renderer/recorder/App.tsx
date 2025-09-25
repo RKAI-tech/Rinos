@@ -4,7 +4,7 @@ import Main from './pages/main/Main';
 export default function App() {
   const [testcaseId, setTestcaseId] = useState<string | null>(null);
   const [isTokenSynced, setIsTokenSynced] = useState(false);
-  
+
 
   useEffect(() => {
     console.log('[Recorder App] component mounted');
