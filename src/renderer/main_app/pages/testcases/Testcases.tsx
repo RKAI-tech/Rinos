@@ -188,7 +188,8 @@ const Testcases: React.FC = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
-  const handleTestcaseActions = (testcaseId: string) => {
+  const handleTestcaseActions = (testcaseId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Ngăn chặn event bubbling
     setOpenDropdownId(openDropdownId === testcaseId ? null : testcaseId);
   };
 
@@ -234,14 +235,16 @@ const Testcases: React.FC = () => {
     navigate(path);
   };
 
-  const handleOpenEdit = (id: string) => {
+  const handleOpenEdit = (id: string, event?: React.MouseEvent) => {
+    if (event) event.stopPropagation(); // Ngăn chặn event bubbling
     const tc = testcases.find(t => t.id === id) || null;
     setSelectedTestcase(tc);
     setIsEditModalOpen(true);
     setOpenDropdownId(null);
   };
 
-  const handleOpenDelete = (id: string) => {
+  const handleOpenDelete = (id: string, event?: React.MouseEvent) => {
+    if (event) event.stopPropagation(); // Ngăn chặn event bubbling
     const tc = testcases.find(t => t.id === id) || null;
     setSelectedTestcase(tc);
     setIsDeleteModalOpen(true);
@@ -405,7 +408,7 @@ const Testcases: React.FC = () => {
                       <div className="actions-container">
                         <button 
                           className="actions-btn"
-                          onClick={() => handleTestcaseActions(testcase.id)}
+                          onClick={(e) => handleTestcaseActions(testcase.id, e)}
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <circle cx="12" cy="12" r="1" fill="currentColor"/>
@@ -416,14 +419,14 @@ const Testcases: React.FC = () => {
                         
                         {openDropdownId === testcase.id && (
                           <div className="actions-dropdown">
-                            <button className="dropdown-item" onClick={() => handleOpenEdit(testcase.id)}>
+                            <button className="dropdown-item" onClick={(e) => handleOpenEdit(testcase.id, e)}>
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                               Edit
                             </button>
-                            <button className="dropdown-item delete" onClick={() => handleOpenDelete(testcase.id)}>
+                            <button className="dropdown-item delete" onClick={(e) => handleOpenDelete(testcase.id, e)}>
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

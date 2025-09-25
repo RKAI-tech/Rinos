@@ -1,6 +1,6 @@
 import { config} from '../env.config';
 import { ApiResponse } from '../types/api_responses';
-;
+
 export class ApiRouter {
   private baseUrl: string;
   private token: string | null = null;
@@ -8,7 +8,6 @@ export class ApiRouter {
   constructor() {
     this.baseUrl = config.API_BASE_URL;
     console.log('[ApiRouter] Initialized with base URL:', this.baseUrl);
-
   }
   setAuthToken(token: string | null) {
     this.token = token;
@@ -30,7 +29,7 @@ export class ApiRouter {
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
-
+    console.log('[ApiRouter] Token available:', this.token ? '***' : 'null');
     try {
       console.log('[ApiRouter] Request =>', options.method || 'GET', url);
       console.log('[ApiRouter] Request headers:', headers);

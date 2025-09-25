@@ -7,8 +7,8 @@ export function registerIpcHandlers() {
   // Microsoft login
 
   // Handler để mở cửa sổ recorder
-  ipcMain.handle("open-recorder", () => {
-    createRecorderWindow();
+  ipcMain.handle("open-recorder", (_evt, testcaseId?: string) => {
+    createRecorderWindow(testcaseId);
   });
 
   // Handler để lấy thông tin app

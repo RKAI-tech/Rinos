@@ -1,44 +1,175 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import './Main.css';
-// @ts-ignore - JSX component with separate d.ts
-import Action from '../../components/action/Action.jsx';
+import ActionTab from '../../components/action_tab/ActionTab';
+import TestScriptTab from '../../components/code_convert/TestScriptTab';
+import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab';
+import { ActionService } from '../../services/actions';
+import { ActionGetResponse } from '../../types/actions';
 
-const mockActions = [
-  { id: '1', type: 'navigate', title: 'Navigate to https://testcase.rikkei.org', meta: 'https://testcase.rikkei.org', time: '4:56:11 PM' },
-  { id: '2', type: 'type', title: 'Enter "hoangdinhhung20012003" in Enter your admin email', meta: '#admin-email', value: 'hoangdinhhung20012003', time: '4:56:11 PM' },
-  { id: '3', type: 'type', title: 'Enter "20210399" in Enter your password', meta: '#admin-password', value: '20210399', time: '4:56:11 PM' },
-  { id: '4', type: 'keydown', title: 'Key down on Enter your password', meta: '#admin-password', value: 'Enter', time: '4:56:11 PM' },
-  { id: '5', type: 'type', title: 'Enter "hoangdinhhung20012003..." in Enter your admin email', meta: '#admin-email', value: 'hoangdinhhung20012003@gmail.com', time: '4:56:11 PM' },
-  { id: '6', type: 'keydown', title: 'Key down on Enter your admin email', meta: '#admin-email', value: 'Enter', time: '4:56:11 PM' },
-  { id: '7', type: 'click', title: 'Click on …', meta: '.admin-login-form', time: '4:56:11 PM' },
-];
 
-const Main: React.FC = () => {
+
+interface MainProps {
+  testcaseId?: string | null;
+}
+
+const Main: React.FC<MainProps> = ({ testcaseId }) => {
   const [url, setUrl] = useState('');
-  const actions = useMemo(() => mockActions, []);
+  const [isAssertDropdownOpen, setIsAssertDropdownOpen] = useState(false);
+  const [assertSearch, setAssertSearch] = useState('');
+  const [selectedAssert, setSelectedAssert] = useState<string | null>(null);
+  const [actions, setActions] = useState<ActionGetResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'actions' | 'script'>('actions');
+  console.log('[Main] testcaseId:', testcaseId);
+  const actionService = useMemo(() => new ActionService(), []);
+  
+  // Load actions khi có testcase ID
+  useEffect(() => {
+    const loadActions = async () => {
+      if (testcaseId) {
+        console.log('[Main] Loading actions for testcase ID:', testcaseId);
+        setIsLoading(true);
+        
+        try {
+          const response = await actionService.getActionsByTestCase(testcaseId);
+          if (response.success && response.data) {
+            setActions(response.data.actions);
+            console.log('[Main] Loaded actions:', response.data.actions);
+          } else {
+            console.error('[Main] Failed to load actions:', response.error);
+            setActions([]);
+          }
+        } catch (error) {
+          console.error('[Main] Error loading actions:', error);
+          setActions([]);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setActions([]);
+      }
+    };
+
+    loadActions();
+  }, [testcaseId, actionService]);
+
+  const assertTypes = [
+    'Text Assert',
+    'Element Assert', 
+    'Attribute Assert',
+    'Visibility Assert',
+    'Click Assert',
+    'Input Assert',
+    'URL Assert',
+    'Title Assert'
+  ];
+
+  const filteredAssertTypes = assertTypes.filter(type => 
+    type.toLowerCase().includes(assertSearch.toLowerCase())
+  );
+
+  const handleAssertClick = () => {
+    if (selectedAssert) {
+      // Nếu đã có selected assert thì tắt đi (xóa selection)
+      setSelectedAssert(null);
+      setIsAssertDropdownOpen(false);
+      setAssertSearch('');
+    } else if (isAssertDropdownOpen) {
+      // Nếu dropdown đang mở thì đóng
+      setIsAssertDropdownOpen(false);
+      setAssertSearch('');
+    } else {
+      // Nếu không có selected assert và dropdown đang đóng thì mở
+      setIsAssertDropdownOpen(true);
+    }
+  };
+
+  const handleAssertSelect = (assertType: string) => {
+    setSelectedAssert(assertType);
+    setIsAssertDropdownOpen(false);
+    setAssertSearch('');
+    // Không thay đổi active state, giữ màu xanh
+  };
+
+  const handleTabSwitch = () => {
+    setActiveTab(prev => prev === 'actions' ? 'script' : 'actions');
+  };
 
   return (
     <div className="rcd-page">
       <div className="rcd-topbar">
         <input className="rcd-url" placeholder="Type your URL here.." value={url} onChange={(e) => setUrl(e.target.value)} />
         <div className="rcd-topbar-actions">
-          <button className="rcd-ctrl rcd-play" title="Play">▶</button>
-          <button className="rcd-ctrl" title="Save">💾</button>
-          <button className="rcd-ctrl" title="Export">📤</button>
+          <button className="rcd-ctrl rcd-record" title="Record">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="5,3 19,12 5,21" fill="currentColor"/>
+            </svg>
+          </button>
+          <div className="rcd-assert-container">
+            <button 
+              className={`rcd-ctrl rcd-assert ${isAssertDropdownOpen || selectedAssert ? 'active' : ''}`} 
+              title="Assert"
+              onClick={handleAssertClick}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 17l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            
+            {isAssertDropdownOpen && (
+              <div className="rcd-assert-dropdown">
+                <div className="rcd-assert-search">
+                  <input
+                    type="text"
+                    placeholder="Search assert types..."
+                    value={assertSearch}
+                    onChange={(e) => setAssertSearch(e.target.value)}
+                    className="rcd-assert-search-input"
+                  />
+                </div>
+                <div className="rcd-assert-list">
+                  {filteredAssertTypes.map((type, index) => (
+                    <div 
+                      key={index} 
+                      className="rcd-assert-item"
+                      onClick={() => handleAssertSelect(type)}
+                    >
+                      {type}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
+      {selectedAssert && (
+        <div className="rcd-selected-assert">
+          <div className="rcd-selected-assert-content">
+            <span className="rcd-selected-assert-label">Selected Assert:</span>
+            <span className="rcd-selected-assert-type">{selectedAssert}</span>
+            <button 
+              className="rcd-selected-assert-remove"
+              onClick={() => setSelectedAssert(null)}
+              title="Remove selected assert"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="rcd-content">
-        <h3 className="rcd-title">Actions</h3>
-        <div className="rcd-actions-list">
-          {actions.map((a) => (
-            <Action key={a.id} action={a} />
-          ))}
-        </div>
-        <div className="rcd-footer">
-          <button className="rcd-run">Run Test</button>
-        </div>
+        {activeTab === 'actions' ? (
+          <ActionTab actions={actions} isLoading={isLoading} />
+        ) : (
+          <TestScriptTab />
+        )}
       </div>
+      <ActionToCodeTab onConvert={handleTabSwitch} />
     </div>
   );
 };

@@ -1,0 +1,48 @@
+.rcd-action-to-code-tab {
+  margin-top: auto;
+  padding: 16px 0;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.rcd-tab-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.rcd-convert-btn {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  padding: 8px;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #21262e;
+
+}
+
+.rcd-convert-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.rcd-run-test {
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.rcd-run-test:hover {
+  background: #16a34a;
+}

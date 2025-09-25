@@ -1,0 +1,150 @@
+/* Actions Section */
+.rcd-actions-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Actions Header */
+.rcd-actions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 0px solid #e5e7eb;
+  flex-wrap: nowrap;
+}
+
+.rcd-actions-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rcd-actions-buttons {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.rcd-action-btn {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #6b7280;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-in-out;
+}
+
+.rcd-action-btn:hover {
+  background: #f9fafb;
+  color: #374151;
+}
+
+.rcd-action-btn:active {
+  transform: translateY(0);
+}
+
+.rcd-action-btn.reset {
+  color: #f59e0b;
+}
+
+.rcd-action-btn.save {
+  color: #10b981;
+}
+
+.rcd-action-btn.delete {
+  color: #ef4444;
+}
+
+/* Actions List */
+.rcd-actions-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px 20px 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .rcd-actions-header {
+    padding: 14px 16px;
+  }
+  
+  .rcd-actions-title {
+    font-size: 16px;
+  }
+  
+  .rcd-action-btn {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .rcd-actions-list {
+    gap: 10px;
+    padding: 12px 16px 16px 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .rcd-actions-header {
+    padding: 12px 16px;
+    flex-direction: row;
+    align-items: center;
+  }
+  
+  .rcd-actions-title {
+    font-size: 16px;
+  }
+  
+  .rcd-actions-buttons {
+    gap: 4px;
+  }
+  
+  .rcd-action-btn {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .rcd-actions-list {
+    gap: 8px;
+    padding: 10px 16px 16px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .rcd-actions-header {
+    padding: 10px 12px;
+  }
+  
+  .rcd-actions-title {
+    font-size: 14px;
+  }
+  
+  .rcd-action-btn {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .rcd-actions-buttons {
+    gap: 3px;
+  }
+  
+  .rcd-actions-list {
+    gap: 6px;
+    padding: 8px 12px 12px 12px;
+  }
+}

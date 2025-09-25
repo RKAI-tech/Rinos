@@ -62,7 +62,28 @@ export function createMainAppWindow() {
   return win;
 }
 
-export function createRecorderWindow() {
-  return createWindow({ width: 500, height: 800 }, "recorder");
+export function createRecorderWindow(testcaseId?: string) {
+  const win = createWindow({ width: 500, height: 800 }, "recorder");
+  
+  // Nếu có testcaseId, thêm vào URL sau khi window được tạo
+  if (testcaseId) {
+    // Đợi một chút để đảm bảo window đã load xong
+    setTimeout(() => {
+      const currentUrl = win.webContents.getURL();
+      const separator = currentUrl.includes('?') ? '&' : '?';
+      const newUrl = `${currentUrl}${separator}testcaseId=${encodeURIComponent(testcaseId)}`;
+      console.log('[WindowManager] Loading recorder with testcaseId:', testcaseId);
+      console.log('[WindowManager] Current URL:', currentUrl);
+      console.log('[WindowManager] New URL:', newUrl);
+      win.loadURL(newUrl);
+    }, 1000); // Đợi 1 giây để đảm bảo window đã load xong
+  } else {
+    console.log('[WindowManager] Creating recorder window without testcaseId');
+  }
+  
+  try {
+    win.webContents.openDevTools({ mode: "detach" });
+  } catch {}
+  return win;
 }
 
