@@ -112,6 +112,10 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     setActiveTab(prev => prev === 'actions' ? 'script' : 'actions');
   };
 
+  const stopBrowser = async () => {
+    await (window as any).browserAPI?.browser?.stop();
+  };
+
   return (
     <div className="rcd-page">
       <div className="rcd-topbar">
@@ -121,7 +125,14 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
             onClick={() => startBrowser(url)}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <polygon points="5,3 19,12 5,21" fill="currentColor"/>
+              <polygon points="6,3 20,12 6,21" fill="green"/>
+            </svg>
+          </button>
+          <button className="rcd-ctrl rcd-stop" title="Stop"
+            onClick={stopBrowser}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="6" y="6" width="13" height="13" fill="red"/>
             </svg>
           </button>
           <div className="rcd-assert-container">

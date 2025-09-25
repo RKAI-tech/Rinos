@@ -11,8 +11,17 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main_app: path.resolve(process.cwd(), "src/renderer/main_app/index.html"),
+        main: path.resolve(process.cwd(), "src/renderer/main_app/index.html"),
         recorder: path.resolve(process.cwd(), "src/renderer/recorder/index.html"),
+        trackingScript: path.resolve(process.cwd(), "src/browser/tracker/trackingScript.js"),
+      },
+      output: {
+        entryFileNames: (chunkInfo) => {
+          if (chunkInfo.name === "trackingScript") {
+            return "browser/tracker/trackingScript.js";
+          }
+          return 'assets/[name]-[hash].js';
+        }
       }
     },
   },
