@@ -9,7 +9,7 @@ export function registerScreenHandlersIpc() {
     try {
         console.log('[Screen Handle] Opening recorder for testcase:', testcaseId);
       // Always open a new recorder window for a testcase
-      const win: BrowserWindow = createRecorderWindow();
+      const win: BrowserWindow = createRecorderWindow(testcaseId);
       if (testcaseId) {
         try { win.setTitle(`Recorder - Testcase ${testcaseId}`); } catch {}
         console.log('[Screen Handle] Set title to:', `Recorder - Testcase ${testcaseId}`);

@@ -62,7 +62,22 @@ export function createMainAppWindow() {
   return win;
 }
 
-export function createRecorderWindow() {
-  return createWindow({ width: 500, height: 800 }, "recorder");
+export function createRecorderWindow(testcaseId?: string) {
+  const win = createWindow({ width: 500, height: 800 }, "recorder");
+  
+  // Nếu có testcaseId, thêm vào URL sau khi window được tạo
+  if (testcaseId) {
+    win.webContents.once('did-finish-load', () => {
+      const currentUrl = win.webContents.getURL();
+      const separator = currentUrl.includes('?') ? '&' : '?';
+      const newUrl = `${currentUrl}${separator}testcaseId=${encodeURIComponent(testcaseId)}`;
+      win.loadURL(newUrl);
+    });
+  }
+  
+  try {
+    win.webContents.openDevTools({ mode: "detach" });
+  } catch {}
+  return win;
 }
 
