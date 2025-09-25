@@ -130,15 +130,6 @@ body, html { overflow: hidden; }
 }
 .rcd-content { width: 100%; padding: 20px; flex: 1; display: flex; flex-direction: column; background: #fff; border-radius: 0px; overflow: hidden; box-sizing: border-box; }
 .rcd-title { color: #0f172a; font-size: 16px; margin: 8px 0 12px; }
-.rcd-actions-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; width: 100%; flex-wrap: nowrap; }
-.rcd-actions-title { color: #0f172a; font-size: 16px; font-weight: 600; flex-shrink: 0; white-space: nowrap; }
-.rcd-actions-buttons { display: flex; gap: 6px; flex-shrink: 0; }
-.rcd-action-btn { background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; padding: 4px; cursor: pointer; font-size: 13px; color: #6b7280; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
-.rcd-action-btn:hover { background: #f9fafb; color: #374151; }
-.rcd-action-btn.reset { color: #f59e0b; }
-.rcd-action-btn.save { color: #10b981; }
-.rcd-action-btn.delete { color: #ef4444; }
-.rcd-actions-list { display: flex; flex-direction: column; gap: 10px; flex: 1; overflow-y: auto; padding-right: 8px; }
 
 /* Tablet styles */
 @media (max-width: 1024px) {
@@ -155,9 +146,6 @@ body, html { overflow: hidden; }
   .rcd-url { min-width: 150px; font-size: 12px; padding: 8px 10px; }
   .rcd-topbar-actions { gap: 4px; }
   .rcd-ctrl { width: 32px; height: 32px; padding: 4px; }
-  .rcd-actions-header { flex-direction: row; align-items: center; gap: 8px; }
-  .rcd-actions-buttons { justify-content: flex-end; }
-  .rcd-action-btn { width: 28px; height: 28px; }
 }
 
 /* Small mobile styles */
@@ -166,6 +154,4 @@ body, html { overflow: hidden; }
   .rcd-topbar { padding: 6px; }
   .rcd-url { min-width: 120px; font-size: 11px; padding: 6px 8px; }
   .rcd-ctrl { width: 28px; height: 28px; padding: 4px; }
-  .rcd-actions-title { font-size: 14px; }
-  .rcd-action-btn { width: 24px; height: 24px; }
 }

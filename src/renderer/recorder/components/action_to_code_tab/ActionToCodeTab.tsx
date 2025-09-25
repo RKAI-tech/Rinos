@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
 import './ActionToCodeTab.css';
 
-const ActionToCodeTab: React.FC = () => {
+interface ActionToCodeTabProps {
+  onConvert?: () => void;
+}
+
+const ActionToCodeTab: React.FC<ActionToCodeTabProps> = ({ onConvert }) => {
   const [isConverting, setIsConverting] = useState(false);
 
   const handleConvert = () => {
     setIsConverting(!isConverting);
+    // Call parent's convert handler
+    if (onConvert) {
+      onConvert();
+    }
     // TODO: Implement conversion logic
   };
 

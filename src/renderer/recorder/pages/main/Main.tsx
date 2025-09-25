@@ -1,18 +1,12 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import './Main.css';
-// @ts-ignore - JSX component with separate d.ts
-import Action from '../../components/action/Action.jsx';
+import ActionTab from '../../components/action_tab/ActionTab';
+import TestScriptTab from '../../components/code_convert/TestScriptTab';
 import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab';
+import { ActionService } from '../../services/actions';
+import { ActionGetResponse } from '../../types/actions';
 
-const mockActions = [
-  { id: '1', type: 'navigate', title: 'Navigate to https://testcase.rikkei.org', meta: 'https://testcase.rikkei.org', time: '4:56:11 PM' },
-  { id: '2', type: 'type', title: 'Enter "hoangdinhhung20012003" in Enter your admin email', meta: '#admin-email', value: 'hoangdinhhung20012003', time: '4:56:11 PM' },
-  { id: '3', type: 'type', title: 'Enter "20210399" in Enter your password', meta: '#admin-password', value: '20210399', time: '4:56:11 PM' },
-  { id: '4', type: 'keydown', title: 'Key down on Enter your password', meta: '#admin-password', value: 'Enter', time: '4:56:11 PM' },
-  { id: '5', type: 'type', title: 'Enter "hoangdinhhung20012003..." in Enter your admin email', meta: '#admin-email', value: 'hoangdinhhung20012003@gmail.com', time: '4:56:11 PM' },
-  { id: '6', type: 'keydown', title: 'Key down on Enter your admin email', meta: '#admin-email', value: 'Enter', time: '4:56:11 PM' },
-  { id: '7', type: 'click', title: 'Click on …', meta: '.admin-login-form', time: '4:56:11 PM' },
-];
+
 
 interface MainProps {
   testcaseId?: string | null;
@@ -23,15 +17,41 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
   const [isAssertDropdownOpen, setIsAssertDropdownOpen] = useState(false);
   const [assertSearch, setAssertSearch] = useState('');
   const [selectedAssert, setSelectedAssert] = useState<string | null>(null);
-  const actions = useMemo(() => mockActions, []);
-
-  // Log testcase ID khi component mount
+  const [actions, setActions] = useState<ActionGetResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'actions' | 'script'>('actions');
+  console.log('[Main] testcaseId:', testcaseId);
+  const actionService = useMemo(() => new ActionService(), []);
+  
+  // Load actions khi có testcase ID
   useEffect(() => {
-    if (testcaseId) {
-      console.log('[Main] Received testcase ID:', testcaseId);
-      // TODO: Load testcase data based on ID
-    }
-  }, [testcaseId]);
+    const loadActions = async () => {
+      if (testcaseId) {
+        console.log('[Main] Loading actions for testcase ID:', testcaseId);
+        setIsLoading(true);
+        
+        try {
+          const response = await actionService.getActionsByTestCase(testcaseId);
+          if (response.success && response.data) {
+            setActions(response.data.actions);
+            console.log('[Main] Loaded actions:', response.data.actions);
+          } else {
+            console.error('[Main] Failed to load actions:', response.error);
+            setActions([]);
+          }
+        } catch (error) {
+          console.error('[Main] Error loading actions:', error);
+          setActions([]);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setActions([]);
+      }
+    };
+
+    loadActions();
+  }, [testcaseId, actionService]);
 
   const assertTypes = [
     'Text Assert',
@@ -69,6 +89,10 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     setIsAssertDropdownOpen(false);
     setAssertSearch('');
     // Không thay đổi active state, giữ màu xanh
+  };
+
+  const handleTabSwitch = () => {
+    setActiveTab(prev => prev === 'actions' ? 'script' : 'actions');
   };
 
   return (
@@ -139,40 +163,13 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
       )}
 
       <div className="rcd-content">
-        <div className="rcd-actions-header">
-          <h3 className="rcd-actions-title">Actions</h3>
-          <div className="rcd-actions-buttons">
-            <button className="rcd-action-btn reset" title="Reset">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M1 4v6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M23 20v-6h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            <button className="rcd-action-btn save" title="Save">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <polyline points="17,21 17,13 7,13 7,21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <polyline points="7,3 7,8 15,8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            <button className="rcd-action-btn delete" title="Delete">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <line x1="10" y1="11" x2="10" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div className="rcd-actions-list">
-          {actions.map((a) => (
-            <Action key={a.id} action={a} />
-          ))}
-        </div>
-        <ActionToCodeTab />
+        {activeTab === 'actions' ? (
+          <ActionTab actions={actions} isLoading={isLoading} />
+        ) : (
+          <TestScriptTab />
+        )}
       </div>
+      <ActionToCodeTab onConvert={handleTabSwitch} />
     </div>
   );
 };

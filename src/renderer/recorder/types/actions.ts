@@ -1,5 +1,38 @@
+
+export enum ActionType {
+    INPUT = 'INPUT',
+    CLICK = 'CLICK',
+    SELECT = 'SELECT',
+    CHECKBOX = 'CHECKBOX',
+    CHANGE = 'CHANGE',
+    DRAG_AND_DROP = 'DRAG_AND_DROP',
+    DRAG_START = 'DRAG_START',
+    DRAG_END = 'DRAG_END',
+    DRAG_OVER = 'DRAG_OVER',
+    DRAG_LEAVE = 'DRAG_LEAVE',
+    DROP = 'DROP',
+    ASSERT = 'ASSERT',
+    UPDATE_INPUT = 'UPDATE_INPUT',
+    CONNECT_DB = 'CONNECT_DB',
+    NAVIGATE = 'NAVIGATE',
+    DOUBLE_CLICK = 'DOUBLE_CLICK',
+    
+    RIGHT_CLICK = 'RIGHT_CLICK',
+    SHIFT_CLICK = 'SHIFT_CLICK',
+    KEYDOWN = 'KEYDOWN',
+    KEYUP = 'KEYUP',
+    KEYPRESS = 'KEYPRESS',
+    UPLOAD = 'UPLOAD',
+    SCROLL = 'SCROLL',
+  }
+
+
 // Action batch create request types
 export interface ElementCreateRequest {
+    selector: string[];
+}
+
+export interface Element {
     selector: string[];
 }
 
