@@ -5,8 +5,6 @@ import { registerMicrosoftLoginIpc } from "./ipc/microsoftLogin.js";
 import { registerTokenIpc } from "./ipc/token.js";
 import { registerScreenHandlersIpc } from "./ipc/screen_handle.js";
 
-
-
 app.whenReady().then(() => {
   try {
     Menu.setApplicationMenu(null);
