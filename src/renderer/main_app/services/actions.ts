@@ -3,12 +3,38 @@ import { ApiResponse } from '../types/api_responses';
 import {
     ActionBatchCreateRequest,
     ActionCreateRequest,
+    ActionGetAllResponse,
     AiAssertRequest,
     AiAssertResponse,
 } from '../types/actions';
 import { DefaultResponse } from '../types/api_responses';
 
 export class ActionService {
+    async getActionsByTestCase(testcaseId: string, limit?: number, offset?: number): Promise<ApiResponse<ActionGetAllResponse>> {
+        // Input validation
+        if (!testcaseId) {
+            return {
+                success: false,
+                error: 'Valid testcase ID is required'
+            };
+        }
+
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (limit !== undefined) {
+            params.append('limit', limit.toString());
+        }
+        if (offset !== undefined) {
+            params.append('offset', offset.toString());
+        }
+
+        const endpoint = `/actions/testcase/${testcaseId}`;
+        
+        return await apiRouter.request<ActionGetAllResponse>(endpoint, {
+            method: 'GET'
+        });
+    }
+
     async batchCreateActions(actions: ActionCreateRequest[]): Promise<ApiResponse<DefaultResponse>> {
         // Input validation
         if (!actions || !Array.isArray(actions) || actions.length === 0) {
