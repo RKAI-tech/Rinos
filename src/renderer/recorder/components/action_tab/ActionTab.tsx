@@ -1,10 +1,10 @@
 import React from 'react';
 import './ActionTab.css';
-import Action from '../action/Action';
-import { ActionGetResponse } from '../../types/actions';
+import RenderedAction from '../action/Action';
+import { Action } from '../../types/actions';
 
 interface ActionTabProps {
-  actions: ActionGetResponse[];
+  actions: Action[];
   isLoading: boolean;
   onDeleteAction?: (actionId: string) => void;
   onDeleteAll?: () => void;
@@ -47,7 +47,7 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
           </div>
         ) : actions.length > 0 ? (
           actions.map((action) => (
-            <Action key={action.action_id} action={action} onDelete={onDeleteAction} />
+            <RenderedAction key={action.action_id} action={action} onDelete={onDeleteAction} />
           ))
         ) : (
           <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>

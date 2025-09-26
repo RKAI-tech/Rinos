@@ -9,23 +9,38 @@ export interface Element {
     value?: string;
 }
 
-export enum ActionTypes {
+export enum ActionType {
+    input = 'input',
     click = 'click',
-    type = 'type',
     select = 'select',
     checkbox = 'checkbox',
-    navigate = 'navigate',
+    change = 'change',
+    drag_and_drop = 'drag_and_drop',
+    drag_start = 'drag_start',
+    drag_end = 'drag_end',
+    drag_over = 'drag_over',
+    drag_leave = 'drag_leave',
+    drop = 'drop',
     assert = 'assert',
-    ai = 'ai',
+    update_input = 'update_input',
     connect_db = 'connect_db',
+    navigate = 'navigate',
+    double_click = 'double_click',
+    right_click = 'right_click',
+    shift_click = 'shift_click',
+    keydown = 'keydown',
+    keyup = 'keyup',
+    keypress = 'keypress',
+    upload = 'upload',
+    scroll = 'scroll'
 }
 
-export enum AssertTypes {
+export enum AssertType {
     toHaveValue = 'toHaveValue',
     toHaveText = 'toHaveText'
 }
 
-export enum ConnectionTypes {
+export enum ConnectionType {
     postgres = 'postgres',
     mysql = 'mysql',
     mssql = 'mssql',
@@ -37,16 +52,15 @@ export interface Connection {
     host?: string;
     port?: string;
     db_name?: string;
-    db_type?: ConnectionTypes;
+    db_type?: ConnectionType;
 }
 
 export interface Action {
-    id?: string;
-    type: ActionTypes;
+    action_type: ActionType;
     elements: Element[];
     value: string;
     expected_value?: string;
-    assert_type?: AssertTypes;
+    assert_type?: AssertType;
     description?: string;
     playwright_code?: string;
     checked?: boolean;

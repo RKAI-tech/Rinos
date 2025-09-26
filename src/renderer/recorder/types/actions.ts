@@ -1,76 +1,27 @@
-
 export enum ActionType {
-    INPUT = '',
-    CLICK = 'CLICK',
-    SELECT = 'SELECT',
-    CHECKBOX = 'CHECKBOX',
-    CHANGE = 'CHANGE',
-    DRAG_AND_DROP = 'DRAG_AND_DROP',
-    DRAG_START = 'DRAG_START',
-    DRAG_END = 'DRAG_END',
-    DRAG_OVER = 'DRAG_OVER',
-    DRAG_LEAVE = 'DRAG_LEAVE',
-    DROP = 'DROP',
-    ASSERT = 'ASSERT',
-    UPDATE_INPUT = 'UPDATE_INPUT',
-    CONNECT_DB = 'CONNECT_DB',
-    NAVIGATE = 'NAVIGATE',
-    DOUBLE_CLICK = 'DOUBLE_CLICK',
-    RIGHT_CLICK = 'RIGHT_CLICK',
-    SHIFT_CLICK = 'SHIFT_CLICK',
-    KEYDOWN = 'KEYDOWN',
-    KEYUP = 'KEYUP',
-    KEYPRESS = 'KEYPRESS',
-    UPLOAD = 'UPLOAD',
-    SCROLL = 'SCROLL',
-}
-
-
-// Action batch create request types
-export interface ElementCreateRequest {
-    selector?: string[];
-    query?: string;
-    value?: string;
-    variable_name?: string;
-}
-
-export interface Element {
-    selector?: string[];
-    query?: string;
-    value?: string;
-    variable_name?: string;
-}
-
-export interface ActionCreateRequest {
-    action_id?: string; // optional for upsert/update semantics
-    testcase_id: string;
-    action_type: string;
-    description?: string;
-    playwright_code?: string;
-    elements?: ElementCreateRequest[];
-    assert_type?: 'VISIBILITY' | 'VALUE' | 'TEXT' | 'ENABLE' | 'DISABLE' | 'URL' | 'AI';
-    value: string;
-    // Select-specific fields
-    selected_value?: string;
-    // Checkbox-specific fields
-    checked?: boolean;
-    // Database-related fields
-    connection_id?: string;
-    statement_id?: string;
-    query?: string;
-    variable_name?: string;
-}
-
-export interface ActionBatchCreateRequest {
-    actions: ActionCreateRequest[];
-}
-
-// Updated Action interface to match new API structure
-export interface Action {
-    action_id: string;
-    action_type: string;
-    elements: Element[];
-    value: string;
+    input = 'input',
+    click = 'click',
+    select = 'select',
+    checkbox = 'checkbox',
+    change = 'change',
+    drag_and_drop = 'drag_and_drop',
+    drag_start = 'drag_start',
+    drag_end = 'drag_end',
+    drag_over = 'drag_over',
+    drag_leave = 'drag_leave',
+    drop = 'drop',
+    assert = 'assert',
+    update_input = 'update_input',
+    connect_db = 'connect_db',
+    navigate = 'navigate',
+    double_click = 'double_click',
+    right_click = 'right_click',
+    shift_click = 'shift_click',
+    keydown = 'keydown',
+    keyup = 'keyup',
+    keypress = 'keypress',
+    upload = 'upload',
+    scroll = 'scroll'
 }
 
 export enum AssertType {
@@ -83,6 +34,12 @@ export enum AssertType {
     ai = 'ai',
 }
 
+export enum ConnectionType {
+    postgres = 'postgres',
+    mysql = 'mysql',
+    mssql = 'mssql',
+}
+
 export interface Connection {
     connection_id: string;
     username: string;
@@ -90,7 +47,7 @@ export interface Connection {
     host: string;
     port: string;
     db_name: string;
-    db_type: string;
+    db_type: ConnectionType;
 }
 
 export interface Statement {
@@ -98,30 +55,43 @@ export interface Statement {
     query: string;
 }
 
-// Updated Action response interfaces
-export interface ActionGetResponse {
+export interface Selector {
+    value: string;
+}
+
+export interface Element {
+    selector?: Selector[];
+    query?: string;
+    value?: string;
+    variable_name?: string;
+}
+
+export interface Action {
     action_id?: string;
     testcase_id: string;
-    action_type: string;
-    description: string;
-    playwright_code: string;
-    elements: Element[];
+    action_type: ActionType;
+    description?: string;
+    playwright_code?: string;
+    elements?: Element[];
     assert_type?: AssertType;
     value?: string;
-    order_index: number;
     // Select-specific fields
     selected_value?: string;
     // Checkbox-specific fields
     checked?: boolean;
-    // Connect DB-specific fields
+    // Database-related fields
+    connection_id?: string;
     connection?: Connection;
+    statement_id?: string;
     statement?: Statement;
+    query?: string;
     variable_name?: string;
 }
 
-export interface ActionGetAllResponse {
-    actions: ActionGetResponse[];
+export interface ActionBatch {
+    actions: Action[];
 }
+
 
 // AI Assert Request types
 export interface AiAssertDatabaseConnection {

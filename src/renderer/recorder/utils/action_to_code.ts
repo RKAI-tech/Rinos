@@ -1,4 +1,4 @@
-import {ActionGetResponse} from "../types/actions";
+import {Action} from "../types/actions";
 import { ActionType } from "../types/actions";
 function escapeSelector(selector:string):string {
     let escaped = selector;
@@ -19,14 +19,14 @@ function escapeSelector(selector:string):string {
       return `'${escaped}'`;
     }
 }
-function generateActionCode(action: ActionGetResponse, index:number):string {
+function generateActionCode(action: Action, index:number):string {
     console.log(`Generating action code for action ${index}: ${action.action_type}`);
-    const elements = action.elements;
+    const elements = action.elements || [];
     const selectors: string[][] = [];
     for (const element of elements) {
         const element_selector: string[] = [];
-        for (const selector of element.selector) {
-            element_selector.push(escapeSelector(selector));
+        for (const selector of element.selector || []) {
+            element_selector.push(escapeSelector(selector.value));
         }
         selectors.push(element_selector);
     }
@@ -35,11 +35,11 @@ function generateActionCode(action: ActionGetResponse, index:number):string {
     const candidatesLiteral = `[${firstCandidates.join(', ')}]`;
 
     switch (action.action_type) {
-        case ActionType.NAVIGATE:
+        case ActionType.navigate:
             return `    await page.goto('${action.value || ''}');\n` +
             `    await page.waitForLoadState('networkidle');\n` +
             `    console.log('${index}. ${action.description}');\n`; 
-        case ActionType.CLICK:
+        case ActionType.click:
             return `    candidates = ${candidatesLiteral};\n` +
                    `    sel = await resolveUniqueSelector(page, candidates);\n` +
                    `    try {\n` +
@@ -49,58 +49,58 @@ function generateActionCode(action: ActionGetResponse, index:number):string {
                    `    }\n` +
                    `    await page.waitForLoadState('networkidle');\n` +
                    `    console.log('${index}. ${action.description}');\n`;
-        case ActionType.INPUT:
+        case ActionType.input:
             return  `    candidates = ${candidatesLiteral};\n` +
                     `    sel = await resolveUniqueSelector(page, candidates);\n` +
                     `    await page.fill(sel, '${action.value || ''}');\n` +
                     `    await page.waitForLoadState('networkidle');\n` +
                     `    console.log('${index}. ${action.description}');\n`;
-        case ActionType.SELECT:
+        case ActionType.select:
             return `    candidates = ${candidatesLiteral};\n` +
                    `    sel = await resolveUniqueSelector(page, candidates);\n` +
                    `    await page.selectOption(sel, '${action.value || ''}');\n` +
                    `    await page.waitForLoadState('networkidle');\n` +
                    `    console.log('${index}. ${action.description}');\n`;
-        case ActionType.CHECKBOX:
+        case ActionType.checkbox:
             return `    candidates = ${candidatesLiteral};\n` +
                    `    sel = await resolveUniqueSelector(page, candidates);\n` +
                    `    await page.check(sel);\n` +
                    `    await page.waitForLoadState('networkidle');\n` +
                    `    console.log('${index}. ${action.description}');\n`;
-            case ActionType.DOUBLE_CLICK:
+            case ActionType.double_click:
         return `    candidates = ${candidatesLiteral};\n` +
                `    sel = await resolveUniqueSelector(page, candidates);\n` +
                `    await page.dblclick(sel);\n` +
                `    await page.waitForLoadState('networkidle');\n` +
                `    console.log('${index}. ${action.description}');\n`;
 
-        case ActionType.RIGHT_CLICK:
+        case ActionType.right_click:
             return `    candidates = ${candidatesLiteral};\n` +
                    `    sel = await resolveUniqueSelector(page, candidates);\n` +
                    `    await page.click(sel, { button: 'right' });\n` +
                    `    await page.waitForLoadState('networkidle');\n` +
                    `    console.log('${index}. ${action.description}');\n`;
 
-        case ActionType.CHANGE:
+        case ActionType.change:
             return `    candidates = ${candidatesLiteral};\n` +
                    `    sel = await resolveUniqueSelector(page, candidates);\n` +
                    `    // CHANGE is not a Playwright API; add custom handling here if needed\n` +
                    `    await page.waitForLoadState('networkidle');\n` +
                    `    console.log('${index}. ${action.description}');\n`;
 
-        case ActionType.KEYDOWN:
+        case ActionType.keydown:
             return `    candidates = ${candidatesLiteral};\n` +
                    `    sel = await resolveUniqueSelector(page, candidates);\n` +
                    `    await page.locator(sel).press('${action.value || ''}');\n` +
                    `    await page.waitForLoadState('networkidle');\n` +
                    `    console.log('${index}. ${action.description}');\n`;
-        case ActionType.KEYUP:
+        case ActionType.keyup:
             return `    candidates = ${candidatesLiteral};\n` +
                    `    sel = await resolveUniqueSelector(page, candidates);\n` +
                    `    await page.locator(sel).press('${action.value || ''}');\n` +
                    `    await page.waitForLoadState('networkidle');\n` +
                    `    console.log('${index}. ${action.description}');\n`;
-        case ActionType.KEYPRESS:
+          case ActionType.keypress:
             return `    candidates = ${candidatesLiteral};\n` +
                    `    sel = await resolveUniqueSelector(page, candidates);\n` +
                    `    await page.locator(sel).press('${action.value || ''}');\n` +
@@ -133,7 +133,7 @@ export function getResolveUniqueSelectorFunctionString(): string {
   throw new Error('resolveUniqueSelector: no matching selector found');
 }`;
 }
-export function actionToCode(actions: ActionGetResponse[]):string {
+export function actionToCode(actions: Action[]):string {
     let code = "";
     // Playwright Test format (using built-in test runner fixtures)
     code += `import { test, expect } from '@playwright/test';\n`;

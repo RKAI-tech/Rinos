@@ -4,11 +4,12 @@ import ActionTab from '../../components/action_tab/ActionTab';
 import TestScriptTab from '../../components/code_convert/TestScriptTab';
 import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab';
 import { ActionService } from '../../services/actions';
-import { Action, ActionGetResponse } from '../../types/actions';
+import { Action, ActionType } from '../../types/actions';
 import { actionToCode } from '../../utils/action_to_code';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
 import { RunCodeResponse } from '../../types/executeScripts';
+import { receiveAction, createDescription } from '../../utils/receive_action';
 
 
 interface MainProps {
@@ -20,20 +21,20 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
   const [isAssertDropdownOpen, setIsAssertDropdownOpen] = useState(false);
   const [assertSearch, setAssertSearch] = useState('');
   const [selectedAssert, setSelectedAssert] = useState<string | null>(null);
-  const [actions, setActions] = useState<ActionGetResponse[]>([]);
+  const [actions, setActions] = useState<Action[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'actions' | 'script'>('actions');
   const [customScript, setCustomScript] = useState<string>('');
   const actionService = useMemo(() => new ActionService(), []);
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
-  
+
   // Load actions khi có testcase ID
   useEffect(() => {
     const loadActions = async () => {
       if (testcaseId) {
         console.log('[Main] Loading actions for testcase ID:', testcaseId);
         setIsLoading(true);
-        
+
         try {
           const response = await actionService.getActionsByTestCase(testcaseId);
           if (response.success && response.data) {
@@ -59,25 +60,17 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
 
   useEffect(() => {
     return (window as any).browserAPI?.browser?.onAction((action: any) => {
-      console.log('[Main.tsx] Action received:', action);
-      // TODO: Handle action
-      const receivedAction = {
-        testcase_id: testcaseId,
-        action_type: action.type,
-        description: action.description,
-        playwright_code: action.playwright_code,
-        elements: action.elements,
-        assert_type: action.assert_type,
-        value: action.value,
-        order_index: action.order_index,
-      } as ActionGetResponse;
-      setActions(prev => [...prev, receivedAction]);
+      if (!testcaseId) {
+        console.warn('[Main] Testcase ID is not set');
+        return;
+      }
+      setActions(prev => receiveAction(testcaseId, prev, action));
     });
   }, [testcaseId]);
 
   const assertTypes = [
     'toHaveText',
-    'toContainText', 
+    'toContainText',
     'toHaveValue',
     'toBeVisible',
     'toBeDisabled',
@@ -87,7 +80,7 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     'toBeChecked'
   ];
 
-  const filteredAssertTypes = assertTypes.filter(type => 
+  const filteredAssertTypes = assertTypes.filter(type =>
     type.toLowerCase().includes(assertSearch.toLowerCase())
   );
 
@@ -122,6 +115,8 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
         url = 'https://' + url;
       }
       await (window as any).browserAPI?.browser?.navigate(url);
+      // TODO: Tạo action mới cho navigate
+      setActions(prev => receiveAction(testcaseId || '', prev, { type: ActionType.navigate, selector: [], url: url, value: url }));
     }
   };
 
@@ -191,7 +186,7 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
         setRunResult(msg);
         toast.update(toastId, { render: 'Run succeeded', type: 'success', isLoading: false, autoClose: 2000 });
       } else {
-        
+
         setRunResult((resp as unknown as { result?: string }).result || 'Run failed');
         toast.update(toastId, { render: resp.error || 'Run failed', type: 'error', isLoading: false, autoClose: 3000 });
       }
@@ -211,37 +206,37 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
         <div className="rcd-topbar-actions">
           <button className="rcd-ctrl" title="Reload actions" onClick={reloadActions}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <polyline points="21,3 21,9 15,9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <polyline points="21,3 21,9 15,9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
           <button className="rcd-ctrl rcd-record" title="Start recording"
             onClick={() => startBrowser(url)}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <polygon points="6,3 20,12 6,21" fill="green"/>
+              <polygon points="6,3 20,12 6,21" fill="green" />
             </svg>
           </button>
           <button className="rcd-ctrl rcd-stop" title="Stop"
             onClick={stopBrowser}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="6" y="6" width="13" height="13" fill="red"/>
+              <rect x="6" y="6" width="13" height="13" fill="red" />
             </svg>
           </button>
           <div className="rcd-assert-container">
-            <button 
-              className={`rcd-ctrl rcd-assert ${isAssertDropdownOpen || selectedAssert ? 'active' : ''}`} 
+            <button
+              className={`rcd-ctrl rcd-assert ${isAssertDropdownOpen || selectedAssert ? 'active' : ''}`}
               title="Assert"
               onClick={handleAssertClick}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 17l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M2 17l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            
+
             {isAssertDropdownOpen && (
               <div className="rcd-assert-dropdown">
                 <div className="rcd-assert-search">
@@ -255,8 +250,8 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
                 </div>
                 <div className="rcd-assert-list">
                   {filteredAssertTypes.map((type, index) => (
-                    <div 
-                      key={index} 
+                    <div
+                      key={index}
                       className="rcd-assert-item"
                       onClick={() => handleAssertSelect(type)}
                     >
@@ -275,7 +270,7 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
           <div className="rcd-selected-assert-content">
             <span className="rcd-selected-assert-label">Selected Assert:</span>
             <span className="rcd-selected-assert-type">{selectedAssert}</span>
-            <button 
+            <button
               className="rcd-selected-assert-remove"
               onClick={() => setSelectedAssert(null)}
               title="Remove selected assert"

@@ -76,12 +76,10 @@ export function sendAction(type, data) {
     try {
       const action = {
         type,
-        data: {
-          ...data,
-          timestamp,
-          url: window.location.href,
-          title: document.title
-        }
+        ...data,
+        timestamp,
+        url: window.location.href,
+        title: document.title
       };
       window.sendActionToMain(action);
       console.log('Action sent successfully:', type, action, 'timestamp:', timestamp);
