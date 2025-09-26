@@ -24,7 +24,43 @@ export enum ActionType {
     UPLOAD = 'UPLOAD',
     SCROLL = 'SCROLL',
 }
+export enum AssertTypes {
 
+    toBeAttached = 'toBeAttached',
+    toBeDetached = 'toBeDetached',
+    toBeChecked = 'toBeChecked',
+    toBeUnchecked = 'toBeUnchecked',
+    toBeDisabled = 'toBeDisabled',
+    toBeEditable = 'toBeEditable',
+    toBeReadOnly = 'toBeReadOnly',
+    toBeEmpty = 'toBeEmpty',
+    toBeEnabled = 'toBeEnabled',
+    toBeFocused = 'toBeFocused',
+    toBeHidden = 'toBeHidden',
+    toBeInViewport = 'toBeInViewport',
+    toBeVisible = 'toBeVisible',
+    toContainText = 'toContainText',
+    toContainClass = 'toContainClass',
+    toHaveAccessibleDescription = 'toHaveAccessibleDescription',
+    toHaveAccessibleName = 'toHaveAccessibleName',
+    toHaveAttribute = 'toHaveAttribute',
+    toHaveClass = 'toHaveClass',
+    toHaveCount = 'toHaveCount',
+    toHaveCSS = 'toHaveCSS',
+    toHaveId = 'toHaveId',
+    toHaveJSProperty = 'toHaveJSProperty',
+    toHaveRole = 'toHaveRole',
+    toHaveScreenshot = 'toHaveScreenshot',
+    toHaveText = 'toHaveText',
+    toHaveValue = 'toHaveValue',
+    toHaveValues = 'toHaveValues',
+    toMatchAriaSnapshot = 'toMatchAriaSnapshot',
+    pageHasAScreenshot = 'pageHasAScreenshot',
+    pageHasATitle = 'pageHasATitle',
+    pageHasAURL = 'pageHasAURL',
+    apiResponseOk = 'apiResponseOk',
+    apiResonseNotOk = 'apiResonseNotOk',
+}
 
 // Action batch create request types
 export interface ElementCreateRequest {
@@ -48,7 +84,7 @@ export interface ActionCreateRequest {
     description?: string;
     playwright_code?: string;
     elements?: ElementCreateRequest[];
-    assert_type?: 'VISIBILITY' | 'VALUE' | 'TEXT' | 'ENABLE' | 'DISABLE' | 'URL' | 'AI';
+    assert_type?: AssertTypes;
     value: string;
     // Select-specific fields
     selected_value?: string;
@@ -71,16 +107,6 @@ export interface Action {
     action_type: string;
     elements: Element[];
     value: string;
-}
-
-export enum AssertType {
-    visibility = 'visibility',
-    value = 'value',
-    text = 'text',
-    enable = 'enable',
-    disable = 'disable',
-    url = 'url',
-    ai = 'ai',
 }
 
 export interface Connection {
@@ -106,7 +132,7 @@ export interface ActionGetResponse {
     description: string;
     playwright_code: string;
     elements: Element[];
-    assert_type?: AssertType;
+    assert_type?: AssertTypes;
     value?: string;
     order_index: number;
     // Select-specific fields

@@ -1,4 +1,4 @@
-import {ActionGetResponse} from "../types/actions";
+import {ActionGetResponse, AssertTypes} from "../types/actions";
 import { ActionType } from "../types/actions";
 function escapeSelector(selector:string):string {
     let escaped = selector;
@@ -21,6 +21,215 @@ function escapeSelector(selector:string):string {
 }
 function generateAssertCode(action: ActionGetResponse, index:number):string {
     console.log(`Generating assert code for action ${index}: ${action.action_type}`);
+    const elements = action.elements;
+    const selectors: string[][] = [];
+    for (const element of elements) {
+        const element_selector: string[] = [];
+        for (const selector of element.selector || []) {
+            element_selector.push(escapeSelector(selector));
+        }
+        selectors.push(element_selector);
+    }
+    const firstCandidates = selectors[0] || [];
+    const candidatesLiteral = `[${firstCandidates.join(', ')}]`;
+    switch (action.assert_type) {
+        case AssertTypes.toBeAttached:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toBeAttached();\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toBeDetached:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).not.toBeAttached();\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toBeChecked:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toBeChecked();\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toBeUnchecked:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).not.toBeChecked();\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toBeDisabled:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toBeDisabled();\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toBeEditable:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toBeEditable();\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toBeReadOnly:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toBeReadOnly();\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toBeEmpty:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toBeEmpty();\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toBeEnabled:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toBeEnabled();\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toBeFocused:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toBeFocused();\n` +
+                    `    await page.waitForLoadState('networkidle');\n` +
+                    `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toBeHidden:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toBeHidden();\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toBeInViewport:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toBeInViewport();\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toBeVisible:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toBeVisible();\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toContainText:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toContainText('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toContainClass:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toContainClass('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toHaveAccessibleDescription:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toHaveAccessibleDescription('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toHaveAccessibleName:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toHaveAccessibleName('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toHaveAttribute:
+            //TODO: add attribute value
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toHaveAttribute('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toHaveClass:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toHaveClass('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toHaveCount:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toHaveCount('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toHaveCSS:
+            //TODO: add css value
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toHaveCSS('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toHaveId:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toHaveId('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toHaveJSProperty:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toHaveJSProperty('${action.value || '' }',true);\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toHaveRole:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toHaveRole('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toHaveScreenshot:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toHaveScreenshot('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toHaveText:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toHaveText('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toHaveValue:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toHaveValue('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toHaveValues:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toHaveValues('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.toMatchAriaSnapshot:
+            return `    candidates = ${candidatesLiteral};\n` +
+                   `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
+                   `    await expect(page.locator(sel)).toMatchAriaSnapshot('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.pageHasAScreenshot:
+            return  `    await expect(page).pageHasAScreenshot('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.pageHasATitle:
+            return `    await expect(page).pageHasATitle('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.pageHasAURL:
+            return `    await expect(page).pageHasAURL('${action.value || ''}');\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.apiResponseOk:
+            return `    await expect(response).toBeOK();\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+        case AssertTypes.apiResonseNotOk:
+            return `    await expect(response).not.toBeOK();\n` +
+                   `    await page.waitForLoadState('networkidle');\n` +
+                   `    console.log('${index}. ${action.description}');\n`;
+      }
     return `    await expect(page.locator('${action.value || ''}')).toBeVisible();\n` +
            `    await page.waitForLoadState('networkidle');\n` +
            `    console.log('${index}. ${action.description}');\n`;
@@ -31,7 +240,7 @@ function generateActionCode(action: ActionGetResponse, index:number):string {
     const selectors: string[][] = [];
     for (const element of elements) {
         const element_selector: string[] = [];
-        for (const selector of element.selector) {
+        for (const selector of element.selector || []) {
             element_selector.push(escapeSelector(selector));
         }
         selectors.push(element_selector);
