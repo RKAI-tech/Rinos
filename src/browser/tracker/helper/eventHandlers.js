@@ -9,9 +9,6 @@ import {
 
 let isAssertMode = false;
 
-
-
-
 export function handleClickEvent(e) {
   console.log('Click event detected:', previewNode(e.target));
   console.log('Element tag name:', e.target.tagName.toLowerCase());

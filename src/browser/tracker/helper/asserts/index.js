@@ -1,10 +1,6 @@
 import { generateAndValidateSelectors } from '../selectorGenerator.js';
 import { previewNode, extractElementText } from '../domUtils.js';
 import { showAssertInputModal, closeAssertInputModal, getAssertModal } from '../assertModal.js';
-import { handleValueAssert } from './types/value.js';
-import { handleTextAssert } from './types/text.js';
-import { handleEnableAssert, handleDisableAssert, handleVisibilityAssert } from './types/state.js';
-import { handleUrlAssert } from './types/url.js';
 import { handleAiAssert } from './types/ai.js';
 
 // Trạng thái assert

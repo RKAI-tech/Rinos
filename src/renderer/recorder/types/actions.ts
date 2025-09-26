@@ -70,15 +70,15 @@ export interface Action {
     action_id?: string;
     testcase_id: string;
     action_type: ActionType;
-    description?: string;
-    playwright_code?: string;
-    elements?: Element[];
+    description?: string; // edit
+    playwright_code?: string; // edit
+    elements?: Element[]; // edit 
     assert_type?: AssertType;
-    value?: string;
+    value?: string; // edit
     // Select-specific fields
-    selected_value?: string;
+    selected_value?: string; // edit
     // Checkbox-specific fields
-    checked?: boolean;
+    checked?: boolean; // edit
     // Database-related fields
     connection_id?: string;
     connection?: Connection;
