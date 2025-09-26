@@ -1,9 +1,10 @@
 import EventEmitter from "events";
 import { Browser, chromium, Page, BrowserContext, Request } from "playwright";
-import * as pathenv from 'path';
+import path, * as pathenv from 'path';
 import { app } from "electron";
 import { Action } from "./types";
 import { Controller } from "./controller";
+import { readFileSync } from "fs";
 
 let browsersPath: string;
 
@@ -72,7 +73,7 @@ export class BrowserManager extends EventEmitter {
                 console.log('Browser already started');
                 return;
             }
-            
+
             // Launch browser
             this.browser = await chromium.launch({
                 headless: false,
@@ -87,6 +88,9 @@ export class BrowserManager extends EventEmitter {
             // Create page
             this.page = await this.context.newPage();
             this.page.setDefaultTimeout(0);
+
+            // Inject script
+            await this.injectingScript(path.join(__dirname, 'renderer', 'browser', 'tracker', 'trackingScript.js'));
 
             // Track requests
             this.trackRequests(this.page);
@@ -134,6 +138,32 @@ export class BrowserManager extends EventEmitter {
             this.emit('browser-stopped');
         } catch (error) {
             console.error('Error stopping browser:', error);
+            throw error;
+        }
+    }
+
+    private async injectingScript(path: string): Promise<void> {
+        if (!this.context) {
+            throw new Error('Context not found');
+            return;
+        }
+
+        try {
+            await this.context.exposeFunction('sendActionToMain', (action: Action) => {
+                this.emit('action', action);
+            });
+            
+            const script = readFileSync(path, 'utf8');
+            await this.context.addInitScript((script) => {
+                try {
+                    eval(script);
+                    console.log('Script injected successfully');
+                } catch (error) {
+                    console.error('Error evaluating script:', error);
+                }
+            }, script);
+        } catch (error) {
+            console.error('Error injecting script:', error);
             throw error;
         }
     }

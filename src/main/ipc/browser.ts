@@ -1,9 +1,18 @@
-import { ipcMain } from "electron";
+import { ipcMain, BrowserWindow } from "electron";
 import { BrowserManager } from "../../browser/BrowserManager";
 import { Action } from "../../browser/types";
 import { Page } from "playwright";
 
 const browserManager = new BrowserManager();
+
+browserManager.on('action', (action: Action) => {
+    console.log('[BROWSER] Action received:', action);
+    BrowserWindow.getAllWindows().forEach((window: BrowserWindow) => {
+        if (!window.isDestroyed()) {
+            window.webContents.send('browser:action', action);
+        }
+    });
+});
 
 export function registerBrowserIpc() {
     ipcMain.handle("browser:start", async () => {

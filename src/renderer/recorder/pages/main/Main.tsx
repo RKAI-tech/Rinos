@@ -5,7 +5,7 @@ import TestScriptTab from '../../components/code_convert/TestScriptTab';
 import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab';
 import DeleteAllActions from '../../components/delete_all_action/DeleteAllActions';
 import { ActionService } from '../../services/actions';
-import { ActionGetResponse } from '../../types/actions';
+import { Action, ActionGetResponse } from '../../types/actions';
 import { actionToCode } from '../../utils/action_to_code';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
@@ -28,6 +28,7 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
   const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
   const [selectedInsertPosition, setSelectedInsertPosition] = useState<number | null>(null);
   const actionService = useMemo(() => new ActionService(), []);
+  const [insertIndex, setInsertIndex] = useState<number | null>(null);
   
   // Load actions khi có testcase ID
   useEffect(() => {
@@ -59,15 +60,34 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     loadActions();
   }, [testcaseId, actionService]);
 
+  useEffect(() => {
+    return (window as any).browserAPI?.browser?.onAction((action: any) => {
+      console.log('[Main.tsx] Action received:', action);
+      // TODO: Handle action
+      const receivedAction = {
+        testcase_id: testcaseId,
+        action_type: action.type,
+        description: action.description,
+        playwright_code: action.playwright_code,
+        elements: action.elements,
+        assert_type: action.assert_type,
+        value: action.value,
+        order_index: action.order_index,
+      } as ActionGetResponse;
+      setActions(prev => [...prev, receivedAction]);
+    });
+  }, [testcaseId]);
+
   const assertTypes = [
-    'Text Assert',
-    'Element Assert', 
-    'Attribute Assert',
-    'Visibility Assert',
-    'Click Assert',
-    'Input Assert',
-    'URL Assert',
-    'Title Assert'
+    'toHaveText',
+    'toContainText', 
+    'toHaveValue',
+    'toBeVisible',
+    'toBeDisabled',
+    'toBeEnabled',
+    'toHaveURL',
+    'toBeSelected',
+    'toBeChecked'
   ];
 
   const filteredAssertTypes = assertTypes.filter(type => 
@@ -106,6 +126,10 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
       }
       await (window as any).browserAPI?.browser?.navigate(url);
     }
+  };
+
+  const stopBrowser = async () => {
+    await (window as any).browserAPI?.browser?.stop();
   };
 
   const handleAssertSelect = (assertType: string) => {
@@ -221,7 +245,14 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
             onClick={() => startBrowser(url)}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <polygon points="5,3 19,12 5,21" fill="currentColor"/>
+              <polygon points="6,3 20,12 6,21" fill="green"/>
+            </svg>
+          </button>
+          <button className="rcd-ctrl rcd-stop" title="Stop"
+            onClick={stopBrowser}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="6" y="6" width="13" height="13" fill="red"/>
             </svg>
           </button>
           <div className="rcd-assert-container">
