@@ -2,7 +2,7 @@ import EventEmitter from "events";
 import { Browser, chromium, Page, BrowserContext, Request } from "playwright";
 import path, * as pathenv from 'path';
 import { app } from "electron";
-import { Action } from "./types";
+import { Action, AssertType } from "./types";
 import { Controller } from "./controller";
 import { readFileSync } from "fs";
 
@@ -21,6 +21,8 @@ export class BrowserManager extends EventEmitter {
     page: Page | null = null;
     private pendingRequests: number;
     controller: Controller | null = null;
+    private isAssertMode: boolean = false;
+    private assertType: AssertType | null = null;
 
     constructor() {
         super();
@@ -166,5 +168,19 @@ export class BrowserManager extends EventEmitter {
             console.error('Error injecting script:', error);
             throw error;
         }
+    }
+
+    async setAssertMode(enabled: boolean, assertType: AssertType): Promise<void> {
+        if (!this.page) {
+            throw new Error('Page not found');
+        }
+
+        this.isAssertMode = enabled;
+        this.assertType = assertType;
+
+        await this.page.evaluate(({ isAssertMode, type } : { isAssertMode: boolean, type: AssertType }) => {
+            const global : any = globalThis as any;
+            global.setAssertMode(isAssertMode, type);
+        }, { isAssertMode: enabled, type: assertType });
     }
 }

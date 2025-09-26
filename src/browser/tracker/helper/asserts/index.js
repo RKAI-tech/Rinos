@@ -44,7 +44,7 @@ export function setAssertMode(enabled, assertType) {
   isAssertMode = enabled;
   currentAssertType = assertType;
   try {
-    if (!enabled || (enabled && assertType && assertType !== 'VALUE' && assertType !== 'TEXT')) {
+    if (!enabled || (enabled && assertType && assertType !== 'toHaveText' && assertType !== 'toContainText' && assertType !== 'toHaveValue')) {
       closeAssertInputModal();
       if (hoverCloseTimeoutId) {
         clearTimeout(hoverCloseTimeoutId);
@@ -76,7 +76,7 @@ export function handleClickEventAssertMode(e) {
   e.stopImmediatePropagation();
 
   const element = e.target;
-  const assertType = currentAssertType || 'VISIBILITY';
+  const assertType = currentAssertType || 'toBeVisible';
 
   const selectors = generateAndValidateSelectors(element, {
     maxSelectors: 5,
@@ -88,12 +88,6 @@ export function handleClickEventAssertMode(e) {
   const elementPreview = previewNode(element);
   const elementText = extractElementText(element);
 
-  if (assertType === 'VALUE') return handleValueAssert(element, selectors);
-  if (assertType === 'TEXT') return handleTextAssert(element, selectors);
-  if (assertType === 'ENABLE') return handleEnableAssert(element, selectors);
-  if (assertType === 'DISABLE') return handleDisableAssert(element, selectors);
-  if (assertType === 'VISIBILITY') return handleVisibilityAssert(element, selectors);
-  if (assertType === 'URL') return handleUrlAssert(selectors);
   if (assertType === 'AI') return handleAiAssert(element, selectors);
 }
 

@@ -13,7 +13,13 @@ export function handleAiAssert(element, selectors) {
     elementText: elementText
   };
   if (window.sendActionToMain) {
-    window.sendActionToMain({ type: 'assert', data: { ...data, timestamp: Date.now(), url: window.location.href, title: document.title } });
+    window.sendActionToMain({ 
+      type: 'assert', 
+      ...data, 
+      timestamp: Date.now(), 
+      url: window.location.href, 
+      title: document.title 
+    });
   }
 }
 

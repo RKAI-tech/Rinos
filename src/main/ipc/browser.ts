@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow } from "electron";
 import { BrowserManager } from "../../browser/BrowserManager";
-import { Action } from "../../browser/types";
+import { Action, AssertType } from "../../browser/types";
 import { Page } from "playwright";
 
 const browserManager = new BrowserManager();
@@ -27,5 +27,8 @@ export function registerBrowserIpc() {
     });
     ipcMain.handle("browser:navigate", async (_, url: string) => {
         await browserManager.controller?.navigate(browserManager.page as Page, url);
+    });
+    ipcMain.handle("browser:setAssertMode", async (_, enabled: boolean, assertType: AssertType) => {
+        await browserManager.setAssertMode(enabled, assertType);
     });
 }

@@ -5,7 +5,7 @@ import TestScriptTab from '../../components/code_convert/TestScriptTab';
 import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab';
 import DeleteAllActions from '../../components/delete_all_action/DeleteAllActions';
 import { ActionService } from '../../services/actions';
-import { Action, ActionType } from '../../types/actions';
+import { Action, ActionType, AssertType } from '../../types/actions';
 import { actionToCode } from '../../utils/action_to_code';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
@@ -66,7 +66,7 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
 
   useEffect(() => {
     return (window as any).browserAPI?.browser?.onAction((action: any) => {
-      console.log('[Main] Paused:', isPaused);
+      console.log('Action received:', action);
       if (isPaused) {
         return;
       }
@@ -78,17 +78,7 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     });
   }, [testcaseId, isPaused]);
 
-  const assertTypes = [
-    'toHaveText',
-    'toContainText',
-    'toHaveValue',
-    'toBeVisible',
-    'toBeDisabled',
-    'toBeEnabled',
-    'toHaveURL',
-    'toBeSelected',
-    'toBeChecked'
-  ];
+  const assertTypes = Object.values(AssertType);
 
   const filteredAssertTypes = assertTypes.filter(type =>
     type.toLowerCase().includes(assertSearch.toLowerCase())
@@ -145,11 +135,11 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     setIsPaused(false);
   };
 
-  const handleAssertSelect = (assertType: string) => {
+  const handleAssertSelect = async (assertType: string) => {
     setSelectedAssert(assertType);
     setIsAssertDropdownOpen(false);
     setAssertSearch('');
-    // Không thay đổi active state, giữ màu xanh
+    await (window as any).browserAPI?.browser?.setAssertMode(true, assertType as AssertType);
   };
 
   const handleTabSwitch = () => {
@@ -212,7 +202,7 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     }
   };
 
-  const handleReorderActions = (reorderedActions: ActionGetResponse[]) => {
+  const handleReorderActions = (reorderedActions: Action[]) => {
     // Local-only reorder (no server request)
     setActions(reorderedActions);
   };

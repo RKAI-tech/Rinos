@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import { Action } from "../../browser/types";
+import { Action, AssertType } from "../../browser/types";
 
 const browserMethods = {
     start: async () => ipcRenderer.invoke("browser:start"),
@@ -13,6 +13,7 @@ const browserMethods = {
             ipcRenderer.removeListener("browser:action", listener);
         };
     },
+    setAssertMode: async (enabled: boolean, assertType: AssertType) => ipcRenderer.invoke("browser:setAssertMode", enabled, assertType),
 }
 
 export function exposeBrowserAPI() {
