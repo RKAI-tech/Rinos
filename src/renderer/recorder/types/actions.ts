@@ -23,16 +23,22 @@ export enum ActionType {
     KEYPRESS = 'KEYPRESS',
     UPLOAD = 'UPLOAD',
     SCROLL = 'SCROLL',
-  }
+}
 
 
 // Action batch create request types
 export interface ElementCreateRequest {
-    selector: string[];
+    selector?: string[];
+    query?: string;
+    value?: string;
+    variable_name?: string;
 }
 
 export interface Element {
-    selector: string[];
+    selector?: string[];
+    query?: string;
+    value?: string;
+    variable_name?: string;
 }
 
 export interface ActionCreateRequest {
@@ -67,21 +73,50 @@ export interface Action {
     value: string;
 }
 
+export enum AssertType {
+    visibility = 'visibility',
+    value = 'value',
+    text = 'text',
+    enable = 'enable',
+    disable = 'disable',
+    url = 'url',
+    ai = 'ai',
+}
+
+export interface Connection {
+    connection_id: string;
+    username: string;
+    password: string;
+    host: string;
+    port: string;
+    db_name: string;
+    db_type: string;
+}
+
+export interface Statement {
+    statement_id: string;
+    query: string;
+}
+
 // Updated Action response interfaces
 export interface ActionGetResponse {
-    action_id: string;
+    action_id?: string;
     testcase_id: string;
     action_type: string;
     description: string;
     playwright_code: string;
     elements: Element[];
-    assert_type?: 'VISIBILITY' | 'VALUE' | 'TEXT' | 'ENABLE' | 'DISABLE' | 'URL' | 'AI';
-    value: string;
+    assert_type?: AssertType;
+    value?: string;
     order_index: number;
     // Select-specific fields
     selected_value?: string;
     // Checkbox-specific fields
     checked?: boolean;
+    // Connect DB-specific fields
+    connection?: Connection;
+    statement?: Statement;
+    variable_name?: string;
 }
 
 export interface ActionGetAllResponse {

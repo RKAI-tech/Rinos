@@ -4,7 +4,7 @@ import ActionTab from '../../components/action_tab/ActionTab';
 import TestScriptTab from '../../components/code_convert/TestScriptTab';
 import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab';
 import { ActionService } from '../../services/actions';
-import { ActionGetResponse } from '../../types/actions';
+import { Action, ActionGetResponse } from '../../types/actions';
 import { actionToCode } from '../../utils/action_to_code';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
@@ -25,6 +25,7 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
   const [activeTab, setActiveTab] = useState<'actions' | 'script'>('actions');
   const [customScript, setCustomScript] = useState<string>('');
   const actionService = useMemo(() => new ActionService(), []);
+  const [insertIndex, setInsertIndex] = useState<number | null>(null);
   
   // Load actions khi có testcase ID
   useEffect(() => {
@@ -56,15 +57,34 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     loadActions();
   }, [testcaseId, actionService]);
 
+  useEffect(() => {
+    return (window as any).browserAPI?.browser?.onAction((action: any) => {
+      console.log('[Main.tsx] Action received:', action);
+      // TODO: Handle action
+      const receivedAction = {
+        testcase_id: testcaseId,
+        action_type: action.type,
+        description: action.description,
+        playwright_code: action.playwright_code,
+        elements: action.elements,
+        assert_type: action.assert_type,
+        value: action.value,
+        order_index: action.order_index,
+      } as ActionGetResponse;
+      setActions(prev => [...prev, receivedAction]);
+    });
+  }, [testcaseId]);
+
   const assertTypes = [
-    'Text Assert',
-    'Element Assert', 
-    'Attribute Assert',
-    'Visibility Assert',
-    'Click Assert',
-    'Input Assert',
-    'URL Assert',
-    'Title Assert'
+    'toHaveText',
+    'toContainText', 
+    'toHaveValue',
+    'toBeVisible',
+    'toBeDisabled',
+    'toBeEnabled',
+    'toHaveURL',
+    'toBeSelected',
+    'toBeChecked'
   ];
 
   const filteredAssertTypes = assertTypes.filter(type => 
