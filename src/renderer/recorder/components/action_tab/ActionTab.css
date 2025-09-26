@@ -78,6 +78,236 @@
   padding: 16px 20px 20px 20px;
 }
 
+/* Action Item Container */
+.rcd-action-item {
+  position: relative;
+}
+
+/* Drag and Drop Styles */
+.rcd-action-draggable {
+  cursor: move;
+  transition: all 0.2s ease-in-out;
+}
+
+.rcd-action-draggable:hover {
+  transform: translateY(-1px);
+}
+
+
+.rcd-dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+  z-index: 1000;
+}
+
+.rcd-drag-over {
+  border-top: 3px solid #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Drop Zone */
+.rcd-drop-zone {
+  min-height: 20px;
+  transition: all 0.2s ease-in-out;
+  border-radius: 6px;
+  margin: 4px 0;
+}
+
+.rcd-drop-zone.rcd-drag-over {
+  background-color: rgba(59, 130, 246, 0.1);
+  border: 2px dashed #3b82f6;
+  min-height: 40px;
+}
+
+/* Recording Trigger */
+.rcd-recording-trigger {
+  height: 20px;
+  margin: 4px 0;
+  cursor: pointer;
+  background-color: transparent;
+}
+
+/* Recording Bar */
+.rcd-recording-bar-container {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  opacity: 0;
+  height: 0;
+  transition: opacity 0.3s ease-in-out, height 0.3s ease-in-out;
+}
+
+.rcd-recording-trigger:hover .rcd-recording-bar-container,
+.rcd-recording-bar-container:hover,
+.rcd-recording-bar-container.rcd-recording-selected,
+.rcd-action-item:hover .rcd-recording-bar-container,
+
+.rcd-recording-bar {
+  display: flex;
+  align-items: center;
+  position: relative;
+  height: 20px;
+  width: calc(100% + 20px);
+  margin-left: -10px;
+  padding: 0 30px 0 0px;
+}
+
+
+.rcd-recording-line {
+  flex: 1;
+  height: 2px;
+  background-color: #22c55e;
+  border-radius: 1px;
+  transition: all 0.2s ease-in-out;
+  margin-left: 20px;
+}
+
+.rcd-recording-btn-container {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+}
+
+.rcd-recording-start-btn {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #22c55e;
+  background-color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-in-out;
+  color: #22c55e;
+  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.2);
+  opacity: 0;
+  transform: translateX(10px);
+}
+
+.rcd-recording-bar-container.rcd-recording-selected .rcd-recording-start-btn {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.rcd-recording-bar-container.rcd-recording-selected .rcd-recording-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.rcd-recording-trigger:hover .rcd-recording-start-btn,
+.rcd-recording-bar-container:hover .rcd-recording-start-btn,
+.rcd-recording-bar-container.rcd-recording-selected .rcd-recording-start-btn,
+.rcd-action-item:hover .rcd-recording-start-btn,
+
+
+.rcd-recording-start-btn:hover {
+  border-color: #16a34a;
+  background-color: #22c55e;
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(34, 197, 94, 0.4);
+}
+
+/* Tooltip cho button */
+.rcd-recording-start-btn::after {
+  content: "Start Recording";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #374151;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease-in-out;
+  z-index: 1000;
+  margin-bottom: 8px;
+}
+
+.rcd-recording-start-btn:hover::after {
+  opacity: 1;
+}
+
+.rcd-recording-start-btn.rcd-recording-selected {
+  border-color: #15803d;
+  background-color: #15803d;
+  color: white;
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(21, 128, 61, 0.5);
+  opacity: 1;
+}
+
+.rcd-recording-bar:has(.rcd-recording-start-btn.rcd-recording-selected) .rcd-recording-line {
+  background-color: #15803d;
+}
+
+.rcd-recording-tooltip {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 8px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.2s ease-in-out;
+  pointer-events: none;
+}
+
+.rcd-recording-trigger:hover .rcd-recording-tooltip,
+.rcd-recording-btn-container:hover .rcd-recording-tooltip,
+.rcd-recording-bar-container:hover .rcd-recording-tooltip,
+.rcd-action-item:hover .rcd-recording-tooltip,
+/* Khi hover vào action item → hiện bar + button */
+.rcd-action-item:hover .rcd-recording-bar-container {
+  opacity: 1;
+  height: 20px;
+}
+
+.rcd-action-item:hover .rcd-recording-start-btn {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.rcd-action-item:hover .rcd-recording-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+
+.rcd-recording-start-main-btn {
+  background-color: #22c55e;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
+  white-space: nowrap;
+}
+
+.rcd-recording-start-main-btn:hover {
+  background-color: #16a34a;
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(34, 197, 94, 0.4);
+}
+
+.rcd-recording-start-main-btn.rcd-recording-selected {
+  background-color: #15803d;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .rcd-actions-header {
@@ -96,6 +326,26 @@
   .rcd-actions-list {
     gap: 10px;
     padding: 12px 16px 16px 16px;
+  }
+  
+  .rcd-recording-bar {
+    width: calc(100% + 20px);
+    margin-left: -16px;
+    padding: 0 36px 0 0px;
+  }
+  
+  .rcd-recording-btn-container {
+    right: 16px;
+  }
+  
+  .rcd-recording-start-btn {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .rcd-recording-start-main-btn {
+    font-size: 11px;
+    padding: 3px 10px;
   }
 }
 
@@ -123,6 +373,26 @@
     gap: 8px;
     padding: 10px 16px 16px 16px;
   }
+  
+  .rcd-recording-bar {
+    width: calc(100% + 16px);
+    margin-left: -8px;
+    padding: 0 28px 0 0px;
+  }
+  
+  .rcd-recording-btn-container {
+    right: 16px;
+  }
+  
+  .rcd-recording-start-btn {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .rcd-recording-start-main-btn {
+    font-size: 10px;
+    padding: 2px 8px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -146,5 +416,25 @@
   .rcd-actions-list {
     gap: 6px;
     padding: 8px 12px 12px 12px;
+  }
+  
+  .rcd-recording-bar {
+    width: calc(100% + 12px);
+    margin-left: -6px;
+    padding: 0 24px 0 6px;
+  }
+  
+  .rcd-recording-btn-container {
+    right: 12px;
+  }
+  
+  .rcd-recording-start-btn {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .rcd-recording-start-main-btn {
+    font-size: 9px;
+    padding: 2px 6px;
   }
 }
