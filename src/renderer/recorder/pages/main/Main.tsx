@@ -27,6 +27,9 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
   const [customScript, setCustomScript] = useState<string>('');
   const actionService = useMemo(() => new ActionService(), []);
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isBrowserOpen, setIsBrowserOpen] = useState(false);
+  const [runResult, setRunResult] = useState<string>('');
 
   // Load actions khi có testcase ID
   useEffect(() => {
@@ -60,13 +63,17 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
 
   useEffect(() => {
     return (window as any).browserAPI?.browser?.onAction((action: any) => {
+      console.log('[Main] Paused:', isPaused);
+      if (isPaused) {
+        return;
+      }
       if (!testcaseId) {
         console.warn('[Main] Testcase ID is not set');
         return;
       }
       setActions(prev => receiveAction(testcaseId, prev, action));
     });
-  }, [testcaseId]);
+  }, [testcaseId, isPaused]);
 
   const assertTypes = [
     'toHaveText',
@@ -102,6 +109,8 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
 
   const startBrowser = async (url: string) => {
     if (actions.length > 0) {
+      setIsBrowserOpen(true);
+      setIsPaused(true);
       await (window as any).browserAPI?.browser?.start();
       await (window as any).browserAPI?.browser?.executeActions(actions);
     }
@@ -110,6 +119,8 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
         alert('Please enter a URL');
         return;
       }
+      setIsBrowserOpen(true);
+      setIsPaused(true);
       await (window as any).browserAPI?.browser?.start();
       if (!url.startsWith('http')) {
         url = 'https://' + url;
@@ -118,10 +129,17 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
       // TODO: Tạo action mới cho navigate
       setActions(prev => receiveAction(testcaseId || '', prev, { type: ActionType.navigate, selector: [], url: url, value: url }));
     }
+    setIsPaused(false);
+  };
+
+  const pauseBrowser = async () => {
+    setIsPaused(!isPaused);
   };
 
   const stopBrowser = async () => {
     await (window as any).browserAPI?.browser?.stop();
+    setIsBrowserOpen(false);
+    setIsPaused(false);
   };
 
   const handleAssertSelect = (assertType: string) => {
@@ -171,8 +189,6 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     setActions([]);
   };
 
-  const [runResult, setRunResult] = useState<string>('');
-
   const handleRunScript = async () => {
     try {
       const service = new ExecuteScriptsService();
@@ -204,25 +220,43 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
       <div className="rcd-topbar">
         <input className="rcd-url" placeholder="Type your URL here.." value={url} onChange={(e) => setUrl(e.target.value)} />
         <div className="rcd-topbar-actions">
-          <button className="rcd-ctrl" title="Reload actions" onClick={reloadActions}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <polyline points="21,3 21,9 15,9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          <button className="rcd-ctrl rcd-record" title="Start recording"
-            onClick={() => startBrowser(url)}
+        <button
+            className={`rcd-ctrl ${isBrowserOpen ? 'rcd-stop' : 'rcd-record'}`}
+            title={isBrowserOpen ? "Stop recording" : "Start recording"}
+            onClick={() => {
+              if (isBrowserOpen) {
+                stopBrowser();
+              } else {
+                startBrowser(url);
+              }
+            }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <polygon points="6,3 20,12 6,21" fill="green" />
-            </svg>
+            {isBrowserOpen ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="6" y="6" width="13" height="13" fill="red" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="6,3 20,12 6,21" fill="green" />
+              </svg>
+            )}
           </button>
-          <button className="rcd-ctrl rcd-stop" title="Stop"
-            onClick={stopBrowser}
+          <button className={`rcd-ctrl rcd-pause-alt ${isPaused ? 'paused' : 'resumed'}`} 
+            title={isPaused ? "Resume" : "Pause"} 
+            onClick={pauseBrowser}
+            disabled={!isBrowserOpen}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="6" y="6" width="13" height="13" fill="red" />
-            </svg>
+            {isPaused ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="4" y="5" width="3" height="14" fill="currentColor" />
+                <polygon points="10,5 20,12 10,19" fill="currentColor" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="6" y="4" width="4" height="16" fill="currentColor" />
+                <rect x="14" y="4" width="4" height="16" fill="currentColor" />
+              </svg>
+            )}
           </button>
           <div className="rcd-assert-container">
             <button

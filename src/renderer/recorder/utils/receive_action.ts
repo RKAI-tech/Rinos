@@ -7,16 +7,21 @@ export function createDescription(action_received: any): string {
     if (typeof value === 'string' && value.length > 15) {
         value = value.substring(0, 15) + '...';
     }
-
-    const url = action_received.url;
-    const element = action_received.elementText;
+    let url = action_received.url;
+    if (typeof url === 'string' && url.length > 15) {
+        url = url.substring(0, 15) + '...';
+    }
+    let element = action_received.elementText;
+    if (typeof element === 'string' && element.length > 15) {
+        element = element.substring(0, 15) + '...';
+    }
     switch (type) {
         case ActionType.navigate:
             return `Navigate to ${url}`;
         case ActionType.click:
             return `Click on ${element}`;
         case ActionType.input:
-            return `Input ${value} into ${element}`;
+            return `Enter ${value} into ${element}`;
         case ActionType.select:
             return `Select ${value} from ${element}`;
         case ActionType.checkbox:
