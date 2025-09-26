@@ -4,13 +4,13 @@
   "type": "module",
   "main": "dist/main.cjs",
   "scripts": {
-    "build:main": "esbuild src/main/main.ts --bundle --platform=node --format=cjs --external:electron --external:@azure/msal-node --external:playwright --external:playwright-core --external:chromium-bidi --outfile=dist/main.cjs --sourcemap",
+    "build:main": "esbuild src/main/main.ts --bundle --platform=node --format=cjs --external:electron --external:@azure/msal-node --external:playwright --external:playwright-core --external:chromium-bidi --external:../../../package.json --external:./chromium/appIcon.png --external:./loader --outfile=dist/main.cjs --sourcemap",
     "build:preload": "esbuild src/main/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs --sourcemap",
     "build:renderer": "vite build",
     "build": "npm run build:main && npm run build:preload && npm run build:renderer",
-    "dev": "concurrently \"vites\" \"esbuild src/main/main.ts --bundle --platform=node --format=cjs --external:electron --external:@azure/msal-node --outfile=dist/main.cjs --sourcemap --watch\" \"esbuild src/main/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs --sourcemap --watch\" \"wait-on http://localhost:5173/main_app/index.html && electron .\"",
-    "dev:logs": "concurrently -n VITE,MAIN,PRELOAD,APP -c blue,magenta,yellow,green \"vite --clearScreen false --debug\" \"esbuild src/main/main.ts --bundle --platform=node --format=cjs --external:electron --external:@azure/msal-node --outfile=dist/main.cjs --sourcemap --watch\" \"esbuild src/main/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs --sourcemap --watch\" \"wait-on --log http-get://127.0.0.1:5173/main_app/index.html && electron --enable-logging --v=1 .\"",
-    "start": "concurrently \"vite\" \"esbuild src/main/main.ts --bundle --platform=node --format=cjs --external:electron --external:@azure/msal-node --outfile=dist/main.cjs --sourcemap --watch\" \"esbuild src/main/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs --sourcemap --watch\" \"wait-on http://localhost:5173/main_app/index.html && electron .\"",
+    "dev": "concurrently \"vite\" \"esbuild src/main/main.ts --bundle --platform=node --format=cjs --external:electron --external:@azure/msal-node --external:playwright --external:playwright-core --external:chromium-bidi --external:../../../package.json --external:./chromium/appIcon.png --external:./loader --outfile=dist/main.cjs --sourcemap --watch\" \"esbuild src/main/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs --sourcemap --watch\" \"wait-on http://localhost:5173/main_app/index.html && electron .\"",
+    "dev:logs": "concurrently -n VITE,MAIN,PRELOAD,APP -c blue,magenta,yellow,green \"vite --clearScreen false --debug\" \"esbuild src/main/main.ts --bundle --platform=node --format=cjs --external:electron --external:@azure/msal-node --external:playwright --external:playwright-core --external:chromium-bidi --external:../../../package.json --external:./chromium/appIcon.png --external:./loader --outfile=dist/main.cjs --sourcemap --watch\" \"esbuild src/main/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs --sourcemap --watch\" \"wait-on --log http-get://127.0.0.1:5173/main_app/index.html && electron --enable-logging --v=1 .\"",
+    "start": "concurrently \"vite\" \"esbuild src/main/main.ts --bundle --platform=node --format=cjs --external:electron --external:@azure/msal-node --external:playwright --external:playwright-core --external:chromium-bidi --external:../../../package.json --external:./chromium/appIcon.png --external:./loader --outfile=dist/main.cjs --sourcemap --watch\" \"esbuild src/main/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs --sourcemap --watch\" \"wait-on http://localhost:5173/main_app/index.html && electron .\"",
     "start:prod": "npm run build && electron .",
     "build:test": "tsc -p tsconfig.main.json && vite build",
     "start:prod:logs": "npm run build && electron --enable-logging --v=1 --log-net-log=electron-net-log.json ."
@@ -20,6 +20,7 @@
   "license": "ISC",
   "dependencies": {
     "@azure/msal-node": "^3.7.4",
+    "chromium-bidi": "^9.1.0",
     "dotenv": "^17.2.2",
     "electron-store": "^10.1.0",
     "playwright": "^1.55.1",

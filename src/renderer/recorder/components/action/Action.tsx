@@ -46,6 +46,7 @@ export default function Action({ action, onDelete }: ActionProps) {
         className="rcd-action-remove"
         title="Remove"
         onClick={(e) => { e.stopPropagation(); onDelete && onDelete(action.action_id); }}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         ✕
       </button>

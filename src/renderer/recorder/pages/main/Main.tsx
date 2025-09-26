@@ -3,6 +3,7 @@ import './Main.css';
 import ActionTab from '../../components/action_tab/ActionTab';
 import TestScriptTab from '../../components/code_convert/TestScriptTab';
 import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab';
+import DeleteAllActions from '../../components/delete_all_action/DeleteAllActions';
 import { ActionService } from '../../services/actions';
 import { ActionGetResponse } from '../../types/actions';
 import { actionToCode } from '../../utils/action_to_code';
@@ -24,6 +25,8 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'actions' | 'script'>('actions');
   const [customScript, setCustomScript] = useState<string>('');
+  const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
+  const [selectedInsertPosition, setSelectedInsertPosition] = useState<number | null>(null);
   const actionService = useMemo(() => new ActionService(), []);
   
   // Load actions khi có testcase ID
@@ -148,8 +151,37 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
   };
 
   const handleDeleteAllActions = () => {
-    // Local-only delete all
-    setActions([]);
+    setIsDeleteAllOpen(true);
+  };
+
+  const handleConfirmDeleteAll = async () => {
+    const effectiveId = testcaseId || actions[0]?.testcase_id || null;
+    if (!effectiveId) {
+      toast.error('No testcase ID available for deletion');
+      return;
+    }
+
+    try {
+      const response = await actionService.deleteActionsByTestCase(effectiveId);
+      if (response.success) {
+        setActions([]);
+        toast.success('All actions deleted successfully');
+      } else {
+        toast.error(response.error || 'Failed to delete actions');
+      }
+    } catch (error) {
+      console.error('[Main] Error deleting all actions:', error);
+      toast.error('Failed to delete actions');
+    }
+  };
+
+  const handleReorderActions = (reorderedActions: ActionGetResponse[]) => {
+    // Local-only reorder (no server request)
+    setActions(reorderedActions);
+  };
+
+  const handleSelectInsertPosition = (position: number | null) => {
+    setSelectedInsertPosition(position);
   };
 
   const [runResult, setRunResult] = useState<string>('');
@@ -185,12 +217,6 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
       <div className="rcd-topbar">
         <input className="rcd-url" placeholder="Type your URL here.." value={url} onChange={(e) => setUrl(e.target.value)} />
         <div className="rcd-topbar-actions">
-          <button className="rcd-ctrl" title="Reload actions" onClick={reloadActions}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <polyline points="21,3 21,9 15,9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
           <button className="rcd-ctrl rcd-record" title="Record"
             onClick={() => startBrowser(url)}
           >
@@ -257,12 +283,28 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
 
       <div className="rcd-content">
         {activeTab === 'actions' ? (
-          <ActionTab actions={actions} isLoading={isLoading} onDeleteAction={handleDeleteAction} onDeleteAll={handleDeleteAllActions} />
+          <ActionTab 
+            actions={actions} 
+            isLoading={isLoading} 
+            onDeleteAction={handleDeleteAction} 
+            onDeleteAll={handleDeleteAllActions} 
+            onReorderActions={handleReorderActions} 
+            onReload={reloadActions}
+            selectedInsertPosition={selectedInsertPosition}
+            onSelectInsertPosition={handleSelectInsertPosition}
+          />
         ) : (
           <TestScriptTab script={customScript || actionToCode(actions)} runResult={runResult} onScriptChange={setCustomScript} />
         )}
       </div>
       <ActionToCodeTab onConvert={handleTabSwitch} onRun={handleRunScript} />
+      
+      <DeleteAllActions
+        isOpen={isDeleteAllOpen}
+        onClose={() => setIsDeleteAllOpen(false)}
+        onDelete={handleConfirmDeleteAll}
+        testcaseId={testcaseId}
+      />
     </div>
   );
 };
