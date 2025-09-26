@@ -5,11 +5,12 @@ import TestScriptTab from '../../components/code_convert/TestScriptTab';
 import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab';
 import DeleteAllActions from '../../components/delete_all_action/DeleteAllActions';
 import { ActionService } from '../../services/actions';
-import { Action, ActionGetResponse } from '../../types/actions';
+import { Action, ActionType } from '../../types/actions';
 import { actionToCode } from '../../utils/action_to_code';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
 import { RunCodeResponse } from '../../types/executeScripts';
+import { receiveAction, createDescription } from '../../utils/receive_action';
 
 
 interface MainProps {
@@ -21,7 +22,7 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
   const [isAssertDropdownOpen, setIsAssertDropdownOpen] = useState(false);
   const [assertSearch, setAssertSearch] = useState('');
   const [selectedAssert, setSelectedAssert] = useState<string | null>(null);
-  const [actions, setActions] = useState<ActionGetResponse[]>([]);
+  const [actions, setActions] = useState<Action[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'actions' | 'script'>('actions');
   const [customScript, setCustomScript] = useState<string>('');
@@ -29,14 +30,17 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
   const [selectedInsertPosition, setSelectedInsertPosition] = useState<number | null>(null);
   const actionService = useMemo(() => new ActionService(), []);
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
-  
+  const [isPaused, setIsPaused] = useState(false);
+  const [isBrowserOpen, setIsBrowserOpen] = useState(false);
+  const [runResult, setRunResult] = useState<string>('');
+
   // Load actions khi có testcase ID
   useEffect(() => {
     const loadActions = async () => {
       if (testcaseId) {
         console.log('[Main] Loading actions for testcase ID:', testcaseId);
         setIsLoading(true);
-        
+
         try {
           const response = await actionService.getActionsByTestCase(testcaseId);
           if (response.success && response.data) {
@@ -62,25 +66,21 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
 
   useEffect(() => {
     return (window as any).browserAPI?.browser?.onAction((action: any) => {
-      console.log('[Main.tsx] Action received:', action);
-      // TODO: Handle action
-      const receivedAction = {
-        testcase_id: testcaseId,
-        action_type: action.type,
-        description: action.description,
-        playwright_code: action.playwright_code,
-        elements: action.elements,
-        assert_type: action.assert_type,
-        value: action.value,
-        order_index: action.order_index,
-      } as ActionGetResponse;
-      setActions(prev => [...prev, receivedAction]);
+      console.log('[Main] Paused:', isPaused);
+      if (isPaused) {
+        return;
+      }
+      if (!testcaseId) {
+        console.warn('[Main] Testcase ID is not set');
+        return;
+      }
+      setActions(prev => receiveAction(testcaseId, prev, action));
     });
-  }, [testcaseId]);
+  }, [testcaseId, isPaused]);
 
   const assertTypes = [
     'toHaveText',
-    'toContainText', 
+    'toContainText',
     'toHaveValue',
     'toBeVisible',
     'toBeDisabled',
@@ -90,7 +90,7 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     'toBeChecked'
   ];
 
-  const filteredAssertTypes = assertTypes.filter(type => 
+  const filteredAssertTypes = assertTypes.filter(type =>
     type.toLowerCase().includes(assertSearch.toLowerCase())
   );
 
@@ -112,6 +112,8 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
 
   const startBrowser = async (url: string) => {
     if (actions.length > 0) {
+      setIsBrowserOpen(true);
+      setIsPaused(true);
       await (window as any).browserAPI?.browser?.start();
       await (window as any).browserAPI?.browser?.executeActions(actions);
     }
@@ -120,16 +122,27 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
         alert('Please enter a URL');
         return;
       }
+      setIsBrowserOpen(true);
+      setIsPaused(true);
       await (window as any).browserAPI?.browser?.start();
       if (!url.startsWith('http')) {
         url = 'https://' + url;
       }
       await (window as any).browserAPI?.browser?.navigate(url);
+      // TODO: Tạo action mới cho navigate
+      setActions(prev => receiveAction(testcaseId || '', prev, { type: ActionType.navigate, selector: [], url: url, value: url }));
     }
+    setIsPaused(false);
+  };
+
+  const pauseBrowser = async () => {
+    setIsPaused(!isPaused);
   };
 
   const stopBrowser = async () => {
     await (window as any).browserAPI?.browser?.stop();
+    setIsBrowserOpen(false);
+    setIsPaused(false);
   };
 
   const handleAssertSelect = (assertType: string) => {
@@ -208,8 +221,6 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     setSelectedInsertPosition(position);
   };
 
-  const [runResult, setRunResult] = useState<string>('');
-
   const handleRunScript = async () => {
     try {
       const service = new ExecuteScriptsService();
@@ -223,7 +234,7 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
         setRunResult(msg);
         toast.update(toastId, { render: 'Run succeeded', type: 'success', isLoading: false, autoClose: 2000 });
       } else {
-        
+
         setRunResult((resp as unknown as { result?: string }).result || 'Run failed');
         toast.update(toastId, { render: resp.error || 'Run failed', type: 'error', isLoading: false, autoClose: 3000 });
       }
@@ -241,33 +252,57 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
       <div className="rcd-topbar">
         <input className="rcd-url" placeholder="Type your URL here.." value={url} onChange={(e) => setUrl(e.target.value)} />
         <div className="rcd-topbar-actions">
-          <button className="rcd-ctrl rcd-record" title="Record"
-            onClick={() => startBrowser(url)}
+        <button
+            className={`rcd-ctrl ${isBrowserOpen ? 'rcd-stop' : 'rcd-record'}`}
+            title={isBrowserOpen ? "Stop recording" : "Start recording"}
+            onClick={() => {
+              if (isBrowserOpen) {
+                stopBrowser();
+              } else {
+                startBrowser(url);
+              }
+            }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <polygon points="6,3 20,12 6,21" fill="green"/>
-            </svg>
+            {isBrowserOpen ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="6" y="6" width="13" height="13" fill="red" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="6,3 20,12 6,21" fill="green" />
+              </svg>
+            )}
           </button>
-          <button className="rcd-ctrl rcd-stop" title="Stop"
-            onClick={stopBrowser}
+          <button className={`rcd-ctrl rcd-pause-alt ${isPaused ? 'paused' : 'resumed'}`} 
+            title={isPaused ? "Resume" : "Pause"} 
+            onClick={pauseBrowser}
+            disabled={!isBrowserOpen}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="6" y="6" width="13" height="13" fill="red"/>
-            </svg>
+            {isPaused ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="4" y="5" width="3" height="14" fill="currentColor" />
+                <polygon points="10,5 20,12 10,19" fill="currentColor" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="6" y="4" width="4" height="16" fill="currentColor" />
+                <rect x="14" y="4" width="4" height="16" fill="currentColor" />
+              </svg>
+            )}
           </button>
           <div className="rcd-assert-container">
-            <button 
-              className={`rcd-ctrl rcd-assert ${isAssertDropdownOpen || selectedAssert ? 'active' : ''}`} 
+            <button
+              className={`rcd-ctrl rcd-assert ${isAssertDropdownOpen || selectedAssert ? 'active' : ''}`}
               title="Assert"
               onClick={handleAssertClick}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 17l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M2 17l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            
+
             {isAssertDropdownOpen && (
               <div className="rcd-assert-dropdown">
                 <div className="rcd-assert-search">
@@ -281,8 +316,8 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
                 </div>
                 <div className="rcd-assert-list">
                   {filteredAssertTypes.map((type, index) => (
-                    <div 
-                      key={index} 
+                    <div
+                      key={index}
                       className="rcd-assert-item"
                       onClick={() => handleAssertSelect(type)}
                     >
@@ -301,7 +336,7 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
           <div className="rcd-selected-assert-content">
             <span className="rcd-selected-assert-label">Selected Assert:</span>
             <span className="rcd-selected-assert-type">{selectedAssert}</span>
-            <button 
+            <button
               className="rcd-selected-assert-remove"
               onClick={() => setSelectedAssert(null)}
               title="Remove selected assert"

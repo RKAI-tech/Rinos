@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import './ActionTab.css';
-import Action from '../action/Action';
-import { ActionGetResponse } from '../../types/actions';
+import RenderedAction from '../action/Action';
+import { Action } from '../../types/actions';
 
 interface ActionTabProps {
-  actions: ActionGetResponse[];
+  actions: Action[];
   isLoading: boolean;
   onDeleteAction?: (actionId: string) => void;
   onDeleteAll?: () => void;
-  onReorderActions?: (reorderedActions: ActionGetResponse[]) => void;
+  onReorderActions?: (reorderedActions: Action[]) => void;
   onReload?: () => void;
   selectedInsertPosition?: number | null;
   onSelectInsertPosition?: (position: number | null) => void;
@@ -185,7 +185,7 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
                   onDragEnd={handleDragEnd}
                   className={`rcd-action-draggable ${draggedIndex === index ? 'rcd-dragging' : ''} ${dragOverIndex === index ? 'rcd-drag-over' : ''}`}
                 >
-                  <Action action={action} onDelete={onDeleteAction} />
+                  <RenderedAction action={action} onDelete={onDeleteAction} />
                 </div>
                 
                 {/* Insert position sau mỗi action */}

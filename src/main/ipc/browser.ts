@@ -22,6 +22,7 @@ export function registerBrowserIpc() {
         await browserManager.stop();
     });
     ipcMain.handle("browser:executeActions", async (_, actions: Action[]) => {
+        console.log('[BROWSER] Executing actions:', actions);
         await browserManager.controller?.executeMultipleActions(browserManager.page as Page, actions);
     });
     ipcMain.handle("browser:navigate", async (_, url: string) => {

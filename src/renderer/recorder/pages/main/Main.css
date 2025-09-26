@@ -12,6 +12,65 @@ body, html { overflow: hidden; }
 .rcd-ctrl.rcd-assert:hover { background: #f0f9ff; border-color: #93c5fd; color: #2563eb; }
 .rcd-ctrl.rcd-assert.active { background: #2563eb; color: #fff; border-color: #2563eb; }
 
+/* Alternative pause/resume button styles */
+.rcd-ctrl.rcd-pause-alt {
+  background: transparent;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  position: relative;
+  overflow: hidden;
+}
+
+.rcd-ctrl.rcd-pause-alt:hover {
+  background: transparent;
+  border-color: #9ca3af;
+  transform: scale(1.05);
+}
+
+.rcd-ctrl.rcd-pause-alt.paused {
+  background: transparent;
+  color: #10b981;
+  border-color: #10b981;
+}
+
+.rcd-ctrl.rcd-pause-alt.paused:hover {
+  background: transparent;
+  border-color: #059669;
+  transform: scale(1.05);
+}
+
+.rcd-ctrl.rcd-pause-alt.resumed {
+  background: transparent;
+  color: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.rcd-ctrl.rcd-pause-alt.resumed:hover {
+  background: transparent;
+  border-color: #d97706;
+  transform: scale(1.05);
+}
+
+/* Animation for state transition */
+.rcd-ctrl.rcd-pause-alt {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.rcd-ctrl.rcd-pause-alt svg {
+  transition: transform 0.2s ease-in-out;
+}
+
+.rcd-ctrl.rcd-pause-alt:hover svg {
+  transform: scale(1.1);
+}
+
+/* Disabled state for pause/resume */
+.rcd-ctrl.rcd-pause-alt:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .rcd-assert-dropdown {
   position: absolute;
   top: 100%;

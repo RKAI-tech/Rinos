@@ -1,13 +1,13 @@
 import React from 'react';
 import './Action.css';
-import { ActionGetResponse } from '../../types/actions';
+import { Action as ActionType } from '../../types/actions';
 
 interface ActionProps {
-  action: ActionGetResponse;
+  action: ActionType;
   onDelete?: (actionId: string) => void;
 }
 
-export default function Action({ action, onDelete }: ActionProps) {
+export default function RenderedAction({ action, onDelete }: ActionProps) {
   // Format action type for display
   const formatActionType = (type: string) => {
     return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
@@ -18,7 +18,7 @@ export default function Action({ action, onDelete }: ActionProps) {
     if (action.elements && action.elements.length > 0) {
       const element = action.elements[0];
       if (element.selector && element.selector.length > 0) {
-        return element.selector[0]; // Lấy selector đầu tiên
+        return element.selector[0].value; // Lấy selector đầu tiên
       }
       return 'No selector';
     }
@@ -38,7 +38,7 @@ export default function Action({ action, onDelete }: ActionProps) {
       <div className="rcd-action-icon">?</div>
       <div className="rcd-action-body">
         <div className="rcd-action-title">{action.description || formatActionType(action.action_type)}</div>
-        <div className="rcd-action-meta">{getSelector()}</div>
+        {/* <div className="rcd-action-meta">{getSelector()}</div> */}
         {formatValue() && <div className="rcd-action-value">{formatValue()}</div>}
         {/* <div className="rcd-action-time">Order: {action.order_index}</div> */}
       </div>
@@ -46,7 +46,6 @@ export default function Action({ action, onDelete }: ActionProps) {
         className="rcd-action-remove"
         title="Remove"
         onClick={(e) => { e.stopPropagation(); onDelete && onDelete(action.action_id || ''); }}
-        onMouseDown={(e) => e.stopPropagation()}
       >
         ✕
       </button>

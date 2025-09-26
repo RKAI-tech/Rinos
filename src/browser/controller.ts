@@ -1,4 +1,4 @@
-import { Action, ActionTypes } from "./types";
+import { Action, ActionType } from "./types";
 import { Page } from "playwright";
 
 export class Controller {
@@ -32,14 +32,15 @@ export class Controller {
         }
         for (const action of actions) {
             try {
-                switch (action.type) {
-                    case ActionTypes.navigate:
+                console.log('[BROWSER] bao viet type:', action.action_type);
+                switch (action.action_type) {
+                    case ActionType.navigate:
                         if (!action.value) {
                             throw new Error('URL is required for navigate action');
                         }
                         await this.navigate(page, action.value);
                         break;
-                    case ActionTypes.click:
+                    case ActionType.click:
                         if (action.elements && action.elements.length === 1) {
                             await this.executeAction(action.elements[0].selector?.map(selector => selector.value) || null, async (selector) => {
                                 try {
@@ -51,21 +52,21 @@ export class Controller {
                             });
                         }
                         break;
-                    case ActionTypes.type:
+                    case ActionType.input:
                         if (action.elements && action.elements.length === 1) {
                             await this.executeAction(action.elements[0].selector?.map(selector => selector.value) || null, async (selector) => {
                                 await page.fill(selector, action.value);
                             });
                         }
                         break;
-                    case ActionTypes.select:
+                    case ActionType.select:
                         if (action.elements && action.elements.length === 1) {
                             await this.executeAction(action.elements[0].selector?.map(selector => selector.value) || null, async (selector) => {
                                 await page.selectOption(selector, action.value);
                             });
                         }
                         break;
-                    case ActionTypes.checkbox:
+                    case ActionType.checkbox:
                         if (action.elements && action.elements.length === 1) {
                             await this.executeAction(action.elements[0].selector?.map(selector => selector.value) || null, async (selector) => {
                                 if (action.checked) {
@@ -80,7 +81,7 @@ export class Controller {
                         continue;
                 }
             } catch (error) {
-                console.error(`Error executing action ${action.type}:`, error);
+                console.error(`Error executing action ${action.action_type}:`, error);
                 throw error;
             }
         }

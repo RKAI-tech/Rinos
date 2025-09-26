@@ -1,9 +1,8 @@
 import { apiRouter } from './baseAPIRequest';
 import { ApiResponse } from '../types/api_responses';
 import {
-    ActionBatchCreateRequest,
-    ActionCreateRequest,
-    ActionGetAllResponse,
+    Action,
+    ActionBatch,
     AiAssertRequest,
     AiAssertResponse,
     AssertActionsResponse,
@@ -11,7 +10,7 @@ import {
 import { DefaultResponse } from '../types/api_responses';
 
 export class ActionService {
-    async getActionsByTestCase(testcaseId: string, limit?: number, offset?: number): Promise<ApiResponse<ActionGetAllResponse>> {
+    async getActionsByTestCase(testcaseId: string, limit?: number, offset?: number): Promise<ApiResponse<ActionBatch>> {
         // Input validation
         if (!testcaseId) {
             return {
@@ -31,12 +30,12 @@ export class ActionService {
 
         const endpoint = `/actions/testcase/${testcaseId}`;
         
-        return await apiRouter.request<ActionGetAllResponse>(endpoint, {
+        return await apiRouter.request<ActionBatch>(endpoint, {
             method: 'GET'
         });
     }
     
-    async batchCreateActions(actions: ActionCreateRequest[]): Promise<ApiResponse<DefaultResponse>> {
+    async batchCreateActions(actions: Action[]): Promise<ApiResponse<DefaultResponse>> {
         // Input validation
         if (!actions || !Array.isArray(actions) || actions.length === 0) {
             return {
@@ -61,7 +60,7 @@ export class ActionService {
             }
         }
 
-        const requestBody: ActionBatchCreateRequest = { actions };
+        const requestBody: ActionBatch = { actions };
 
         // console.log('[ApiRouter] Sending batch create request:', JSON.stringify(requestBody, null, 2));
         // console.log('[ApiRouter] Request structure validation:');
