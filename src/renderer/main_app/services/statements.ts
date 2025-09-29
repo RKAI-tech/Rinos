@@ -8,6 +8,9 @@ import {
     StatementResponse,
     StatementRunByIdResponse,
     StatementDeleteResponse,
+    GenerateRowQueryRequest,
+    GenerateRowQueryResponse,
+    RunWithoutCreateRequest,
 } from '../types/statements';
 import { DefaultResponse } from '../types/api_responses';
 
@@ -65,6 +68,16 @@ export class StatementService {
         }
         return await apiRouter.request<StatementListResponse>(`/statements/get_by_project/${projectId}`, {
             method: 'GET'
+        });
+    }
+
+    async runWithoutCreate(payload: RunWithoutCreateRequest): Promise<ApiResponse<StatementRunResponse>> {
+        if (!payload || !payload.connection_id || !payload.query) {
+            return { success: false, error: 'connection_id and query are required' };
+        }
+        return await apiRouter.request<StatementRunResponse>('/statements/run_without_create', {
+            method: 'POST',
+            body: JSON.stringify(payload)
         });
     }
 }

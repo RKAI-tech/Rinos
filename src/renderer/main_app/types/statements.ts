@@ -8,12 +8,18 @@ export interface StatementCreateRequest {
     statement_text: string;
 }
 
+export interface RunWithoutCreateRequest {
+    connection_id: string;
+    query: string;
+}
+
 export interface StatementRunResponse {
     status: string;
     elapsed_ms: number;
     data: Array<{ name: string; value: string }>;
     affected_rows: number;
     error: string;
+    primary_keys?: any;
 }
 
 export interface Statement {
@@ -33,6 +39,20 @@ export interface StatementResponse {
     statement_text: string;
     status: string;
     connection?: DatabaseConnection;
+    primary_keys?: any;
+}
+
+export interface GenerateRowQueryRequest {
+    original_query: string;
+    primary_keys: any;
+    row_data: any;
+    row_index: number;
+}
+
+export interface GenerateRowQueryResponse {
+    row_query: string;
+    elapsed_ms: number;
+    status: string;
 }
 
 export interface StatementListResponse {
