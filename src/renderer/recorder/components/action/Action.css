@@ -1,4 +1,4 @@
-.rcd-action { display: flex; gap: 10px; align-items: center; background: #fff; border: 1px solid #e5e7eb; border-radius: 25px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: all 0.2s ease-in-out; cursor: pointer; }
+.rcd-action { display: flex; gap: 10px; align-items: center; background: #fff; border: 1px solid #e5e7eb; border-radius: 25px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: all 0.2s ease-in-out; }
 .rcd-action:hover { background: #f8fafc; border-color: #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transform: translateY(-1px); }
 
 .rcd-action-icon { width: 28px; height: 28px; border-radius: 9999px; background: #cac8c7; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; transition: all 0.2s ease-in-out; }
@@ -12,6 +12,46 @@
 .rcd-action:hover .rcd-action-value { color: #059669; }
 .rcd-action-time { color: #64748b; font-size: 10px; transition: color 0.2s ease-in-out; }
 .rcd-action:hover .rcd-action-time { color: #475569; }
-.rcd-action-remove { background: transparent; border: none; color: #9ca3af; cursor: pointer; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.2s ease-in-out; border-radius: 4px; }
-.rcd-action-remove:hover { color: #ef4444; background: #fef2f2; transform: scale(1.1); }
+.rcd-action-actions { display: flex; gap: 4px; align-items: center; }
+
+.rcd-action-edit { 
+  background: transparent; 
+  border: none; 
+  color: #6b7280; 
+  cursor: pointer; 
+  width: 24px; 
+  height: 24px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  transition: all 0.2s ease-in-out; 
+  border-radius: 4px; 
+}
+
+.rcd-action-edit:hover { 
+  color: #3b82f6; 
+  background: #eff6ff; 
+  transform: scale(1.1); 
+}
+
+.rcd-action-remove { 
+  background: transparent; 
+  border: none; 
+  color: #9ca3af; 
+  cursor: pointer; 
+  width: 24px; 
+  height: 24px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  font-size: 16px; 
+  transition: all 0.2s ease-in-out; 
+  border-radius: 4px; 
+}
+
+.rcd-action-remove:hover { 
+  color: #ef4444; 
+  background: #fef2f2; 
+  transform: scale(1.1); 
+}
 

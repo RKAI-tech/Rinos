@@ -7,6 +7,7 @@ import SidebarNavigator from '../../components/sidebar_navigator/SidebarNavigato
 import './Queries.css';
 import { ProjectService } from '../../services/projects';
 import { StatementService } from '../../services/statements';
+import { DatabaseService } from '../../services/database';
 import AddQuery from '../../components/query/add_query/AddQuery';
 import { toast } from 'react-toastify';
 import DeleteQuery from '../../components/query/delete_query/DeleteQuery';
@@ -39,6 +40,12 @@ const Queries: React.FC = () => {
   const [isRunOpen, setIsRunOpen] = useState(false);
   const [runSql, setRunSql] = useState('');
   const [runItems, setRunItems] = useState<{ name: string; value: string }[]>([]);
+  const [sqlQuery, setSqlQuery] = useState('');
+  const [queryResults, setQueryResults] = useState<any[]>([]);
+  const [queryColumns, setQueryColumns] = useState<string[]>([]);
+  const [isRunningQuery, setIsRunningQuery] = useState(false);
+  const [selectedConnectionId, setSelectedConnectionId] = useState('');
+  const [connections, setConnections] = useState<{ id: string; name: string }[]>([]);
 
   const fetchQueries = async () => {
     if (!projectId) return;
@@ -71,7 +78,28 @@ const Queries: React.FC = () => {
 
   useEffect(() => {
     fetchQueries();
+    fetchConnections();
   }, [projectId]);
+
+  const fetchConnections = async () => {
+    if (!projectId) return;
+    try {
+      const svc = new DatabaseService();
+      const resp = await svc.getDatabaseConnections({ project_id: projectId });
+      if (resp.success && resp.data) {
+        const conns = resp.data.connections.map(db => ({ 
+          id: db.connection_id, 
+          name: `${db.db_type.toUpperCase()} • ${db.db_name}@${db.host}:${db.port}` 
+        }));
+        setConnections(conns);
+        if (conns.length > 0) {
+          setSelectedConnectionId(conns[0].id);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch connections:', e);
+    }
+  };
 
   useEffect(() => {
     const loadProjectName = async () => {
@@ -140,6 +168,62 @@ const Queries: React.FC = () => {
   const handleBreadcrumbNavigate = (path: string) => navigate(path);
   const handleSidebarNavigate = (path: string) => navigate(path);
 
+  const handleRunQuery = async () => {
+    if (!sqlQuery.trim() || !selectedConnectionId) {
+      toast.error('Please enter SQL query and select connection');
+      return;
+    }
+    
+    try {
+      setIsRunningQuery(true);
+      const svc = new StatementService();
+      const resp = await svc.runWithoutCreate({
+        connection_id: selectedConnectionId,
+        query: sqlQuery.trim()
+      });
+      
+      if (resp.success && resp.data) {
+        console.log(resp.data);
+        // Handle array of objects response
+        let items: any[] = [];
+        let columns: string[] = [];
+        
+        if (Array.isArray(resp.data.data)) {
+          // Store the array of objects as-is
+          items = resp.data.data;
+          
+          // Extract unique column names from all objects
+          const allKeys = new Set<string>();
+          resp.data.data.forEach((obj: any) => {
+            if (obj && typeof obj === 'object') {
+              Object.keys(obj).forEach(key => allKeys.add(key));
+            }
+          });
+          columns = Array.from(allKeys);
+        }
+        
+        setQueryResults(items);
+        setQueryColumns(columns);
+        toast.success('Query executed successfully');
+      } else {
+        toast.error(resp.error || 'Failed to execute query');
+        setQueryResults([]);
+      }
+    } catch (e) {
+      toast.error('Failed to execute query');
+      setQueryResults([]);
+    } finally {
+      setIsRunningQuery(false);
+    }
+  };
+
+  const handleClearQuery = () => {
+    setSqlQuery('');
+    setQueryResults([]);
+    setQueryColumns([]);
+    toast.info('Query and results cleared');
+  };
+
   return (
     <div className="qry-page">
       <Header />
@@ -155,6 +239,80 @@ const Queries: React.FC = () => {
         <main className="qry-main">
           <div className="qry-container">
             <div className="page-title" />
+
+            {/* SQL Query & Results Side by Side */}
+            <div className="qry-sql-results-section">
+              <div className="qry-query-panel">
+                <div className="qry-sql-header">
+                  <h3>SQL Query</h3>
+                  <select
+                    value={selectedConnectionId}
+                    onChange={(e) => setSelectedConnectionId(e.target.value)}
+                    className="qry-connection-select"
+                  >
+                    {connections.map(conn => (
+                      <option key={conn.id} value={conn.id}>{conn.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <textarea
+                  className="qry-sql-textarea"
+                  placeholder="Enter your SQL query here..."
+                  value={sqlQuery}
+                  onChange={(e) => setSqlQuery(e.target.value)}
+                  rows={8}
+                />
+                <div className="qry-sql-actions">
+                  <button 
+                    className="qry-clear-btn" 
+                    onClick={handleClearQuery}
+                    disabled={isRunningQuery}
+                  >
+                    Clear
+                  </button>
+                  <button 
+                    className="qry-run-btn" 
+                    onClick={handleRunQuery}
+                    disabled={isRunningQuery || !sqlQuery.trim() || !selectedConnectionId}
+                  >
+                    {isRunningQuery ? 'Running...' : 'Run Query'}
+                  </button>
+                </div>
+              </div>
+              
+              <div className="qry-results-panel">
+                <div className="qry-results-header">
+                  <h3>Query Results</h3>
+                  <span className="qry-results-count">
+                    {queryResults.length} result{queryResults.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className={`qry-results-container ${queryResults.length > 0 ? 'has-results' : ''}`}>
+                  {queryResults.length === 0 ? (
+                    <div className="qry-no-results">No results to display</div>
+                  ) : (
+                    <table className="qry-results-table">
+                      <thead>
+                        <tr>
+                          {queryColumns.map((column, idx) => (
+                            <th key={idx}>{column}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className={queryResults.length > 5 ? 'scrollable' : ''}>
+                        {queryResults.map((item, idx) => (
+                          <tr key={idx}>
+                            {queryColumns.map((column, colIdx) => (
+                              <td key={colIdx}>{String(item[column] || '')}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            </div>
 
             <div className="qry-controls">
               <div className="qry-search-section">
