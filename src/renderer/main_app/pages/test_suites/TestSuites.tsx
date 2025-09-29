@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/header/Header';
 import Footer from '../../components/footer/Footer';
@@ -40,6 +40,8 @@ const TestSuites: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
+  const [sortBy, setSortBy] = useState<'name' | 'description' | 'passRate' | 'testcases' | 'passed' | 'failed' | 'createdAt'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [itemsPerPage, setItemsPerPage] = useState('5 rows/page');
   const [currentPage, setCurrentPage] = useState(1);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
@@ -129,11 +131,50 @@ const TestSuites: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const sortedSuites = useMemo(() => {
+    const copy = [...filteredSuites];
+    const getVal = (it: TestSuite): string | number => {
+      switch (sortBy) {
+        case 'name': return it.name || '';
+        case 'description': return it.description || '';
+        case 'passRate': return it.passRate ?? -1;
+        case 'testcases': return it.testcases ?? -1;
+        case 'passed': return it.passed ?? -1;
+        case 'failed': return it.failed ?? -1;
+        case 'createdAt': {
+          const t = it.createdAt ? new Date(it.createdAt).getTime() : 0;
+          return isNaN(t) ? 0 : t;
+        }
+        default: return 0;
+      }
+    };
+    copy.sort((a, b) => {
+      const av = getVal(a);
+      const bv = getVal(b);
+      let cmp = 0;
+      if (typeof av === 'string' && typeof bv === 'string') {
+        cmp = av.localeCompare(bv, undefined, { sensitivity: 'base' });
+      } else {
+        const an = typeof av === 'number' ? av : 0;
+        const bn = typeof bv === 'number' ? bv : 0;
+        cmp = an === bn ? 0 : an < bn ? -1 : 1;
+      }
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+    return copy;
+  }, [filteredSuites, sortBy, sortOrder]);
+
+  const handleSort = (col: 'name' | 'description' | 'passRate' | 'testcases' | 'passed' | 'failed' | 'createdAt') => {
+    if (sortBy === col) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortOrder('asc'); }
+    setCurrentPage(1);
+  };
+
   const getItemsPerPageNumber = () => parseInt(itemsPerPage.split(' ')[0]);
-  const totalPages = Math.ceil(filteredSuites.length / getItemsPerPageNumber());
+  const totalPages = Math.ceil(sortedSuites.length / getItemsPerPageNumber());
   const startIndex = (currentPage - 1) * getItemsPerPageNumber();
   const endIndex = startIndex + getItemsPerPageNumber();
-  const currentSuites = filteredSuites.slice(startIndex, endIndex);
+  const currentSuites = sortedSuites.slice(startIndex, endIndex);
 
   const generatePaginationNumbers = () => {
     const pages: (number | string)[] = [];
@@ -326,13 +367,27 @@ const TestSuites: React.FC = () => {
               <table className="testsuites-table">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>Pass Rate</th>
-                    <th>Testcases</th>
-                    <th>Passed</th>
-                    <th>Failed</th>
-                    <th>Created</th>
+                    <th className={`sortable ${sortBy === 'name' ? 'sorted' : ''}`} onClick={() => handleSort('name')}>
+                      <span className="th-content"><span className="th-text">Name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'name' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'name' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'description' ? 'sorted' : ''}`} onClick={() => handleSort('description')}>
+                      <span className="th-content"><span className="th-text">Description</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'description' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'description' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'passRate' ? 'sorted' : ''}`} onClick={() => handleSort('passRate')}>
+                      <span className="th-content"><span className="th-text">Pass Rate</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'passRate' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'passRate' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'testcases' ? 'sorted' : ''}`} onClick={() => handleSort('testcases')}>
+                      <span className="th-content"><span className="th-text">Testcases</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'testcases' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'testcases' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'passed' ? 'sorted' : ''}`} onClick={() => handleSort('passed')}>
+                      <span className="th-content"><span className="th-text">Passed</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'passed' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'passed' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'failed' ? 'sorted' : ''}`} onClick={() => handleSort('failed')}>
+                      <span className="th-content"><span className="th-text">Failed</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'failed' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'failed' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'createdAt' ? 'sorted' : ''}`} onClick={() => handleSort('createdAt')}>
+                      <span className="th-content"><span className="th-text">Created</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'createdAt' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'createdAt' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    </th>
                     <th>Options</th>
                   </tr>
                 </thead>

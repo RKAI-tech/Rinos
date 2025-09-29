@@ -334,6 +334,56 @@
   vertical-align: middle;
 }
 
+.projects-table th.sortable {
+  cursor: pointer;
+  position: relative;
+}
+
+.projects-table th .th-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.projects-table th .sort-arrows {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.projects-table th:hover .sort-arrows,
+.projects-table th.sorted .sort-arrows {
+  opacity: 1;
+}
+
+.projects-table th .arrow {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  margin: 1px 0;
+  opacity: 0.4;
+}
+
+.projects-table th .arrow.up {
+  border-bottom: 6px solid #6b7280;
+}
+
+.projects-table th .arrow.down {
+  border-top: 6px solid #6b7280;
+}
+
+.projects-table th .arrow.active {
+  opacity: 1;
+  border-bottom-color: #111827;
+  border-top-color: #111827;
+}
+
 .projects-table td {
   padding: 16px 12px;
   border-bottom: 1px solid #e1e5e9;

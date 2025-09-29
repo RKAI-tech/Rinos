@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/header/Header';
 import Footer from '../../components/footer/Footer';
@@ -28,6 +28,8 @@ const Databases: React.FC = () => {
 
   const [databases, setDatabases] = useState<DatabaseItem[]>([]);
   const [searchText, setSearchText] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'type' | 'host' | 'port'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [itemsPerPage, setItemsPerPage] = useState('5 rows/page');
   const [currentPage, setCurrentPage] = useState(1);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
@@ -94,11 +96,44 @@ const Databases: React.FC = () => {
     return (db.name || '').toLowerCase().includes(q) || (db.host || '').toLowerCase().includes(q) || (db.type || '').toLowerCase().includes(q);
   });
 
+  const sorted = useMemo(() => {
+    const copy = [...filtered];
+    const getVal = (it: DatabaseItem): string | number => {
+      switch (sortBy) {
+        case 'name': return it.name || '';
+        case 'type': return it.type || '';
+        case 'host': return it.host || '';
+        case 'port': return it.port ?? 0;
+        default: return '';
+      }
+    };
+    copy.sort((a, b) => {
+      const av = getVal(a);
+      const bv = getVal(b);
+      let cmp = 0;
+      if (typeof av === 'string' && typeof bv === 'string') {
+        cmp = av.localeCompare(bv, undefined, { sensitivity: 'base' });
+      } else {
+        const an = typeof av === 'number' ? av : 0;
+        const bn = typeof bv === 'number' ? bv : 0;
+        cmp = an === bn ? 0 : an < bn ? -1 : 1;
+      }
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+    return copy;
+  }, [filtered, sortBy, sortOrder]);
+
+  const handleSort = (col: 'name' | 'type' | 'host' | 'port') => {
+    if (sortBy === col) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortOrder('asc'); }
+    setCurrentPage(1);
+  };
+
   const getItemsPerPageNumber = () => parseInt(itemsPerPage.split(' ')[0]);
-  const totalPages = Math.ceil(filtered.length / getItemsPerPageNumber());
+  const totalPages = Math.ceil(sorted.length / getItemsPerPageNumber());
   const startIndex = (currentPage - 1) * getItemsPerPageNumber();
   const endIndex = startIndex + getItemsPerPageNumber();
-  const currentItems = filtered.slice(startIndex, endIndex);
+  const currentItems = sorted.slice(startIndex, endIndex);
 
   const generatePaginationNumbers = () => {
     const pages: (number | string)[] = [];
@@ -176,10 +211,42 @@ const Databases: React.FC = () => {
               <table className="databases-table">
                 <thead>
                   <tr>
-                    <th>Database Name</th>
-                    <th>Database Type</th>
-                    <th>Host</th>
-                    <th>Port</th>
+                    <th className={`sortable ${sortBy === 'name' ? 'sorted' : ''}`} onClick={() => handleSort('name')}>
+                      <span className="th-content">
+                        <span className="th-text">Database Name</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'name' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'name' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'type' ? 'sorted' : ''}`} onClick={() => handleSort('type')}>
+                      <span className="th-content">
+                        <span className="th-text">Database Type</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'type' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'type' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'host' ? 'sorted' : ''}`} onClick={() => handleSort('host')}>
+                      <span className="th-content">
+                        <span className="th-text">Host</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'host' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'host' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'port' ? 'sorted' : ''}`} onClick={() => handleSort('port')}>
+                      <span className="th-content">
+                        <span className="th-text">Port</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'port' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'port' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
                     <th>Options</th>
                   </tr>
                 </thead>

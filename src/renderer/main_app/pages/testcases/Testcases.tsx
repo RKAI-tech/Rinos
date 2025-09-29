@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/header/Header';
 import Footer from '../../components/footer/Footer';
@@ -38,6 +38,8 @@ const Testcases: React.FC = () => {
 
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
+  const [sortBy, setSortBy] = useState<'name' | 'tag' | 'actionsCount' | 'status' | 'updated'>('updated');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [itemsPerPage, setItemsPerPage] = useState('5 rows/page');
   const [currentPage, setCurrentPage] = useState(1);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
@@ -167,15 +169,52 @@ const Testcases: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const sortedTestcases = useMemo(() => {
+    const copy = [...filteredTestcases];
+    const getVal = (it: Testcase): string | number => {
+      switch (sortBy) {
+        case 'name': return it.name || '';
+        case 'tag': return it.tag || '';
+        case 'actionsCount': return it.actionsCount ?? 0;
+        case 'status': return it.status || '';
+        case 'updated': {
+          const t = it.updated || it.createdAt || '';
+          const ms = t ? new Date(t).getTime() : 0;
+          return isNaN(ms) ? 0 : ms;
+        }
+        default: return 0;
+      }
+    };
+    copy.sort((a, b) => {
+      const av = getVal(a);
+      const bv = getVal(b);
+      let cmp = 0;
+      if (typeof av === 'string' && typeof bv === 'string') cmp = av.localeCompare(bv, undefined, { sensitivity: 'base' });
+      else {
+        const an = typeof av === 'number' ? av : 0;
+        const bn = typeof bv === 'number' ? bv : 0;
+        cmp = an === bn ? 0 : an < bn ? -1 : 1;
+      }
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+    return copy;
+  }, [filteredTestcases, sortBy, sortOrder]);
+
+  const handleSort = (col: 'name' | 'tag' | 'actionsCount' | 'status' | 'updated') => {
+    if (sortBy === col) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortOrder('asc'); }
+    setCurrentPage(1);
+  };
+
   // Pagination helpers (same approach as Dashboard)
   const getItemsPerPageNumber = () => {
     return parseInt(itemsPerPage.split(' ')[0]);
   };
 
-  const totalPages = Math.ceil(filteredTestcases.length / getItemsPerPageNumber());
+  const totalPages = Math.ceil(sortedTestcases.length / getItemsPerPageNumber());
   const startIndex = (currentPage - 1) * getItemsPerPageNumber();
   const endIndex = startIndex + getItemsPerPageNumber();
-  const currentTestcases = filteredTestcases.slice(startIndex, endIndex);
+  const currentTestcases = sortedTestcases.slice(startIndex, endIndex);
 
   const generatePaginationNumbers = () => {
     const pages: (number | string)[] = [];
@@ -423,9 +462,10 @@ const Testcases: React.FC = () => {
                 className="status-dropdown"
               >
                 <option value="All Status">All Status</option>
-                <option value="SUCCESS">Success</option>
-                <option value="FAILED">Failed</option>
-                <option value="PENDING">Pending</option>
+                <option value="SUCCESS">SUCCESS</option>
+                <option value="FAILED">FAILED</option>
+                <option value="PENDING">PENDING</option>
+                <option value="DRAFT">DRAFT</option>
               </select>
             </div>
 
@@ -454,13 +494,23 @@ const Testcases: React.FC = () => {
           {/* Testcases Table */}
           <div className="testcases-table-container">
             <table className="testcases-table">
-              <thead>
+                <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Tag</th>
-                  <th>Actions</th>
-                  <th>Status</th>
-                  <th>Updated</th>
+                  <th className={`sortable ${sortBy === 'name' ? 'sorted' : ''}`} onClick={() => handleSort('name')}>
+                    <span className="th-content"><span className="th-text">Name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'name' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'name' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                  </th>
+                  <th className={`sortable ${sortBy === 'tag' ? 'sorted' : ''}`} onClick={() => handleSort('tag')}>
+                    <span className="th-content"><span className="th-text">Tag</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'tag' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'tag' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                  </th>
+                  <th className={`sortable ${sortBy === 'actionsCount' ? 'sorted' : ''}`} onClick={() => handleSort('actionsCount')}>
+                    <span className="th-content"><span className="th-text">Actions</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'actionsCount' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'actionsCount' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                  </th>
+                  <th className={`sortable ${sortBy === 'status' ? 'sorted' : ''}`} onClick={() => handleSort('status')}>
+                    <span className="th-content"><span className="th-text">Status</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'status' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'status' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                  </th>
+                  <th className={`sortable ${sortBy === 'updated' ? 'sorted' : ''}`} onClick={() => handleSort('updated')}>
+                    <span className="th-content"><span className="th-text">Updated</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'updated' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'updated' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                  </th>
                   <th>Options</th>
                 </tr>
               </thead>
