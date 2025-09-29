@@ -35,7 +35,18 @@ export function generateSelector(element, options = {}) {
   const originalElement = element;
   element = retargetElement(element, 'follow-label') || element;
 
+  // If target is a label, try to retarget to its associated control
+  try {
+    if (element && element.tagName === 'LABEL') {
+      const control = element.control || element.querySelector('input,select,textarea,button');
+      if (control) {
+        element = control;
+      }
+    }
+  } catch {}
+
   const doc = element.ownerDocument || document;
+  const tag = element.tagName.toLowerCase();
   
   // Scoring system for selectors (higher score = better selector)
   const selectorCandidates = [];
@@ -137,7 +148,17 @@ export function generateSelector(element, options = {}) {
     addCandidate(`[${attr}="${escapedValue}"]`, SELECTOR_SCORES.SEMANTIC_ATTR, 'semantic-attr');
   }
 
-  // 5. Text-based selector skipped
+  // 5. Text-based selector (Playwright engine supports :has-text("..."))
+  try {
+    const elementText = getElementText(element);
+    // Use reasonable-length, meaningful text snippets
+    if (isMeaningfulValue(elementText) && elementText.length <= 100) {
+      const safeText = elementText.replace(/"/g, '\\"');
+      // Push without DOM validation because :has-text is not a native CSS selector
+      selectorCandidates.push({ selector: `:has-text("${safeText}")`, score: 810, type: 'text' });
+      selectorCandidates.push({ selector: `${tag}:has-text("${safeText}")`, score: 805, type: 'text' });
+    }
+  } catch {}
 
   // 6. Unique class combinations (score 700)
   if (element.classList.length) {
@@ -165,7 +186,6 @@ export function generateSelector(element, options = {}) {
   }
 
   // 7. Tag + attributes combination (score 600)
-  const tag = element.tagName.toLowerCase();
   for (const attr of FORM_ATTRIBUTES) {
     const value = element.getAttribute(attr);
     if (isMeaningfulValue(value)) {
@@ -236,7 +256,42 @@ export function generateSelector(element, options = {}) {
     .filter(candidate => candidate.score >= minScore)
     .slice(0, maxSelectors);
   const selectors = filteredCandidates.map(candidate => candidate.selector);
-  return selectors;
+
+  if (selectors.length > 0) {
+    return selectors;
+  }
+
+  // Fallback strategy: always return at least one selector
+  // 1) If we have any candidate (even below minScore), return the best one
+  if (selectorCandidates.length > 0) {
+    return [selectorCandidates[0].selector];
+  }
+
+  // 2) Absolute nth-child path from document root as a last resort (may not be unique, but always resolvable)
+  try {
+    const absolutePath = (() => {
+      const parts = [];
+      let current = element;
+      const doc = element.ownerDocument || document;
+      while (current && current.nodeType === Node.ELEMENT_NODE && current !== doc.documentElement) {
+        let part = current.tagName.toLowerCase();
+        const parent = current.parentElement;
+        if (parent) {
+          const siblings = Array.from(parent.children).filter(e => e.tagName === current.tagName);
+          if (siblings.length > 1) {
+            part += `:nth-of-type(${siblings.indexOf(current) + 1})`;
+          }
+        }
+        parts.unshift(part);
+        current = current.parentElement;
+      }
+      return parts.join(' > ') || element.tagName.toLowerCase();
+    })();
+    return [absolutePath];
+  } catch {
+    // 3) Final emergency fallback: the tag name
+    return [element.tagName ? element.tagName.toLowerCase() : '*'];
+  }
 }
 
 /**

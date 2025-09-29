@@ -12,6 +12,9 @@ import CreateTestSuite from '../../components/testsuite/create_test_suite/Create
 import EditTestSuite from '../../components/testsuite/edit_test_suite/EditTestSuite';
 import DeleteTestSuite from '../../components/testsuite/delete_test_suite/DeleteTestSuite';
 import AddTestcasesToSuite from '../../components/testsuite/add_testcase_to_suite/AddTestcasesToSuite';
+// New modal for deleting testcases from suite
+import DeleteTestcasesFromSuite from '../../components/testsuite/delete_testcase_to_suite/DeleteTestcasesFromSuite';
+import ViewTestSuiteResult from '../../components/testsuite/view_test_suite_result/ViewTestSuiteResult';
 
 interface TestSuite {
   id: string;
@@ -44,6 +47,8 @@ const TestSuites: React.FC = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isRemoveOpen, setIsRemoveOpen] = useState(false);
+  const [isViewResultOpen, setIsViewResultOpen] = useState(false);
   const [selectedSuite, setSelectedSuite] = useState<TestSuite | null>(null);
 
   const handleCreateSuite = () => {
@@ -181,6 +186,9 @@ const TestSuites: React.FC = () => {
       const resp = await svc.executeTestSuite({ test_suite_id: id });
       if (resp.success) {
         toast.success('Test suite is running');
+        // Mở modal view result ngay sau khi run thành công
+        setSelectedSuite(testSuites.find(s => s.id === id) || null);
+        setIsViewResultOpen(true);
       } else {
         toast.error(resp.error || 'Failed to run test suite');
       }
@@ -189,6 +197,12 @@ const TestSuites: React.FC = () => {
     } finally {
       setOpenDropdownId(null);
     }
+  };
+
+  const handleViewSuiteResult = (id: string) => {
+    setSelectedSuite(testSuites.find(s => s.id === id) || null);
+    setIsViewResultOpen(true);
+    setOpenDropdownId(null);
   };
 
   const handleSaveCreateSuite = async ({ projectId: pid, name, description }: { projectId: string; name: string; description: string }) => {
@@ -249,6 +263,13 @@ const TestSuites: React.FC = () => {
     const suite = testSuites.find(s => s.id === id) || null;
     setSelectedSuite(suite);
     setIsAddOpen(true);
+    setOpenDropdownId(null);
+  };
+
+  const handleRemoveTestcasesFromSuite = (id: string) => {
+    const suite = testSuites.find(s => s.id === id) || null;
+    setSelectedSuite(suite);
+    setIsRemoveOpen(true);
     setOpenDropdownId(null);
   };
 
@@ -346,6 +367,12 @@ const TestSuites: React.FC = () => {
                                 </svg>
                                 Run
                               </button>
+                              <button className="dropdown-item" onClick={() => handleViewSuiteResult(suite.id)}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M12 5c5 0 9 4 9 7s-4 7-9 7-9-4-9-7 4-7 9-7zm0 3a4 4 0 100 8 4 4 0 000-8z" fill="currentColor"/>
+                                </svg>
+                                View Result
+                              </button>
                               <button className="dropdown-item" onClick={() => handleAddTestcasesToSuite(suite.id)}>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                   <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -353,12 +380,20 @@ const TestSuites: React.FC = () => {
                                 </svg>
                                 Add Cases
                               </button>
+                              
                               <button className="dropdown-item" onClick={() => handleOpenEditSuite(suite.id)}>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
                                 Edit
+                              </button>
+                              <button className="dropdown-item delete" onClick={() => handleRemoveTestcasesFromSuite(suite.id)}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Remove Cases
                               </button>
                               <button className="dropdown-item delete" onClick={() => handleOpenDeleteSuite(suite.id)}>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -436,6 +471,7 @@ const TestSuites: React.FC = () => {
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         projectId={projectId}
+        testSuiteId={selectedSuite?.id}
         onSave={async (testcaseIds: string[]) => {
           try {
             if (!selectedSuite) return;
@@ -452,6 +488,34 @@ const TestSuites: React.FC = () => {
             toast.error('Failed to add testcases');
           }
         }}
+      />
+
+      {/* Delete Testcases From Suite Modal */}
+      <DeleteTestcasesFromSuite
+        isOpen={isRemoveOpen}
+        onClose={() => setIsRemoveOpen(false)}
+        testSuiteId={selectedSuite?.id}
+        onRemove={async (testcaseIds: string[]) => {
+          try {
+            if (!selectedSuite) return;
+            const svc = new TestSuiteService();
+            for (const tcId of testcaseIds) {
+              await svc.removeTestCaseFromTestSuite(tcId, selectedSuite.id);
+            }
+            toast.success('Removed testcases from suite');
+            setIsRemoveOpen(false);
+            await fetchSuites();
+          } catch (e) {
+            toast.error('Failed to remove testcases');
+          }
+        }}
+      />
+
+      {/* View Test Suite Result */}
+      <ViewTestSuiteResult
+        isOpen={isViewResultOpen}
+        onClose={() => setIsViewResultOpen(false)}
+        testSuiteId={selectedSuite?.id}
       />
     </div>
   );

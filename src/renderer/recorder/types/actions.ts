@@ -1,5 +1,6 @@
 export enum ActionType {
   input = "input",
+  navigate = "navigate",
   click = "click",
   select = "select",
   checkbox = "checkbox",
@@ -13,7 +14,6 @@ export enum ActionType {
   assert = "assert",
   update_input = "update_input",
   connect_db = "connect_db",
-  navigate = "navigate",
   double_click = "double_click",
   right_click = "right_click",
   shift_click = "shift_click",

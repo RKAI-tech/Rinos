@@ -7,6 +7,7 @@ import SidebarNavigator from '../../components/sidebar_navigator/SidebarNavigato
 import './Testcases.css';
 import CreateTestcase from '../../components/testcase/create_testcase/CreateTestcase';
 import EditTestcase from '../../components/testcase/edit_testcase/EditTestcase';
+import DuplicateTestcase from '../../components/testcase/duplicate_testcase/DuplicateTestcase';
 import DeleteTestcase from '../../components/testcase/delete_testcase/DeleteTestcase';
 import { TestCaseService } from '../../services/testcases';
 import { ProjectService } from '../../services/projects';
@@ -43,6 +44,7 @@ const Testcases: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
   const [selectedTestcase, setSelectedTestcase] = useState<Testcase | null>(null);
 
   // Service
@@ -262,11 +264,32 @@ const Testcases: React.FC = () => {
     setOpenDropdownId(null);
   };
 
+  const handleOpenDuplicate = (id: string, event?: React.MouseEvent) => {
+    if (event) event.stopPropagation();
+    const tc = testcases.find(t => t.id === id) || null;
+    setSelectedTestcase(tc);
+    setIsDuplicateModalOpen(true);
+    setOpenDropdownId(null);
+  };
+
   const handleOpenDelete = (id: string, event?: React.MouseEvent) => {
     if (event) event.stopPropagation(); // Ngăn chặn event bubbling
     const tc = testcases.find(t => t.id === id) || null;
     setSelectedTestcase(tc);
     setIsDeleteModalOpen(true);
+    setOpenDropdownId(null);
+  };
+
+  const handleRunTestcase = async (id: string, event?: React.MouseEvent) => {
+    if (event) event.stopPropagation();
+    // TODO: Implement run testcase
+  };
+
+  const handleViewResult = (id: string, event?: React.MouseEvent) => {
+    if (event) event.stopPropagation();
+    // Tùy thuộc route hiển thị kết quả, điều hướng tạm thời về testsuite/testcase detail hoặc show toast
+    toast.info('Opening latest result for testcase...');
+    // Ví dụ: navigate(`/testcases/${projectId}/results/${id}`);
     setOpenDropdownId(null);
   };
 
@@ -278,6 +301,29 @@ const Testcases: React.FC = () => {
   const handleCloseDeleteModal = () => {
     setIsDeleteModalOpen(false);
     setSelectedTestcase(null);
+  };
+
+  const handleCloseDuplicateModal = () => {
+    setIsDuplicateModalOpen(false);
+    setSelectedTestcase(null);
+  };
+
+  // Create a testcase and try to return newly created testcase_id (if API provides it)
+  const createTestcaseAndReturnId = async (name: string, tag?: string) => {
+    const effectiveProjectId = projectData?.projectId;
+    if (!effectiveProjectId) {
+      toast.error('Missing project ID');
+      return undefined;
+    }
+    const payload = { project_id: effectiveProjectId, name, tag: tag || undefined } as any;
+    const resp = await testCaseService.createTestCase(payload);
+    if (!resp.success) {
+      toast.error(resp.error || 'Failed to create testcase');
+      return undefined;
+    }
+    // Some backends may not return the id; attempt to extract if available
+    const newId = (resp.data as any)?.testcase_id;
+    return newId as string | undefined;
   };
 
   const handleOpenRecorder = async (id: string) => {
@@ -303,6 +349,13 @@ const Testcases: React.FC = () => {
     } catch (err) {
       toast.error('Failed to update testcase');
     }
+  };
+
+  const handleSaveDuplicateTestcase = async (_payload: { name: string; tag: string; actions: any[] }) => {
+    // DuplicateTestcase tự thực hiện tạo và add actions, ở đây chỉ cần đóng và reload
+    toast.success('Testcase duplicated successfully!');
+    handleCloseDuplicateModal();
+    await reloadTestcases();
   };
 
   const handleDeleteTestcase = async (id: string) => {
@@ -438,12 +491,31 @@ const Testcases: React.FC = () => {
                         
                         {openDropdownId === testcase.id && (
                           <div className="actions-dropdown">
+                            <button className="dropdown-item" onClick={(e) => handleRunTestcase(testcase.id, e)}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <polygon points="8,5 19,12 8,19" fill="currentColor" />
+                              </svg>
+                              Run
+                            </button>
+                            <button className="dropdown-item" onClick={(e) => handleViewResult(testcase.id, e)}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 5c5 0 9 4 9 7s-4 7-9 7-9-4-9-7 4-7 9-7zm0 3a4 4 0 100 8 4 4 0 000-8z" fill="currentColor"/>
+                              </svg>
+                              Result
+                            </button>
                             <button className="dropdown-item" onClick={(e) => handleOpenEdit(testcase.id, e)}>
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                               Edit
+                            </button>
+                            <button className="dropdown-item" onClick={(e) => handleOpenDuplicate(testcase.id, e)}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16 1H4a2 2 0 0 0-2 2v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <rect x="8" y="5" width="14" height="14" rx="2" ry="2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                              Duplicate
                             </button>
                             <button className="dropdown-item delete" onClick={(e) => handleOpenDelete(testcase.id, e)}>
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -532,6 +604,15 @@ const Testcases: React.FC = () => {
         onClose={handleCloseDeleteModal}
         onDelete={handleDeleteTestcase}
         testcase={selectedTestcase ? { testcase_id: selectedTestcase.id, name: selectedTestcase.name } : null}
+      />
+
+      {/* Duplicate Testcase Modal */}
+      <DuplicateTestcase
+        isOpen={isDuplicateModalOpen}
+        onClose={handleCloseDuplicateModal}
+        onSave={handleSaveDuplicateTestcase}
+        createTestcaseAndReturnId={createTestcaseAndReturnId}
+        testcase={selectedTestcase ? { testcase_id: selectedTestcase.id, name: selectedTestcase.name, tag: selectedTestcase.tag } : null}
       />
     </div>
   );

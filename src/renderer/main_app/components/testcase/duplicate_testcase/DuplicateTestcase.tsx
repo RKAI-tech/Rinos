@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import './EditTestcase.css';
+import './DuplicateTestcase.css';
 import '../../../../../renderer/recorder/components/action/Action.css';
 import '../../../../../renderer/recorder/components/action_tab/ActionTab.css';
 import MAAction from '../../action/Action';
@@ -13,14 +13,17 @@ interface MinimalTestcase {
   tag: string;
 }
 
-interface EditTestcaseProps {
+interface DuplicateTestcaseProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { id: string; name: string; tag: string }) => void;
+  // Return desired name/tag and prepared actions (without testcase_id)
+  onSave: (data: { name: string; tag: string; actions: ActionCreateRequest[] }) => void;
+  // Function provided by parent page to create testcase and return new id
+  createTestcaseAndReturnId: (name: string, tag?: string) => Promise<string | undefined>;
   testcase: MinimalTestcase | null;
 }
 
-const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, testcase }) => {
+const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, onSave, createTestcaseAndReturnId, testcase }) => {
   const [testcaseName, setTestcaseName] = useState('');
   const [testcaseTag, setTestcaseTag] = useState('');
   const [errors, setErrors] = useState<{ name?: string; tag?: string }>({});
@@ -31,10 +34,9 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
 
   useEffect(() => {
     if (testcase) {
-      setTestcaseName(testcase.name || '');
+      setTestcaseName(`${testcase.name || ''} Copy`);
       setTestcaseTag(testcase.tag || '');
       setErrors({});
-      // Load actions by testcase
       const loadActions = async () => {
         try {
           setIsLoadingActions(true);
@@ -61,54 +63,53 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
     if (!testcaseName.trim()) {
       newErrors.name = 'Testcase name is required';
     }
-    // Tag is optional; no validation needed
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
+    // Prepare actions to be created for the NEW testcase id (to be filled by parent)
+    const preparedActions: ActionCreateRequest[] = (actions || []).map(a => ({
+      action_id: a.action_id,
+      testcase_id: '',
+      action_type: a.action_type,
+      description: a.description,
+      playwright_code: a.playwright_code,
+      elements: (a.elements || []).map((el: any) => ({
+        selector: ((el?.selector || []) as any[])
+          .map((s: any) => {
+            const val = typeof s === 'string' ? s : (s?.value || '');
+            return val && val.length > 0 ? { value: val } : null;
+          })
+          .filter(Boolean) as { value: string }[]
+      })),
+      assert_type: a.assert_type as any,
+      value: a.value,
+      selected_value: a.selected_value,
+      checked: a.checked,
+    }));
+
+    // 1) Create new testcase and get new id
+    const newId = await createTestcaseAndReturnId(testcaseName.trim(), testcaseTag.trim() || undefined);
+    if (!newId) return;
+
+    // 2) Fill new id into actions and create immediately
     try {
-      // 1) Batch create/update actions first
-      if (actions && actions.length > 0) {
-        const requests: ActionCreateRequest[] = actions.map(a => ({
-          action_id: a.action_id,
-          testcase_id: a.testcase_id,
-          action_type: a.action_type,
-          description: a.description,
-          playwright_code: a.playwright_code,
-          elements: (a.elements || []).map((el: any) => ({
-            selector: ((el?.selector || []) as any[])
-              .map((s: any) => {
-                const val = typeof s === 'string' ? s : (s?.value || '');
-                return val && val.length > 0 ? { value: val } : null;
-              })
-              .filter(Boolean) as { value: string }[]
-          })),
-          assert_type: a.assert_type as any,
-          value: a.value,
-          selected_value: a.selected_value,
-          checked: a.checked,
-        }));
-        const resp = await actionService.batchCreateActions(requests);
+      if (preparedActions.length > 0) {
+        const svc = new ActionService();
+        const requests = preparedActions.map(a => ({ ...a, testcase_id: newId }));
+        const resp = await svc.batchCreateActions(requests);
         if (!resp.success) {
-          // If batch create fails, stop and surface the error
-          throw new Error(resp.error || 'Failed to create actions');
+          // Still proceed to close, but log error
+          console.error('[DuplicateTestcase] Failed to create actions for duplicated testcase:', resp.error);
         }
       }
-
-      // 2) Then update testcase info
+    } finally {
       onSave({
-        id: testcase.testcase_id,
         name: testcaseName.trim(),
-        tag: testcaseTag.trim()
+        tag: testcaseTag.trim(),
+        actions: preparedActions,
       });
-
-      setTestcaseName('');
-      setTestcaseTag('');
-      setErrors({});
-      onClose();
-    } catch (err) {
-      console.error('[EditTestcase] Save failed:', err);
     }
   };
 
@@ -122,12 +123,11 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
   if (!isOpen || !testcase) return null;
 
   return (
-    <div className="tcase-edit-modal-overlay" onClick={handleClose}>
-      <div className="tcase-edit-modal-container" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="tcase-edit-modal-header">
-          <h2 className="tcase-edit-modal-title">Edit Testcase</h2>
-          <button className="tcase-edit-modal-close-btn" onClick={handleClose}>
+    <div className="tcase-dup-modal-overlay" onClick={handleClose}>
+      <div className="tcase-dup-modal-container" onClick={(e) => e.stopPropagation()}>
+        <div className="tcase-dup-modal-header">
+          <h2 className="tcase-dup-modal-title">Duplicate Testcase</h2>
+          <button className="tcase-dup-modal-close-btn" onClick={handleClose}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -135,45 +135,41 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
           </button>
         </div>
 
-        {/* Instructions */}
-        <p className="tcase-edit-modal-instructions">Update the testcase details below.</p>
+        <p className="tcase-dup-modal-instructions">Enter details for the duplicated testcase.</p>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="tcase-edit-modal-form">
-          <div className="tcase-edit-form-group">
-            <label htmlFor="testcaseName" className="tcase-edit-form-label">
-              Testcase Name <span className="tcase-edit-required-asterisk">*</span>
+        <form onSubmit={handleSubmit} className="tcase-dup-modal-form">
+          <div className="tcase-dup-form-group">
+            <label htmlFor="dupTestcaseName" className="tcase-dup-form-label">
+              Testcase Name <span className="tcase-dup-required-asterisk">*</span>
             </label>
             <input
               type="text"
-              id="testcaseName"
+              id="dupTestcaseName"
               value={testcaseName}
               onChange={(e) => setTestcaseName(e.target.value)}
               placeholder="Enter testcase name"
-              className={`tcase-edit-form-input ${errors.name ? 'tcase-edit-error' : ''}`}
+              className={`tcase-dup-form-input ${errors.name ? 'tcase-dup-error' : ''}`}
             />
-            {errors.name && <span className="tcase-edit-error-message">{errors.name}</span>}
+            {errors.name && <span className="tcase-dup-error-message">{errors.name}</span>}
           </div>
 
-          <div className="tcase-edit-form-group">
-            <label htmlFor="testcaseTag" className="tcase-edit-form-label">
+          <div className="tcase-dup-form-group">
+            <label htmlFor="dupTestcaseTag" className="tcase-dup-form-label">
               Tag
             </label>
             <input
               type="text"
-              id="testcaseTag"
+              id="dupTestcaseTag"
               value={testcaseTag}
               onChange={(e) => setTestcaseTag(e.target.value)}
               placeholder="Enter tag (e.g., smoke, regression)"
-              className={`tcase-edit-form-input ${errors.tag ? 'tcase-edit-error' : ''}`}
+              className={`tcase-dup-form-input ${errors.tag ? 'tcase-dup-error' : ''}`}
             />
-            {errors.tag && <span className="tcase-edit-error-message">{errors.tag}</span>}
+            {errors.tag && <span className="tcase-dup-error-message">{errors.tag}</span>}
           </div>
 
-          {/* Divider between tag and actions */}
           <div style={{ borderTop: '1px solid #e5e7eb', margin: '12px 0' }} />
 
-          {/* Actions list styled like recorder - placed ABOVE action buttons */}
           <div className="rcd-actions-section" style={{ marginTop: 8 }}>
             <div className="rcd-actions-list" style={{ maxHeight: 360, overflowY: 'auto' }}>
               {isLoadingActions ? (
@@ -196,12 +192,12 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
             </div>
           </div>
 
-          <div className="tcase-edit-modal-actions">
-            <button type="button" className="tcase-edit-btn-cancel" onClick={handleClose}>
+          <div className="tcase-dup-modal-actions">
+            <button type="button" className="tcase-dup-btn-cancel" onClick={handleClose}>
               Cancel
             </button>
-            <button type="submit" className="tcase-edit-btn-save">
-              Update
+            <button type="submit" className="tcase-dup-btn-save">
+              Duplicate
             </button>
           </div>
         </form>
@@ -216,6 +212,6 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
   );
 };
 
-export default EditTestcase;
+export default DuplicateTestcase;
 
 

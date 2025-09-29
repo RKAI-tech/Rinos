@@ -1,0 +1,58 @@
+.ma-action { display: flex; gap: 10px; align-items: center; background: #fff; border: 1px solid #e5e7eb; border-radius: 25px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: all 0.2s ease-in-out; }
+.ma-action:hover { background: #f8fafc; border-color: #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transform: translateY(-1px); }
+
+.ma-action-icon { width: 28px; height: 28px; border-radius: 9999px; background: #cac8c7; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; transition: all 0.2s ease-in-out; }
+.ma-action:hover .ma-action-icon { background: #a8a29e; transform: scale(1.05); }
+
+.ma-action-body { flex: 1; }
+.ma-action-title { color: #0f172a; font-weight: 700; font-size: 13px; margin-bottom: 4px; transition: color 0.2s ease-in-out; }
+.ma-action:hover .ma-action-title { color: #1e293b; }
+.ma-action-meta { color: #6b7280; font-size: 11px; margin-bottom: 4px; transition: color 0.2s ease-in-out; }
+.ma-action:hover .ma-action-meta { color: #475569; }
+.ma-action-value { color: #10b981; font-size: 12px; margin-bottom: 4px; transition: color 0.2s ease-in-out; }
+.ma-action:hover .ma-action-value { color: #059669; }
+.ma-action-time { color: #64748b; font-size: 10px; transition: color 0.2s ease-in-out; }
+.ma-action:hover .ma-action-time { color: #475569; }
+
+.ma-action-actions { display: flex; gap: 4px; align-items: center; }
+
+/* Button styles mirroring recorder */
+.ma-action-edit, .ma-action-btn { 
+  background: transparent; 
+  border: none; 
+  color: #6b7280; 
+  cursor: pointer; 
+  width: 24px; 
+  height: 24px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  transition: all 0.2s ease-in-out; 
+  border-radius: 4px; 
+}
+.ma-action-edit:hover, .ma-action-btn:hover { 
+  color: #3b82f6; 
+  background: #eff6ff; 
+  transform: scale(1.1); 
+}
+
+.ma-action-remove, .ma-action-btn.danger { 
+  background: transparent; 
+  border: none; 
+  color: #9ca3af; 
+  cursor: pointer; 
+  width: 24px; 
+  height: 24px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  font-size: 16px; 
+  transition: all 0.2s ease-in-out; 
+  border-radius: 4px; 
+}
+.ma-action-remove:hover, .ma-action-btn.danger:hover { 
+  color: #ef4444; 
+  background: #fef2f2; 
+  transform: scale(1.1); 
+}
+
