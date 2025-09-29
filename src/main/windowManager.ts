@@ -2,11 +2,12 @@ import { BrowserWindow, app, screen } from "electron";
 import { MainEnv } from "./env.js";
 import path from "path";
 
-const isDev = !app.isPackaged;
+const isDev = false; //!app.isPackaged;
 // Build target is CJS, so __dirname is available; avoid import.meta to silence warnings
 const __dirnameResolved = __dirname;
 console.log(__dirnameResolved)
 async function tryLoadDevPaths(win: BrowserWindow, page: string) {
+  console.log('tryLoadDevPaths', MainEnv.API_URL, page);
   const candidates = [
     `${MainEnv.API_URL}/${page}/index.html`,
     `${MainEnv.API_URL}/${page}.html`,
@@ -47,7 +48,8 @@ function createWindow(options: Electron.BrowserWindowConstructorOptions, page: s
       } catch {}
     }
   } else {
-    win.loadFile(path.join(__dirnameResolved, `../renderer/${page}/index.html`));
+    console.log('__dirnameResolved', __dirnameResolved);
+    win.loadFile(path.join(__dirnameResolved, `renderer/${page}/index.html`));
   }
 
   return win;
@@ -62,7 +64,7 @@ export function createMainAppWindow() {
   return win;
 }
 
-export function createRecorderWindow(testcaseId?: string) {
+export function createRecorderWindow(testcaseId?: string, projectId?: string) {
   const win = createWindow({ width: 500, height: 800 }, "recorder");
   
   // Nếu có testcaseId, thêm vào URL sau khi window được tạo
@@ -71,14 +73,15 @@ export function createRecorderWindow(testcaseId?: string) {
     setTimeout(() => {
       const currentUrl = win.webContents.getURL();
       const separator = currentUrl.includes('?') ? '&' : '?';
-      const newUrl = `${currentUrl}${separator}testcaseId=${encodeURIComponent(testcaseId)}`;
+      const newUrl = `${currentUrl}${separator}testcaseId=${encodeURIComponent(testcaseId)}&projectId=${encodeURIComponent(projectId || '')}`;
+      console.log('[WindowManager] Setting project ID:', projectId);
       console.log('[WindowManager] Loading recorder with testcaseId:', testcaseId);
       console.log('[WindowManager] Current URL:', currentUrl);
       console.log('[WindowManager] New URL:', newUrl);
       win.loadURL(newUrl);
     }, 1000); // Đợi 1 giây để đảm bảo window đã load xong
   } else {
-    console.log('[WindowManager] Creating recorder window without testcaseId');
+    console.log('[WindowManager] Creating recorder window without testcaseId and projectId');
   }
   
   try {

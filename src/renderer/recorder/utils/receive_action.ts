@@ -68,7 +68,6 @@ export function createDescription(action_received: any): string {
 }
 
 export function receiveAction(testcaseId: string, action_recorded: Action[], action_received: any): Action[] {
-    console.log('1')
     const receivedAction = {
         action_id: Math.random().toString(36),
         testcase_id: testcaseId,
@@ -88,16 +87,13 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         statement: action_received.statement,
     } as Action;
 
-    console.log('2')
     const last_action = action_recorded[action_recorded.length - 1];
 
-    console.log('3')
     if (last_action && last_action.action_type === ActionType.input && receivedAction.action_type === ActionType.input) {
         // Compare elements content instead of object reference
         const lastElements = last_action.elements || [];
         const newElements = receivedAction.elements || [];
 
-        console.log('4')
         // Check if elements are the same (same selectors)
         const elementsMatch = lastElements.length === newElements.length &&
             lastElements.every((lastEl, index) => {
@@ -113,15 +109,12 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
                     );
             });
 
-        console.log('5')
         if (elementsMatch) {
             const updatedActions = [...action_recorded];
             updatedActions[updatedActions.length - 1] = receivedAction;
-            console.log('6')
             return updatedActions;
         }
     }
 
-    console.log('7')
     return [...action_recorded, receivedAction];
 }

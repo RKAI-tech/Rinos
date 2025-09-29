@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import './Main.css';
 import ActionTab from '../../components/action_tab/ActionTab';
+import ActionDetailModal from '../../components/action_detail/ActionDetailModal';
 import TestScriptTab from '../../components/code_convert/TestScriptTab';
 import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab';
 import DeleteAllActions from '../../components/delete_all_action/DeleteAllActions';
@@ -11,13 +12,15 @@ import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
 import { RunCodeResponse } from '../../types/executeScripts';
 import { receiveAction, createDescription } from '../../utils/receive_action';
+import { setProjectId } from '../../context/browser_context';
 
 
 interface MainProps {
+  projectId?: string | null;
   testcaseId?: string | null;
 }
 
-const Main: React.FC<MainProps> = ({ testcaseId }) => {
+const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [url, setUrl] = useState('');
   const [isAssertDropdownOpen, setIsAssertDropdownOpen] = useState(false);
   const [assertSearch, setAssertSearch] = useState('');
@@ -33,6 +36,16 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
   const [isPaused, setIsPaused] = useState(false);
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
   const [runResult, setRunResult] = useState<string>('');
+  const [selectedAction, setSelectedAction] = useState<Action | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  useEffect(() => {
+    console.log('[Main] Setting project ID:', projectId);
+    if (projectId) {
+      // Use IPC to set project ID in main process
+      (window as any).browserAPI?.browser?.setProjectId?.(projectId);
+    }
+  }, [projectId]);
 
   // Load actions khi có testcase ID
   useEffect(() => {
@@ -211,6 +224,11 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     setSelectedInsertPosition(position);
   };
 
+  const handleSelectAction = (action: Action) => {
+    setSelectedAction(action);
+    setIsDetailOpen(true);
+  };
+
   const handleRunScript = async () => {
     try {
       const service = new ExecuteScriptsService();
@@ -348,6 +366,7 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
             onReload={reloadActions}
             selectedInsertPosition={selectedInsertPosition}
             onSelectInsertPosition={handleSelectInsertPosition}
+            onSelectAction={handleSelectAction}
           />
         ) : (
           <TestScriptTab script={customScript || actionToCode(actions)} runResult={runResult} onScriptChange={setCustomScript} />
@@ -360,6 +379,16 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
         onClose={() => setIsDeleteAllOpen(false)}
         onDelete={handleConfirmDeleteAll}
         testcaseId={testcaseId}
+      />
+
+      <ActionDetailModal
+        isOpen={isDetailOpen}
+        action={selectedAction}
+        onClose={() => setIsDetailOpen(false)}
+        onSave={(updated) => {
+          setActions(prev => prev.map(a => a.action_id === updated.action_id ? updated : a));
+          setSelectedAction(updated);
+        }}
       />
     </div>
   );

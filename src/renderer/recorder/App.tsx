@@ -5,6 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 export default function App() {
   const [testcaseId, setTestcaseId] = useState<string | null>(null);
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [isTokenSynced, setIsTokenSynced] = useState(false);
 
 
@@ -34,16 +35,16 @@ export default function App() {
       // Cách 1: Từ URL parameters
       const urlParams = new URLSearchParams(window.location.search);
       const idFromUrl = urlParams.get('testcaseId');
-      
       // Cách 2: Từ window API (nếu có)
       const idFromAPI = (window as any).testcaseId;
-      
-      console.log('[Recorder App] Current URL:', window.location.href);
-      console.log('[Recorder App] URL search params:', window.location.search);
-      console.log('[Recorder App] testcaseId from URL:', idFromUrl);
-      console.log('[Recorder App] testcaseId from window API:', idFromAPI);
-      
       return idFromUrl || idFromAPI || null;
+    };
+
+    const getProjectId = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const projectIdFromUrl = urlParams.get('projectId');
+      const projectIdFromAPI = (window as any).projectId;
+      return projectIdFromUrl || projectIdFromAPI || null;
     };
 
     const id = getTestcaseId();
@@ -52,6 +53,14 @@ export default function App() {
       console.log('[Recorder App] Received testcase ID:', id);
     } else {
       console.log('[Recorder App] No testcase ID found');
+    }
+
+    const projectId = getProjectId();
+    if (projectId) {
+      setProjectId(projectId);
+      console.log('[Recorder App] Received project ID:', projectId);
+    } else {
+      console.log('[Recorder App] No project ID found');
     }
   }, []);
 
@@ -73,7 +82,7 @@ export default function App() {
 
   return (
     <>
-      <Main testcaseId={testcaseId} />
+      <Main testcaseId={testcaseId} projectId={projectId} />
       <ToastContainer position="top-right" autoClose={3000} newestOnTop closeOnClick pauseOnHover theme="colored" />
     </>
   );

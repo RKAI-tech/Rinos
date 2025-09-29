@@ -31,4 +31,17 @@ export function registerBrowserIpc() {
     ipcMain.handle("browser:setAssertMode", async (_, enabled: boolean, assertType: AssertType) => {
         await browserManager.setAssertMode(enabled, assertType);
     });
+    
+    // Add project ID management
+    ipcMain.handle("browser:setProjectId", async (_, projectId: string) => {
+        console.log('[BROWSER] Setting project ID:', projectId);
+        // Use the proper setProjectId method
+        browserManager.setProjectId(projectId);
+    });
+    
+    ipcMain.handle("browser:getProjectId", async () => {
+        const projectId = (browserManager as any).projectId;
+        console.log('[BROWSER] Getting project ID:', projectId);
+        return projectId;
+    });
 }

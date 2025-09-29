@@ -1,0 +1,101 @@
+.rcd-action-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.rcd-action-detail-container {
+  background: #fff;
+  width: 720px;
+  max-width: 92vw;
+  max-height: 85vh;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.rcd-action-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.rcd-action-detail-title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.rcd-action-detail-close {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.rcd-action-detail-content {
+  padding: 16px;
+  overflow: auto;
+}
+
+.rcd-action-detail-section {
+  margin-bottom: 16px;
+}
+
+.rcd-action-detail-section-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.rcd-action-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+
+.rcd-action-detail-kv {
+  display: flex;
+  gap: 6px;
+}
+
+.rcd-action-detail-kv span {
+  color: #666;
+  min-width: 80px;
+}
+
+.rcd-action-detail-kv code {
+  white-space: pre-wrap;
+}
+
+.rcd-action-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rcd-action-detail-list-item {
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.rcd-action-detail-code {
+  background: #0e0e0e;
+  color: #eaeaea;
+  padding: 12px;
+  border-radius: 6px;
+  overflow: auto;
+}
+
+.rcd-action-detail-empty {
+  color: #999;
+}
+
+

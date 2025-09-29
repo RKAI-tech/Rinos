@@ -134,11 +134,11 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
       // console.log('Calling getVariablesForTracker...');
       // Use Playwright's exposed function to request variables from the main process
       const resp = await window.getVariablesForTracker();
-      // console.log('getVariablesForTracker response:', resp);
+      console.log('getVariablesForTracker response:', resp);
       
       table.innerHTML = '';
       if (resp && resp.success && resp.data && Array.isArray(resp.data.items) && resp.data.items.length) {
-        // console.log('Found', resp.data.items.length, 'variables');
+        console.log('Found', resp.data.items.length, 'variables');
         const allItems = resp.data.items;
 
         const renderRows = (term) => {

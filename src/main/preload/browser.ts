@@ -14,6 +14,8 @@ const browserMethods = {
         };
     },
     setAssertMode: async (enabled: boolean, assertType: AssertType) => ipcRenderer.invoke("browser:setAssertMode", enabled, assertType),
+    setProjectId: async (projectId: string) => ipcRenderer.invoke("browser:setProjectId", projectId),
+    getProjectId: async () => ipcRenderer.invoke("browser:getProjectId"),
 }
 
 export function exposeBrowserAPI() {

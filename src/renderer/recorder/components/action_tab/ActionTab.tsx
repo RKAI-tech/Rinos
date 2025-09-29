@@ -12,9 +12,10 @@ interface ActionTabProps {
   onReload?: () => void;
   selectedInsertPosition?: number | null;
   onSelectInsertPosition?: (position: number | null) => void;
+  onSelectAction?: (action: Action) => void;
 }
 
-const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteAction, onDeleteAll, onReorderActions, onReload, selectedInsertPosition, onSelectInsertPosition }) => {
+const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteAction, onDeleteAll, onReorderActions, onReload, selectedInsertPosition, onSelectInsertPosition, onSelectAction }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -185,7 +186,7 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
                   onDragEnd={handleDragEnd}
                   className={`rcd-action-draggable ${draggedIndex === index ? 'rcd-dragging' : ''} ${dragOverIndex === index ? 'rcd-drag-over' : ''}`}
                 >
-                  <RenderedAction action={action} onDelete={onDeleteAction} />
+                  <RenderedAction action={action} onDelete={onDeleteAction} onClick={(a) => onSelectAction && onSelectAction(a)} />
                 </div>
                 
                 {/* Insert position sau mỗi action */}
