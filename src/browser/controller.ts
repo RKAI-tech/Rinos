@@ -32,7 +32,6 @@ export class Controller {
         }
         for (const action of actions) {
             try {
-                console.log('[BROWSER] bao viet type:', action.action_type);
                 switch (action.action_type) {
                     case ActionType.navigate:
                         if (!action.value) {
@@ -74,6 +73,13 @@ export class Controller {
                                 } else {
                                     await page.uncheck(selector);
                                 }
+                            });
+                        }
+                        break;
+                    case ActionType.keydown:
+                        if (action.elements && action.elements.length === 1) {
+                            await this.executeAction(action.elements[0].selector?.map(selector => selector.value) || null, async (selector) => {
+                                await page.locator(selector).press(action.value);
                             });
                         }
                         break;

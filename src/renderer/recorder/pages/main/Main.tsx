@@ -1,23 +1,26 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import './Main.css';
 import ActionTab from '../../components/action_tab/ActionTab';
+import ActionDetailModal from '../../components/action_detail/ActionDetailModal';
 import TestScriptTab from '../../components/code_convert/TestScriptTab';
 import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab';
 import DeleteAllActions from '../../components/delete_all_action/DeleteAllActions';
 import { ActionService } from '../../services/actions';
-import { Action, ActionType } from '../../types/actions';
+import { Action, ActionType, AssertType } from '../../types/actions';
 import { actionToCode } from '../../utils/action_to_code';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
 import { RunCodeResponse } from '../../types/executeScripts';
 import { receiveAction, createDescription } from '../../utils/receive_action';
+import { setProjectId } from '../../context/browser_context';
 
 
 interface MainProps {
+  projectId?: string | null;
   testcaseId?: string | null;
 }
 
-const Main: React.FC<MainProps> = ({ testcaseId }) => {
+const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [url, setUrl] = useState('');
   const [isAssertDropdownOpen, setIsAssertDropdownOpen] = useState(false);
   const [assertSearch, setAssertSearch] = useState('');
@@ -33,6 +36,16 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
   const [isPaused, setIsPaused] = useState(false);
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
   const [runResult, setRunResult] = useState<string>('');
+  const [selectedAction, setSelectedAction] = useState<Action | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  useEffect(() => {
+    console.log('[Main] Setting project ID:', projectId);
+    if (projectId) {
+      // Use IPC to set project ID in main process
+      (window as any).browserAPI?.browser?.setProjectId?.(projectId);
+    }
+  }, [projectId]);
 
   // Load actions khi có testcase ID
   useEffect(() => {
@@ -66,7 +79,7 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
 
   useEffect(() => {
     return (window as any).browserAPI?.browser?.onAction((action: any) => {
-      console.log('[Main] Paused:', isPaused);
+      console.log('Action received:', action);
       if (isPaused) {
         return;
       }
@@ -78,17 +91,7 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     });
   }, [testcaseId, isPaused]);
 
-  const assertTypes = [
-    'toHaveText',
-    'toContainText',
-    'toHaveValue',
-    'toBeVisible',
-    'toBeDisabled',
-    'toBeEnabled',
-    'toHaveURL',
-    'toBeSelected',
-    'toBeChecked'
-  ];
+  const assertTypes = Object.values(AssertType);
 
   const filteredAssertTypes = assertTypes.filter(type =>
     type.toLowerCase().includes(assertSearch.toLowerCase())
@@ -145,11 +148,11 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     setIsPaused(false);
   };
 
-  const handleAssertSelect = (assertType: string) => {
+  const handleAssertSelect = async (assertType: string) => {
     setSelectedAssert(assertType);
     setIsAssertDropdownOpen(false);
     setAssertSearch('');
-    // Không thay đổi active state, giữ màu xanh
+    await (window as any).browserAPI?.browser?.setAssertMode(true, assertType as AssertType);
   };
 
   const handleTabSwitch = () => {
@@ -212,13 +215,18 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
     }
   };
 
-  const handleReorderActions = (reorderedActions: ActionGetResponse[]) => {
+  const handleReorderActions = (reorderedActions: Action[]) => {
     // Local-only reorder (no server request)
     setActions(reorderedActions);
   };
 
   const handleSelectInsertPosition = (position: number | null) => {
     setSelectedInsertPosition(position);
+  };
+
+  const handleSelectAction = (action: Action) => {
+    setSelectedAction(action);
+    setIsDetailOpen(true);
   };
 
   const handleRunScript = async () => {
@@ -358,6 +366,7 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
             onReload={reloadActions}
             selectedInsertPosition={selectedInsertPosition}
             onSelectInsertPosition={handleSelectInsertPosition}
+            onSelectAction={handleSelectAction}
           />
         ) : (
           <TestScriptTab script={customScript || actionToCode(actions)} runResult={runResult} onScriptChange={setCustomScript} />
@@ -370,6 +379,16 @@ const Main: React.FC<MainProps> = ({ testcaseId }) => {
         onClose={() => setIsDeleteAllOpen(false)}
         onDelete={handleConfirmDeleteAll}
         testcaseId={testcaseId}
+      />
+
+      <ActionDetailModal
+        isOpen={isDetailOpen}
+        action={selectedAction}
+        onClose={() => setIsDetailOpen(false)}
+        onSave={(updated) => {
+          setActions(prev => prev.map(a => a.action_id === updated.action_id ? updated : a));
+          setSelectedAction(updated);
+        }}
       />
     </div>
   );

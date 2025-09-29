@@ -87,7 +87,7 @@ function processAssertClick(e) {
   
   // Get assert type from global state\
   // console.log('[baoviet browser] currentAssertType:', window.currentAssertType);
-  const assertType = window.currentAssertType || 'VISIBILITY';
+  const assertType = window.currentAssertType || 'toBeVisible';
   try {
     // Generate selector for the clicked element
     const rawSelector = generateSelector(e.target);
@@ -99,9 +99,9 @@ function processAssertClick(e) {
     // console.log('Generated selector:', selector);
     
     // Handle different assert types
-    if (assertType === 'VALUE' || assertType === 'TEXT') {
+    if (assertType === 'toHaveText' || assertType === 'toContainText' || assertType === 'toHaveValue') {
       let defaultValue = '';
-      if (assertType === 'VALUE') {
+      if (assertType === 'toHaveValue') {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
           defaultValue = e.target.value || '';
         } else {
@@ -139,23 +139,18 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
   if (window.sendActionToMain) {
     const action = {
       type: 'assert',
-      data: {
-        selector: selector,
-        assertType: assertType,
-        value: value,
-        element: elementType,
-        elementPreview: elementPreview,
-        elementText: elementText,
-        timestamp: Date.now(),
-        url: window.location.href,
-        title: document.title
-      }
+      selector: selector,
+      assertType: assertType,
+      value: value,
+      element: elementType,
+      elementPreview: elementPreview,
+      elementText: elementText,
+      timestamp: Date.now(),
+      url: window.location.href,
+      title: document.title
     };
     window.sendActionToMain(action);
     // console.log('Assert action sent:', action);
-    
-    // Note: Screen will remain frozen until assert mode is disabled
-    // Màn hình sẽ vẫn đóng băng cho đến khi tắt chế độ assert
   }
 }
 

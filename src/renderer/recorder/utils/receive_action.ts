@@ -1,6 +1,7 @@
-import { Action, Element, Selector, ActionType } from "../types/actions";
+import { Action, Element, Selector, ActionType, AssertType } from "../types/actions";
 
 export function createDescription(action_received: any): string {
+    console.log('action_received', action_received);
     const type = action_received.type;
     let value = action_received.value;
     // Truncate value if it's too long
@@ -36,6 +37,31 @@ export function createDescription(action_received: any): string {
             return `Press ${value}`;
         case ActionType.keyup:
             return `Key up ${value}`;
+        case ActionType.assert:
+            switch (action_received.assertType) {
+                case AssertType.toHaveText:
+                    return `Verify the element has text ${value}`;
+                case AssertType.toContainText:
+                    return `Verify the element contains text ${value}`;
+                case AssertType.toHaveValue:
+                    return `Verify the element has value ${value}`;
+                case AssertType.toBeVisible:
+                    return `Verify the element is visible`;
+                case AssertType.toBeDisabled:
+                    return `Verify the element is disabled`;
+                case AssertType.toBeEnabled:
+                    return `Verify the element is enabled`;
+                case AssertType.toBeFocused:
+                    return `Verify the element is focused`;
+                case AssertType.toBeHidden:
+                    return `Verify the element is hidden`;
+                case AssertType.toBeChecked:
+                    return `Verify the element is checked`;
+                case AssertType.toBeUnchecked:
+                    return `Verify the element is unchecked`;
+                case AssertType.toBeEmpty:
+                    return `Verify the element is empty`;
+            }
         default:
             return `Unknown action`;
     }
@@ -53,7 +79,7 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
             value: action_received.value,
             variable_name: action_received.variable_name,
         } as Element],
-        assert_type: action_received.assert_type,
+        assert_type: action_received.assertType,
         value: action_received.value,
         connection_id: action_received.connection_id,
         connection: action_received.connection,
@@ -62,6 +88,7 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
     } as Action;
 
     const last_action = action_recorded[action_recorded.length - 1];
+
     if (last_action && last_action.action_type === ActionType.input && receivedAction.action_type === ActionType.input) {
         // Compare elements content instead of object reference
         const lastElements = last_action.elements || [];

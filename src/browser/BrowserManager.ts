@@ -2,9 +2,11 @@ import EventEmitter from "events";
 import { Browser, chromium, Page, BrowserContext, Request } from "playwright";
 import path, * as pathenv from 'path';
 import { app } from "electron";
-import { Action } from "./types";
+import { Action, AssertType } from "./types";
 import { Controller } from "./controller";
 import { readFileSync } from "fs";
+// import { VariableService } from "../renderer/recorder/services/variables";
+import { getProjectId } from "../renderer/recorder/context/browser_context";
 
 let browsersPath: string;
 
@@ -15,17 +17,27 @@ if (!app.isPackaged) {
 }
 process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
 
+// const variableService = new VariableService();
+
 export class BrowserManager extends EventEmitter {
     private browser: Browser | null = null;
     private context: BrowserContext | null = null;
     page: Page | null = null;
     private pendingRequests: number;
     controller: Controller | null = null;
+    private isAssertMode: boolean = false;
+    private assertType: AssertType | null = null;
+    private projectId: string | null = null;
 
     constructor() {
         super();
         this.pendingRequests = 0;
         this.controller = new Controller();
+    }
+
+    setProjectId(projectId: string): void {
+        this.projectId = projectId;
+        console.log('[BrowserManager] Project ID set:', projectId);
     }
 
     trackRequests(page: Page): void {
@@ -166,5 +178,48 @@ export class BrowserManager extends EventEmitter {
             console.error('Error injecting script:', error);
             throw error;
         }
+
+        await this.context.exposeFunction('getVariablesForTracker', async () => {
+            try {
+              // Get project ID from BrowserManager instance instead of window API
+              const projectId = this.projectId;
+              console.log('[BrowserManager] getVariablesForTracker called, projectId:', projectId);
+              if (!projectId) {
+                console.warn('No project context available for variable loading');
+                return { success: false, error: 'No project context' };
+              }
+              console.log('[BrowserManager] Loading variables for project:', projectId);
+            //   const { VariableService } = await import("../renderer/recorder/services/variables");
+            //   const variableService = new VariableService();
+            //   const resp = await variableService.getVariablesByProject(projectId);
+              const resp = {
+                data: {
+                    items: []
+                }
+              }
+              console.log('[BrowserManager] Variables API response:', resp);
+              resp.data?.items.forEach((v: any) => {
+                // console.log('Variable object:', v);
+              })
+              return resp;
+            } catch (e) {
+              console.error('[BrowserManager] getVariablesForTracker failed:', e);
+              return { success: false, error: String(e) };
+            }
+          });
+    }
+
+    async setAssertMode(enabled: boolean, assertType: AssertType): Promise<void> {
+        if (!this.page) {
+            throw new Error('Page not found');
+        }
+
+        this.isAssertMode = enabled;
+        this.assertType = assertType;
+
+        await this.page.evaluate(({ isAssertMode, type } : { isAssertMode: boolean, type: AssertType }) => {
+            const global : any = globalThis as any;
+            global.setAssertMode(isAssertMode, type);
+        }, { isAssertMode: enabled, type: assertType });
     }
 }

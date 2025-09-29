@@ -264,7 +264,7 @@ const Testcases: React.FC = () => {
   const handleOpenRecorder = async (id: string) => {
     try {
       console.log('[Testcases] Opening recorder for testcase:', id);
-      const result = await (window as any).screenHandleAPI?.openRecorder?.(id);
+      const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectData?.projectId);
       console.log('[Testcases] openRecorder result:', result);
     } catch (err) {
       console.error('[Testcases] openRecorder error:', err);

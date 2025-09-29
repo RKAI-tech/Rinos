@@ -5,14 +5,14 @@ let recorderWin: BrowserWindow | null = null;
 
 export function registerScreenHandlersIpc() {
   // Open (or focus) the recorder window
-  ipcMain.handle("screen:open_recorder", (_evt, testcaseId?: string) => {
+  ipcMain.handle("screen:open_recorder", (_evt, testcaseId?: string, projectId?: string) => {
     try {
-        console.log('[Screen Handle] Opening recorder for testcase:', testcaseId);
+        console.log('[Screen Handle] Opening recorder for testcase:', testcaseId, 'and project:', projectId);
       // Always open a new recorder window for a testcase
-      const win: BrowserWindow = createRecorderWindow(testcaseId);
+      const win: BrowserWindow = createRecorderWindow(testcaseId, projectId);
       if (testcaseId) {
-        try { win.setTitle(`Recorder - Testcase ${testcaseId}`); } catch {}
-        console.log('[Screen Handle] Set title to:', `Recorder - Testcase ${testcaseId}`);
+        try { win.setTitle(`Recorder`); } catch {}
+        console.log('[Screen Handle] Set title to:', `Recorder - TC: ${testcaseId} - Project: ${projectId}`);
       }
       win.on("closed", () => {
         // keep last reference for close_recorder if needed

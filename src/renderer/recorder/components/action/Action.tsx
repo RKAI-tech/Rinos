@@ -5,9 +5,10 @@ import { Action as ActionType } from '../../types/actions';
 interface ActionProps {
   action: ActionType;
   onDelete?: (actionId: string) => void;
+  onClick?: (action: ActionType) => void;
 }
 
-export default function RenderedAction({ action, onDelete }: ActionProps) {
+export default function RenderedAction({ action, onDelete, onClick }: ActionProps) {
   // Format action type for display
   const formatActionType = (type: string) => {
     return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
@@ -34,7 +35,7 @@ export default function RenderedAction({ action, onDelete }: ActionProps) {
   };
 
   return (
-    <div className="rcd-action">
+    <div className="rcd-action" onClick={() => onClick && onClick(action)}>
       <div className="rcd-action-icon">?</div>
       <div className="rcd-action-body">
         <div className="rcd-action-title">{action.description || formatActionType(action.action_type)}</div>
