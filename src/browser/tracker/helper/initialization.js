@@ -7,7 +7,7 @@ import { setPauseMode } from './actions/baseAction.js';
 import { handleDoubleClickEvent, handleRightClickEvent, handleShiftClickEvent } from './actions/click_handle.js';
 import { generateSelector, validateAndImproveSelector } from './selectorGenerator.js';
 import { previewNode, extractElementText } from './domUtils.js';
-import { showAssertInputModal } from './assertModal.js';
+import { showAssertInputModal } from './components/modals/assertInputModal.js';
 import { handleTextInputEvent } from './actions/text_input_handle.js';
 import { initializeElementFreezer, freezeEntireScreen, unfreezeEntireScreen, unfreezeAllElements } from './elementFreezer.js';
 import { handleCheckboxRadioChangeEvent } from './actions/change_handle.js';
@@ -43,6 +43,12 @@ function handleAssertCaptureBlocking(e) {
   // Allow interactions with browser controls
   if (e.target && e.target.closest && e.target.closest('#rikkei-browser-controls')) {
     // console.log('Allowing event on browser controls');
+    return;
+  }
+
+  // Allow interactions with query panel
+  if (e.target && e.target.closest && e.target.closest('#rikkei-query-panel')) {
+    // console.log('Allowing event on query panel');
     return;
   }
   
@@ -114,13 +120,19 @@ function processAssertClick(e) {
       const rect = e.target.getBoundingClientRect();
       // console.log('Showing assert modal for type:', assertType, 'default value:', defaultValue);
       
-      showAssertInputModal(assertType, defaultValue, rect, (finalValue) => {
-        // console.log('Assert modal confirmed for selector:', selector, 'type:', assertType, 'value:', finalValue);
-        // Send assert action
-        sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText);
-      }, () => {
-        // console.log('Assert modal canceled');
-      });
+      showAssertInputModal(
+        assertType, 
+        defaultValue, 
+        rect, 
+        (finalValue) => {
+          // console.log('Assert modal confirmed for selector:', selector, 'type:', assertType, 'value:', finalValue);
+          // Send assert action
+          sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText);
+        }, 
+        () => {
+          // console.log('Assert modal canceled');
+        }
+      );
     } else {
       // Send immediate assert action for other types
       // console.log('Sending immediate assert action for type:', assertType);
@@ -135,7 +147,7 @@ function processAssertClick(e) {
  * Send assert action to main process
  * Gửi action assert đến main process
  */
-function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText) {
+function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, db_name) {
   if (window.sendActionToMain) {
     const action = {
       type: 'assert',
@@ -147,7 +159,8 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
       elementText: elementText,
       timestamp: Date.now(),
       url: window.location.href,
-      title: document.title
+      title: document.title,
+      db_name: db_name
     };
     window.sendActionToMain(action);
     // console.log('Assert action sent:', action);

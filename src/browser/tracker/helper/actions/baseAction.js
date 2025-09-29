@@ -32,6 +32,13 @@ export function setLastInputAction(action) {
 export function shouldIgnoreTarget(target, label = 'Event') {
   try {
     if (!target || typeof target.closest !== 'function') return false;
+    // Silently ignore events inside the query panel (handled by its own listeners)
+    if (target.closest('#rikkei-query-panel')) {
+      return true;
+    } else {
+      console.log(`Skipping ${label} - inside query panel`);
+    }
+    // Ignore and log for controls and assert modal only
     if (target.closest('#rikkei-browser-controls') || target.closest('#rikkei-assert-input-modal')) {
       console.log(`Skipping ${label} - inside browser controls or assert modal`);
       return true;

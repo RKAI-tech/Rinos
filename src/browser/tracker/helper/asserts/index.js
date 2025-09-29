@@ -1,6 +1,6 @@
 import { generateAndValidateSelectors } from '../selectorGenerator.js';
 import { previewNode, extractElementText } from '../domUtils.js';
-import { showAssertInputModal, closeAssertInputModal, getAssertModal } from '../assertModal.js';
+import { showAssertInputModal, closeAssertInputModal, getAssertModal } from '../components/modals/assertInputModal.js';
 import { handleAiAssert } from './types/ai.js';
 
 // Trạng thái assert

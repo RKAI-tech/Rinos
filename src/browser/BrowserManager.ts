@@ -6,6 +6,8 @@ import { Action, AssertType } from "./types";
 import { Controller } from "./controller";
 import { readFileSync } from "fs";
 import { VariableService } from "./services/variables";
+import { DatabaseService } from "./services/database";
+import { StatementService } from "./services/statements";
 import { apiRouter } from "./services/baseAPIRequest";
 
 let browsersPath: string;
@@ -18,6 +20,8 @@ if (!app.isPackaged) {
 process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
 
 const variableService = new VariableService();
+const databaseService = new DatabaseService();
+const statementService = new StatementService();
 
 export class BrowserManager extends EventEmitter {
     private browser: Browser | null = null;
@@ -204,6 +208,51 @@ export class BrowserManager extends EventEmitter {
               return { success: false, error: String(e) };
             }
           });
+
+        // Expose a lightweight query runner for the assert modal query panel
+        await this.context.exposeFunction('getConnection', async () => {
+            try {
+                const projectId = this.projectId;
+                if (!projectId) {
+                    return { success: false, error: 'No project context' };
+                }
+                const resp = await databaseService.getDatabaseConnections({ project_id: projectId });
+                return resp;
+            } catch (e) {
+                console.error('[BrowserManager] getConnection failed:', e);
+                return { success: false, error: String(e) };
+            }
+        });
+
+        await this.context.exposeFunction('runQueryForTracker', async (sql: string, connectionId?: string) => {
+            try {
+                const projectId = this.projectId;
+                if (!projectId) {
+                    return { success: false, error: 'No project context' };
+                }
+                if (!sql || typeof sql !== 'string' || !sql.trim()) {
+                    return { success: false, error: 'Query is empty' };
+                }
+
+                // 1) Determine connection id
+                let useConnId = connectionId;
+                if (!useConnId) {
+                    const connResp = await databaseService.getDatabaseConnections({ project_id: projectId });
+                    const connections = connResp?.data?.connections || [];
+                    if (!connections.length) {
+                        return { success: false, error: 'No database connections available' };
+                    }
+                    useConnId = connections[0].connection_id;
+                }
+
+                // 2) Run query without creating a statement
+                const runResp = await statementService.runWithoutCreate({ connection_id: useConnId, query: sql.trim() });
+                return runResp;
+            } catch (e) {
+                console.error('[BrowserManager] runQueryForTracker failed:', e);
+                return { success: false, error: String(e) };
+            }
+        });
     }
 
     async setAssertMode(enabled: boolean, assertType: AssertType): Promise<void> {

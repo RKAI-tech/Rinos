@@ -25,6 +25,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [isAssertDropdownOpen, setIsAssertDropdownOpen] = useState(false);
   const [assertSearch, setAssertSearch] = useState('');
   const [selectedAssert, setSelectedAssert] = useState<string | null>(null);
+  const [isAssertMode, setIsAssertMode] = useState(false);
   const [actions, setActions] = useState<Action[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'actions' | 'script'>('actions');
@@ -97,20 +98,32 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     type.toLowerCase().includes(assertSearch.toLowerCase())
   );
 
-  const handleAssertClick = () => {
+  const handleAssertClick = async () => {
     if (selectedAssert) {
       // Nếu đã có selected assert thì tắt đi (xóa selection)
       setSelectedAssert(null);
       setIsAssertDropdownOpen(false);
       setAssertSearch('');
+      setIsAssertMode(false);
+      await (window as any).browserAPI?.browser?.setAssertMode(false, '');
     } else if (isAssertDropdownOpen) {
       // Nếu dropdown đang mở thì đóng
       setIsAssertDropdownOpen(false);
       setAssertSearch('');
+      setIsAssertMode(false);
+      await (window as any).browserAPI?.browser?.setAssertMode(false, '');
     } else {
       // Nếu không có selected assert và dropdown đang đóng thì mở
       setIsAssertDropdownOpen(true);
     }
+  };
+
+  const removeSelectedAssert = async () => {
+    setSelectedAssert(null);
+    setIsAssertDropdownOpen(false);
+    setAssertSearch('');
+    setIsAssertMode(false);
+    await (window as any).browserAPI?.browser?.setAssertMode(false, '');
   };
 
   const startBrowser = async (url: string) => {
@@ -152,6 +165,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setSelectedAssert(assertType);
     setIsAssertDropdownOpen(false);
     setAssertSearch('');
+    setIsAssertMode(true);
     await (window as any).browserAPI?.browser?.setAssertMode(true, assertType as AssertType);
   };
 
@@ -387,7 +401,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             <span className="rcd-selected-assert-type">{selectedAssert}</span>
             <button
               className="rcd-selected-assert-remove"
-              onClick={() => setSelectedAssert(null)}
+              onClick={removeSelectedAssert}
               title="Remove selected assert"
             >
               ✕

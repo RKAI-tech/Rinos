@@ -12,7 +12,7 @@ export * from './stringUtils.js';
 export * from './domUtils.js';
 export * from './selectorGenerator.js';
 export * from './hoverOverlay.js';
-export * from './assertModal.js';
+export * from './components/modals/assertInputModal.js';
 export * from './eventHandlers.js';
 export * from './navigationPrevention.js';
 export * from './errorHandler.js';
