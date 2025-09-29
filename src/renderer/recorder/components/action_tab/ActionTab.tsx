@@ -10,12 +10,13 @@ interface ActionTabProps {
   onDeleteAll?: () => void;
   onReorderActions?: (reorderedActions: Action[]) => void;
   onReload?: () => void;
+  onSaveActions?: () => void;
   selectedInsertPosition?: number | null;
   onSelectInsertPosition?: (position: number | null) => void;
   onSelectAction?: (action: Action) => void;
 }
 
-const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteAction, onDeleteAll, onReorderActions, onReload, selectedInsertPosition, onSelectInsertPosition, onSelectAction }) => {
+const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteAction, onDeleteAll, onReorderActions, onReload, onSaveActions, selectedInsertPosition, onSelectInsertPosition, onSelectAction }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -94,7 +95,7 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
               <polyline points="21,3 21,9 15,9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <button className="rcd-action-btn save" title="Save">
+          <button className="rcd-action-btn save" title="Save actions" onClick={() => onSaveActions && onSaveActions()}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <polyline points="17,21 17,13 7,13 7,21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

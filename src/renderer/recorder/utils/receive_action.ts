@@ -61,6 +61,14 @@ export function createDescription(action_received: any): string {
                     return `Verify the element is unchecked`;
                 case AssertType.toBeEmpty:
                     return `Verify the element is empty`;
+                case AssertType.toBeEditable:
+                    return `Verify the element is editable`;
+                case AssertType.toBeReadOnly:
+                    return `Verify the element is read only`;
+                case AssertType.toHaveAccessibleDescription:
+                    return `Verify the element has accessible description`;
+                case AssertType.toHaveAccessibleName:
+                    return `Verify the element has accessible name`;
             }
         default:
             return `Unknown action`;

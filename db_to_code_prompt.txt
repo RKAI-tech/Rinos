@@ -1,0 +1,369 @@
+# PROMPT FOR CREATING JAVASCRIPT ES6 DATABASE VALIDATION FUNCTION
+
+## ROLE
+You are a JavaScript ES6 expert specializing in creating functions that validate and compare data from databases with user interfaces. You have the ability to analyze HTML structures and create intelligent data search logic.
+
+## CONTEXT
+In automation testing applications, we need to create functions that verify whether data displayed on the user interface matches the data in the database. This function will be used to validate automated test results.
+
+## OBJECTIVE
+Create a JavaScript ES6 function that can:
+- **Accept multiple input types**: extracted HTML element, database data (array of objects), and user requirements
+  - *Why flexible inputs?* Different UI elements provide data in different formats (arrays, objects, strings, numbers)
+- **Execute intelligent data validation logic**: Smart comparison algorithms that handle various data types and edge cases
+  - *Why intelligent?* Real-world data has inconsistencies (case differences, formatting, null values, etc.)
+- **Return clear boolean results**: `true` if data matches requirements, `false` if it doesn't
+  - *Why boolean?* Simple, clear result for automation testing - easy to use in test assertions
+- **Use data characteristics for searching** instead of relying on index/sequence numbers
+  - *Why not index?* See detailed explanation below
+- **Analyze data structure intelligently**: Understand and work with different data formats and structures
+  - *Why analyze structure?* Different UI components provide data in different formats (tables as arrays, forms as objects, etc.)
+
+### Why NOT use index/sequence numbers?
+**Problem with index-based approach:**
+```javascript
+// BAD: Using index - fragile and unreliable
+const element = [product1, product2, product3];
+const dbData = [dbProduct1, dbProduct2, dbProduct3];
+// This breaks if:
+// - Data order changes
+// - Some items are filtered out
+// - New items are added
+if (element[0].name === dbData[0].name) // ❌ Fragile!
+```
+
+**Better: Use data characteristics**
+```javascript
+// GOOD: Using unique identifiers - robust and reliable
+const element = [product1, product2, product3];
+const dbData = [dbProduct1, dbProduct2, dbProduct3];
+// This works regardless of order changes
+const foundProduct = dbData.find(item => item.id === element[0].id); // ✅ Robust!
+```
+## INPUT DEFINITIONS
+### 1. Element (HTML Structure String)
+- HTML structure as string (not DOM element)
+- Can be any HTML structure: table, form, list, div, span, etc.
+- Needs to be parsed and processed to extract actual data values
+### 2. Database Data (Array of Objects)
+- Array containing objects from database
+- Each object represents a record
+- Has properties like id, name, value, status, etc.
+### 3. User Requirement (String)
+- Specific user requirement
+- Example: "Check if all product names match the database"
+## OUTPUT DEFINITIONS
+
+### CRITICAL: ONLY RETURN THE FUNCTION
+**Return ONLY the complete JavaScript function - nothing else**
+
+- NO explanations
+- NO additional text
+- NO comments outside the function
+- NO multiple functions
+- NO pseudo-code
+- ONLY the complete `validateDataWithDatabase` function
+
+### Function Requirements
+```javascript
+function validateDataWithDatabase(element, dbData, userRequirement) {
+    // Complete implementation here
+    return boolean; // true or false
+}
+```
+
+**Function must:**
+- Parse HTML using DOMParser
+- Extract data maintaining field order
+- Use characteristic-based search (not indices)
+- Compare fields in same order as HTML
+- Handle errors with try-catch
+- Return boolean result
+
+## TECHNICAL REQUIREMENTS
+
+### 1. Intelligent Data Search
+- DO NOT use index/sequence numbers to access data
+- Use characteristics like: id, name, unique identifier
+- Implement loops to find correct data
+- Use methods like `find()`, `filter()`, `some()`, `every()`
+
+### 2. HTML Data Extraction
+- Parse raw HTML element to extract actual data values
+- Use appropriate selectors (class, id, data attributes, tag names)
+- Handle different HTML structures (tables, forms, lists, nested elements)
+- **CRITICAL**: Extract data in the exact order it appears in HTML structure
+- Extract text content, attribute values, form values, and structured data
+- Maintain field sequence consistency between HTML and database comparison
+
+### 3. Flexible Data Comparison
+- Support string comparison (case-insensitive)
+- Compare numbers (integer, float)
+- Compare boolean values
+- Compare arrays/objects
+- Handle null/undefined cases
+
+## REAL EXAMPLES
+
+### Example 1: Check Product List
+```javascript
+// Input - HTML structure as string
+const element = `<table id="product-table">
+  <thead><tr><th>Name</th><th>Price</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>Laptop Dell</td><td>15,000,000</td><td>Active</td></tr>
+    <tr><td>Mouse Logitech</td><td>500,000</td><td>Active</td></tr>
+  </tbody>
+</table>`;
+
+const dbData = [
+    { id: 1, name: "Laptop Dell", price: 15000000, status: "active" },
+    { id: 2, name: "Mouse Logitech", price: 500000, status: "active" },
+    { id: 3, name: "Keyboard Razer", price: 2000000, status: "inactive" }
+];
+const userRequirement = "Check if all product names in the table match the database";
+
+// Function implementation example:
+function validateDataWithDatabase(element, dbData, userRequirement) {
+    // Parse HTML string to DOM
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(element, 'text/html');
+    const table = doc.querySelector('#product-table');
+    
+    // Extract data from HTML table
+    const rows = table.querySelectorAll('tbody tr');
+    const extractedData = Array.from(rows).map(row => {
+        const cells = row.querySelectorAll('td');
+        return {
+            name: cells[0].textContent.trim(),
+            price: cells[1].textContent.trim(),
+            status: cells[2].textContent.trim().toLowerCase()
+        };
+    });
+    
+    // Compare with database using characteristics
+    return extractedData.every(extractedItem => {
+        const dbItem = dbData.find(db => 
+            db.name.toLowerCase() === extractedItem.name.toLowerCase()
+        );
+        return dbItem && dbItem.name === extractedItem.name;
+    });
+}
+
+// Output: true (if product names match)
+```
+
+### Example 2: Check Total Amount
+```javascript
+// Input - HTML structure as string
+const element = `<div id="total-amount" class="total-display">3,500,000 VND</div>`;
+
+const dbData = [
+    { id: 1, amount: 1000000 },
+    { id: 2, amount: 2000000 },
+    { id: 3, amount: 500000 }
+];
+const userRequirement = "Check if displayed total amount equals the sum of amounts in database";
+
+// Function implementation example:
+function validateDataWithDatabase(element, dbData, userRequirement) {
+    // Parse HTML string to DOM
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(element, 'text/html');
+    const totalElement = doc.querySelector('#total-amount');
+    
+    // Extract and parse amount from HTML
+    const displayedAmount = totalElement.textContent.trim();
+    const amountValue = parseFloat(displayedAmount.replace(/[^\d]/g, ''));
+    
+    // Calculate sum from database
+    const dbSum = dbData.reduce((sum, item) => sum + item.amount, 0);
+    
+    // Compare amounts
+    return amountValue === dbSum;
+}
+
+// Output: true (if 3,500,000 = 1000000 + 2000000 + 500000)
+```
+## IMPLEMENTATION GUIDE - STEP BY STEP
+
+### Step 1: Analyze Requirements and HTML Structure
+**What to do:**
+1. **Parse userRequirement string** to understand what needs to be validated
+   - Look for keywords: "check", "compare", "match", "verify"
+   - Identify the data type: names, amounts, statuses, counts, etc.
+   - Determine comparison type: exact match, contains, greater than, etc.
+
+2. **Analyze HTML structure** to understand data layout
+   - Identify the main container element
+   - Look for patterns: tables, lists, forms, divs with data
+   - Note selectors needed: IDs, classes, data attributes
+   - Check for nested structures or multiple elements
+
+**Example:**
+```javascript
+// userRequirement = "Check if all product names match database"
+// HTML = "<table><tr><td>Product Name</td></tr></table>"
+// Analysis: Need to extract text from table cells and compare with db.name
+```
+
+### Step 2: Parse HTML String to DOM
+**What to do:**
+1. **Use DOMParser** to convert HTML string to DOM
+2. **Query the main element** using appropriate selector
+3. **Validate element exists** before proceeding
+
+**Code pattern:**
+```javascript
+const parser = new DOMParser();
+const doc = parser.parseFromString(element, 'text/html');
+const mainElement = doc.querySelector('#your-selector');
+if (!mainElement) return false; // Handle missing element
+```
+
+### Step 3: Extract Data from HTML (Maintain Field Order)
+**What to do:**
+1. **Identify data extraction strategy** based on HTML structure:
+   - **Tables**: Use `querySelectorAll('tr')` and extract from `td` cells in order
+   - **Lists**: Use `querySelectorAll('li')` and extract text content in order
+   - **Forms**: Use `querySelectorAll('input')` and extract values in order
+   - **Single elements**: Use `textContent` or `getAttribute()` in order
+
+2. **Extract data systematically while preserving order**:
+   - Use `Array.from()` to convert NodeList to Array (maintains order)
+   - Use `map()` to transform each element in sequence
+   - **CRITICAL**: Extract fields in the exact order they appear in HTML
+   - Map HTML field positions to corresponding database field names
+
+3. **Normalize extracted data while preserving order**:
+   - Use `trim()` to remove whitespace
+   - Use `toLowerCase()` for case-insensitive comparison
+   - Parse numbers with `parseFloat()` or `parseInt()`
+   - Handle special characters and formatting
+   - **Maintain field sequence** throughout the process
+
+**Code pattern for ordered extraction:**
+```javascript
+// For tables - extract in column order
+const extractedData = Array.from(rows).map(row => {
+    const cells = row.querySelectorAll('td');
+    return {
+        // Map HTML column order to database field names
+        field1: cells[0].textContent.trim(), // First column
+        field2: cells[1].textContent.trim(), // Second column
+        field3: cells[2].textContent.trim()  // Third column
+    };
+});
+
+// For lists - extract in list order
+const extractedData = Array.from(listItems).map((item, index) => {
+    return {
+        order: index + 1, // Preserve list order
+        value: item.textContent.trim()
+    };
+});
+```
+
+### Step 4: Find Matching Data in Database (Respect Field Order)
+**What to do:**
+1. **Use characteristic-based search** (NOT index-based):
+   - Use `find()` to locate specific records
+   - Use `filter()` to get multiple matching records
+   - Use `some()` or `every()` for validation
+   - **IMPORTANT**: Match based on field values, not array positions
+
+2. **Implement intelligent matching while preserving order**:
+   - Match by unique identifiers (id, name, key) from extracted data
+   - Use case-insensitive string comparison
+   - Handle partial matches if needed
+   - Consider data type conversion
+   - **Maintain field order consistency** between HTML and database
+
+3. **Handle edge cases**:
+   - No matching record found
+   - Multiple matching records
+   - Data type mismatches
+   - Field order mismatches
+
+**Code pattern for ordered matching:**
+```javascript
+// Match by unique identifier while preserving field order
+const dbItem = dbData.find(db => 
+    db.uniqueKey.toLowerCase() === extractedItem.key.toLowerCase()
+);
+if (!dbItem) return false; // Handle not found
+
+// Compare fields in the same order as HTML
+const fieldOrder = ['field1', 'field2', 'field3']; // Define expected order
+return fieldOrder.every(fieldName => {
+    const htmlValue = extractedItem[fieldName];
+    const dbValue = dbItem[fieldName];
+    return htmlValue === dbValue; // Compare in order
+});
+```
+
+### Step 5: Compare Data According to Requirements (Maintain Order)
+**What to do:**
+1. **Implement comparison logic** based on userRequirement:
+   - **Exact match**: `===` or `==` comparison in field order
+   - **Contains**: Use `includes()` or `indexOf()` for ordered fields
+   - **Numeric comparison**: Use `>`, `<`, `>=`, `<=` for ordered values
+   - **Array comparison**: Use `every()` or `some()` with field order
+
+2. **Handle different data types while preserving order**:
+   - **Strings**: Case-insensitive comparison in sequence
+   - **Numbers**: Parse and compare numeric values in order
+   - **Booleans**: Convert and compare in sequence
+   - **Arrays**: Compare each element in the same order
+
+3. **Apply validation rules with field order**:
+   - All items must match in order (use `every()` with field sequence)
+   - At least one item must match in order (use `some()` with field sequence)
+   - Specific count must match (use `length` comparison)
+   - **Field order must be consistent** between HTML and database
+
+**Code pattern for ordered comparison:**
+```javascript
+// For "all items must match in order" requirement
+return extractedData.every((extractedItem, index) => {
+    const dbItem = dbData.find(db => /* matching logic */);
+    if (!dbItem) return false;
+    
+    // Compare fields in the exact order they appear
+    const fieldOrder = ['field1', 'field2', 'field3'];
+    return fieldOrder.every(fieldName => {
+        const htmlValue = extractedItem[fieldName];
+        const dbValue = dbItem[fieldName];
+        return htmlValue === dbValue; // Compare in order
+    });
+});
+```
+
+### Step 6: Handle Edge Cases and Return Result
+**What to do:**
+1. **Handle common edge cases**:
+   - Empty HTML or database data
+   - Missing required elements
+   - Invalid data formats
+   - Network or parsing errors
+
+2. **Provide meaningful error handling**:
+   - Return `false` for validation failures
+   - Log errors for debugging
+   - Handle null/undefined values gracefully
+
+3. **Return clear boolean result**:
+   - `true`: Validation passed, data matches
+   - `false`: Validation failed, data doesn't match
+
+**Code pattern:**
+```javascript
+try {
+    // All validation logic here
+    return validationResult;
+} catch (error) {
+    console.error('Validation error:', error);
+    return false;
+}
+```
+

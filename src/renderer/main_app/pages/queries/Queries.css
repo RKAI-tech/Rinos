@@ -35,8 +35,116 @@
 .qry-pagination-page.active { background: #5549f5; border-color: #5549f5; color: white; }
 .qry-pagination-ellipsis { padding: 8px 12px; color: #666; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; min-width: 40px; }
 
-@media (max-width: 1024px) { .qry-layout { flex-direction: column; margin-top: 96px; } .qry-main { padding: 24px; margin-left: 200px; } }
-@media (max-width: 768px) { .qry-layout { margin-top: 76px; } .qry-main { padding: 16px; margin-left: 0; } .qry-table { font-size: 12px; } .qry-table th, .qry-table td { padding: 8px 6px; } }
-@media (max-width: 480px) { .qry-main { padding: 12px; margin-left: 0; } .qry-pagination-controls { gap: 4px; } }
+/* SQL Query & Results Side by Side Section */
+.qry-sql-results-section { display: flex; gap: 24px; margin-bottom: 32px; }
+.qry-query-panel { flex: 1; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(74, 144, 226, 0.08); border: 1px solid #e1e5e9; padding: 24px; }
+.qry-results-panel { flex: 1; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(74, 144, 226, 0.08); border: 1px solid #e1e5e9; padding: 24px; }
+.qry-sql-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.qry-sql-header h3 { margin: 0; font-size: 18px; font-weight: 600; color: #1a1a1a; }
+.qry-sql-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
+.qry-connection-select { padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 12px; font-size: 14px; color: #111827; background: white; cursor: pointer; transition: border-color 0.2s ease, box-shadow 0.2s ease; min-width: 200px; }
+.qry-connection-select:focus { outline: none; border-color: #5549f5; box-shadow: 0 0 0 3px rgba(85, 73, 245, 0.1); }
+.qry-run-btn { padding: 8px 16px; background: #5549f5; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.qry-run-btn:hover:not(:disabled) { background: #4338ca; transform: translateY(-1px); }
+.qry-run-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.qry-clear-btn { padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.qry-clear-btn:hover:not(:disabled) { background: #4b5563; transform: translateY(-1px); }
+.qry-clear-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.qry-sql-textarea { width: 100%; padding: 16px; margin: 0 8px; border: 1px solid #e1e5e9; border-radius: 8px; font-size: 12px; color: #374151; background: white; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; resize: vertical; min-height: 120px; max-height: 200px; transition: border-color 0.2s ease; box-sizing: border-box; }
+.qry-sql-textarea:focus { outline: none; border-color: #5549f5; box-shadow: 0 0 0 3px rgba(85, 73, 245, 0.1); }
+
+.qry-results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.qry-results-header h3 { margin: 0; font-size: 18px; font-weight: 600; color: #1a1a1a; }
+.qry-results-count { font-size: 14px; color: #6b7280; font-weight: 500; }
+.qry-results-container { 
+  overflow-x: auto; 
+  overflow-y: hidden;
+}
+.qry-results-container::-webkit-scrollbar {
+  height: 8px;
+}
+.qry-results-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.qry-results-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.qry-results-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+.qry-results-container.has-results { 
+  background: #f8fafc; 
+  border-radius: 8px; 
+  border: 1px solid #e1e5e9; 
+}
+.qry-results-table { 
+  width: 100%; 
+  border-collapse: collapse; 
+  font-size: 14px; 
+  background: white; 
+  min-width: 100%; 
+  table-layout: auto;
+}
+.qry-results-table thead { position: sticky; top: 0; z-index: 10; }
+.qry-results-table tbody { max-height: 300px; overflow-y: auto; display: block; width: 100%; }
+.qry-results-table tbody.scrollable { max-height: 300px; overflow-y: auto; }
+.qry-results-table tbody tr { display: table; width: 100%; table-layout: auto; }
+.qry-results-table thead tr { display: table; width: 100%; table-layout: auto; }
+.qry-results-table th { 
+  background: #f1f5f9; 
+  color: #1e293b; 
+  font-weight: 600; 
+  padding: 16px 20px; 
+  text-align: left; 
+  border-bottom: 2px solid #e2e8f0; 
+  font-size: 13px; 
+  text-transform: uppercase; 
+  letter-spacing: 0.5px; 
+  white-space: nowrap;
+  min-width: 120px;
+}
+.qry-results-table td { 
+  padding: 16px 20px; 
+  border-bottom: 1px solid #f1f5f9; 
+  color: #475569; 
+  font-size: 14px; 
+  white-space: nowrap;
+  min-width: 120px;
+}
+.qry-results-table tr:hover { background: #f8fafc; }
+.qry-results-table tr:last-child td { border-bottom: none; }
+.qry-no-results { padding: 40px; text-align: center; color: #666; font-size: 14px; }
+
+@media (max-width: 1024px) { 
+  .qry-layout { flex-direction: column; margin-top: 96px; } 
+  .qry-main { padding: 24px; margin-left: 200px; } 
+  .qry-sql-results-section { flex-direction: column; gap: 16px; margin-bottom: 24px; }
+  .qry-query-panel, .qry-results-panel { padding: 16px; }
+}
+@media (max-width: 768px) { 
+  .qry-layout { margin-top: 76px; } 
+  .qry-main { padding: 16px; margin-left: 0; } 
+  .qry-table { font-size: 12px; } 
+  .qry-table th, .qry-table td { padding: 8px 6px; }
+  .qry-sql-results-section { flex-direction: column; gap: 12px; margin-bottom: 20px; }
+  .qry-query-panel, .qry-results-panel { padding: 16px; }
+  .qry-sql-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+  .qry-connection-select { min-width: 120px; }
+  .qry-sql-actions { justify-content: center; }
+}
+@media (max-width: 480px) { 
+  .qry-main { padding: 12px; margin-left: 0; } 
+  .qry-pagination-controls { gap: 4px; }
+  .qry-sql-results-section { flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .qry-query-panel, .qry-results-panel { padding: 12px; }
+  .qry-sql-header { flex-direction: column; gap: 8px; align-items: flex-start; }
+  .qry-connection-select { width: 100%; }
+  .qry-sql-actions { justify-content: center; }
+  .qry-run-btn { width: 100%; }
+  .qry-sql-textarea { min-height: 100px; max-height: 150px; font-size: 11px; margin: 0 4px; padding: 12px; }
+  .qry-results-table th, .qry-results-table td { padding: 12px 16px; }
+}
 
 

@@ -229,6 +229,47 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setIsDetailOpen(true);
   };
 
+  const handleSaveAction = async (updatedAction: Action) => {
+    try {
+      const response = await actionService.updateActionById(updatedAction.action_id || '', updatedAction);
+      if (response.success) {
+        // Update local state
+        setActions(prev => prev.map(a => a.action_id === updatedAction.action_id ? updatedAction : a));
+        setSelectedAction(updatedAction);
+        toast.success('Action updated successfully');
+      } else {
+        toast.error(response.error || 'Failed to update action');
+      }
+    } catch (error) {
+      console.error('[Main] Error updating action:', error);
+      toast.error('Failed to update action');
+    }
+  };
+
+  const handleSaveActions = async () => {
+    if (!testcaseId) {
+      toast.error('No testcase ID available for saving');
+      return;
+    }
+
+    if (actions.length === 0) {
+      toast.warning('No actions to save');
+      return;
+    }
+
+    try {
+      const response = await actionService.batchCreateActions(actions);
+      if (response.success) {
+        toast.success('All actions saved successfully');
+      } else {
+        toast.error(response.error || 'Failed to save actions');
+      }
+    } catch (error) {
+      console.error('[Main] Error saving actions:', error);
+      toast.error('Failed to save actions');
+    }
+  };
+
   const handleRunScript = async () => {
     try {
       const service = new ExecuteScriptsService();
@@ -364,6 +405,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             onDeleteAll={handleDeleteAllActions} 
             onReorderActions={handleReorderActions} 
             onReload={reloadActions}
+            onSaveActions={handleSaveActions}
             selectedInsertPosition={selectedInsertPosition}
             onSelectInsertPosition={handleSelectInsertPosition}
             onSelectAction={handleSelectAction}
@@ -385,10 +427,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         isOpen={isDetailOpen}
         action={selectedAction}
         onClose={() => setIsDetailOpen(false)}
-        onSave={(updated) => {
-          setActions(prev => prev.map(a => a.action_id === updated.action_id ? updated : a));
-          setSelectedAction(updated);
-        }}
+        onSave={handleSaveAction}
       />
     </div>
   );

@@ -163,4 +163,28 @@ export class ActionService {
         });
         return response;
     }
+
+    // Update a single action by ID
+    async updateActionById(actionId: string, action: Partial<Action>): Promise<ApiResponse<DefaultResponse>> {
+        if (!actionId) {
+            return {
+                success: false,
+                error: 'Valid action ID is required'
+            };
+        }
+
+        if (!action || Object.keys(action).length === 0) {
+            return {
+                success: false,
+                error: 'Action data is required'
+            };
+        }
+
+        const endpoint = `/actions/${actionId}`;
+        const response = await apiRouter.request<DefaultResponse>(endpoint, {
+            method: 'PUT',
+            body: JSON.stringify(action),
+        });
+        return response;
+    }
 }

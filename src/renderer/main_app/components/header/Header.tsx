@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import authService from '../../services/auth';
 import './Header.css';
-
+import image from '../../assets/logo_user.png';
 const Header: React.FC = () => {
   const { logout, isLoading } = useAuth();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -57,7 +57,7 @@ const Header: React.FC = () => {
           <div className="user-profile" onClick={toggleUserDropdown}>
             <div className="user-avatar">
               <img 
-                src="/main_app/assets/logo_user.png" 
+                src={image} 
                 alt="User Avatar" 
                 className="avatar-image"
               />

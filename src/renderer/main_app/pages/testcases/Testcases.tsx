@@ -9,6 +9,7 @@ import CreateTestcase from '../../components/testcase/create_testcase/CreateTest
 import EditTestcase from '../../components/testcase/edit_testcase/EditTestcase';
 import DeleteTestcase from '../../components/testcase/delete_testcase/DeleteTestcase';
 import { TestCaseService } from '../../services/testcases';
+import { ProjectService } from '../../services/projects';
 import { toast } from 'react-toastify';
 
 interface Testcase {
@@ -27,6 +28,7 @@ const Testcases: React.FC = () => {
   const navigate = useNavigate();
   const { projectId } = useParams();
   const projectData = { projectId, projectName: (location.state as { projectName?: string } | null)?.projectName };
+  const [resolvedProjectName, setResolvedProjectName] = useState<string>(projectData.projectName || 'Project');
   console.log('projectData', projectData);
   // Data from API
   const [testcases, setTestcases] = useState<Testcase[]>([]);
@@ -90,6 +92,23 @@ const Testcases: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectData?.projectId]);
 
+  // Load project name from API
+  useEffect(() => {
+    const loadProjectName = async () => {
+      if (!projectId) return;
+      if (projectData.projectName) {
+        setResolvedProjectName(projectData.projectName);
+        return;
+      }
+      const svc = new ProjectService();
+      const resp = await svc.getProjectById(projectId);
+      if (resp.success && resp.data) {
+        setResolvedProjectName((resp.data as any).name || 'Project');
+      }
+    };
+    loadProjectName();
+  }, [projectId]);
+
   // Sidebar navigation items
   const sidebarItems = [
     {
@@ -132,7 +151,7 @@ const Testcases: React.FC = () => {
       isActive: false
     },
     {
-      label: projectData?.projectName || 'plane_app',
+      label: resolvedProjectName,
       path: `/testcases/${projectId || ''}`,
       isActive: true
     }
