@@ -44,4 +44,8 @@ export function registerBrowserIpc() {
         console.log('[BROWSER] Getting project ID:', projectId);
         return projectId;
     });
+    ipcMain.handle("browser:setAuthToken", async (_, token: string | null) => {
+        console.log('[BROWSER] Setting auth token:', token);
+        browserManager.setAuthToken(token);
+    });
 }

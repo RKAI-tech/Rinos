@@ -16,6 +16,7 @@ const browserMethods = {
     setAssertMode: async (enabled: boolean, assertType: AssertType) => ipcRenderer.invoke("browser:setAssertMode", enabled, assertType),
     setProjectId: async (projectId: string) => ipcRenderer.invoke("browser:setProjectId", projectId),
     getProjectId: async () => ipcRenderer.invoke("browser:getProjectId"),
+    setAuthToken: async (token: string | null) => ipcRenderer.invoke("browser:setAuthToken", token),
 }
 
 export function exposeBrowserAPI() {

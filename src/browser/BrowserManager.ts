@@ -5,8 +5,8 @@ import { app } from "electron";
 import { Action, AssertType } from "./types";
 import { Controller } from "./controller";
 import { readFileSync } from "fs";
-// import { VariableService } from "../renderer/recorder/services/variables";
-import { getProjectId } from "../renderer/recorder/context/browser_context";
+import { VariableService } from "./services/variables";
+import { apiRouter } from "./services/baseAPIRequest";
 
 let browsersPath: string;
 
@@ -17,7 +17,7 @@ if (!app.isPackaged) {
 }
 process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
 
-// const variableService = new VariableService();
+const variableService = new VariableService();
 
 export class BrowserManager extends EventEmitter {
     private browser: Browser | null = null;
@@ -38,6 +38,10 @@ export class BrowserManager extends EventEmitter {
     setProjectId(projectId: string): void {
         this.projectId = projectId;
         console.log('[BrowserManager] Project ID set:', projectId);
+    }
+
+    setAuthToken(token: string | null): void {
+        apiRouter.setAuthToken(token);
     }
 
     trackRequests(page: Page): void {
@@ -189,14 +193,7 @@ export class BrowserManager extends EventEmitter {
                 return { success: false, error: 'No project context' };
               }
               console.log('[BrowserManager] Loading variables for project:', projectId);
-            //   const { VariableService } = await import("../renderer/recorder/services/variables");
-            //   const variableService = new VariableService();
-            //   const resp = await variableService.getVariablesByProject(projectId);
-              const resp = {
-                data: {
-                    items: []
-                }
-              }
+              const resp = await variableService.getVariablesByProject(projectId);
               console.log('[BrowserManager] Variables API response:', resp);
               resp.data?.items.forEach((v: any) => {
                 // console.log('Variable object:', v);
