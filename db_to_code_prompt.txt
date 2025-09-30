@@ -8,7 +8,7 @@ In automation testing applications, we need to create functions that verify whet
 
 ## OBJECTIVE
 Create a JavaScript ES6 function that can:
-- **Accept multiple input types**: extracted HTML element, database data (array of objects), and user requirements
+- **Accept multiple input types**: an array of extracted HTML elements (as strings), an array of database data arrays (each is an array of objects), and user requirements
   - *Why flexible inputs?* Different UI elements provide data in different formats (arrays, objects, strings, numbers)
 - **Execute intelligent data validation logic**: Smart comparison algorithms that handle various data types and edge cases
   - *Why intelligent?* Real-world data has inconsistencies (case differences, formatting, null values, etc.)
@@ -41,14 +41,14 @@ const dbData = [dbProduct1, dbProduct2, dbProduct3];
 const foundProduct = dbData.find(item => item.id === element[0].id); // ✅ Robust!
 ```
 ## INPUT DEFINITIONS
-### 1. Element (HTML Structure String)
-- HTML structure as string (not DOM element)
-- Can be any HTML structure: table, form, list, div, span, etc.
-- Needs to be parsed and processed to extract actual data values
-### 2. Database Data (Array of Objects)
-- Array containing objects from database
-- Each object represents a record
-- Has properties like id, name, value, status, etc.
+### 1. Elements (Array of HTML Structure Strings)
+- Array of HTML structures as strings (not DOM elements)
+- Each item can be any HTML structure: table, form, list, div, span, etc.
+- Each item needs to be parsed and processed to extract actual data values
+### 2. Database Data List (Array of Arrays of Objects)
+- Array where each item is an array containing database records (objects)
+- Each inner array corresponds to the element at the same index in `elements`
+- Records have properties like id, name, value, status, etc.
 ### 3. User Requirement (String)
 - Specific user requirement
 - Example: "Check if all product names match the database"
@@ -66,19 +66,20 @@ const foundProduct = dbData.find(item => item.id === element[0].id); // ✅ Robu
 
 ### Function Requirements
 ```javascript
-function validateDataWithDatabase(element, dbData, userRequirement) {
+function validateDataWithDatabase(elements, dbDataList, userRequirement) {
     // Complete implementation here
-    return boolean; // true or false
+    return boolean; // true if all pairs pass, false otherwise
 }
 ```
 
 **Function must:**
-- Parse HTML using DOMParser
-- Extract data maintaining field order
+- Parse each HTML string using DOMParser
+- Pair `elements[i]` with `dbDataList[i]` (1:1)
+- Extract data maintaining field order for every element
 - Use characteristic-based search (not indices)
 - Compare fields in same order as HTML
 - Handle errors with try-catch
-- Return boolean result
+- Return boolean result (true only if all pairs pass)
 
 ## TECHNICAL REQUIREMENTS
 

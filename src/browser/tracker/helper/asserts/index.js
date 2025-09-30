@@ -79,8 +79,8 @@ export function handleClickEventAssertMode(e) {
   const assertType = currentAssertType || 'toBeVisible';
 
   const selectors = generateAndValidateSelectors(element, {
-    maxSelectors: 5,
-    minScore: 400,
+    maxSelectors: 10,
+    minScore:10,
     validate: true
   });
 
