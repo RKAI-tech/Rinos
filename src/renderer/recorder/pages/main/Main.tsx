@@ -42,7 +42,18 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
-  const [aiElements, setAiElements] = useState<{ id: string; name: string; type: 'Browser' | 'Database'; selector?: string[]; domHtml?: string; value?: string; connectionId?: string; query?: string; queryResultPreview?: string; queryResultData?: any[]; }[]>([]);
+  const [aiElements, setAiElements] = useState<{
+        id: string;
+        name: string;
+        type: 'Browser' | 'Database';
+        selector?: string[];
+        value?: string;
+        domHtml?: string;
+        connectionId?: string;
+        query?: string;
+        queryResultPreview?:
+        string; queryResultData?: any[]; 
+  }[]>([]);
 
   useEffect(() => {
     console.log('[Main] Setting project ID:', projectId);
@@ -91,9 +102,49 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         console.warn('[Main] Testcase ID is not set');
         return;
       }
+      if (isAiModalOpen) {
+        const newItem = {
+          id: Math.random().toString(36),
+          name: "",
+          type: 'Browser' as const,
+          selector: action.selector,
+          value: action.elementText,
+          domHtml: action.DOMelement,
+        };
+        setAiElements(prev => [...prev, newItem]);
+        return;
+      }
+      if (isAssertMode) {
+        if (!(action?.type === 'assert')) {
+          return;
+        }
+      }
       setActions(prev => receiveAction(testcaseId, prev, action));
     });
-  }, [testcaseId, isPaused]);
+  }, [testcaseId, isPaused, aiElements.length, isAssertMode, isAiModalOpen]);
+
+  // Intercept actions from browser: if AI assert is active and we receive an assert AI, populate modal element
+  // useEffect(() => {
+  //   return (window as any).browserAPI?.browser?.onAction((action: any) => {
+  //     if (isPaused) return;
+  //     if (!testcaseId) return;
+  //     if ((action?.type === 'assert') && (action?.assertType === 'AI')) {
+  //       // Push into AI modal elements instead of recording as an action
+  //       const newItem = {
+  //         id: Math.random().toString(36),
+  //         name: "",
+  //         type: 'Browser' as const,
+  //         selector: action.selector || [],
+  //         value: action.elementText || action.value || '',
+  //         domHtml: action.DOMelement || '',
+  //       };
+  //       setAiElements(prev => [...prev, newItem]);
+  //       // Do not add to actions list here
+  //       return;
+  //     }
+  //     setActions(prev => receiveAction(testcaseId, prev, action));
+  //   });
+  // }, [testcaseId, isPaused, aiElements.length]);
 
   const assertTypes = Object.values(AssertType);
 
@@ -175,28 +226,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     await (window as any).browserAPI?.browser?.setAssertMode(true, assertType as AssertType);
   };
 
-  // Intercept actions from browser: if AI assert is active and we receive an assert AI, populate modal element
-  useEffect(() => {
-    return (window as any).browserAPI?.browser?.onAction((action: any) => {
-      if (isPaused) return;
-      if (!testcaseId) return;
-      if ((action?.type === 'assert') && (action?.assertType === 'AI')) {
-        // Push into AI modal elements instead of recording as an action
-        const newItem = {
-          id: Math.random().toString(36),
-          name: "",
-          type: 'Browser' as const,
-          selector: action.selector || [],
-          value: action.elementText || action.value || '',
-        };
-        setAiElements(prev => [...prev, newItem]);
-        // Do not add to actions list here
-        return;
-      }
-      setActions(prev => receiveAction(testcaseId, prev, action));
-    });
-  }, [testcaseId, isPaused, aiElements.length]);
-
   const handleAiAddElement = async () => {
     // Default new element is Database type
     setAiElements(prev => [
@@ -204,13 +233,12 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       { id: Math.random().toString(36), name: "", type: 'Database' as const, selector: [] }
     ]);
     // Enable assert pick for AI to allow selecting a browser element (optional)
-    setSelectedAssert('AI');
-    setIsAssertMode(true);
-    await (window as any).browserAPI?.browser?.setAssertMode(true, AssertType.ai);
+    // setSelectedAssert('AI');
+    // setIsAssertMode(true);
+    // await (window as any).browserAPI?.browser?.setAssertMode(true, AssertType.ai);
   };
 
   const handleAiSubmit = () => {
-
     console.log('[Main] AI elements:', aiElements);
     // This will be wired to API submission in a later step
     setIsAiModalOpen(false);
