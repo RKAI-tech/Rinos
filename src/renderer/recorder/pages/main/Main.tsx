@@ -36,6 +36,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const actionService = useMemo(() => new ActionService(), []);
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const isPauseRef = React.useRef(false);
+  isPauseRef.current = isPaused;
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
   const [runResult, setRunResult] = useState<string>('');
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
@@ -95,7 +97,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
 
   useEffect(() => {
     return (window as any).browserAPI?.browser?.onAction((action: any) => {
-      if (isPaused) {
+      if (isPauseRef.current) {
         return;
       }
       if (!testcaseId) {
@@ -121,7 +123,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       }
       setActions(prev => receiveAction(testcaseId, prev, action));
     });
-  }, [testcaseId, isPaused, aiElements.length, isAssertMode, isAiModalOpen]);
+  }, [testcaseId, aiElements.length, isAssertMode, isAiModalOpen]);
 
   // Intercept actions from browser: if AI assert is active and we receive an assert AI, populate modal element
   // useEffect(() => {
@@ -231,7 +233,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     await (window as any).browserAPI?.browser?.stop();
     setIsBrowserOpen(false);
     setIsPaused(false); // Reset pause state when stopping browser
-    await (window as any).browserAPI?.browser?.setPauseMode(false);
+    // await (window as any).browserAPI?.browser?.setPauseMode(false);
   };
 
   const handleAssertSelect = async (assertType: string) => {
