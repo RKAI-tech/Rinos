@@ -1,4 +1,4 @@
-import { DatabaseConnection } from "./databases";
+import { DatabaseConnection } from "../../../browser/types/databases";
 
 // Statements (Queries)
 export interface StatementCreateRequest {

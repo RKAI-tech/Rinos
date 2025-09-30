@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './AiAssertModal.css';
-import apiRouter from '../../services/baseAPIRequest';
+import { StatementService } from '../../services/statements';
+import { apiRouter } from '../../services/baseAPIRequest';
+import QueryResultTable from './QueryResultTable';
+
+const statementService = new StatementService();
 
 type ElementType = 'Browser' | 'Database';
 
@@ -16,6 +20,7 @@ interface AiElementItem {
   connectionId?: string;
   query?: string;
   queryResultPreview?: string;
+  queryResultData?: any[];
 }
 
 interface ConnectionOption { id: string; label: string }
@@ -85,14 +90,15 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
       setIsRunningQueryIdx(idx);
       const el = elements[idx];
       if (!el?.connectionId || !el?.query || !el.query.trim()) return;
-      const resp = await apiRouter.request<any>('/statements/run_without_create', {
-        method: 'POST',
-        body: JSON.stringify({ connection_id: el.connectionId, query: el.query }),
-      });
-      const firstRow = (resp as any)?.data?.rows?.[0] || (resp as any)?.data?.result?.rows?.[0];
-      const preview = firstRow ? JSON.stringify(firstRow) : 'No rows';
-      const firstValue = firstRow ? String(Object.values(firstRow)[0] ?? '') : '';
-      onChangeElement(idx, (old) => ({ ...old, queryResultPreview: preview, value: firstValue }));
+
+      console.log('Running query', el.connectionId, el.query);
+
+      const resp = await statementService.runWithoutCreate({ connection_id: el.connectionId, query: el.query });
+      
+      const data = (resp as any)?.data?.data || [];
+      const preview = data.length > 0 ? JSON.stringify(data) : 'No rows';
+      const firstValue = data.length > 0 ? String(Object.values(data[0])[0] ?? '') : '';
+      onChangeElement(idx, (old) => ({ ...old, queryResultPreview: preview, value: firstValue, queryResultData: data }));
     } finally {
       setIsRunningQueryIdx(null);
     }
@@ -115,14 +121,14 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
           <div className="aiam-elements-header">
             <div className="aiam-elements-title">Elements</div>
             <div className="aiam-elements-actions">
-              <button className="aiam-btn" onClick={onAddElement}>Add new element</button>
+              <button className="aiam-btn" onClick={onAddElement}>Add Database element</button>
               {/* Database elements are created inline by changing type */}
             </div>
           </div>
 
           <div className="aiam-elements">
             {elements.length === 0 && (
-              <div className="aiam-empty">No elements yet. Use "Pick from Browser" or add a Database element by switching type.</div>
+              <div className="aiam-empty">No elements yet. Click on browser to select an element or add a new Database element.</div>
             )}
 
             {elements.map((el, idx) => (
@@ -134,22 +140,21 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                   </div>
                   <div className="aiam-col aiam-col-type">
                     <label className="aiam-sub">Type</label>
-                    <select className="aiam-input" value={el.type} onChange={(e) => onChangeElement(idx, (old) => ({ ...old, type: e.target.value as ElementType }))}>
-                      <option value="Browser">Browser</option>
-                      <option value="Database">Database</option>
-                    </select>
+                    <input className="aiam-input aiam-disabled" value={el.type} disabled />
                   </div>
                   <div className="aiam-col aiam-col-actions">
-                    <button className="aiam-icon-btn" title="Remove" onClick={() => onRemoveElement(idx)}>🗑</button>
+                    <button className="aiam-btn aiam-remove-btn" title="Remove" onClick={() => onRemoveElement(idx)}>
+                      Remove
+                    </button>
                   </div>
                 </div>
 
                 {el.type === 'Browser' ? (
                   <div className="aiam-browser-box">
-                    <div className="aiam-row">
-                      <div className="aiam-col">
-                        <label className="aiam-sub">Selector candidates</label>
-                        <div className="aiam-mono">{(el.selector || []).join(' | ') || '(pick from browser)'}</div>
+                    <div className="aiam-col">
+                      <div className="aiam-row">
+                        <label className="aiam-sub">Element text</label>
+                        <div className="aiam-mono">{el.value || '(No text available)'}</div>
                       </div>
                     </div>
                   </div>
@@ -177,11 +182,11 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                         <button className="aiam-btn" disabled={!el.connectionId || !el.query || isRunningQueryIdx === idx} onClick={() => handleRunQuery(idx)}>{isRunningQueryIdx === idx ? 'Running...' : 'Run query'}</button>
                       </div>
                     </div>
-                    {el.queryResultPreview && (
+                    {el.queryResultData && el.queryResultData.length > 0 && (
                       <div className="aiam-row">
                         <div className="aiam-col">
-                          <label className="aiam-sub">Result preview</label>
-                          <pre className="aiam-pre">{el.queryResultPreview}</pre>
+                          <label className="aiam-sub">Query Results</label>
+                          <QueryResultTable data={el.queryResultData} maxHeight={200} />
                         </div>
                       </div>
                     )}

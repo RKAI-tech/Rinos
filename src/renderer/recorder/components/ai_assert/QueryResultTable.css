@@ -1,0 +1,85 @@
+.qrt-container {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.qrt-table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 100%;
+}
+
+.qrt-table-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.qrt-table-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.qrt-table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.qrt-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.qrt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: white;
+  min-width: 100%;
+  table-layout: auto;
+}
+
+.qrt-header {
+  background: #f8fafc;
+  color: #374151;
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+.qrt-row {
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.qrt-row:hover {
+  background: #f9fafb;
+}
+
+.qrt-row:last-child {
+  border-bottom: none;
+}
+
+.qrt-cell {
+  padding: 8px 12px;
+  color: #374151;
+  word-break: break-word;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qrt-no-results {
+  padding: 20px;
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
