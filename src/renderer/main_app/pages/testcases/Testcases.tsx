@@ -13,6 +13,10 @@ import RunAndViewTestcase from '../../components/testcase/run_and_view/RunAndVie
 import { TestCaseService } from '../../services/testcases';
 import { ProjectService } from '../../services/projects';
 import { toast } from 'react-toastify';
+import { ExecuteScriptsService } from '../../services/executeScripts';
+import { ActionService } from '../../services/actions';
+import { Action } from '../../types/actions';
+import { actionToCode } from '../../../recorder/utils/action_to_code';
 
 interface Testcase {
   id: string;
@@ -21,7 +25,7 @@ interface Testcase {
   createdBy: string;
   createdAt: string;
   updated?: string;
-  status: 'SUCCESS' | 'FAILED' | 'PENDING'|"DRAFT";
+  status: string;
   actionsCount: number;
 }
 
@@ -52,9 +56,12 @@ const Testcases: React.FC = () => {
   const [isRunAndViewModalOpen, setIsRunAndViewModalOpen] = useState(false);
   const [selectedTestcase, setSelectedTestcase] = useState<Testcase | null>(null);
   const [selectedTestcaseData, setSelectedTestcaseData] = useState<any>(null);
+  const [runningTestcaseId, setRunningTestcaseId] = useState<string | null>(null);
 
   // Service
   const testCaseService = new TestCaseService();
+  const executeScriptsService = new ExecuteScriptsService();
+  const actionService = new ActionService();
 
   // Helper: reload testcases
   const reloadTestcases = async () => {
@@ -70,8 +77,8 @@ const Testcases: React.FC = () => {
         const mapped: Testcase[] = response.data.testcases.map(tc => {
           const rawStatus = (tc as unknown as { status?: string })?.status || '';
           const normalized = rawStatus.toUpperCase();
-          const allowed = ['SUCCESS', 'FAILED', 'PENDING', 'DRAFT'];
-          const safeStatus = allowed.includes(normalized) ? (normalized as Testcase['status']) : 'DRAFT';
+          const allowed = ['success', 'failed', 'draft'];
+          const safeStatus = allowed.includes(normalized) ? (normalized as Testcase['status']) : 'draft';
           return {
             id: tc.testcase_id,
             name: tc.name,
@@ -79,7 +86,7 @@ const Testcases: React.FC = () => {
             createdBy: projectData.projectName || 'Unknown',
             createdAt: tc.created_at,
             updated: tc.updated_at,
-            status: safeStatus,
+            status: tc.status, //safeStatus,
             actionsCount: Array.isArray(tc.actions) ? tc.actions.length : 0,
           };
         });
@@ -330,18 +337,31 @@ const Testcases: React.FC = () => {
     if (event) event.stopPropagation();
     // Execute testcase, reload list, then open view modal
     try {
-      const response = await testCaseService.executeTestCase({ testcase_id: id });
-      if (response.success) {
-        toast.success('Testcase executed successfully!');
-        // Reload testcases to get updated data
-        await reloadTestcases();
-        // Open view modal with updated data
-        handleViewResult(id);
+      setRunningTestcaseId(id);
+      let actions: Action[] = [];
+      const actions_resp = await actionService.getActionsByTestCase(id, 1000, 0);
+      if (actions_resp.success && actions_resp.data) {
+        actions = actions_resp.data.actions || [];
       } else {
-        toast.error(response.error || 'Failed to execute testcase');
+        toast.error('Test case has no actions');
+        return;
       }
+
+      const code = actionToCode(actions);
+      const resp = await executeScriptsService.executeJavascript({ code: code, testcase_id: id });
+      if (resp.success) {
+        toast.success('Testcase executed successfully!');
+      } else {
+        toast.error('Failed to execute testcase');
+      }
+
     } catch (err) {
       toast.error('Failed to execute testcase');
+    }
+    finally {
+      setRunningTestcaseId(null);
+      await reloadTestcases();
+      handleViewResult(id);
     }
     setOpenDropdownId(null);
   };
@@ -515,10 +535,9 @@ const Testcases: React.FC = () => {
                 className="status-dropdown"
               >
                 <option value="All Status">All Status</option>
-                <option value="SUCCESS">SUCCESS</option>
-                <option value="FAILED">FAILED</option>
-                <option value="PENDING">PENDING</option>
-                <option value="DRAFT">DRAFT</option>
+                <option value="success">SUCCESS</option>
+                <option value="failed">FAILED</option>
+                <option value="draft">DRAFT</option>
               </select>
             </div>
 
@@ -569,7 +588,13 @@ const Testcases: React.FC = () => {
               </thead>
               <tbody>
                 {currentTestcases.map((testcase) => (
-                  <tr key={testcase.id} onClick={() => handleOpenRecorder(testcase.id)} style={{ cursor: 'pointer' }}>
+                  <tr
+                    key={testcase.id}
+                    onClick={() => handleOpenRecorder(testcase.id)}
+                    style={{ cursor: 'pointer' }}
+                    className={runningTestcaseId === testcase.id ? 'is-running' : ''}
+                    aria-busy={runningTestcaseId === testcase.id}
+                  >
                     <td className="testcase-name">{testcase.name}</td>
                     <td className="testcase-tag">{testcase.tag}</td>
                     <td className="testcase-actions-count">{testcase.actionsCount}</td>
@@ -594,11 +619,27 @@ const Testcases: React.FC = () => {
                         
                         {openDropdownId === testcase.id && (
                           <div className="actions-dropdown">
-                            <button className="dropdown-item" onClick={(e) => handleRunTestcase(testcase.id, e)}>
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <polygon points="8,5 19,12 8,19" fill="currentColor" />
-                              </svg>
-                              Run
+                            <button
+                              className="dropdown-item"
+                              onClick={(e) => handleRunTestcase(testcase.id, e)}
+                              disabled={runningTestcaseId === testcase.id}
+                            >
+                              {runningTestcaseId === testcase.id ? (
+                                <>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="spinner">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/>
+                                    <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
+                                  </svg>
+                                  Running...
+                                </>
+                              ) : (
+                                <>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <polygon points="8,5 19,12 8,19" fill="currentColor" />
+                                  </svg>
+                                  Run
+                                </>
+                              )}
                             </button>
                             <button className="dropdown-item" onClick={(e) => handleViewResult(testcase.id, e)}>
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -1,9 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './RunAndViewTestcase.css';
 import { TestCaseService } from '../../../services/testcases';
+import { ExecuteScriptsService } from '../../../services/executeScripts';
+import { ActionService } from '../../../services/actions';
 import { TestCaseGetResponse } from '../../../types/testcases';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { actionToCode } from '../../../../recorder/utils/action_to_code';
+import { Action } from '../../../types/actions';
 
 interface Props {
   isOpen: boolean;
@@ -20,6 +24,8 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<TestCaseGetResponse | null>(null);
   const svc = useMemo(() => new TestCaseService(), []);
+  const executeScriptsService = useMemo(() => new ExecuteScriptsService(), []);
+  const actionService = useMemo(() => new ActionService(), []);
 
   // Load testcase data when modal opens
   useEffect(() => {
@@ -37,7 +43,6 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
     
     try {
       setIsLoading(true);
-      
       // Get testcase details to show logs
       const response = await svc.getTestCases(projectId || '', 1000, 0);
       if (response.success && response.data) {
@@ -69,8 +74,18 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
     try {
       setIsRunning(true);
       
-      // Execute testcase using TestCaseService
-      const resp = await svc.executeTestCase({ testcase_id: testcaseId });
+      let actions: Action[] = [];
+      const actions_resp = await actionService.getActionsByTestCase(testcaseId, 1000, 0);
+      if (actions_resp.success) {
+        actions = actions_resp.data?.actions || [];
+      } else {
+        toast.error('Failed to load actions', {
+          containerId: 'modal-toast-container'
+        });
+        return;
+      }
+      const code = actionToCode(actions);
+      const resp = await executeScriptsService.executeJavascript({ code: code, testcase_id: testcaseId });
       
       if (resp.success) {
         toast.success('Testcase executed successfully!', {

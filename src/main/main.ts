@@ -15,8 +15,8 @@ app.whenReady().then(() => {
   registerIpcHandlers();
   registerTokenIpc();
   registerMicrosoftLoginIpc();
-  registerScreenHandlersIpc();
-  registerBrowserIpc();
+  registerBrowserIpc(); // Register browser IPC first
+  registerScreenHandlersIpc(); // Then register screen handlers
   createMainAppWindow();
 
   app.on("activate", () => {

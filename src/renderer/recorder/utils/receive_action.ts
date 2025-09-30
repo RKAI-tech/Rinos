@@ -154,6 +154,41 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
             return updatedActions;
         }
     }
-
+    //check click or double click
+    if(receivedAction.action_type === ActionType.double_click) {
+        const last_action = action_recorded[action_recorded.length - 1];
+    
+        if (last_action && last_action.action_type === ActionType.click) {
+            //replace last action with double click
+            var updatedActions = [...action_recorded];
+            updatedActions[updatedActions.length - 1] = receivedAction;
+            return updatedActions;
+        }
+    }
+    if(receivedAction.action_type === ActionType.click) {
+        const last_action = action_recorded[action_recorded.length - 1];
+        console.log('[last_action]', last_action);
+        if (last_action && (last_action.action_type === ActionType.double_click || last_action.action_type === ActionType.right_click|| last_action.action_type === ActionType.click)) {
+            return action_recorded;
+        }
+    }
     return [...action_recorded, receivedAction];
+}
+
+export function receiveActionWithInsert(
+    testcaseId: string,
+    actions: Action[],
+    action_received: any,
+    insertAt?: number | null
+): Action[] {
+    // Nếu không có vị trí chèn cụ thể, xử lý như bình thường
+    if (insertAt === null || insertAt === undefined) {
+        return receiveAction(testcaseId, actions, action_received);
+    }
+
+    const safeIndex = Math.max(0, Math.min(insertAt, actions.length));
+    const head = actions.slice(0, safeIndex);
+    const tail = actions.slice(safeIndex);
+    const updatedHead = receiveAction(testcaseId, head, action_received);
+    return [...updatedHead, ...tail];
 }

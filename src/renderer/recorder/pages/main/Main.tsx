@@ -12,7 +12,7 @@ import { actionToCode } from '../../utils/action_to_code';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
 import { RunCodeResponse } from '../../types/executeScripts';
-import { receiveAction, createDescription } from '../../utils/receive_action';
+import { receiveAction, createDescription, receiveActionWithInsert } from '../../utils/receive_action';
 import { setProjectId } from '../../context/browser_context';
 
 
@@ -32,12 +32,12 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [activeTab, setActiveTab] = useState<'actions' | 'script'>('actions');
   const [customScript, setCustomScript] = useState<string>('');
   const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
-  const [selectedInsertPosition, setSelectedInsertPosition] = useState<number | null>(null);
+  const [selectedInsertPosition, setSelectedInsertPosition] = useState<number>(0);
+  // Vị trí chỉ để hiển thị label (không ảnh hưởng biến chèn thực tế)
+  const [displayInsertPosition, setDisplayInsertPosition] = useState<number>(0);
   const actionService = useMemo(() => new ActionService(), []);
-  const [insertIndex, setInsertIndex] = useState<number | null>(null);
-  const [isPaused, setIsPaused] = useState(false);
-  const isPauseRef = React.useRef(false);
-  isPauseRef.current = isPaused;
+  
+  const [isPaused, setIsPaused] = useState(true);
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
   const [runResult, setRunResult] = useState<string>('');
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
@@ -75,85 +75,78 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         try {
           const response = await actionService.getActionsByTestCase(testcaseId);
           if (response.success && response.data) {
-            setActions(response.data.actions);
-            console.log('[Main] Loaded actions:', response.data.actions);
+            const loaded = response.data.actions || [];
+            setActions(loaded);
+            setSelectedInsertPosition(loaded.length);
+            console.log('[Main] Loaded actions:', loaded);
           } else {
             console.error('[Main] Failed to load actions:', response.error);
             setActions([]);
+            setSelectedInsertPosition(0);
           }
         } catch (error) {
           console.error('[Main] Error loading actions:', error);
           setActions([]);
+          setSelectedInsertPosition(0);
         } finally {
           setIsLoading(false);
         }
       } else {
         setActions([]);
+        setSelectedInsertPosition(0);
       }
     };
 
     loadActions();
   }, [testcaseId, actionService]);
 
+  // Single onAction listener: handles AI and normal actions, with optional insert position
   useEffect(() => {
     return (window as any).browserAPI?.browser?.onAction((action: any) => {
-      if (isPauseRef.current) {
-        return;
-      }
-      if (!testcaseId) {
-        console.warn('[Main] Testcase ID is not set');
-        return;
-      }
-      if (isAiModalOpen) {
+      if (isPaused) return;
+      if (!testcaseId) return;
+
+      // AI assert goes to modal only
+      if ((action?.type === 'assert') && (action?.assertType === 'AI')) {
         const newItem = {
           id: Math.random().toString(36),
           name: "",
+          domHtml: action.DOMelement || '',
           type: 'Browser' as const,
-          selector: action.selector,
-          value: action.elementText,
-          domHtml: action.DOMelement,
+          selector: action.selector || [],
+          value: action.elementText || action.value || '',
         };
         setAiElements(prev => [...prev, newItem]);
         return;
       }
-      if (isAssertMode) {
-        if (!(action?.type === 'assert')) {
-          return;
-        }
-      }
-      setActions(prev => receiveAction(testcaseId, prev, action));
-    });
-  }, [testcaseId, aiElements.length, isAssertMode, isAiModalOpen]);
 
-  // Intercept actions from browser: if AI assert is active and we receive an assert AI, populate modal element
-  // useEffect(() => {
-  //   return (window as any).browserAPI?.browser?.onAction((action: any) => {
-  //     if (isPaused) return;
-  //     if (!testcaseId) return;
-  //     if ((action?.type === 'assert') && (action?.assertType === 'AI')) {
-  //       // Push into AI modal elements instead of recording as an action
-  //       const newItem = {
-  //         id: Math.random().toString(36),
-  //         name: "",
-  //         type: 'Browser' as const,
-  //         selector: action.selector || [],
-  //         value: action.elementText || action.value || '',
-  //         domHtml: action.DOMelement || '',
-  //       };
-  //       setAiElements(prev => [...prev, newItem]);
-  //       // Do not add to actions list here
-  //       return;
-  //     }
-  //     setActions(prev => receiveAction(testcaseId, prev, action));
-  //   });
-  // }, [testcaseId, isPaused, aiElements.length]);
+      setActions(prev => {
+        const next = receiveActionWithInsert(testcaseId, prev, action, selectedInsertPosition);
+        const added = next.length > prev.length;
+        if (added) {
+          setSelectedInsertPosition(selectedInsertPosition + 1);
+        }
+        return next;
+      });
+    });
+  }, [testcaseId, isPaused, selectedInsertPosition]);
+
+  // Đồng bộ nhãn vị trí chèn với độ dài actions khi không chọn vị trí cụ thể
+  useEffect(() => {
+    if (selectedInsertPosition === 0) {
+      setDisplayInsertPosition(actions.length === 0 ? 0 : actions.length);
+    }
+  }, [actions.length, selectedInsertPosition]);
 
   // Listen for browser close events and reset pause state
   useEffect(() => {
     const handleBrowserClose = () => {
       console.log('[Main] Browser closed, resetting pause state');
       setIsBrowserOpen(false);
-      setIsPaused(false);
+      setIsPaused(true);
+      // Reset vị trí record khi tắt trình duyệt
+      setSelectedInsertPosition(0);
+      setDisplayInsertPosition(0);
     };
 
     // Listen for browser close event from main process
@@ -200,29 +193,52 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     await (window as any).browserAPI?.browser?.setAssertMode(false, '');
   };
 
-  const startBrowser = async (url: string) => {
-    if (actions.length > 0) {
+  const startBrowser = async (url: string, executeUntilIndex?: number | null) => {
+    // Prevent multiple simultaneous starts
+    if (isBrowserOpen) {
+      console.log('[Main] Browser already open, skipping start');
+      return;
+    }
+
+    try {
       setIsBrowserOpen(true);
       setIsPaused(true);
       await (window as any).browserAPI?.browser?.start();
-      await (window as any).browserAPI?.browser?.executeActions(actions);
-    }
-    else {
-      if (!url) {
-        alert('Please enter a URL');
-        return;
+      
+      if (actions.length > 0) {
+        const limit = (typeof executeUntilIndex === 'number' && executeUntilIndex >= 0)
+          ? Math.min(executeUntilIndex, actions.length)
+          : actions.length;
+        const toExecute = actions.slice(0, limit);
+        console.log(`[Main] Executing ${toExecute.length} existing actions (limit=${limit})`);
+        if (toExecute.length > 0) {
+          await (window as any).browserAPI?.browser?.executeActions(toExecute);
+        }
+      } else {
+        if (!url) {
+          alert('Please enter a URL');
+          setIsBrowserOpen(false);
+          setIsPaused(false);
+          return;
+        }
+        
+        if (!url.startsWith('http')) {
+          url = 'https://' + url;
+        }
+        
+        console.log(`[Main] Navigating to: ${url}`);
+        await (window as any).browserAPI?.browser?.navigate(url);
+        // TODO: Tạo action mới cho navigate
+        setActions(prev => receiveAction(testcaseId || '', prev, { type: ActionType.navigate, selector: [], url: url, value: url }));
       }
-      setIsBrowserOpen(true);
-      setIsPaused(true);
-      await (window as any).browserAPI?.browser?.start();
-      if (!url.startsWith('http')) {
-        url = 'https://' + url;
-      }
-      await (window as any).browserAPI?.browser?.navigate(url);
-      // TODO: Tạo action mới cho navigate
-      setActions(prev => receiveAction(testcaseId || '', prev, { type: ActionType.navigate, selector: [], url: url, value: url }));
+      
+      setIsPaused(false);
+    } catch (error) {
+      console.error('[Main] Error starting browser:', error);
+      setIsBrowserOpen(false);
+      setIsPaused(false);
+      throw error;
     }
-    setIsPaused(false);
   };
 
   const pauseBrowser = async () => {
@@ -233,7 +249,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     await (window as any).browserAPI?.browser?.stop();
     setIsBrowserOpen(false);
     setIsPaused(false); // Reset pause state when stopping browser
-    // await (window as any).browserAPI?.browser?.setPauseMode(false);
+    await (window as any).browserAPI?.browser?.setPauseMode(false);
+    // Reset vị trí record khi dừng trình duyệt thủ công
+    setSelectedInsertPosition(0);
   };
 
   const handleAssertSelect = async (assertType: string) => {
@@ -241,6 +259,10 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setIsAssertDropdownOpen(false);
     setAssertSearch('');
     setIsAssertMode(true);
+    // Khi bật assert từ thanh assert, cập nhật vị trí insert và label về cuối danh sách
+    const endPos = actions.length;
+    setSelectedInsertPosition(endPos);
+    setDisplayInsertPosition(endPos);
     if ((assertType as any) === AssertType.ai || assertType === 'AI') {
       setIsAiModalOpen(true);
     }
@@ -317,21 +339,55 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       console.log('[Main] Reloading actions for testcase:', effectiveId);
       const response = await actionService.getActionsByTestCase(effectiveId);
       if (response.success && response.data) {
-        setActions(response.data.actions);
-        console.log('[Main] Reloaded actions count:', response.data.actions?.length || 0);
+        const newActions = response.data.actions || [];
+        setActions(newActions);
+        // Sau reload, luôn đặt vị trí chèn = độ dài actions (rỗng → 0)
+        const len = newActions.length;
+        setSelectedInsertPosition(len);
+        setDisplayInsertPosition(len);
+        console.log('[Main] Reloaded actions count:', len);
       } else {
         setActions([]);
+        setSelectedInsertPosition(0);
+        setDisplayInsertPosition(0);
       }
     } catch {
       setActions([]);
+      setSelectedInsertPosition(0);
+      setDisplayInsertPosition(0);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDeleteAction = (actionId: string) => {
-    // Local-only delete (no server request)
-    setActions(prev => prev.filter(a => a.action_id !== actionId));
+    // Local-only delete (no server request) + update marker indices
+    setActions(prev => {
+      const removedIndex = prev.findIndex(a => a.action_id === actionId);
+      if (removedIndex === -1) return prev;
+      const next = prev.filter(a => a.action_id !== actionId);
+
+      const adjust = (idx: number | null): number | null => {
+        if (idx === null) return null;
+        const newLen = next.length;
+        if (removedIndex < idx) return Math.max(0, Math.min(idx - 1, newLen));
+        // Nếu xóa đúng tại vị trí chèn (removedIndex === idx), giữ nguyên index nhưng clamp theo độ dài mới
+        return Math.max(0, Math.min(idx, newLen));
+      };
+
+      setSelectedInsertPosition(v => next.length === 0 ? 0 : (adjust(v as number | null) ?? 0));
+
+      // Đồng bộ label hiển thị: nếu danh sách rỗng → 0; ngược lại cập nhật theo quy tắc dịch trái khi xóa trước
+      setDisplayInsertPosition(v => {
+        if (next.length === 0) return 0;
+        if (v === null || v === undefined) return next.length; // mặc định về cuối nếu chưa có
+        const newLen = next.length;
+        if (removedIndex < v) return Math.max(0, Math.min(v - 1, newLen));
+        return Math.max(0, Math.min(v, newLen));
+      });
+
+      return next;
+    });
   };
 
   const handleDeleteAllActions = () => {
@@ -349,6 +405,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       const response = await actionService.deleteActionsByTestCase(effectiveId);
       if (response.success) {
         setActions([]);
+        setSelectedInsertPosition(0);
         toast.success('All actions deleted successfully');
       } else {
         toast.error(response.error || 'Failed to delete actions');
@@ -364,8 +421,24 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setActions(reorderedActions);
   };
 
-  const handleSelectInsertPosition = (position: number | null) => {
-    setSelectedInsertPosition(position);
+  const handleSelectInsertPosition = async (position: number | null) => {
+    const prev = selectedInsertPosition;
+    setSelectedInsertPosition(position ?? 0);
+    // Thông báo thay đổi vị trí ghi action
+    try {
+      const fromIndex = (prev === undefined) ? actions.length : prev;
+      const fromText = `#${fromIndex}`;
+      const toText = `#${position ?? 0}`;
+      toast.info(`Recording position changed: ${fromText} to ${toText}`);
+    } catch {}
+    // Nếu người dùng chọn vị trí chèn từ thanh ngang và trình duyệt chưa mở, tự mở recorder
+    if (position !== null && !isBrowserOpen) {
+      try {
+        await startBrowser(url, position);
+      } catch (e) {
+        console.error('[Main] Failed to auto start browser on insert position select:', e);
+      }
+    }
   };
 
   const handleSelectAction = (action: Action) => {
@@ -440,6 +513,10 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
               if (isBrowserOpen) {
                 stopBrowser();
               } else {
+                // Khi bắt đầu record bằng nút trên thanh URL, cập nhật cả vị trí insert và label về cuối danh sách
+                const endPos = actions.length;
+                setSelectedInsertPosition(endPos);
+                setDisplayInsertPosition(endPos);
                 startBrowser(url);
               }
             }}
@@ -539,6 +616,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             onReload={reloadActions}
             onSaveActions={handleSaveActions}
             selectedInsertPosition={selectedInsertPosition}
+            displayInsertPosition={displayInsertPosition}
             onSelectInsertPosition={handleSelectInsertPosition}
             onSelectAction={handleSelectAction}
           />

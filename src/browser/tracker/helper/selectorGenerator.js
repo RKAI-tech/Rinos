@@ -148,6 +148,22 @@ export function generateSelector(element, options = {}) {
     addCandidate(`[${attr}="${escapedValue}"]`, SELECTOR_SCORES.SEMANTIC_ATTR, 'semantic-attr');
   }
 
+  // 4b. Direct name/placeholder attributes (explicit per requirement)
+  try {
+    const nameAttr = element.getAttribute && element.getAttribute('name');
+    if (isMeaningfulValue(nameAttr)) {
+      const escaped = escapeSelector(nameAttr.trim());
+      addCandidate(`[name="${escaped}"]`, SELECTOR_SCORES.SEMANTIC_ATTR - 5, 'name');
+      addCandidate(`${tag}[name="${escaped}"]`, SELECTOR_SCORES.TAG_ATTR, 'tag-name');
+    }
+    const placeholderAttr = element.getAttribute && element.getAttribute('placeholder');
+    if (isMeaningfulValue(placeholderAttr)) {
+      const escaped = escapeSelector(placeholderAttr.trim());
+      addCandidate(`[placeholder="${escaped}"]`, SELECTOR_SCORES.SEMANTIC_ATTR - 5, 'placeholder');
+      addCandidate(`${tag}[placeholder="${escaped}"]`, SELECTOR_SCORES.TAG_ATTR, 'tag-placeholder');
+    }
+  } catch {}
+
   // 5. Text-based selector (Playwright engine supports :has-text("..."))
   try {
     const elementText = getElementText(element);
