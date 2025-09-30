@@ -10,7 +10,7 @@
 
 /* Script Section */
 .test-script-section {
-  flex: 1;
+  flex: 2 1 0;
   display: flex;
   flex-direction: column;
   background: #fff;
@@ -67,34 +67,22 @@
   flex: 1;
   padding: 20px;
   background: #fff;
-  overflow: hidden; /* keep scrollbar inside textarea */
+  overflow: hidden; /* keep scrollbar inside editor */
 }
 
-.test-script-textarea {
+.test-script-editor {
+  position: relative;
   width: 100%;
   height: 100%;
-  border: none;
-  outline: none;
-  resize: none;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 14px;
-  line-height: 1.5;
-  color: #374151;
-  background: transparent;
-  overflow: auto; /* enable scrolling inside */
-  white-space: pre; /* keep code formatting */
-  -webkit-overflow-scrolling: touch;
-}
-
-.test-script-textarea::placeholder {
-  color: #9ca3af;
-  font-style: italic;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 
 /* Terminal Section */
 .test-terminal-section {
-  flex: 1;
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
   background: #fff;

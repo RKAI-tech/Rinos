@@ -126,12 +126,6 @@ export class ActionService {
     // Generate AI assert action
     async generateAiAssert(request: AiAssertRequest): Promise<AiAssertResponse> {
         // Input validation
-        if (!request.testcase_id) {
-            return {
-                success: false,
-                error: 'Valid testcase ID is required'
-            };
-        }
 
         if (!request.prompt || request.prompt.trim() === '') {
             return {
@@ -149,7 +143,7 @@ export class ActionService {
 
         // console.log('[ApiRouter] Sending AI assert request:', JSON.stringify(request, null, 2));
 
-        const response = await apiRouter.request<AiAssertResponse['data']>('/actions/generate_assert', {
+        const response = await apiRouter.request<AiAssertResponse>('/actions/generate_assert', {
             method: 'POST',
             body: JSON.stringify(request),
         });

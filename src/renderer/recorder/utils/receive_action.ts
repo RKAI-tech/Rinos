@@ -84,6 +84,8 @@ export function createDescription(action_received: any): string {
                     return `Verify the element has accessible description`;
                 case AssertType.toHaveAccessibleName:
                     return `Verify the element has accessible name`;
+                case AssertType.ai:
+                    return `${action_received.description}`;
             }
         default:
             return `Unknown action`;
@@ -97,12 +99,13 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         testcase_id: testcaseId,
         action_type: action_received.type,
         description: createDescription(action_received),
-        elements: [{
+        playwright_code: action_received.playwright_code,
+        elements: action_received.selector ? [{
             selector: action_received.selector.map((sel: string) => ({ value: sel } as Selector)),
             query: action_received.query,
             value: action_received.value,
             variable_name: action_received.variable_name,
-        } as Element],
+        } as Element] : [],
         assert_type: action_received.assertType,
         value: action_received.value,
         connection_id: action_received.connection_id,

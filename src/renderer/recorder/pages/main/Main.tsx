@@ -7,7 +7,7 @@ import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab
 import AiAssertModal from '../../components/ai_assert/AiAssertModal';
 import DeleteAllActions from '../../components/delete_all_action/DeleteAllActions';
 import { ActionService } from '../../services/actions';
-import { Action, ActionType, AssertType } from '../../types/actions';
+import { Action, ActionType, AiAssertRequest, AssertType } from '../../types/actions';
 import { actionToCode } from '../../utils/action_to_code';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
@@ -257,9 +257,40 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     // await (window as any).browserAPI?.browser?.setAssertMode(true, AssertType.ai);
   };
 
-  const handleAiSubmit = () => {
+  const handleAiSubmit = async () => {
     console.log('[Main] AI elements:', aiElements);
-    // This will be wired to API submission in a later step
+    
+    const HTMLElements = aiElements
+      .filter(el => el.type === 'Browser')
+      .map(el => ({
+        domHtml: el.domHtml || '',
+      }));
+
+    const databaseElements = aiElements
+      .filter(el => el.type === 'Database')
+      .map(el => ({
+        data: el.queryResultPreview || '',
+      }));
+
+    const request: AiAssertRequest = {
+      elements: HTMLElements,
+      database_results: databaseElements,
+      prompt: aiPrompt,
+    };
+      
+    const response = await actionService.generateAiAssert(request);
+    if (response.success) {
+      console.log('[Main] AI assert response:', response);
+      setActions(prev => {
+        return receiveAction(testcaseId || '', prev, 
+          { 
+            type: ActionType.assert, 
+            assertType: AssertType.ai, 
+            playwright_code: (response as any).data.playwright_code || '', 
+            description: (response as any).data.description || '' 
+          });
+      });
+    }
     setIsAiModalOpen(false);
     setSelectedAssert(null);
     setIsAssertMode(false);
@@ -377,20 +408,18 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       const code = (activeTab === 'script' && customScript.trim()) ? customScript : actionToCode(actions);
       const toastId = toast.loading('Running script...');
       const resp = await service.executeJavascript({ testcase_id: testcaseId || '', code });
+      console.log('[Main] Run script response:', resp);
       if (resp.success) {
-        const data = resp as unknown as { data?: RunCodeResponse };
-        const msg = data?.data?.result || 'Executed successfully';
+        const msg = (resp as any).result || 'Executed successfully';
         console.log('[Main] Run script result:', msg);
         setRunResult(msg);
         toast.update(toastId, { render: 'Run succeeded', type: 'success', isLoading: false, autoClose: 2000 });
       } else {
-
-        setRunResult((resp as unknown as { result?: string }).result || 'Run failed');
+        setRunResult((resp as any).result || 'Run failed');
         toast.update(toastId, { render: resp.error || 'Run failed', type: 'error', isLoading: false, autoClose: 3000 });
       }
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Unknown error';
-
       setRunResult(message || 'Unknown error');
       toast.dismiss();
       toast.error(message);

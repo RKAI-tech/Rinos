@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './TestScriptTab.css';
+import Editor from '@monaco-editor/react';
 
 interface TestScriptTabProps {
   script: string;
@@ -77,12 +78,26 @@ const TestScriptTab: React.FC<TestScriptTabProps> = ({ script, runResult, onScri
           </div>
         </div>
         <div className="test-script-content">
-          <textarea
-            value={localScript}
-            onChange={(e) => { setLocalScript(e.target.value); onScriptChange && onScriptChange(e.target.value); }}
-            placeholder="// Generated test script will appear here..."
-            className="test-script-textarea"
-          />
+          <div className="test-script-editor">
+            <Editor
+              value={localScript}
+              language="javascript"
+              theme="vs"
+              onChange={(value) => {
+                const next = value || '';
+                setLocalScript(next);
+                onScriptChange && onScriptChange(next);
+              }}
+              options={{
+                minimap: { enabled: false },
+                fontSize: 14,
+                lineHeight: 21,
+                wordWrap: 'off',
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+              }}
+            />
+          </div>
         </div>
       </div>
 
