@@ -3,7 +3,7 @@ import './DuplicateTestcase.css';
 import '../../../../../renderer/recorder/components/action/Action.css';
 import '../../../../../renderer/recorder/components/action_tab/ActionTab.css';
 import MAAction from '../../action/Action';
-import { ActionGetResponse, ActionCreateRequest } from '../../../types/actions';
+import { Action } from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
 import MAActionDetailModal from '../../action_detail/ActionDetailModal';
 
@@ -17,20 +17,20 @@ interface DuplicateTestcaseProps {
   isOpen: boolean;
   onClose: () => void;
   // Return desired name/tag and prepared actions (without testcase_id)
-  onSave: (data: { name: string; tag: string; actions: ActionCreateRequest[] }) => void;
-  // Function provided by parent page to create testcase and return new id
-  createTestcaseAndReturnId: (name: string, tag?: string) => Promise<string | undefined>;
+  onSave: (data: { name: string; tag: string; actions: Action[] }) => void;
+  // Function provided by parent page to create testcase with actions
+  createTestcaseWithActions: (name: string, tag?: string, actions?: Action[]) => Promise<boolean>;
   testcase: MinimalTestcase | null;
 }
 
-const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, onSave, createTestcaseAndReturnId, testcase }) => {
+const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, onSave, createTestcaseWithActions, testcase }) => {
   const [testcaseName, setTestcaseName] = useState('');
   const [testcaseTag, setTestcaseTag] = useState('');
   const [errors, setErrors] = useState<{ name?: string; tag?: string }>({});
-  const [actions, setActions] = useState<ActionGetResponse[]>([]);
+  const [actions, setActions] = useState<Action[]>([]);
   const [isLoadingActions, setIsLoadingActions] = useState(false);
   const actionService = useMemo(() => new ActionService(), []);
-  const [selectedAction, setSelectedAction] = useState<ActionGetResponse | null>(null);
+  const [selectedAction, setSelectedAction] = useState<Action | null>(null);
 
   useEffect(() => {
     if (testcase) {
@@ -42,7 +42,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
           setIsLoadingActions(true);
           const resp = await actionService.getActionsByTestCase(testcase.testcase_id, 1000, 0);
           if (resp.success && resp.data) {
-            const mapped = (resp.data.actions || []) as ActionGetResponse[];
+            const mapped = (resp.data.actions || []) as Action[];
             setActions(mapped);
           } else {
             setActions([]);
@@ -68,10 +68,9 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
       return;
     }
 
-    // Prepare actions to be created for the NEW testcase id (to be filled by parent)
-    const preparedActions: ActionCreateRequest[] = (actions || []).map(a => ({
-      action_id: a.action_id,
-      testcase_id: '',
+    // Prepare actions for createTestCaseWithActions
+    const preparedActions: Action[] = (actions || []).map(a => ({
+      testcase_id: '', // Will be filled by backend
       action_type: a.action_type,
       description: a.description,
       playwright_code: a.playwright_code,
@@ -89,22 +88,14 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
       checked: a.checked,
     }));
 
-    // 1) Create new testcase and get new id
-    const newId = await createTestcaseAndReturnId(testcaseName.trim(), testcaseTag.trim() || undefined);
-    if (!newId) return;
+    // Use createTestCaseWithActions to create testcase and actions in one call
+    const result = await createTestcaseWithActions(
+      testcaseName.trim(),
+      testcaseTag.trim() || undefined,
+      preparedActions
+    );
 
-    // 2) Fill new id into actions and create immediately
-    try {
-      if (preparedActions.length > 0) {
-        const svc = new ActionService();
-        const requests = preparedActions.map(a => ({ ...a, testcase_id: newId }));
-        const resp = await svc.batchCreateActions(requests);
-        if (!resp.success) {
-          // Still proceed to close, but log error
-          console.error('[DuplicateTestcase] Failed to create actions for duplicated testcase:', resp.error);
-        }
-      }
-    } finally {
+    if (result) {
       onSave({
         name: testcaseName.trim(),
         tag: testcaseTag.trim(),

@@ -9,6 +9,7 @@ import CreateTestcase from '../../components/testcase/create_testcase/CreateTest
 import EditTestcase from '../../components/testcase/edit_testcase/EditTestcase';
 import DuplicateTestcase from '../../components/testcase/duplicate_testcase/DuplicateTestcase';
 import DeleteTestcase from '../../components/testcase/delete_testcase/DeleteTestcase';
+import RunAndViewTestcase from '../../components/testcase/run_and_view/RunAndViewTestcase';
 import { TestCaseService } from '../../services/testcases';
 import { ProjectService } from '../../services/projects';
 import { toast } from 'react-toastify';
@@ -33,6 +34,7 @@ const Testcases: React.FC = () => {
   console.log('projectData', projectData);
   // Data from API
   const [testcases, setTestcases] = useState<Testcase[]>([]);
+  const [testcasesData, setTestcasesData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +49,9 @@ const Testcases: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  const [isRunAndViewModalOpen, setIsRunAndViewModalOpen] = useState(false);
   const [selectedTestcase, setSelectedTestcase] = useState<Testcase | null>(null);
+  const [selectedTestcaseData, setSelectedTestcaseData] = useState<any>(null);
 
   // Service
   const testCaseService = new TestCaseService();
@@ -60,6 +64,9 @@ const Testcases: React.FC = () => {
       setError(null);
       const response = await testCaseService.getTestCases(projectData.projectId, 1000, 0);
       if (response.success && response.data) {
+        // Store original testcase data
+        setTestcasesData(response.data.testcases);
+        
         const mapped: Testcase[] = response.data.testcases.map(tc => {
           const rawStatus = (tc as unknown as { status?: string })?.status || '';
           const normalized = rawStatus.toUpperCase();
@@ -321,14 +328,28 @@ const Testcases: React.FC = () => {
 
   const handleRunTestcase = async (id: string, event?: React.MouseEvent) => {
     if (event) event.stopPropagation();
-    // TODO: Implement run testcase
+    // Execute testcase directly without opening modal
+    try {
+      const response = await testCaseService.executeTestCase({ testcase_id: id });
+      if (response.success) {
+        toast.success('Testcase executed successfully!');
+        await reloadTestcases(); // Reload to update status
+      } else {
+        toast.error(response.error || 'Failed to execute testcase');
+      }
+    } catch (err) {
+      toast.error('Failed to execute testcase');
+    }
+    setOpenDropdownId(null);
   };
 
   const handleViewResult = (id: string, event?: React.MouseEvent) => {
     if (event) event.stopPropagation();
-    // Tùy thuộc route hiển thị kết quả, điều hướng tạm thời về testsuite/testcase detail hoặc show toast
-    toast.info('Opening latest result for testcase...');
-    // Ví dụ: navigate(`/testcases/${projectId}/results/${id}`);
+    const tc = testcases.find(t => t.id === id) || null;
+    const tcData = testcasesData.find(t => t.testcase_id === id) || null;
+    setSelectedTestcase(tc);
+    setSelectedTestcaseData(tcData);
+    setIsRunAndViewModalOpen(true);
     setOpenDropdownId(null);
   };
 
@@ -347,6 +368,12 @@ const Testcases: React.FC = () => {
     setSelectedTestcase(null);
   };
 
+  const handleCloseRunAndViewModal = () => {
+    setIsRunAndViewModalOpen(false);
+    setSelectedTestcase(null);
+    setSelectedTestcaseData(null);
+  };
+
   // Create a testcase and try to return newly created testcase_id (if API provides it)
   const createTestcaseAndReturnId = async (name: string, tag?: string) => {
     const effectiveProjectId = projectData?.projectId;
@@ -363,6 +390,27 @@ const Testcases: React.FC = () => {
     // Some backends may not return the id; attempt to extract if available
     const newId = (resp.data as any)?.testcase_id;
     return newId as string | undefined;
+  };
+
+  // Create testcase with actions in one call
+  const createTestcaseWithActions = async (name: string, tag?: string, actions?: any[]) => {
+    const effectiveProjectId = projectData?.projectId;
+    if (!effectiveProjectId) {
+      toast.error('Missing project ID');
+      return false;
+    }
+    const payload = { 
+      project_id: effectiveProjectId, 
+      name, 
+      tag: tag || undefined,
+      actions: actions || []
+    } as any;
+    const resp = await testCaseService.createTestCaseWithActions(payload);
+    if (!resp.success) {
+      toast.error(resp.error || 'Failed to create testcase with actions');
+      return false;
+    }
+    return true;
   };
 
   const handleOpenRecorder = async (id: string) => {
@@ -553,7 +601,7 @@ const Testcases: React.FC = () => {
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M12 5c5 0 9 4 9 7s-4 7-9 7-9-4-9-7 4-7 9-7zm0 3a4 4 0 100 8 4 4 0 000-8z" fill="currentColor"/>
                               </svg>
-                              Result
+                              View
                             </button>
                             <button className="dropdown-item" onClick={(e) => handleOpenEdit(testcase.id, e)}>
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -663,8 +711,18 @@ const Testcases: React.FC = () => {
         isOpen={isDuplicateModalOpen}
         onClose={handleCloseDuplicateModal}
         onSave={handleSaveDuplicateTestcase}
-        createTestcaseAndReturnId={createTestcaseAndReturnId}
+        createTestcaseWithActions={createTestcaseWithActions}
         testcase={selectedTestcase ? { testcase_id: selectedTestcase.id, name: selectedTestcase.name, tag: selectedTestcase.tag } : null}
+      />
+
+      {/* Run And View Testcase Modal */}
+      <RunAndViewTestcase
+        isOpen={isRunAndViewModalOpen}
+        onClose={handleCloseRunAndViewModal}
+        testcaseId={selectedTestcase?.id}
+        testcaseName={selectedTestcase?.name}
+        projectId={projectData?.projectId}
+        testcaseData={selectedTestcaseData}
       />
     </div>
   );

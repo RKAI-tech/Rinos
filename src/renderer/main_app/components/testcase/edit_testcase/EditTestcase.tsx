@@ -3,7 +3,7 @@ import './EditTestcase.css';
 import '../../../../../renderer/recorder/components/action/Action.css';
 import '../../../../../renderer/recorder/components/action_tab/ActionTab.css';
 import MAAction from '../../action/Action';
-import { ActionGetResponse, ActionCreateRequest } from '../../../types/actions';
+import { Action} from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
 import MAActionDetailModal from '../../action_detail/ActionDetailModal';
 
@@ -24,10 +24,10 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
   const [testcaseName, setTestcaseName] = useState('');
   const [testcaseTag, setTestcaseTag] = useState('');
   const [errors, setErrors] = useState<{ name?: string; tag?: string }>({});
-  const [actions, setActions] = useState<ActionGetResponse[]>([]);
+  const [actions, setActions] = useState<Action[]>([]);
   const [isLoadingActions, setIsLoadingActions] = useState(false);
   const actionService = useMemo(() => new ActionService(), []);
-  const [selectedAction, setSelectedAction] = useState<ActionGetResponse | null>(null);
+  const [selectedAction, setSelectedAction] = useState<Action | null>(null);
 
   useEffect(() => {
     if (testcase) {
@@ -40,7 +40,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
           setIsLoadingActions(true);
           const resp = await actionService.getActionsByTestCase(testcase.testcase_id, 1000, 0);
           if (resp.success && resp.data) {
-            const mapped = (resp.data.actions || []) as ActionGetResponse[];
+            const mapped = (resp.data.actions || []) as   Action[];
             setActions(mapped);
           } else {
             setActions([]);
@@ -70,7 +70,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
     try {
       // 1) Batch create/update actions first
       if (actions && actions.length > 0) {
-        const requests: ActionCreateRequest[] = actions.map(a => ({
+        const requests: Action[] = actions.map(a => ({
           action_id: a.action_id,
           testcase_id: a.testcase_id,
           action_type: a.action_type,
