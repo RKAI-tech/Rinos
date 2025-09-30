@@ -42,7 +42,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
-  const [aiElements, setAiElements] = useState<{ id: string; name: string; type: 'Browser' | 'Database'; selector?: string; domHtml?: string; value?: string; connectionId?: string; query?: string; queryResultPreview?: string; }[]>([]);
+  const [aiElements, setAiElements] = useState<{ id: string; name: string; type: 'Browser' | 'Database'; selector?: string[]; domHtml?: string; value?: string; connectionId?: string; query?: string; queryResultPreview?: string; queryResultData?: any[]; }[]>([]);
 
   useEffect(() => {
     console.log('[Main] Setting project ID:', projectId);
@@ -205,7 +205,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           id: Math.random().toString(36),
           name: "",
           type: 'Browser' as const,
-          selector: action.selector[0] || '',
+          selector: action.selector || [],
           value: action.elementText || action.value || '',
         };
         setAiElements(prev => [...prev, newItem]);
@@ -220,7 +220,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     // Default new element is Database type
     setAiElements(prev => [
       ...prev,
-      { id: Math.random().toString(36), name: "", type: 'Database' as const, selector: "" }
+      { id: Math.random().toString(36), name: "", type: 'Database' as const, selector: [] }
     ]);
     // Enable assert pick for AI to allow selecting a browser element (optional)
     setSelectedAssert('AI');
@@ -229,6 +229,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   };
 
   const handleAiSubmit = () => {
+
+    console.log('[Main] AI elements:', aiElements);
     // This will be wired to API submission in a later step
     setIsAiModalOpen(false);
     setSelectedAssert(null);
