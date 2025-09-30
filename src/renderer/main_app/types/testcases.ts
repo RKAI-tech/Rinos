@@ -16,6 +16,7 @@ export interface TestCaseCreateRequest {
     project_id: string;
     name: string;
     tag?: string;
+    actions?: Action[];
 }
 
 export interface TestCaseUpdateRequest {
@@ -50,4 +51,8 @@ export interface TestCaseGetResponse {
 
 export interface TestCaseGetAllResponse {
     testcases: TestCaseGetResponse[];
+}
+
+export interface ExecuteTestCaseRequest {
+    testcase_id: string;
 }

@@ -3,16 +3,19 @@
  * Builds a SQL query runner panel, renders results, exposes selection to consumer
  */
 
-export function createQueryPanel() {
+import { getCurrentHoveredElement } from "../../hoverOverlay";
+import { generateAndValidateSelectors } from "../../selectorGenerator";
+
+export function createQueryPanel(assertType, onConfirm) {
   const panel = document.createElement('div');
   panel.style.cssText = `
-    position: absolute; top: 44px; right: 10px; z-index: 10003; background: #fff; border: 1px solid rgba(0,0,0,0.1);
+    position: absolute; top: 44px; right: 10px; z-index: 100003; background: #fff; border: 1px solid rgba(0,0,0,0.1);
     box-shadow: 0 8px 24px rgba(0,0,0,0.15); border-radius: 8px; padding: 10px; min-width: 360px; display: none;
     max-height: 320px; overflow: auto;
   `;
 
   panel.id = 'rikkei-query-panel';
-  
+
   const header = document.createElement('div');
   header.textContent = 'Queries';
   header.style.cssText = 'font-weight:600;font-size:12px;margin-bottom:6px;';
@@ -89,38 +92,6 @@ export function createQueryPanel() {
       });
       thead.appendChild(trHead);
       const tbody = document.createElement('tbody');
-      // Event delegation: only handle clicks on the mini plus button
-      tbody.addEventListener('click', (event) => {
-        const assertBtn = event.target.closest && event.target.closest('button.rk-assert-btn');
-        if (!assertBtn) return; // ignore normal cell clicks
-        event.preventDefault();
-        event.stopPropagation();
-        try {
-          const td = assertBtn.closest('td');
-          if (!td) return;
-          const colName = td.getAttribute('data-col');
-          const valueEl = td.querySelector('.rk-cell-text');
-          const cellValue = valueEl ? (valueEl.textContent || '') : (td.textContent || '');
-          if (typeof window.sendActionToMain === 'function' && colName) {
-            const conn = connectionsCache.find((c) => String(c.connection_id) === String(lastRun.connectionId));
-            const payload = {
-              type: 'assert',
-              assertType: 'toHaveText',
-              value: cellValue,
-              query: lastRun.sql,
-              column_name: colName,
-              connection_id: lastRun.connectionId || undefined,
-              connection: conn || undefined,
-              timestamp: Date.now(),
-              url: window.location.href,
-              title: document.title,
-            };
-            window.sendActionToMain(payload);
-          }
-        } catch (e) {
-          console.error('Error sending action to main', e);
-        }
-      });
       data.forEach((row) => {
         const tr = document.createElement('tr');
         columns.forEach((col) => {
@@ -149,6 +120,8 @@ export function createQueryPanel() {
           wrap.appendChild(plusBtn);
           td.appendChild(wrap);
           tr.appendChild(td);
+
+          plusBtn.addEventListener('click', (e) => { e.stopPropagation(); addSelectedCell(row, col); })
         });
         tbody.appendChild(tr);
       });
@@ -236,6 +209,27 @@ export function createQueryPanel() {
       }
     } else {
       resultBox.textContent = 'Query execution is not available in this context.';
+    }
+  }
+
+  function addSelectedCell(row, col) {
+    console.log('addSelectedCell', row, col);
+    if (typeof window.sendActionToMain === 'function') {
+      // const payload = {
+      //   type: 'assert',
+      //   assertType: assertType,
+      //   value: col,
+      //   query: lastRun.sql,
+      //   selector: selectors,
+      //   connection_id: lastRun.connectionId || undefined,
+      //   connection: lastRun.connection || undefined, timestamp: Date.now(),
+      //   url: window.location.href,
+      //   title: document.title
+      // }
+      // console.log('payload', payload);
+      // window.sendActionToMain(payload);
+      console.log('onConfirm', onConfirm);
+      if (onConfirm) onConfirm(col, lastRun.connectionId || undefined, lastRun.connection || undefined, lastRun.sql);
     }
   }
 

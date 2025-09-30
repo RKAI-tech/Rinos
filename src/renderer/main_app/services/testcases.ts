@@ -6,7 +6,8 @@ import {
     TestCaseCreateRequest,
     TestCaseUpdateRequest,
     TestCaseDeleteRequest,
-    TestCase
+    TestCase,
+    ExecuteTestCaseRequest
 } from '../types/testcases';
 import { DefaultResponse } from '../types/api_responses';
 
@@ -59,6 +60,30 @@ export class TestCaseService {
         });
     }
 
+    async createTestCaseWithActions(testCase: TestCaseCreateRequest): Promise<ApiResponse<DefaultResponse>> {
+        // Input validation
+        if (!testCase.name || testCase.name.trim().length === 0) {
+            return {
+                success: false,
+                error: 'Test case name is required'
+            };
+        }
+        if (!testCase.project_id) {
+            return {
+                success: false,
+                error: 'Valid project ID is required'
+            };
+        }
+        if (!testCase.actions || testCase.actions.length === 0) {
+            console.log('No actions provided');
+        }
+
+        return await apiRouter.request<DefaultResponse>('/testcases/create_with_actions', {
+            method: 'POST',
+            body: JSON.stringify(testCase),
+        });
+    }
+
     async updateTestCase(testCase: TestCaseUpdateRequest): Promise<ApiResponse<TestCase>> {
         // Input validation
         if (!testCase.testcase_id) {
@@ -103,5 +128,12 @@ export class TestCaseService {
                 error: 'Failed to delete test case'
             };
         }
+    }
+
+    async executeTestCase(payload: ExecuteTestCaseRequest): Promise<ApiResponse<DefaultResponse>> {
+        return await apiRouter.request<DefaultResponse>('/testcases/execute', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
     }
 }

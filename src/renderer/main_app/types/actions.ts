@@ -45,7 +45,7 @@ export enum ActionType {
     toHaveValues = "toHaveValues",
     pageHasATitle = "pageHasATitle",
     pageHasAURL = "pageHasAURL",
-    
+    ai = "AI"
   }
   
   export enum ConnectionType {

@@ -1,4 +1,4 @@
-import { Action } from "../types/actions";
+import { Action, ConnectionType } from "../types/actions";
 import { ActionType, AssertType } from "../types/actions";
 function escapeSelector(selector: string): string {
     let escaped = selector;
@@ -19,8 +19,42 @@ function escapeSelector(selector: string): string {
         return `'${escaped}'`;
     }
 }
+
+function generateConnectDBCode(action: Action): string {
+    const connection = action.connection;
+    const dbVar = connection?.db_type?.toLowerCase();
+    const dbType = connection?.db_type;
+
+    const dbConfig = `{
+        host: '${connection?.host}',
+        port: '${connection?.port}',
+        database: '${connection?.db_name}',
+        user: '${connection?.username}',
+        password: '${connection?.password}',
+    }`;
+
+    switch (dbType) {
+        case ConnectionType.postgres:
+            return `    const ${dbVar} = new PgClient(${dbConfig});\n`
+            + `    await ${dbVar}.connect();\n`;
+        case ConnectionType.mysql:
+            return `    const ${dbVar} = await mysql.createConnection(${dbConfig});\n`
+            + `    ${dbVar}.query = async (q) => { const [rows] = await ${dbVar}.execute(q); return { rows }; };\n`
+            + `    ${dbVar}.end = async () => { await ${dbVar}.close(); };\n`;
+        case ConnectionType.mssql:
+            return `    const ${dbVar} = await sql.connect(${dbConfig});\n`
+            + `    ${dbVar}.query = async (q) => { const result = await ${dbVar}.request().query(q); return { rows: result.recordset }; };\n`
+            + `    ${dbVar}.end = async () => { await ${dbVar}.close(); };\n`;
+        default:
+            console.error(`Unsupported database type: ${dbType}`);
+            return "";
+    }
+}
+
 function generateAssertCode(action: Action, index: number): string {
     console.log(`Generating assert code for action ${index}: ${action.action_type}`);
+    console.log('[generateAssertCode]', action.assert_type);
+    console.log('[generateAssertCode]', action.connection);
     const elements = action.elements || [];
     const selectors: string[][] = [];
     for (const element of elements) {
@@ -37,118 +71,146 @@ function generateAssertCode(action: Action, index: number): string {
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toBeChecked();\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toBeUnchecked:
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).not.toBeChecked();\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toBeDisabled:
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toBeDisabled();\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toBeEditable:
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toBeEditable();\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toBeReadOnly:
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toBeReadOnly();\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toBeEmpty:
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toBeEmpty();\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toBeEnabled:
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toBeEnabled();\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toBeFocused:
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toBeFocused();\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toBeHidden:
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toBeHidden();\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toBeVisible:
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toBeVisible();\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toContainText:
+            console.log('[generateAssertCode]', action);
+            if (action.connection) {
+                const dbVar = action.connection?.db_type?.toLowerCase();
+                return `${generateConnectDBCode(action)}\n` +
+                    `    const result = await ${dbVar}.query('${action.statement?.query || ''}');\n` +
+                    `    const resultText = result.rows[0]?.${action.value || ''};\n` +
+                    `    candidates = ${candidatesLiteral};\n` +
+                    `    sel = await resolveUniqueSelector(page, candidates, resultText);\n` +
+                    `    await expect(page.locator(sel)).toContainText(resultText);\n` +
+                    `    await ${dbVar}.end();\n` +
+                    `    await page.waitForLoadState('networkidle');\n`;
+            }
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toContainText('${action.value || ''}');\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toHaveAccessibleDescription:
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toHaveAccessibleDescription('${action.value || ''}');\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toHaveAccessibleName:
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toHaveAccessibleName('${action.value || ''}');\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toHaveCount:
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toHaveCount('${action.value || ''}');\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toHaveRole:
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toHaveRole('${action.value || ''}');\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toHaveText:
+            console.log('[generateAssertCode]', action);
+            if (action.connection) {
+                const dbVar = action.connection?.db_type?.toLowerCase();
+                return `${generateConnectDBCode(action)}\n` +
+                    `    const result = await ${dbVar}.query('${action.statement?.query || ''}');\n` +
+                    `    const resultText = result.rows[0]?.${action.value || ''};\n` +
+                    `    candidates = ${candidatesLiteral};\n` +
+                    `    sel = await resolveUniqueSelector(page, candidates, resultText);\n` +
+                    `    await expect(page.locator(sel)).toHaveText(resultText);\n` +
+                    `    await ${dbVar}.end();\n` +
+                    `    await page.waitForLoadState('networkidle');\n`;
+            }
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toHaveText('${action.value || ''}');\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toHaveValue:
+            console.log('[generateAssertCode]', action);
+            if (action.connection) {
+                const dbVar = action.connection?.db_type?.toLowerCase();
+                return `${generateConnectDBCode(action)}\n` +
+                    `    const result = await ${dbVar}.query('${action.statement?.query || ''}');\n` +
+                    `    const resultText = result.rows[0]?.${action.value || ''};\n` +
+                    `    candidates = ${candidatesLiteral};\n` +
+                    `    sel = await resolveUniqueSelector(page, candidates, resultText);\n` +
+                    `    await expect(page.locator(sel)).toHaveValue(resultText);\n` +
+                    `    await ${dbVar}.end();\n` +
+                    `    await page.waitForLoadState('networkidle');\n`;
+            }
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toHaveValue('${action.value || ''}');\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toHaveValues:
+            console.log('[generateAssertCode]', action);
+            if (action.connection) {
+                const dbVar = action.connection?.db_type?.toLowerCase();
+                return `${generateConnectDBCode(action)}\n` +
+                    `    const result = await ${dbVar}.query('${action.statement?.query || ''}');\n` +
+                    `    const resultText = result.rows[0]?.${action.value || ''};\n` +
+                    `    candidates = ${candidatesLiteral};\n` +
+                    `    sel = await resolveUniqueSelector(page, candidates, resultText);\n` +
+                    `    await expect(page.locator(sel)).toHaveValues(resultText);\n` +
+                    `    await ${dbVar}.end();\n` +
+                    `    await page.waitForLoadState('networkidle');\n`;
+            }
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates, '${action.value || ''}');\n` +
                 `    await expect(page.locator(sel)).toHaveValues('${action.value || ''}');\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.pageHasATitle:
             return `    await expect(page).pageHasATitle('${action.value || ''}');\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.pageHasAURL:
             return `    await expect(page).pageHasAURL('${action.value || ''}');\n` +
-                `    await page.waitForLoadState('networkidle');\n` +
-                `    console.log('${index}. ${action.description}');\n`;
+                `    await page.waitForLoadState('networkidle');\n`;
         default:
             return "";
     }
@@ -265,11 +327,33 @@ export function getResolveUniqueSelectorFunctionString(): string {
   throw new Error('resolveUniqueSelector: no matching selector found in  '+selectors);
 }`;
 }
+
+export function getImportDB(actions: Action[]): string {
+    const importDB = new Set(
+        actions
+        .filter(action => action.action_type === ActionType.assert)
+        .map(action => action.connection?.db_type?.toLowerCase())
+        .filter(Boolean)
+    );
+
+    let importDBCode = "";
+    if (importDB.has('postgres')) {
+        importDBCode += `import { Client as PgClient } from 'pg';\n`;
+    }
+    if (importDB.has('mysql')) {
+        importDBCode += `import { mysql } from 'mysql2/promise';\n`;
+    }
+    if (importDB.has('mssql')) {
+        importDBCode += `import { sql } from 'mssql';\n`;
+    }
+    return importDBCode;
+}
+
 export function actionToCode(actions: Action[]): string {
     let code = "";
     // Playwright Test format (using built-in test runner fixtures)
     code += `import { test, expect } from '@playwright/test';\n`;
-
+    code += getImportDB(actions);
     // Helper to resolve a unique selector at runtime
     code += getResolveUniqueSelectorFunctionString();
     code += `\n`;

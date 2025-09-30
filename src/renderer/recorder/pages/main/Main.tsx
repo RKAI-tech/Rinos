@@ -4,6 +4,7 @@ import ActionTab from '../../components/action_tab/ActionTab';
 import ActionDetailModal from '../../components/action_detail/ActionDetailModal';
 import TestScriptTab from '../../components/code_convert/TestScriptTab';
 import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab';
+import AiAssertModal from '../../components/ai_assert/AiAssertModal';
 import DeleteAllActions from '../../components/delete_all_action/DeleteAllActions';
 import { ActionService } from '../../services/actions';
 import { Action, ActionType, AssertType } from '../../types/actions';
@@ -39,6 +40,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [runResult, setRunResult] = useState<string>('');
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiElements, setAiElements] = useState<{ id: string; name: string; type: 'Browser' | 'Database'; selector?: string[]; domHtml?: string; value?: string; connectionId?: string; query?: string; queryResultPreview?: string; }[]>([]);
 
   useEffect(() => {
     console.log('[Main] Setting project ID:', projectId);
@@ -80,7 +84,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
 
   useEffect(() => {
     return (window as any).browserAPI?.browser?.onAction((action: any) => {
-      console.log('Action received:', action);
       if (isPaused) {
         return;
       }
@@ -166,7 +169,52 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setIsAssertDropdownOpen(false);
     setAssertSearch('');
     setIsAssertMode(true);
+    if ((assertType as any) === AssertType.ai || assertType === 'AI') {
+      setIsAiModalOpen(true);
+    }
     await (window as any).browserAPI?.browser?.setAssertMode(true, assertType as AssertType);
+  };
+
+  // Intercept actions from browser: if AI assert is active and we receive an assert AI, populate modal element
+  useEffect(() => {
+    return (window as any).browserAPI?.browser?.onAction((action: any) => {
+      if (isPaused) return;
+      if (!testcaseId) return;
+      if ((action?.type === 'assert') && (action?.assertType === 'AI')) {
+        // Push into AI modal elements instead of recording as an action
+        const newItem = {
+          id: Math.random().toString(36),
+          name: `el_${(aiElements.length + 1).toString().padStart(2, '0')}`,
+          type: 'Browser' as const,
+          selector: (action.selector || []).slice(),
+          value: action.elementText || action.value || '',
+        };
+        setAiElements(prev => [...prev, newItem]);
+        // Do not add to actions list here
+        return;
+      }
+      setActions(prev => receiveAction(testcaseId, prev, action));
+    });
+  }, [testcaseId, isPaused, aiElements.length]);
+
+  const handleAiAddElement = async () => {
+    // Default new element is Browser type
+    setAiElements(prev => [
+      ...prev,
+      { id: Math.random().toString(36), name: `el_${(prev.length + 1).toString().padStart(2, '0')}`, type: 'Browser' as const, selector: [] }
+    ]);
+    // Enable assert pick for AI to allow selecting a browser element (optional)
+    setSelectedAssert('AI');
+    setIsAssertMode(true);
+    await (window as any).browserAPI?.browser?.setAssertMode(true, AssertType.ai);
+  };
+
+  const handleAiSubmit = () => {
+    // This will be wired to API submission in a later step
+    setIsAiModalOpen(false);
+    setSelectedAssert(null);
+    setIsAssertMode(false);
+    (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
   };
 
   const handleTabSwitch = () => {
@@ -442,6 +490,19 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         action={selectedAction}
         onClose={() => setIsDetailOpen(false)}
         onSave={handleSaveAction}
+      />
+
+      <AiAssertModal
+        isOpen={isAiModalOpen}
+        testcaseId={testcaseId}
+        prompt={aiPrompt}
+        elements={aiElements}
+        onChangePrompt={setAiPrompt}
+        onChangeElement={(idx, updater) => setAiElements(prev => prev.map((el, i) => i === idx ? updater(el) : el))}
+        onRemoveElement={(idx) => setAiElements(prev => prev.filter((_, i) => i !== idx))}
+        onClose={() => { setIsAiModalOpen(false); }}
+        onSubmit={handleAiSubmit}
+        onAddElement={handleAiAddElement}
       />
     </div>
   );

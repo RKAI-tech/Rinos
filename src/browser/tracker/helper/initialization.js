@@ -124,10 +124,12 @@ function processAssertClick(e) {
         assertType, 
         defaultValue, 
         rect, 
-        (finalValue) => {
-          // console.log('Assert modal confirmed for selector:', selector, 'type:', assertType, 'value:', finalValue);
-          // Send assert action
-          sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText);
+        (finalValue, connection, connection_id, query) => {
+          console.log('finalValue', finalValue);
+          console.log('connection', connection);
+          console.log('connection_id', connection_id);
+          console.log('query', query);
+          sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query);
         }, 
         () => {
           // console.log('Assert modal canceled');
@@ -136,7 +138,7 @@ function processAssertClick(e) {
     } else {
       // Send immediate assert action for other types
       // console.log('Sending immediate assert action for type:', assertType);
-      sendAssertAction(selector, assertType, '', elementType, elementPreview, elementText);
+      sendAssertAction(selector, assertType, '', elementType, elementPreview, elementText, undefined, undefined, undefined);
     }
   } catch (error) {
     console.error('Error processing assert click:', error);
@@ -147,7 +149,7 @@ function processAssertClick(e) {
  * Send assert action to main process
  * Gửi action assert đến main process
  */
-function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, db_name) {
+function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection_id, connection, query) {
   if (window.sendActionToMain) {
     const action = {
       type: 'assert',
@@ -157,11 +159,14 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
       element: elementType,
       elementPreview: elementPreview,
       elementText: elementText,
+      connection: connection,
+      connection_id: connection_id,
+      query: query,
       timestamp: Date.now(),
       url: window.location.href,
-      title: document.title,
-      db_name: db_name
+      title: document.title
     };
+    console.log('action', action);
     window.sendActionToMain(action);
     // console.log('Assert action sent:', action);
   }

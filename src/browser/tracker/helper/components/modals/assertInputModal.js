@@ -52,7 +52,7 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
   const input = document.createElement('input');
   input.type = 'text';
   input.value = defaultValue || '';
-  input.placeholder = assertType === 'VALUE' ? 'Enter expected value…' : 'Enter expected text…';
+  input.placeholder = assertType === 'toHaveValue' ? 'Enter expected value…' : 'Enter expected text…';
   input.style.cssText = `
     flex: 1;
     border: 1px solid #e5e7eb;
@@ -110,7 +110,7 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
     variablesPanel.close();
   });
 
-  const queryPanel = createQueryPanel();
+  const queryPanel = createQueryPanel(assertType, onConfirm);
 
   // Helper to render table from array of objects
   function renderResultAsTable(data) {
@@ -226,7 +226,7 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
     if (ev.key === 'Enter') {
       ev.preventDefault();
       const val = (input.value || '').trim();
-      if (onConfirm) onConfirm(val);
+      if (onConfirm) onConfirm(val, undefined, undefined, undefined);
       closeAssertInputModal();
     } else if (ev.key === 'Escape') {
       ev.preventDefault();

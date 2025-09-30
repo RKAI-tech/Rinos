@@ -1,7 +1,6 @@
 import { Action, Element, Selector, ActionType, AssertType } from "../types/actions";
 
 export function createDescription(action_received: any): string {
-    console.log('action_received', action_received);
     const type = action_received.type;
     let value = action_received.value;
     // Truncate value if it's too long
@@ -76,6 +75,7 @@ export function createDescription(action_received: any): string {
 }
 
 export function receiveAction(testcaseId: string, action_recorded: Action[], action_received: any): Action[] {
+    console.log('[rawAction]', action_received);
     const receivedAction = {
         action_id: Math.random().toString(36),
         testcase_id: testcaseId,
@@ -90,10 +90,22 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         assert_type: action_received.assertType,
         value: action_received.value,
         connection_id: action_received.connection_id,
-        connection: action_received.connection,
+        connection: action_received.connection ? {
+            connection_id: action_received.connection_id,
+            username: action_received.connection.username,
+            password: action_received.connection.password,
+            host: action_received.connection.host,
+            port: action_received.connection.port,
+            db_name: action_received.connection.db_name,
+            db_type: action_received.connection.db_type,
+        } : undefined,
         statement_id: action_received.statement_id,
-        statement: action_received.statement,
+        statement: action_received.query ? {
+            query: action_received.query,
+        } : undefined,
     } as Action;
+
+    console.log('[receiveAction]', receivedAction);
 
     const last_action = action_recorded[action_recorded.length - 1];
 
