@@ -131,7 +131,7 @@ export class TestCaseService {
     }
 
     async executeTestCase(payload: ExecuteTestCaseRequest): Promise<ApiResponse<DefaultResponse>> {
-        return await apiRouter.request<DefaultResponse>('/testcases/execute', {
+        return await apiRouter.request<DefaultResponse>(`/runcode/execute_test_case/${payload.testcase_id}`, {
             method: 'POST',
             body: JSON.stringify(payload),
         });
