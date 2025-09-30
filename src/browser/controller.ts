@@ -30,7 +30,13 @@ export class Controller {
         if(!Array.isArray(actions) || actions.length === 0) {
             throw new Error('Actions array is required and cannot be empty');
         }
-        for (const action of actions) {
+        
+        console.log(`[Controller] Executing ${actions.length} actions`);
+        
+        for (let i = 0; i < actions.length; i++) {
+            const action = actions[i];
+            console.log(`[Controller] Executing action ${i + 1}/${actions.length}: ${action.action_type}`);
+            
             try {
                 switch (action.action_type) {
                     case ActionType.navigate:
@@ -43,8 +49,9 @@ export class Controller {
                         if (action.elements && action.elements.length === 1) {
                             await this.executeAction(action.elements[0].selector?.map(selector => selector.value) || null, async (selector) => {
                                 try {
-                                    page.click(selector, { timeout: 5000 });
+                                    await page.click(selector, { timeout: 5000 });
                                 } catch (error) {
+                                    console.log(`[Controller] Click failed, trying JS fallback for selector: ${selector}`);
                                     const jsCode = `document.querySelector('${selector}').click()`;
                                     await page.evaluate(jsCode);
                                 }
@@ -54,14 +61,14 @@ export class Controller {
                     case ActionType.input:
                         if (action.elements && action.elements.length === 1) {
                             await this.executeAction(action.elements[0].selector?.map(selector => selector.value) || null, async (selector) => {
-                                await page.fill(selector, action.value);
+                                await page.fill(selector, action.value || '');
                             });
                         }
                         break;
                     case ActionType.select:
                         if (action.elements && action.elements.length === 1) {
                             await this.executeAction(action.elements[0].selector?.map(selector => selector.value) || null, async (selector) => {
-                                await page.selectOption(selector, action.value);
+                                await page.selectOption(selector, action.value || '');
                             });
                         }
                         break;
@@ -79,17 +86,27 @@ export class Controller {
                     case ActionType.keydown:
                         if (action.elements && action.elements.length === 1) {
                             await this.executeAction(action.elements[0].selector?.map(selector => selector.value) || null, async (selector) => {
-                                await page.locator(selector).press(action.value);
+                                await page.locator(selector).press(action.value || '');
                             });
                         }
                         break;
                     default:
+                        console.log(`[Controller] Skipping unsupported action type: ${action.action_type}`);
                         continue;
                 }
+                
+                // Add small delay between actions to prevent race conditions
+                if (i < actions.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
             } catch (error) {
-                console.error(`Error executing action ${action.action_type}:`, error);
-                throw error;
+                console.error(`[Controller] Error executing action ${i + 1} (${action.action_type}):`, error);
+                // Don't throw error, continue with next action
+                // throw error;
             }
         }
+        
+        console.log(`[Controller] Finished executing ${actions.length} actions`);
     }
 }

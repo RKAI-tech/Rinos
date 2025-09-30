@@ -2,8 +2,12 @@ import { ipcMain, BrowserWindow } from "electron";
 import { BrowserManager } from "../../browser/BrowserManager";
 import { Action, AssertType } from "../../browser/types";
 import { Page } from "playwright";
+import { setBrowserManager } from "./screen_handle";
 
 const browserManager = new BrowserManager();
+
+// Set browser manager reference for screen_handle
+setBrowserManager(browserManager);
 
 browserManager.on('action', (action: Action) => {
     console.log('[BROWSER] Action received:', action);
@@ -28,11 +32,23 @@ export function registerBrowserIpc() {
         await browserManager.start();
     });
     ipcMain.handle("browser:stop", async () => {
+        (browserManager as any).isExecuting = false; // Reset execution flag
         await browserManager.stop();
     });
     ipcMain.handle("browser:executeActions", async (_, actions: Action[]) => {
+        if ((browserManager as any).isExecuting) {
+            console.log('[BROWSER] Already executing actions, skipping duplicate request');
+            return;
+        }
+        
         console.log('[BROWSER] Executing actions:', actions);
-        await browserManager.controller?.executeMultipleActions(browserManager.page as Page, actions);
+        (browserManager as any).isExecuting = true;
+        
+        try {
+            await browserManager.controller?.executeMultipleActions(browserManager.page as Page, actions);
+        } finally {
+            (browserManager as any).isExecuting = false;
+        }
     });
     ipcMain.handle("browser:navigate", async (_, url: string) => {
         await browserManager.controller?.navigate(browserManager.page as Page, url);

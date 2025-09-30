@@ -33,9 +33,13 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [customScript, setCustomScript] = useState<string>('');
   const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
   const [selectedInsertPosition, setSelectedInsertPosition] = useState<number | null>(null);
+  const [recordingAtPosition, setRecordingAtPosition] = useState<number | null>(null);
+  // Lưu vị trí bắt đầu record (start) và vị trí tiến trình chèn (tăng dần)
+  const [startRecordIndex, setStartRecordIndex] = useState<number | null>(null);
+  const [progressRecordIndex, setProgressRecordIndex] = useState<number | null>(null);
   const actionService = useMemo(() => new ActionService(), []);
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
-  const [isPaused, setIsPaused] = useState(false);
+  const [isPaused, setIsPaused] = useState(true);
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
   const [runResult, setRunResult] = useState<string>('');
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
@@ -91,16 +95,29 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         console.warn('[Main] Testcase ID is not set');
         return;
       }
-      setActions(prev => receiveAction(testcaseId, prev, action));
+      setActions(prev => {
+        if (selectedInsertPosition === null) {
+          return receiveAction(testcaseId, prev, action);
+        }
+        const insertIndex = Math.max(0, Math.min(selectedInsertPosition, prev.length));
+        const head = prev.slice(0, insertIndex);
+        const tail = prev.slice(insertIndex);
+        const updatedHead = receiveAction(testcaseId, head, action);
+        const result = [...updatedHead, ...tail];
+        if (updatedHead.length > head.length) {
+          setProgressRecordIndex(v => (v === null ? null : v + 1));
+        }
+        return result;
+      });
     });
-  }, [testcaseId, isPaused]);
+  }, [testcaseId, isPaused, selectedInsertPosition]);
 
   // Listen for browser close events and reset pause state
   useEffect(() => {
     const handleBrowserClose = () => {
       console.log('[Main] Browser closed, resetting pause state');
       setIsBrowserOpen(false);
-      setIsPaused(false);
+      setIsPaused(true);
     };
 
     // Listen for browser close event from main process
@@ -147,29 +164,52 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     await (window as any).browserAPI?.browser?.setAssertMode(false, '');
   };
 
-  const startBrowser = async (url: string) => {
-    if (actions.length > 0) {
+  const startBrowser = async (url: string, executeUntilIndex?: number | null) => {
+    // Prevent multiple simultaneous starts
+    if (isBrowserOpen) {
+      console.log('[Main] Browser already open, skipping start');
+      return;
+    }
+
+    try {
       setIsBrowserOpen(true);
       setIsPaused(true);
       await (window as any).browserAPI?.browser?.start();
-      await (window as any).browserAPI?.browser?.executeActions(actions);
-    }
-    else {
-      if (!url) {
-        alert('Please enter a URL');
-        return;
+      
+      if (actions.length > 0) {
+        const limit = (typeof executeUntilIndex === 'number' && executeUntilIndex >= 0)
+          ? Math.min(executeUntilIndex, actions.length)
+          : actions.length;
+        const toExecute = actions.slice(0, limit);
+        console.log(`[Main] Executing ${toExecute.length} existing actions (limit=${limit})`);
+        if (toExecute.length > 0) {
+          await (window as any).browserAPI?.browser?.executeActions(toExecute);
+        }
+      } else {
+        if (!url) {
+          alert('Please enter a URL');
+          setIsBrowserOpen(false);
+          setIsPaused(false);
+          return;
+        }
+        
+        if (!url.startsWith('http')) {
+          url = 'https://' + url;
+        }
+        
+        console.log(`[Main] Navigating to: ${url}`);
+        await (window as any).browserAPI?.browser?.navigate(url);
+        // TODO: Tạo action mới cho navigate
+        setActions(prev => receiveAction(testcaseId || '', prev, { type: ActionType.navigate, selector: [], url: url, value: url }));
       }
-      setIsBrowserOpen(true);
-      setIsPaused(true);
-      await (window as any).browserAPI?.browser?.start();
-      if (!url.startsWith('http')) {
-        url = 'https://' + url;
-      }
-      await (window as any).browserAPI?.browser?.navigate(url);
-      // TODO: Tạo action mới cho navigate
-      setActions(prev => receiveAction(testcaseId || '', prev, { type: ActionType.navigate, selector: [], url: url, value: url }));
+      
+      setIsPaused(false);
+    } catch (error) {
+      console.error('[Main] Error starting browser:', error);
+      setIsBrowserOpen(false);
+      setIsPaused(false);
+      throw error;
     }
-    setIsPaused(false);
   };
 
   const pauseBrowser = async () => {
@@ -197,6 +237,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   // Intercept actions from browser: if AI assert is active and we receive an assert AI, populate modal element
   useEffect(() => {
     return (window as any).browserAPI?.browser?.onAction((action: any) => {
+      console.log('[Main] Received action:', action);
       if (isPaused) return;
       if (!testcaseId) return;
       if ((action?.type === 'assert') && (action?.assertType === 'AI')) {
@@ -269,8 +310,25 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   };
 
   const handleDeleteAction = (actionId: string) => {
-    // Local-only delete (no server request)
-    setActions(prev => prev.filter(a => a.action_id !== actionId));
+    // Local-only delete (no server request) + update marker indices
+    setActions(prev => {
+      const removedIndex = prev.findIndex(a => a.action_id === actionId);
+      if (removedIndex === -1) return prev;
+      const next = prev.filter(a => a.action_id !== actionId);
+
+      const adjust = (idx: number | null): number | null => {
+        if (idx === null) return null;
+        if (removedIndex < idx) return Math.max(0, idx - 1);
+        if (removedIndex === idx) return Math.max(0, idx - 1);
+        return idx;
+      };
+
+      setStartRecordIndex(v => next.length === 0 ? null : adjust(v));
+      setProgressRecordIndex(v => next.length === 0 ? null : adjust(v));
+      setSelectedInsertPosition(v => next.length === 0 ? null : adjust(v as number | null));
+
+      return next;
+    });
   };
 
   const handleDeleteAllActions = () => {
@@ -288,6 +346,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       const response = await actionService.deleteActionsByTestCase(effectiveId);
       if (response.success) {
         setActions([]);
+        setSelectedInsertPosition(null);
+        setStartRecordIndex(null);
+        setProgressRecordIndex(null);
         toast.success('All actions deleted successfully');
       } else {
         toast.error(response.error || 'Failed to delete actions');
@@ -303,8 +364,19 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setActions(reorderedActions);
   };
 
-  const handleSelectInsertPosition = (position: number | null) => {
+  const handleSelectInsertPosition = async (position: number | null) => {
     setSelectedInsertPosition(position);
+    // Đánh dấu vị trí bắt đầu record và tiến trình khi chọn record tại vị trí cụ thể
+    setStartRecordIndex(position);
+    setProgressRecordIndex(position);
+    // Nếu người dùng chọn vị trí chèn từ thanh ngang và trình duyệt chưa mở, tự mở recorder
+    if (position !== null && !isBrowserOpen) {
+      try {
+        await startBrowser(url, position);
+      } catch (e) {
+        console.error('[Main] Failed to auto start browser on insert position select:', e);
+      }
+    }
   };
 
   const handleSelectAction = (action: Action) => {

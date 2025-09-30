@@ -32,6 +32,7 @@ export class BrowserManager extends EventEmitter {
     private isAssertMode: boolean = false;
     private assertType: AssertType | null = null;
     private projectId: string | null = null;
+    private isExecuting: boolean = false;
 
     constructor() {
         super();
