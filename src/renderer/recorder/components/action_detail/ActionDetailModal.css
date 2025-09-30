@@ -110,7 +110,8 @@
 .rcd-action-detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px 24px;
+  /* Reduce vertical gap so inputs are closer to the next label */
+  gap: 8px 24px;
 }
 
 /* Action Detail Key-Value Pairs */
@@ -119,6 +120,11 @@
   flex-direction: column;
   gap: 6px;
   margin-bottom: 20px;
+}
+
+/* In the General section (which uses the grid), tighten spacing below inputs */
+.rcd-action-detail-grid .rcd-action-detail-kv {
+  margin-bottom: 8px;
 }
 
 .rcd-action-detail-kv-label {
@@ -200,6 +206,71 @@
 .rcd-action-detail-list-item:hover {
   border-color: #d1d5db;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Selectors inside each Element */
+.rcd-action-detail-kv-label-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rcd-action-detail-selectors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rcd-action-detail-selector-item {
+  position: relative;
+}
+
+/* Ensure input has room for the inline remove button */
+.rcd-action-detail-selector-item .rcd-action-detail-input {
+  padding-right: 40px;
+}
+
+.rcd-action-detail-remove-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+}
+
+.rcd-action-detail-remove-btn:hover {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.rcd-action-detail-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #374151;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rcd-action-detail-add-btn:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
 }
 
 /* Action Detail Code Block */
@@ -315,7 +386,8 @@
   
   .rcd-action-detail-grid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    /* Keep compact vertical spacing on smaller screens as well */
+    gap: 8px;
   }
 }
 

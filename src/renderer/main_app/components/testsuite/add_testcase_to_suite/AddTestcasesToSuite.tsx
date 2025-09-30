@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './AddTestcasesToSuite.css';
 import { TestCaseService } from '../../../services/testcases';
+import { TestSuiteService } from '../../../services/testsuites';
 
 interface TestcaseItem {
   id: string;
@@ -13,15 +14,17 @@ interface AddTestcasesToSuiteProps {
   onClose: () => void;
   onSave: (testcaseIds: string[]) => void;
   projectId?: string;
+  testSuiteId?: string;
 }
 
-const AddTestcasesToSuite: React.FC<AddTestcasesToSuiteProps> = ({ isOpen, onClose, onSave, projectId = '' }) => {
+const AddTestcasesToSuite: React.FC<AddTestcasesToSuiteProps> = ({ isOpen, onClose, onSave, projectId = '', testSuiteId }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<TestcaseItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
   const testCaseService = useMemo(() => new TestCaseService(), []);
+  const testSuiteService = useMemo(() => new TestSuiteService(), []);
 
   useEffect(() => {
     const load = async () => {
@@ -33,12 +36,23 @@ const AddTestcasesToSuite: React.FC<AddTestcasesToSuiteProps> = ({ isOpen, onClo
       try {
         setIsLoading(true);
         setError(null);
-        const resp = await testCaseService.getTestCases(projectId, 1000, 0);
-        if (resp.success && resp.data) {
-          const mapped: TestcaseItem[] = resp.data.testcases.map(tc => ({ id: tc.testcase_id, name: tc.name, tag: (tc as any).tag }));
+        // 1) Get all testcases in project
+        const respAll = await testCaseService.getTestCases(projectId, 1000, 0);
+        // 2) Get testcases already in this suite (if provided) to exclude
+        let existingIds = new Set<string>();
+        if (testSuiteId) {
+          const respInSuite = await testSuiteService.getTestCasesBySuite({ test_suite_id: testSuiteId });
+          if (respInSuite.success && respInSuite.data) {
+            existingIds = new Set(respInSuite.data.testcases.map(tc => tc.testcase_id));
+          }
+        }
+        if (respAll.success && respAll.data) {
+          const mapped: TestcaseItem[] = respAll.data.testcases
+            .filter(tc => !existingIds.has(tc.testcase_id))
+            .map(tc => ({ id: tc.testcase_id, name: tc.name, tag: (tc as any).tag }));
           setItems(mapped);
         } else {
-          setError(resp.error || 'Failed to load testcases');
+          setError(respAll.error || 'Failed to load testcases');
           setItems([]);
         }
       } catch (e) {
@@ -49,7 +63,7 @@ const AddTestcasesToSuite: React.FC<AddTestcasesToSuiteProps> = ({ isOpen, onClo
       }
     };
     load();
-  }, [isOpen, projectId, testCaseService]);
+  }, [isOpen, projectId, testSuiteId, testCaseService, testSuiteService]);
 
   useEffect(() => {
     if (!isOpen) {

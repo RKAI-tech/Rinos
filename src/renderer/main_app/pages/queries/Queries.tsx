@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/header/Header';
 import Footer from '../../components/footer/Footer';
@@ -32,6 +32,8 @@ const Queries: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [itemsPerPage, setItemsPerPage] = useState('5 rows/page');
+  const [sortBy, setSortBy] = useState<'name' | 'description' | 'status'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -136,11 +138,36 @@ const Queries: React.FC = () => {
     return (q.name || '').toLowerCase().includes(t) || (q.description || '').toLowerCase().includes(t) || (q.status || '').toLowerCase().includes(t);
   });
 
+  const sorted = useMemo(() => {
+    const copy = [...filtered];
+    const getVal = (it: QueryItem): string => {
+      switch (sortBy) {
+        case 'name': return it.name || '';
+        case 'description': return it.description || '';
+        case 'status': return it.status || '';
+        default: return '';
+      }
+    };
+    copy.sort((a, b) => {
+      const av = getVal(a);
+      const bv = getVal(b);
+      const cmp = av.localeCompare(bv, undefined, { sensitivity: 'base' });
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+    return copy;
+  }, [filtered, sortBy, sortOrder]);
+
+  const handleSort = (col: 'name' | 'description' | 'status') => {
+    if (sortBy === col) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortOrder('asc'); }
+    setCurrentPage(1);
+  };
+
   const getItemsPerPageNumber = () => parseInt(itemsPerPage.split(' ')[0]);
-  const totalPages = Math.ceil(filtered.length / getItemsPerPageNumber() || 1);
+  const totalPages = Math.ceil(sorted.length / getItemsPerPageNumber() || 1);
   const startIndex = (currentPage - 1) * getItemsPerPageNumber();
   const endIndex = startIndex + getItemsPerPageNumber();
-  const currentItems = filtered.slice(startIndex, endIndex);
+  const currentItems = sorted.slice(startIndex, endIndex);
 
   const generatePaginationNumbers = () => {
     const pages: (number | string)[] = [];
@@ -350,9 +377,33 @@ const Queries: React.FC = () => {
               <table className="qry-table">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>Status</th>
+                    <th className={`sortable ${sortBy === 'name' ? 'sorted' : ''}`} onClick={() => handleSort('name')}>
+                      <span className="th-content">
+                        <span className="th-text">Name</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'name' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'name' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'description' ? 'sorted' : ''}`} onClick={() => handleSort('description')}>
+                      <span className="th-content">
+                        <span className="th-text">Description</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'description' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'description' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'status' ? 'sorted' : ''}`} onClick={() => handleSort('status')}>
+                      <span className="th-content">
+                        <span className="th-text">Status</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'status' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'status' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
                     <th>Options</th>
                   </tr>
                 </thead>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/header/Header';
 import Footer from '../../components/footer/Footer';
@@ -12,6 +12,9 @@ import CreateTestSuite from '../../components/testsuite/create_test_suite/Create
 import EditTestSuite from '../../components/testsuite/edit_test_suite/EditTestSuite';
 import DeleteTestSuite from '../../components/testsuite/delete_test_suite/DeleteTestSuite';
 import AddTestcasesToSuite from '../../components/testsuite/add_testcase_to_suite/AddTestcasesToSuite';
+// New modal for deleting testcases from suite
+import DeleteTestcasesFromSuite from '../../components/testsuite/delete_testcase_to_suite/DeleteTestcasesFromSuite';
+import ViewTestSuiteResult from '../../components/testsuite/view_test_suite_result/ViewTestSuiteResult';
 
 interface TestSuite {
   id: string;
@@ -37,6 +40,8 @@ const TestSuites: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
+  const [sortBy, setSortBy] = useState<'name' | 'description' | 'passRate' | 'testcases' | 'passed' | 'failed' | 'createdAt'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [itemsPerPage, setItemsPerPage] = useState('5 rows/page');
   const [currentPage, setCurrentPage] = useState(1);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
@@ -44,6 +49,8 @@ const TestSuites: React.FC = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isRemoveOpen, setIsRemoveOpen] = useState(false);
+  const [isViewResultOpen, setIsViewResultOpen] = useState(false);
   const [selectedSuite, setSelectedSuite] = useState<TestSuite | null>(null);
 
   const handleCreateSuite = () => {
@@ -124,11 +131,50 @@ const TestSuites: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const sortedSuites = useMemo(() => {
+    const copy = [...filteredSuites];
+    const getVal = (it: TestSuite): string | number => {
+      switch (sortBy) {
+        case 'name': return it.name || '';
+        case 'description': return it.description || '';
+        case 'passRate': return it.passRate ?? -1;
+        case 'testcases': return it.testcases ?? -1;
+        case 'passed': return it.passed ?? -1;
+        case 'failed': return it.failed ?? -1;
+        case 'createdAt': {
+          const t = it.createdAt ? new Date(it.createdAt).getTime() : 0;
+          return isNaN(t) ? 0 : t;
+        }
+        default: return 0;
+      }
+    };
+    copy.sort((a, b) => {
+      const av = getVal(a);
+      const bv = getVal(b);
+      let cmp = 0;
+      if (typeof av === 'string' && typeof bv === 'string') {
+        cmp = av.localeCompare(bv, undefined, { sensitivity: 'base' });
+      } else {
+        const an = typeof av === 'number' ? av : 0;
+        const bn = typeof bv === 'number' ? bv : 0;
+        cmp = an === bn ? 0 : an < bn ? -1 : 1;
+      }
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+    return copy;
+  }, [filteredSuites, sortBy, sortOrder]);
+
+  const handleSort = (col: 'name' | 'description' | 'passRate' | 'testcases' | 'passed' | 'failed' | 'createdAt') => {
+    if (sortBy === col) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortOrder('asc'); }
+    setCurrentPage(1);
+  };
+
   const getItemsPerPageNumber = () => parseInt(itemsPerPage.split(' ')[0]);
-  const totalPages = Math.ceil(filteredSuites.length / getItemsPerPageNumber());
+  const totalPages = Math.ceil(sortedSuites.length / getItemsPerPageNumber());
   const startIndex = (currentPage - 1) * getItemsPerPageNumber();
   const endIndex = startIndex + getItemsPerPageNumber();
-  const currentSuites = filteredSuites.slice(startIndex, endIndex);
+  const currentSuites = sortedSuites.slice(startIndex, endIndex);
 
   const generatePaginationNumbers = () => {
     const pages: (number | string)[] = [];
@@ -181,6 +227,9 @@ const TestSuites: React.FC = () => {
       const resp = await svc.executeTestSuite({ test_suite_id: id });
       if (resp.success) {
         toast.success('Test suite is running');
+        // Mở modal view result ngay sau khi run thành công
+        setSelectedSuite(testSuites.find(s => s.id === id) || null);
+        setIsViewResultOpen(true);
       } else {
         toast.error(resp.error || 'Failed to run test suite');
       }
@@ -189,6 +238,12 @@ const TestSuites: React.FC = () => {
     } finally {
       setOpenDropdownId(null);
     }
+  };
+
+  const handleViewSuiteResult = (id: string) => {
+    setSelectedSuite(testSuites.find(s => s.id === id) || null);
+    setIsViewResultOpen(true);
+    setOpenDropdownId(null);
   };
 
   const handleSaveCreateSuite = async ({ projectId: pid, name, description }: { projectId: string; name: string; description: string }) => {
@@ -252,6 +307,13 @@ const TestSuites: React.FC = () => {
     setOpenDropdownId(null);
   };
 
+  const handleRemoveTestcasesFromSuite = (id: string) => {
+    const suite = testSuites.find(s => s.id === id) || null;
+    setSelectedSuite(suite);
+    setIsRemoveOpen(true);
+    setOpenDropdownId(null);
+  };
+
   return (
     <div className="testsuites-page">
       <Header />
@@ -305,13 +367,27 @@ const TestSuites: React.FC = () => {
               <table className="testsuites-table">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>Pass Rate</th>
-                    <th>Testcases</th>
-                    <th>Passed</th>
-                    <th>Failed</th>
-                    <th>Created</th>
+                    <th className={`sortable ${sortBy === 'name' ? 'sorted' : ''}`} onClick={() => handleSort('name')}>
+                      <span className="th-content"><span className="th-text">Name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'name' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'name' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'description' ? 'sorted' : ''}`} onClick={() => handleSort('description')}>
+                      <span className="th-content"><span className="th-text">Description</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'description' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'description' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'passRate' ? 'sorted' : ''}`} onClick={() => handleSort('passRate')}>
+                      <span className="th-content"><span className="th-text">Pass Rate</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'passRate' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'passRate' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'testcases' ? 'sorted' : ''}`} onClick={() => handleSort('testcases')}>
+                      <span className="th-content"><span className="th-text">Testcases</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'testcases' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'testcases' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'passed' ? 'sorted' : ''}`} onClick={() => handleSort('passed')}>
+                      <span className="th-content"><span className="th-text">Passed</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'passed' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'passed' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'failed' ? 'sorted' : ''}`} onClick={() => handleSort('failed')}>
+                      <span className="th-content"><span className="th-text">Failed</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'failed' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'failed' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'createdAt' ? 'sorted' : ''}`} onClick={() => handleSort('createdAt')}>
+                      <span className="th-content"><span className="th-text">Created</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'createdAt' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'createdAt' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    </th>
                     <th>Options</th>
                   </tr>
                 </thead>
@@ -346,6 +422,12 @@ const TestSuites: React.FC = () => {
                                 </svg>
                                 Run
                               </button>
+                              <button className="dropdown-item" onClick={() => handleViewSuiteResult(suite.id)}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M12 5c5 0 9 4 9 7s-4 7-9 7-9-4-9-7 4-7 9-7zm0 3a4 4 0 100 8 4 4 0 000-8z" fill="currentColor"/>
+                                </svg>
+                                View Result
+                              </button>
                               <button className="dropdown-item" onClick={() => handleAddTestcasesToSuite(suite.id)}>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                   <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -353,12 +435,20 @@ const TestSuites: React.FC = () => {
                                 </svg>
                                 Add Cases
                               </button>
+                              
                               <button className="dropdown-item" onClick={() => handleOpenEditSuite(suite.id)}>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
                                 Edit
+                              </button>
+                              <button className="dropdown-item delete" onClick={() => handleRemoveTestcasesFromSuite(suite.id)}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Remove Cases
                               </button>
                               <button className="dropdown-item delete" onClick={() => handleOpenDeleteSuite(suite.id)}>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -436,6 +526,7 @@ const TestSuites: React.FC = () => {
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         projectId={projectId}
+        testSuiteId={selectedSuite?.id}
         onSave={async (testcaseIds: string[]) => {
           try {
             if (!selectedSuite) return;
@@ -452,6 +543,34 @@ const TestSuites: React.FC = () => {
             toast.error('Failed to add testcases');
           }
         }}
+      />
+
+      {/* Delete Testcases From Suite Modal */}
+      <DeleteTestcasesFromSuite
+        isOpen={isRemoveOpen}
+        onClose={() => setIsRemoveOpen(false)}
+        testSuiteId={selectedSuite?.id}
+        onRemove={async (testcaseIds: string[]) => {
+          try {
+            if (!selectedSuite) return;
+            const svc = new TestSuiteService();
+            for (const tcId of testcaseIds) {
+              await svc.removeTestCaseFromTestSuite(tcId, selectedSuite.id);
+            }
+            toast.success('Removed testcases from suite');
+            setIsRemoveOpen(false);
+            await fetchSuites();
+          } catch (e) {
+            toast.error('Failed to remove testcases');
+          }
+        }}
+      />
+
+      {/* View Test Suite Result */}
+      <ViewTestSuiteResult
+        isOpen={isViewResultOpen}
+        onClose={() => setIsViewResultOpen(false)}
+        testSuiteId={selectedSuite?.id}
       />
     </div>
   );

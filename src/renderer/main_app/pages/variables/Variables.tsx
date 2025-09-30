@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/header/Header';
 import Footer from '../../components/footer/Footer';
@@ -29,6 +29,8 @@ const Variables: React.FC = () => {
 
   const [variables, setVariables] = useState<VariableItem[]>([]);
   const [searchText, setSearchText] = useState('');
+  const [sortBy, setSortBy] = useState<'customName' | 'originalName' | 'value' | 'databaseName' | 'databaseType' | 'queryName'>('customName');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [itemsPerPage, setItemsPerPage] = useState('5 rows/page');
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -102,11 +104,39 @@ const Variables: React.FC = () => {
     );
   });
 
+  const sorted = useMemo(() => {
+    const copy = [...filtered];
+    const getVal = (it: VariableItem): string => {
+      switch (sortBy) {
+        case 'customName': return it.customName || '';
+        case 'originalName': return it.originalName || '';
+        case 'value': return it.value || '';
+        case 'databaseName': return it.databaseName || '';
+        case 'databaseType': return it.databaseType || '';
+        case 'queryName': return it.queryName || '';
+        default: return '';
+      }
+    };
+    copy.sort((a, b) => {
+      const av = getVal(a);
+      const bv = getVal(b);
+      const cmp = av.localeCompare(bv, undefined, { sensitivity: 'base' });
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+    return copy;
+  }, [filtered, sortBy, sortOrder]);
+
+  const handleSort = (col: 'customName' | 'originalName' | 'value' | 'databaseName' | 'databaseType' | 'queryName') => {
+    if (sortBy === col) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortOrder('asc'); }
+    setCurrentPage(1);
+  };
+
   const getItemsPerPageNumber = () => parseInt(itemsPerPage.split(' ')[0]);
-  const totalPages = Math.ceil(filtered.length / getItemsPerPageNumber());
+  const totalPages = Math.ceil(sorted.length / getItemsPerPageNumber());
   const startIndex = (currentPage - 1) * getItemsPerPageNumber();
   const endIndex = startIndex + getItemsPerPageNumber();
-  const currentItems = filtered.slice(startIndex, endIndex);
+  const currentItems = sorted.slice(startIndex, endIndex);
 
   const generatePaginationNumbers = () => {
     const pages: (number | string)[] = [];
@@ -169,12 +199,12 @@ const Variables: React.FC = () => {
               <table className="vars-table">
                 <thead>
                   <tr>
-                    <th>Custom name</th>
-                    <th>Original name</th>
-                    <th>Value</th>
-                    <th>Database name</th>
-                    <th>Database type</th>
-                    <th>Query name</th>
+                    <th className={`sortable ${sortBy === 'customName' ? 'sorted' : ''}`} onClick={() => handleSort('customName')}><span className="th-content"><span className="th-text">Custom name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'customName' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'customName' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span></th>
+                    <th className={`sortable ${sortBy === 'originalName' ? 'sorted' : ''}`} onClick={() => handleSort('originalName')}><span className="th-content"><span className="th-text">Original name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'originalName' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'originalName' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span></th>
+                    <th className={`sortable ${sortBy === 'value' ? 'sorted' : ''}`} onClick={() => handleSort('value')}><span className="th-content"><span className="th-text">Value</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'value' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'value' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span></th>
+                    <th className={`sortable ${sortBy === 'databaseName' ? 'sorted' : ''}`} onClick={() => handleSort('databaseName')}><span className="th-content"><span className="th-text">Database name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'databaseName' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'databaseName' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span></th>
+                    <th className={`sortable ${sortBy === 'databaseType' ? 'sorted' : ''}`} onClick={() => handleSort('databaseType')}><span className="th-content"><span className="th-text">Database type</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'databaseType' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'databaseType' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span></th>
+                    <th className={`sortable ${sortBy === 'queryName' ? 'sorted' : ''}`} onClick={() => handleSort('queryName')}><span className="th-content"><span className="th-text">Query name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'queryName' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'queryName' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span></th>
                     <th>Options</th>
                   </tr>
                 </thead>

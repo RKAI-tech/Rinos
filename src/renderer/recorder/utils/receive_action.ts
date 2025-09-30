@@ -36,6 +36,22 @@ export function createDescription(action_received: any): string {
             return `Press ${value}`;
         case ActionType.keyup:
             return `Key up ${value}`;
+        case ActionType.keypress:
+            return `Key press ${value}`;
+        case ActionType.upload:
+            return `Upload file ${value}`;
+        case ActionType.scroll:
+            return `Scroll ${value}`;
+        case ActionType.connect_db:
+            return `Connect to database ${value}`;
+        case ActionType.change:
+            return `Change ${value}`;
+        case ActionType.drag_and_drop:
+            return `Drag and drop ${value}`;
+        case ActionType.drag_start:
+            return `Drag start ${value}`;
+        case ActionType.drag_end:
+            return `Drag end ${value}`;
         case ActionType.assert:
             switch (action_received.assertType) {
                 case AssertType.toHaveText:

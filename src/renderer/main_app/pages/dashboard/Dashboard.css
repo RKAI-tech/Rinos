@@ -262,13 +262,16 @@
 
 /* Projects Table */
 .projects-table-container {
-  overflow-x: auto;
+  overflow-x: visible; /* allow overlay popups to escape horizontally too */
+  overflow-y: visible; /* allow overlay popups to escape vertically */
   margin-bottom: 24px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(74, 144, 226, 0.08);
   border: 1px solid #e1e5e9;
   padding: 20px;
+  position: relative; /* establish stacking context base */
+  z-index: 0;
 }
 
 .projects-table {
@@ -329,6 +332,56 @@
   border-bottom: 2px solid #e1e5e9;
   white-space: nowrap;
   vertical-align: middle;
+}
+
+.projects-table th.sortable {
+  cursor: pointer;
+  position: relative;
+}
+
+.projects-table th .th-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.projects-table th .sort-arrows {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.projects-table th:hover .sort-arrows,
+.projects-table th.sorted .sort-arrows {
+  opacity: 1;
+}
+
+.projects-table th .arrow {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  margin: 1px 0;
+  opacity: 0.4;
+}
+
+.projects-table th .arrow.up {
+  border-bottom: 6px solid #6b7280;
+}
+
+.projects-table th .arrow.down {
+  border-top: 6px solid #6b7280;
+}
+
+.projects-table th .arrow.active {
+  opacity: 1;
+  border-bottom-color: #111827;
+  border-top-color: #111827;
 }
 
 .projects-table td {
@@ -447,7 +500,7 @@
   border: 1px solid #e1e5e9;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 100;
+  z-index: 2147483647; /* max overlay over everything, even table borders */
   min-width: 120px;
   overflow: hidden;
   animation: dropdownSlideIn 0.2s ease-out;
@@ -478,6 +531,7 @@
   cursor: pointer;
   transition: background-color 0.2s ease;
   text-align: left;
+  z-index: 9999;
 }
 
 .dropdown-item:hover {

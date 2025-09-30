@@ -291,21 +291,11 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setIsDetailOpen(true);
   };
 
-  const handleSaveAction = async (updatedAction: Action) => {
-    try {
-      const response = await actionService.updateActionById(updatedAction.action_id || '', updatedAction);
-      if (response.success) {
-        // Update local state
-        setActions(prev => prev.map(a => a.action_id === updatedAction.action_id ? updatedAction : a));
-        setSelectedAction(updatedAction);
-        toast.success('Action updated successfully');
-      } else {
-        toast.error(response.error || 'Failed to update action');
-      }
-    } catch (error) {
-      console.error('[Main] Error updating action:', error);
-      toast.error('Failed to update action');
-    }
+  const handleUpdateAction = (updatedAction: Action) => {
+    // Local-only update (do not call API)
+    setActions(prev => prev.map(a => a.action_id === updatedAction.action_id ? { ...a, ...updatedAction } : a));
+    setSelectedAction(updatedAction);
+    toast.success('Action updated');
   };
 
   const handleSaveActions = async () => {
@@ -489,7 +479,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         isOpen={isDetailOpen}
         action={selectedAction}
         onClose={() => setIsDetailOpen(false)}
-        onSave={handleSaveAction}
+        onSave={handleUpdateAction}
       />
 
       <AiAssertModal

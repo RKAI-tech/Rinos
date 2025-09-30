@@ -21,7 +21,8 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [filterText, setFilterText] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All Status');
+  const [sortBy, setSortBy] = useState<'name' | 'created_at' | 'number_testcase' | 'number_testsuite' | 'number_database_connection' | 'number_variable' | 'number_member'>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [itemsPerPage, setItemsPerPage] = useState('5 per page');
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -230,15 +231,73 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Sort projects before pagination
+  const sortedProjects = useMemo(() => {
+    const projectsCopy = [...projects];
+
+    const getComparableValue = (project: Project): string | number => {
+      switch (sortBy) {
+        case 'name':
+          return project.name || '';
+        case 'created_at': {
+          const time = project.created_at ? new Date(project.created_at).getTime() : 0;
+          return isNaN(time) ? 0 : time;
+        }
+        case 'number_testcase':
+          return project.number_testcase ?? 0;
+        case 'number_testsuite':
+          return project.number_testsuite ?? 0;
+        case 'number_database_connection':
+          return project.number_database_connection ?? 0;
+        case 'number_variable':
+          return project.number_variable ?? 0;
+        case 'number_member':
+          return project.number_member ?? 0;
+        default:
+          return 0;
+      }
+    };
+
+    projectsCopy.sort((a, b) => {
+      const aVal = getComparableValue(a);
+      const bVal = getComparableValue(b);
+
+      let comparison = 0;
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        comparison = aVal.localeCompare(bVal, undefined, { sensitivity: 'base' });
+      } else {
+        const aNum = typeof aVal === 'number' ? aVal : 0;
+        const bNum = typeof bVal === 'number' ? bVal : 0;
+        comparison = aNum === bNum ? 0 : aNum < bNum ? -1 : 1;
+      }
+
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return projectsCopy;
+  }, [projects, sortBy, sortOrder]);
+
+  const handleSort = (
+    column: 'name' | 'created_at' | 'number_testcase' | 'number_testsuite' | 'number_database_connection' | 'number_variable' | 'number_member'
+  ) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('asc');
+    }
+    setCurrentPage(1);
+  };
+
   // Pagination logic
   const getItemsPerPageNumber = () => {
     return parseInt(itemsPerPage.split(' ')[0]);
   };
 
-  const totalPages = Math.ceil(projects.length / getItemsPerPageNumber());
+  const totalPages = Math.ceil(sortedProjects.length / getItemsPerPageNumber());
   const startIndex = (currentPage - 1) * getItemsPerPageNumber();
   const endIndex = startIndex + getItemsPerPageNumber();
-  const currentProjects = projects.slice(startIndex, endIndex);
+  const currentProjects = sortedProjects.slice(startIndex, endIndex);
 
   // Generate pagination numbers with ellipsis
   const generatePaginationNumbers = () => {
@@ -452,16 +511,6 @@ const Dashboard: React.FC = () => {
                   onChange={(e) => setFilterText(e.target.value)}
                   className="filter-input"
                 />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="status-dropdown"
-                >
-                  <option value="All Status">All Status</option>
-                  <option value="IN PROGRESS">In Progress</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="DRAFT">Draft</option>
-                </select>
               </div>
 
               <div className="controls-section">
@@ -490,13 +539,90 @@ const Dashboard: React.FC = () => {
               <table className="projects-table">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Created At</th>
-                    <th>Test Cases</th>
-                    <th>Test Suites</th>
-                    <th>Databases</th>
-                    <th>Variables</th>
-                    <th>Members</th>
+                    <th
+                      className={`sortable ${sortBy === 'name' ? 'sorted' : ''}`}
+                      onClick={() => handleSort('name')}
+                    >
+                      <span className="th-content">
+                        <span className="th-text">Name</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'name' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'name' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
+                    <th
+                      className={`sortable ${sortBy === 'created_at' ? 'sorted' : ''}`}
+                      onClick={() => handleSort('created_at')}
+                    >
+                      <span className="th-content">
+                        <span className="th-text">Created At</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'created_at' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'created_at' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
+                    <th
+                      className={`sortable ${sortBy === 'number_testcase' ? 'sorted' : ''}`}
+                      onClick={() => handleSort('number_testcase')}
+                    >
+                      <span className="th-content">
+                        <span className="th-text">Test Cases</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'number_testcase' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'number_testcase' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
+                    <th
+                      className={`sortable ${sortBy === 'number_testsuite' ? 'sorted' : ''}`}
+                      onClick={() => handleSort('number_testsuite')}
+                    >
+                      <span className="th-content">
+                        <span className="th-text">Test Suites</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'number_testsuite' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'number_testsuite' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
+                    <th
+                      className={`sortable ${sortBy === 'number_database_connection' ? 'sorted' : ''}`}
+                      onClick={() => handleSort('number_database_connection')}
+                    >
+                      <span className="th-content">
+                        <span className="th-text">Databases</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'number_database_connection' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'number_database_connection' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
+                    <th
+                      className={`sortable ${sortBy === 'number_variable' ? 'sorted' : ''}`}
+                      onClick={() => handleSort('number_variable')}
+                    >
+                      <span className="th-content">
+                        <span className="th-text">Variables</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'number_variable' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'number_variable' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
+                    <th
+                      className={`sortable ${sortBy === 'number_member' ? 'sorted' : ''}`}
+                      onClick={() => handleSort('number_member')}
+                    >
+                      <span className="th-content">
+                        <span className="th-text">Members</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'number_member' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'number_member' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
                     <th>Actions</th>
                   </tr>
                 </thead>

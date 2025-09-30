@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './ActionDetailModal.css';
-import { Action, Element } from '../../types/actions';
+import { Action, Element, ActionType, AssertType } from '../../types/actions';
 
 interface ActionDetailModalProps {
   isOpen: boolean;
@@ -44,12 +44,132 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
 
   const handleSave = () => {
     if (draft && onSave) {
-      onSave(draft);
+      const normalized = normalizeActionForSave(draft);
+      onSave(normalized);
     }
     onClose();
   };
 
   if (!isOpen || !action || !draft) return null;
+
+  // Visibility rules per action type
+  const visibility = (() => {
+    const type = draft.action_type;
+    const base = {
+      showSelectors: true,
+      showValue: false,
+      valueLabel: 'Value',
+      showSelectedValue: false,
+      showChecked: false,
+      showAssertType: false,
+    };
+
+    switch (type) {
+      case ActionType.navigate:
+        return { ...base, showSelectors: false, showValue: true, valueLabel: 'URL' };
+      case ActionType.input:
+        return { ...base, showSelectors: true, showValue: true };
+      case ActionType.click:
+      case ActionType.double_click:
+      case ActionType.right_click:
+      case ActionType.shift_click:
+        return { ...base, showSelectors: true };
+      case ActionType.select:
+        return { ...base, showSelectors: true, showSelectedValue: true };
+      case ActionType.checkbox:
+        return { ...base, showSelectors: true, showChecked: true };
+      case ActionType.change:
+        return { ...base, showSelectors: true, showValue: true };
+      case ActionType.drag_and_drop:
+      case ActionType.drag_start:
+      case ActionType.drag_end:
+      case ActionType.drag_over:
+      case ActionType.drag_leave:
+      case ActionType.drop:
+        return { ...base, showSelectors: true };
+      case ActionType.keydown:
+      case ActionType.keyup:
+      case ActionType.keypress:
+        return { ...base, showSelectors: true, showValue: true, valueLabel: 'Key' };
+      case ActionType.upload:
+        return { ...base, showSelectors: true, showValue: true, valueLabel: 'File Path' };
+      case ActionType.scroll:
+        return { ...base, showSelectors: true };
+      case ActionType.connect_db:
+        // Not supported in this modal yet
+        return { ...base, showSelectors: false };
+      case ActionType.assert:
+        // Assert-specific visibility handled below by assert config
+        return { ...base, showAssertType: true };
+      default:
+        return base;
+    }
+  })();
+
+  // Assert rules: control which fields are needed based on assert type
+  const assertConfig = (() => {
+    if (draft.action_type !== ActionType.assert) return null;
+    const t = draft.assert_type as AssertType | undefined;
+    const base = { showSelectors: true, requiresValue: false, valueLabel: 'Value', valueInputType: 'text' as 'text'|'url'|'number', showAccessibleName: false, valuePlaceholder: undefined as string | undefined };
+    if (!t) return base;
+    switch (t) {
+      // element state - no value
+      case AssertType.toBeChecked:
+      case AssertType.toBeUnchecked:
+      case AssertType.toBeDisabled:
+      case AssertType.toBeEditable:
+      case AssertType.toBeReadOnly:
+      case AssertType.toBeEmpty:
+      case AssertType.toBeEnabled:
+      case AssertType.toBeFocused:
+      case AssertType.toBeHidden:
+      case AssertType.toBeVisible:
+        return { ...base, requiresValue: false };
+      // text/value assertions - need value
+      case AssertType.toContainText:
+      case AssertType.toHaveAccessibleDescription:
+      case AssertType.toHaveAccessibleName:
+      case AssertType.toHaveText:
+      case AssertType.toHaveValue:
+      case AssertType.toHaveValues:
+        return { ...base, requiresValue: true, valueLabel: 'Expected', valueInputType: 'text', valuePlaceholder: (t === AssertType.toHaveValues ? 'Comma-separated values' : undefined) };
+      case AssertType.toHaveCount:
+        return { ...base, requiresValue: true, valueLabel: 'Count', valueInputType: 'number' };
+      case AssertType.toHaveRole:
+        return { ...base, requiresValue: true, valueLabel: 'Role', showAccessibleName: true };
+      // page-level assertions - no selector
+      case AssertType.pageHasATitle:
+        return { ...base, showSelectors: false, requiresValue: true, valueLabel: 'Title', valueInputType: 'text' };
+      case AssertType.pageHasAURL:
+        return { ...base, showSelectors: false, requiresValue: true, valueLabel: 'URL', valueInputType: 'url', valuePlaceholder: 'https://example.com/path' };
+      default:
+        return base;
+    }
+  })();
+
+  const addNewSelector = (elementIndex: number) => {
+    updateElement(elementIndex, (cur) => ({
+      ...cur,
+      // Add new selector to the BEGINNING so user-provided selector is on top
+      selector: [{ value: '' }, ...(cur.selector || [])]
+    }));
+  };
+
+  const updateSelector = (elementIndex: number, selectorIndex: number, value: string) => {
+    updateElement(elementIndex, (cur) => {
+      const newSelectors = [...(cur.selector || [])];
+      newSelectors[selectorIndex] = { value };
+      return { ...cur, selector: newSelectors };
+    });
+  };
+
+  const removeSelector = (elementIndex: number, selectorIndex: number) => {
+    updateElement(elementIndex, (cur) => {
+      const newSelectors = [...(cur.selector || [])];
+      newSelectors.splice(selectorIndex, 1);
+      return { ...cur, selector: newSelectors };
+    });
+  };
 
   const renderElements = () => {
     if (!draft.elements || draft.elements.length === 0) {
@@ -61,50 +181,143 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
         <div className="rcd-action-detail-list">
           {draft.elements.map((el, idx) => (
             <div key={idx} className="rcd-action-detail-list-item">
+              {/* Selectors Section */}
               <div className="rcd-action-detail-kv">
-                <label className="rcd-action-detail-kv-label">Query</label>
-                <input
-                  className="rcd-action-detail-input"
-                  value={el.query || ''}
-                  onChange={(e) => updateElement(idx, (cur) => ({ ...cur, query: e.target.value }))}
-                  placeholder="Enter element query"
-                />
-              </div>
-              <div className="rcd-action-detail-kv">
-                <label className="rcd-action-detail-kv-label">Value</label>
-                <input
-                  className="rcd-action-detail-input"
-                  value={el.value || ''}
-                  onChange={(e) => updateElement(idx, (cur) => ({ ...cur, value: e.target.value }))}
-                  placeholder="Enter element value"
-                />
-              </div>
-              <div className="rcd-action-detail-kv">
-                <label className="rcd-action-detail-kv-label">Variable Name</label>
-                <input
-                  className="rcd-action-detail-input"
-                  value={el.variable_name || ''}
-                  onChange={(e) => updateElement(idx, (cur) => ({ ...cur, variable_name: e.target.value }))}
-                  placeholder="Enter variable name"
-                />
-              </div>
-              <div className="rcd-action-detail-kv">
-                <label className="rcd-action-detail-kv-label">Selector</label>
-                <input
-                  className="rcd-action-detail-input"
-                  value={(el.selector && el.selector[0]?.value) || ''}
-                  onChange={(e) => updateElement(idx, (cur) => ({
-                    ...cur,
-                    selector: [{ value: e.target.value }],
-                  }))}
-                  placeholder="Enter CSS selector"
-                />
+                <div className="rcd-action-detail-kv-label-container">
+                  <label className="rcd-action-detail-kv-label">Selectors</label>
+                  <button
+                    type="button"
+                    className="rcd-action-detail-add-btn"
+                    onClick={() => addNewSelector(idx)}
+                    title="Add new selector"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Add Selector
+                  </button>
+                </div>
+                <div className="rcd-action-detail-selectors-list">
+                  {el.selector && el.selector.length > 0 ? (
+                    el.selector.map((sel, selIdx) => (
+                      <div key={selIdx} className="rcd-action-detail-selector-item">
+                        <input
+                          className="rcd-action-detail-input"
+                          value={sel.value || ''}
+                          onChange={(e) => updateSelector(idx, selIdx, e.target.value)}
+                          placeholder="Enter CSS selector"
+                        />
+                        <button
+                          type="button"
+                          className="rcd-action-detail-remove-btn"
+                          onClick={() => removeSelector(idx, selIdx)}
+                          title="Remove selector"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rcd-action-detail-no-selectors">
+                      No selectors. Click "Add Selector" to add one.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
     );
+  };
+
+  // Generate a human-friendly description for assert actions
+  const generateAssertDescription = (type?: AssertType, expected: string = ''): string => {
+    switch (type) {
+      case AssertType.toBeChecked: return 'Assert element is checked';
+      case AssertType.toBeUnchecked: return 'Assert element is unchecked';
+      case AssertType.toBeDisabled: return 'Assert element is disabled';
+      case AssertType.toBeEditable: return 'Assert element is editable';
+      case AssertType.toBeReadOnly: return 'Assert element is read-only';
+      case AssertType.toBeEmpty: return 'Assert element is empty';
+      case AssertType.toBeEnabled: return 'Assert element is enabled';
+      case AssertType.toBeFocused: return 'Assert element is focused';
+      case AssertType.toBeHidden: return 'Assert element is hidden';
+      case AssertType.toBeVisible: return 'Assert element is visible';
+      case AssertType.toContainText: return `Assert element contains text "${expected}"`;
+      case AssertType.toHaveAccessibleDescription: return `Assert element has accessible description "${expected}"`;
+      case AssertType.toHaveAccessibleName: return `Assert element has accessible name "${expected}"`;
+      case AssertType.toHaveText: return `Assert element has text "${expected}"`;
+      case AssertType.toHaveValue: return `Assert element has value "${expected}"`;
+      case AssertType.toHaveValues: return `Assert element has values "${expected}"`;
+      case AssertType.toHaveCount: return `Assert element count equals ${expected}`;
+      case AssertType.toHaveRole: return `Assert element has role "${expected}"`;
+      case AssertType.pageHasATitle: return `Assert page title equals "${expected}"`;
+      case AssertType.pageHasAURL: return `Assert page URL equals "${expected}"`;
+      default: return 'Assert';
+    }
+  };
+
+  const handleAssertTypeChange = (nextType: AssertType) => {
+    setDraft(prev => {
+      if (!prev) return prev;
+      const next: Action = { ...prev, assert_type: nextType };
+      // Always regenerate description to match selected assert type
+      next.description = generateAssertDescription(nextType, next.value || '');
+      return next;
+    });
+  };
+
+  // Normalize action before saving so downstream (ActionTab/Action/Main) receives
+  // consistent values:
+  // - All primary inputs (URL/Expected/Role/Count...) are stored in action.value
+  // - Assert updates: persist assert_type and expected (in value)
+  // - Trim selectors and remove empty entries
+  // - Keep description as-is (does not remap)
+  const normalizeActionForSave = (source: Action): Action => {
+    const cloned: Action = {
+      ...source,
+      // Ensure elements selectors are trimmed and non-empty
+      elements: (source.elements || []).map(el => ({
+        ...el,
+        selector: (el.selector || [])
+          .map(s => ({ value: (s.value || '').trim() }))
+          .filter(s => s.value.length > 0)
+      })),
+    };
+
+    // For all action types, the main input is kept in `value`
+    cloned.value = (source.value ?? '').toString();
+
+    // Assert specific mapping
+    if (cloned.action_type === ActionType.assert) {
+      // assert_type already bound via UI; ensure it is a string
+      cloned.assert_type = source.assert_type;
+      // expected stays in value per requirement unless assert type doesn't require value
+      const noValueAsserts: AssertType[] = [
+        AssertType.toBeChecked,
+        AssertType.toBeUnchecked,
+        AssertType.toBeDisabled,
+        AssertType.toBeEditable,
+        AssertType.toBeReadOnly,
+        AssertType.toBeEmpty,
+        AssertType.toBeEnabled,
+        AssertType.toBeFocused,
+        AssertType.toBeHidden,
+        AssertType.toBeVisible,
+      ];
+      if (cloned.assert_type && noValueAsserts.includes(cloned.assert_type)) {
+        cloned.value = '';
+      } else {
+        cloned.value = (source.value ?? '').toString();
+      }
+    }
+
+    return cloned;
   };
 
   return (
@@ -120,7 +333,7 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
           </button>
         </div>
         <div className="rcd-action-detail-content">
-          <div className="rcd-action-detail-section">
+        <div className="rcd-action-detail-section">
             <div className="rcd-action-detail-section-title">General</div>
             <div className="rcd-action-detail-grid">
               <div className="rcd-action-detail-kv">
@@ -138,48 +351,83 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
                   placeholder="Enter action description"
                 />
               </div>
-              {draft.assert_type && (
-                <div className="rcd-action-detail-kv">
-                  <label className="rcd-action-detail-kv-label">Assert Type</label>
-                  <div className="rcd-action-detail-kv-value">
-                    <code>{draft.assert_type}</code>
-                  </div>
-                </div>
-              )}
+            {visibility.showAssertType && (
               <div className="rcd-action-detail-kv">
-                <label className="rcd-action-detail-kv-label">Value</label>
+                <label className="rcd-action-detail-kv-label">Assert Type <span className="rcd-required">*</span></label>
+                <select
+                  className="rcd-action-detail-input"
+                  value={draft.assert_type || ''}
+                  onChange={(e) => handleAssertTypeChange(e.target.value as AssertType)}
+                  required
+                >
+                  <option value="">-- Select assert type --</option>
+                  {Object.values(AssertType).map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {(draft.action_type === ActionType.assert ? Boolean(assertConfig?.requiresValue) : visibility.showValue) && (
+              <div className="rcd-action-detail-kv">
+                <label className="rcd-action-detail-kv-label">
+                  {assertConfig ? assertConfig.valueLabel : visibility.valueLabel}
+                  {draft.action_type === ActionType.assert ? <span className="rcd-required">*</span> : null}
+                </label>
                 <input
+                  type={assertConfig ? assertConfig.valueInputType : 'text'}
                   className="rcd-action-detail-input"
                   value={draft.value || ''}
                   onChange={(e) => updateField('value', e.target.value)}
-                  placeholder="Enter action value"
+                  placeholder={assertConfig && assertConfig.valuePlaceholder ? assertConfig.valuePlaceholder : `Enter ${(assertConfig ? assertConfig.valueLabel : visibility.valueLabel).toLowerCase()}`}
+                  required={draft.action_type === ActionType.assert}
                 />
               </div>
+            )}
+            {/* Simplified: no match mode/case sensitive; only equals with value */}
+            {assertConfig?.showAccessibleName && (
               <div className="rcd-action-detail-kv">
-                <label className="rcd-action-detail-kv-label">Selected Value</label>
+                <label className="rcd-action-detail-kv-label">Accessible Name (optional)</label>
                 <input
                   className="rcd-action-detail-input"
                   value={draft.selected_value || ''}
                   onChange={(e) => updateField('selected_value', e.target.value)}
-                  placeholder="Enter selected value"
+                  placeholder="Enter accessible name"
                 />
               </div>
-              <div className="rcd-action-detail-kv">
-                <label className="rcd-action-detail-kv-label">Checked</label>
-                <div className="rcd-action-detail-kv-value">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(draft.checked)}
-                    onChange={(e) => updateField('checked', e.target.checked)}
-                    style={{ marginRight: '8px' }}
-                  />
-                  {draft.checked ? 'Yes' : 'No'}
-                </div>
-              </div>
+            )}
+            {visibility.showSelectedValue || visibility.showChecked ? (
+              <>
+                {visibility.showSelectedValue && (
+                  <div className="rcd-action-detail-kv">
+                    <label className="rcd-action-detail-kv-label">Selected Value</label>
+                    <input
+                      className="rcd-action-detail-input"
+                      value={draft.selected_value || ''}
+                      onChange={(e) => updateField('selected_value', e.target.value)}
+                      placeholder="Enter selected value"
+                    />
+                  </div>
+                )}
+                {visibility.showChecked && (
+                  <div className="rcd-action-detail-kv">
+                    <label className="rcd-action-detail-kv-label">Checked</label>
+                    <div className="rcd-action-detail-kv-value">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(draft.checked)}
+                        onChange={(e) => updateField('checked', e.target.checked)}
+                        style={{ marginRight: '8px' }}
+                      />
+                      {draft.checked ? 'Yes' : 'No'}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : null}
             </div>
           </div>
 
-          {renderElements()}
+        {(assertConfig ? assertConfig.showSelectors : visibility.showSelectors) && renderElements()}
 
           {draft.playwright_code && (
             <div className="rcd-action-detail-section">

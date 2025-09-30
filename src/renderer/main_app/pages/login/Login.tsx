@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
-
+import loginImage from "../../assets/ms_logo.png"
 const Login: React.FC = () => {
   const { login, microsoftLogin, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -114,7 +114,7 @@ const Login: React.FC = () => {
             </div>
 
             <button className="microsoft-login-button" onClick={handleMicrosoftLogin} type="button" disabled={isLoading}>
-              <img src="/main_app/assets/ms_logo.png" alt="Microsoft" className="microsoft-logo-img" />
+              <img src={loginImage} alt="Microsoft" className="microsoft-logo-img" />
               Login with Microsoft
             </button>
 
