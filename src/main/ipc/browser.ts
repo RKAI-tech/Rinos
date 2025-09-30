@@ -14,6 +14,15 @@ browserManager.on('action', (action: Action) => {
     });
 });
 
+browserManager.on('browser-stopped', () => {
+    console.log('[BROWSER] Browser stopped event received');
+    BrowserWindow.getAllWindows().forEach((window: BrowserWindow) => {
+        if (!window.isDestroyed()) {
+            window.webContents.send('browser:stopped');
+        }
+    });
+});
+
 export function registerBrowserIpc() {
     ipcMain.handle("browser:start", async () => {
         await browserManager.start();

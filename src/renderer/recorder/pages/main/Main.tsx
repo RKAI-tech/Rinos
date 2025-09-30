@@ -146,6 +146,24 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   //   });
   // }, [testcaseId, isPaused, aiElements.length]);
 
+  // Listen for browser close events and reset pause state
+  useEffect(() => {
+    const handleBrowserClose = () => {
+      console.log('[Main] Browser closed, resetting pause state');
+      setIsBrowserOpen(false);
+      setIsPaused(false);
+    };
+
+    // Listen for browser close event from main process
+    const removeListener = (window as any).browserAPI?.browser?.onBrowserClose?.(handleBrowserClose);
+    
+    return () => {
+      if (removeListener) {
+        removeListener();
+      }
+    };
+  }, []);
+
   const assertTypes = Object.values(AssertType);
 
   const filteredAssertTypes = assertTypes.filter(type =>
@@ -212,7 +230,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const stopBrowser = async () => {
     await (window as any).browserAPI?.browser?.stop();
     setIsBrowserOpen(false);
-    setIsPaused(false);
+    setIsPaused(false); // Reset pause state when stopping browser
+    await (window as any).browserAPI?.browser?.setPauseMode(false);
   };
 
   const handleAssertSelect = async (assertType: string) => {
