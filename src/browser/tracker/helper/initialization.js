@@ -101,6 +101,7 @@ function processAssertClick(e) {
     const elementType = e.target.tagName.toLowerCase();
     const elementPreview = previewNode(e.target);
     const elementText = extractElementText(e.target);
+    const DOMelement = e.target.outerHTML;
     
     // console.log('Generated selector:', selector);
     
@@ -129,7 +130,7 @@ function processAssertClick(e) {
           console.log('connection', connection);
           console.log('connection_id', connection_id);
           console.log('query', query);
-          sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query);
+          sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement);
         }, 
         () => {
           // console.log('Assert modal canceled');
@@ -138,7 +139,7 @@ function processAssertClick(e) {
     } else {
       // Send immediate assert action for other types
       // console.log('Sending immediate assert action for type:', assertType);
-      sendAssertAction(selector, assertType, '', elementType, elementPreview, elementText, undefined, undefined, undefined);
+      sendAssertAction(selector, assertType, '', elementType, elementPreview, elementText, undefined, undefined, undefined, DOMelement);
     }
   } catch (error) {
     console.error('Error processing assert click:', error);
@@ -149,7 +150,7 @@ function processAssertClick(e) {
  * Send assert action to main process
  * Gửi action assert đến main process
  */
-function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection_id, connection, query) {
+function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection_id, connection, query, DOMelement) {
   if (window.sendActionToMain) {
     const action = {
       type: 'assert',
@@ -164,9 +165,10 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
       query: query,
       timestamp: Date.now(),
       url: window.location.href,
-      title: document.title
+      title: document.title,
+      DOMelement: DOMelement,
     };
-    console.log('action', action);
+    console.log('Assert action details:', action);
     window.sendActionToMain(action);
     // console.log('Assert action sent:', action);
   }
