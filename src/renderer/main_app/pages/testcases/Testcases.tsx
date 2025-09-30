@@ -328,12 +328,15 @@ const Testcases: React.FC = () => {
 
   const handleRunTestcase = async (id: string, event?: React.MouseEvent) => {
     if (event) event.stopPropagation();
-    // Execute testcase directly without opening modal
+    // Execute testcase, reload list, then open view modal
     try {
       const response = await testCaseService.executeTestCase({ testcase_id: id });
       if (response.success) {
         toast.success('Testcase executed successfully!');
-        await reloadTestcases(); // Reload to update status
+        // Reload testcases to get updated data
+        await reloadTestcases();
+        // Open view modal with updated data
+        handleViewResult(id);
       } else {
         toast.error(response.error || 'Failed to execute testcase');
       }
@@ -723,6 +726,7 @@ const Testcases: React.FC = () => {
         testcaseName={selectedTestcase?.name}
         projectId={projectData?.projectId}
         testcaseData={selectedTestcaseData}
+        onReloadTestcases={reloadTestcases}
       />
     </div>
   );

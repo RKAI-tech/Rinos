@@ -12,9 +12,10 @@ interface Props {
   testcaseName?: string;
   projectId?: string;
   testcaseData?: TestCaseGetResponse | null;
+  onReloadTestcases?: () => Promise<void>;
 }
 
-const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, testcaseName, projectId, testcaseData }) => {
+const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, testcaseName, projectId, testcaseData, onReloadTestcases }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<TestCaseGetResponse | null>(null);
@@ -75,7 +76,13 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
         toast.success('Testcase executed successfully!', {
           containerId: 'modal-toast-container'
         });
-        // Reload testcase data to get updated logs
+        
+        // Reload testcases list first
+        if (onReloadTestcases) {
+          await onReloadTestcases();
+        }
+        
+        // Then reload testcase data to get updated logs
         await loadTestcaseData();
       } else {
         toast.error(resp.error || 'Failed to execute testcase', {

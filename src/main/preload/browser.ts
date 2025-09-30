@@ -13,6 +13,13 @@ const browserMethods = {
             ipcRenderer.removeListener("browser:action", listener);
         };
     },
+    onBrowserClose: (handler: () => void) => {
+        const listener = () => handler();
+        ipcRenderer.on("browser:stopped", listener);
+        return () => {
+            ipcRenderer.removeListener("browser:stopped", listener);
+        };
+    },
     setAssertMode: async (enabled: boolean, assertType: AssertType) => ipcRenderer.invoke("browser:setAssertMode", enabled, assertType),
     setProjectId: async (projectId: string) => ipcRenderer.invoke("browser:setProjectId", projectId),
     getProjectId: async () => ipcRenderer.invoke("browser:getProjectId"),
