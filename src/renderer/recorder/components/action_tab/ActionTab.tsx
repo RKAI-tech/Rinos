@@ -11,12 +11,13 @@ interface ActionTabProps {
   onReorderActions?: (reorderedActions: Action[]) => void;
   onReload?: () => void;
   onSaveActions?: () => void;
-  selectedInsertPosition?: number | null;
+  selectedInsertPosition?: number;
+  displayInsertPosition?: number;
   onSelectInsertPosition?: (position: number | null) => void;
   onSelectAction?: (action: Action) => void;
 }
 
-const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteAction, onDeleteAll, onReorderActions, onReload, onSaveActions, selectedInsertPosition, onSelectInsertPosition, onSelectAction }) => {
+const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteAction, onDeleteAll, onReorderActions, onReload, onSaveActions, selectedInsertPosition, displayInsertPosition, onSelectInsertPosition, onSelectAction }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -87,7 +88,10 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
   return (
     <div className="rcd-actions-section">
       <div className="rcd-actions-header">
-        <h3 className="rcd-actions-title">Actions</h3>
+        <div className="rcd-actions-header-left">
+          <h3 className="rcd-actions-title">Actions</h3>
+          <div className="rcd-actions-insert-info">Inserting at position #{selectedInsertPosition}</div>
+        </div>
         <div className="rcd-actions-buttons">
           <button className="rcd-action-btn reset" title="Reload actions" onClick={() => onReload && onReload()}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -112,6 +116,7 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
           </button>
         </div>
       </div>
+      {/* insert-info moved inside header-left directly under the label */}
       <div className="rcd-actions-list">
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
