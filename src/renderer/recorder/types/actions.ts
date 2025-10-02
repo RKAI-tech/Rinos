@@ -98,7 +98,6 @@ export interface Action {
     connection?: Connection;
     statement_id?: string;
     statement?: Statement;
-    query?: string;
     variable_name?: string;
 }
 

@@ -11,9 +11,8 @@ import { Action, ActionType, AiAssertRequest, AssertType } from '../../types/act
 import { actionToCode } from '../../utils/action_to_code';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
-import { RunCodeResponse } from '../../types/executeScripts';
 import { receiveAction, createDescription, receiveActionWithInsert } from '../../utils/receive_action';
-import { setProjectId } from '../../context/browser_context';
+import { apiRouter } from '../../services/baseAPIRequest';
 
 
 interface MainProps {
@@ -228,7 +227,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         
         console.log(`[Main] Navigating to: ${url}`);
         await (window as any).browserAPI?.browser?.navigate(url);
-        // TODO: Tạo action mới cho navigate
+        // TODO: Increase insert position by 1
+        setSelectedInsertPosition(selectedInsertPosition + 1);
+        setDisplayInsertPosition(selectedInsertPosition + 1);
         setActions(prev => receiveAction(testcaseId || '', prev, { type: ActionType.navigate, selector: [], url: url, value: url }));
       }
       
@@ -250,6 +251,12 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setIsBrowserOpen(false);
     setIsPaused(false); // Reset pause state when stopping browser
     await (window as any).browserAPI?.browser?.setPauseMode(false);
+    // TODO: Tắt assert menu và selected assert
+    setSelectedAssert(null);
+    setIsAssertDropdownOpen(false);
+    setAssertSearch('');
+    setIsAssertMode(false);
+    await (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
     // Reset vị trí record khi dừng trình duyệt thủ công
     setSelectedInsertPosition(0);
   };
@@ -303,15 +310,39 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     };
       
     const response = await actionService.generateAiAssert(request);
+    // const response = {
+    //   success: true,
+    //   data: {
+    //     function_name: 'test',
+    //     function_code: 'test([elements], [databases]) => {test}',
+    //     description: 'test',
+    //   },
+    // };
+
+    const selectedDatabase = aiElements.find(el => el.type === 'Database');
+    const DBresp = await apiRouter.request<any>('/database-connections/get_list', {
+      method: 'POST',
+      body: JSON.stringify({ project_id: projectId }),
+    });
+    const elConnection = DBresp.success ? (DBresp as any).data.connections.find((c: any) => c.connection_id === selectedDatabase?.connectionId) : undefined;
+
+    const selectors = aiElements.find(el => el.type === 'Browser')?.selector || [];
+
     if (response.success) {
       console.log('[Main] AI assert response:', response);
       setActions(prev => {
         return receiveAction(testcaseId || '', prev, 
           { 
             type: ActionType.assert, 
-            assertType: AssertType.ai, 
-            playwright_code: (response as any).data.playwright_code || '', 
-            description: (response as any).data.description || '' 
+            assertType: AssertType.ai,
+            function_name: (response as any).data.function_name || '',
+            playwright_code: (response as any).data.function_code || '', 
+            description: (response as any).data.description || '',
+            // TODO: Add connection and query from aiElements
+            connection: elConnection,
+            query: aiElements.find(el => el.type === 'Database')?.query || '',
+            // TODO: Add all selector from aiElements if it is not null or empty
+            selector: selectors
           });
       });
     }
@@ -551,6 +582,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           <div className="rcd-assert-container">
             <button
               className={`rcd-ctrl rcd-assert ${isAssertDropdownOpen || selectedAssert ? 'active' : ''}`}
+              disabled={!isBrowserOpen}
               title="Assert"
               onClick={handleAssertClick}
             >

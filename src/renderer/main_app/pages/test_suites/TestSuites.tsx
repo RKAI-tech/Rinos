@@ -7,6 +7,8 @@ import SidebarNavigator from '../../components/sidebar_navigator/SidebarNavigato
 import './TestSuites.css';
 import { ProjectService } from '../../services/projects';
 import { TestSuiteService } from '../../services/testsuites';
+// import { ExecuteScriptsService } from '../../services/executeScripts';
+// import { ActionService } from '../../services/actions';
 import { toast } from 'react-toastify';
 import CreateTestSuite from '../../components/testsuite/create_test_suite/CreateTestSuite';
 import EditTestSuite from '../../components/testsuite/edit_test_suite/EditTestSuite';
@@ -52,6 +54,7 @@ const TestSuites: React.FC = () => {
   const [isRemoveOpen, setIsRemoveOpen] = useState(false);
   const [isViewResultOpen, setIsViewResultOpen] = useState(false);
   const [selectedSuite, setSelectedSuite] = useState<TestSuite | null>(null);
+  const [runningSuiteIds, setRunningSuiteIds] = useState<Set<string>>(new Set());
 
   const handleCreateSuite = () => {
     setIsCreateOpen(true);
@@ -223,6 +226,11 @@ const TestSuites: React.FC = () => {
 
   const handleRunSuite = async (id: string) => {
     try {
+      setRunningSuiteIds(prev => {
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
       const svc = new TestSuiteService();
       const resp = await svc.executeTestSuite({ test_suite_id: id });
       if (resp.success) {
@@ -237,6 +245,11 @@ const TestSuites: React.FC = () => {
       toast.error('Failed to run test suite');
     } finally {
       setOpenDropdownId(null);
+      setRunningSuiteIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   };
 
@@ -393,7 +406,7 @@ const TestSuites: React.FC = () => {
                 </thead>
                 <tbody>
                   {currentSuites.map((suite) => (
-                    <tr key={suite.id}>
+                    <tr key={suite.id} className={runningSuiteIds.has(suite.id) ? 'is-running' : ''} aria-busy={runningSuiteIds.has(suite.id)}>
                       <td className="testsuite-name">{suite.name}</td>
                       <td className="testsuite-description">{suite.description || '-'}</td>
                       <td className="testsuite-passrate">{suite.passRate != null ? `${suite.passRate}%` : '-'}</td>
@@ -416,11 +429,23 @@ const TestSuites: React.FC = () => {
 
                           {openDropdownId === suite.id && (
                             <div className="actions-dropdown">
-                              <button className="dropdown-item" onClick={() => handleRunSuite(suite.id)}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <polygon points="8,5 19,12 8,19" fill="currentColor" />
-                                </svg>
-                                Run
+                              <button className="dropdown-item" onClick={() => handleRunSuite(suite.id)} disabled={runningSuiteIds.has(suite.id)}>
+                                {runningSuiteIds.has(suite.id) ? (
+                                  <>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="spinner">
+                                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/>
+                                      <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
+                                    </svg>
+                                    Running...
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <polygon points="8,5 19,12 8,19" fill="currentColor" />
+                                    </svg>
+                                    Run
+                                  </>
+                                )}
                               </button>
                               <button className="dropdown-item" onClick={() => handleViewSuiteResult(suite.id)}>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

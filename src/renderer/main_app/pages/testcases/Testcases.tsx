@@ -599,7 +599,7 @@ const Testcases: React.FC = () => {
                     <td className="testcase-tag">{testcase.tag}</td>
                     <td className="testcase-actions-count">{testcase.actionsCount}</td>
                     <td className="testcase-status">
-                      <span className={`status-badge ${testcase.status.toLowerCase()}`}>
+                      <span className={`status-badge ${testcase.status || 'draft'}`}>
                         {testcase.status}
                       </span>
                     </td>

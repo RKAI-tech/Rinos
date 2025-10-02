@@ -1,5 +1,5 @@
 {
-  "name": "Automation Test Execution",
+  "name": "automation-test-app",
   "version": "1.0.0",
   "type": "module",
   "main": "dist/main.cjs",
@@ -13,7 +13,8 @@
     "start": "concurrently \"vite\" \"esbuild src/main/main.ts --bundle --platform=node --format=cjs --external:electron --external:@azure/msal-node --external:playwright --external:playwright-core --external:chromium-bidi --external:../../../package.json --external:./chromium/appIcon.png --external:./loader --outfile=dist/main.cjs --sourcemap --watch\" \"esbuild src/main/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs --sourcemap --watch\" \"wait-on http://localhost:5173/main_app/index.html && electron .\"",
     "start:prod": "npm run build && electron .",
     "build:test": "tsc -p tsconfig.main.json && vite build",
-    "start:prod:logs": "npm run build && electron --enable-logging --v=1 --log-net-log=electron-net-log.json ."
+    "start:prod:logs": "npm run build && electron --enable-logging --v=1 --log-net-log=electron-net-log.json .",
+    "build:prod": "npm run build && electron-builder"
   },
   "keywords": [],
   "author": "",
@@ -43,6 +44,51 @@
     "esbuild": "^0.23.1",
     "typescript": "^5.9.2",
     "vite": "^6.3.6",
-    "wait-on": "^9.0.1"
+    "wait-on": "^9.0.1",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.rikkei.automation-test-app",
+    "productName": "Automation Test App",
+    "copyright": "Copyright © 2025 RikkeiAI",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "src/browser/tracker/trackingScript.js",
+      "public/**",
+      "playwright-browsers/**"
+    ],
+    "extraResources": [
+      {
+        "from": "playwright-browsers",
+        "to": "playwright-browsers"
+      },
+      {
+        "from": ".env",
+        "to": ".env"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "signAndEditExecutable": false
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility"
+    }
+  },
+  "compilerOptions": {
+    "lib": [
+      "esnext",
+      "dom",
+      "dom.iterable"
+    ]
   }
 }

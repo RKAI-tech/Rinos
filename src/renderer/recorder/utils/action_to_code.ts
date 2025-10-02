@@ -1,5 +1,5 @@
 import { Action, ConnectionType } from "../types/actions";
-import { ActionType, AssertType } from "../types/actions";
+import { ActionType, AssertType, Element } from "../types/actions";
 function escapeSelector(selector: string): string {
     let escaped = selector;
 
@@ -20,7 +20,7 @@ function escapeSelector(selector: string): string {
     }
 }
 
-function generateConnectDBCode(action: Action): string {
+export function generateConnectDBCode(action: Action): string {
     const connection = action.connection;
     const dbVar = connection?.db_type?.toLowerCase();
     const dbType = connection?.db_type;
@@ -51,11 +51,7 @@ function generateConnectDBCode(action: Action): string {
     }
 }
 
-function generateAssertCode(action: Action, index: number): string {
-    console.log(`Generating assert code for action ${index}: ${action.action_type}`);
-    console.log('[generateAssertCode]', action.assert_type);
-    console.log('[generateAssertCode]', action.connection);
-    const elements = action.elements || [];
+export function processSelector(elements: Element[]): string {
     const selectors: string[][] = [];
     for (const element of elements) {
         const element_selector: string[] = [];
@@ -66,6 +62,15 @@ function generateAssertCode(action: Action, index: number): string {
     }
     const firstCandidates = selectors[0] || [];
     const candidatesLiteral = `[${firstCandidates.join(', ')}]`;
+    return candidatesLiteral;
+}
+
+export function generateAssertCode(action: Action, index: number): string {
+    console.log(`Generating assert code for action ${index}: ${action.action_type}`);
+    console.log('[generateAssertCode]', action.assert_type);
+    console.log('[generateAssertCode]', action.connection);
+    const elements = action.elements || [];
+    const candidatesLiteral = processSelector(elements);
     switch (action.assert_type) {
         case AssertType.toBeChecked:
             return `    candidates = ${candidatesLiteral};\n` +
@@ -122,7 +127,7 @@ function generateAssertCode(action: Action, index: number): string {
             if (action.connection) {
                 const dbVar = action.connection?.db_type?.toLowerCase();
                 return `${generateConnectDBCode(action)}\n` +
-                    `    const result = await ${dbVar}.query('${action.statement?.query || ''}');\n` +
+                    `    const result = await ${dbVar}.query('${action.elements?.[0]?.query || ''}');\n` +
                     `    const resultText = result.rows[0]?.${action.value || ''};\n` +
                     `    candidates = ${candidatesLiteral};\n` +
                     `    sel = await resolveUniqueSelector(page, candidates);\n` +
@@ -159,7 +164,7 @@ function generateAssertCode(action: Action, index: number): string {
             if (action.connection) {
                 const dbVar = action.connection?.db_type?.toLowerCase();
                 return `${generateConnectDBCode(action)}\n` +
-                    `    const result = await ${dbVar}.query('${action.statement?.query || ''}');\n` +
+                    `    const result = await ${dbVar}.query('${action.elements?.[0]?.query || ''}');\n` +
                     `    const resultText = result.rows[0]?.${action.value || ''};\n` +
                     `    candidates = ${candidatesLiteral};\n` +
                     `    sel = await resolveUniqueSelector(page, candidates);\n` +
@@ -176,7 +181,7 @@ function generateAssertCode(action: Action, index: number): string {
             if (action.connection) {
                 const dbVar = action.connection?.db_type?.toLowerCase();
                 return `${generateConnectDBCode(action)}\n` +
-                    `    const result = await ${dbVar}.query('${action.statement?.query || ''}');\n` +
+                    `    const result = await ${dbVar}.query('${action.elements?.[0]?.query || ''}');\n` +
                     `    const resultText = result.rows[0]?.${action.value || ''};\n` +
                     `    candidates = ${candidatesLiteral};\n` +
                     `    sel = await resolveUniqueSelector(page, candidates);\n` +
@@ -193,7 +198,7 @@ function generateAssertCode(action: Action, index: number): string {
             if (action.connection) {
                 const dbVar = action.connection?.db_type?.toLowerCase();
                 return `${generateConnectDBCode(action)}\n` +
-                    `    const result = await ${dbVar}.query('${action.statement?.query || ''}');\n` +
+                    `    const result = await ${dbVar}.query('${action.elements?.[0]?.query || ''}');\n` +
                     `    const resultText = result.rows[0]?.${action.value || ''};\n` +
                     `    candidates = ${candidatesLiteral};\n` +
                     `    sel = await resolveUniqueSelector(page, candidates);\n` +
@@ -213,8 +218,8 @@ function generateAssertCode(action: Action, index: number): string {
                 `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.ai:
             let playwrightCode = '\n' + (action.playwright_code || '// Action number ' + index + ' is not generated.');
-            // TODO: Add 4 spaces before each line
-            playwrightCode = playwrightCode.replace(/\n/g, '\n  ');
+            // TODO: Add 2 spaces before each line
+            // playwrightCode = playwrightCode.replace(/\n/g, '\n  ');
             // console.log('[generateAssertCode]', playwrightCode);
             return `${playwrightCode}\n`;
         default:
@@ -222,7 +227,7 @@ function generateAssertCode(action: Action, index: number): string {
     }
 
 }
-function generateActionCode(action: Action, index: number): string {
+export function generateActionCode(action: Action, index: number): string {
     console.log(`Generating action code for action ${index}: ${action.action_type}`);
     const elements = action.elements || [];
     const selectors: string[][] = [];

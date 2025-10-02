@@ -98,7 +98,6 @@ export enum ActionType {
       connection?: Connection;
       statement_id?: string;
       statement?: Statement;
-      query?: string;
       variable_name?: string;
   }
   
