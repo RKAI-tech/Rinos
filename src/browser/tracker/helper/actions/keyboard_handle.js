@@ -44,7 +44,7 @@ import {
   
     // Nếu đang pause thì skip
     if (getPauseMode && getPauseMode()) {
-      console.log(`Skipping ${eventLabel} recording - recording is paused`);
+      // console.log(`Skipping ${eventLabel} recording - recording is paused`);
       return;
     }
   
@@ -59,7 +59,7 @@ import {
     }
 
     const payload = buildCommonActionData(e, selectors, { value: shortcut });
-    console.log(`${eventLabel}: ${shortcut}`, previewNode(e?.target));
+    // console.log(`${eventLabel}: ${shortcut}`, previewNode(e?.target));
   
     sendAction(actionType, payload);
   }

@@ -5,6 +5,6 @@ export function setProjectId(id: string) {
 }
 
 export function getProjectId() {
-    console.log('[BrowserContext] Getting project ID:', projectId);
+    // console.log('[BrowserContext] Getting project ID:', projectId);
     return projectId;
 }

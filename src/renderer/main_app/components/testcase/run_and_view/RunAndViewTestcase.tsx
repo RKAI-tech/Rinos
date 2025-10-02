@@ -149,24 +149,27 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
 
 
           {result && !isLoading && !isRunning && (
-            <div className="ravt-result">
-              <div className="ravt-item">
-                <div className="ravt-item-head">
-                  <div className="ravt-item-name">{result.name}</div>
-                  <div className={`ravt-item-status ${(result as any).status?.toLowerCase() || 'draft'}`}>
-                    {(result as any).status || 'DRAFT'}
+            <div className="ravt-combined">
+              <div className="ravt-combined-row">
+                <div className="ravt-pane">
+                  <div className="ravt-terminal">
+                    <div className="ravt-term-bar">
+                      <span className="dot red" />
+                      <span className="dot yellow" />
+                      <span className="dot green" />
+                      <span className="ravt-term-title">Execution Logs</span>
+                    </div>
+                    <pre className="ravt-term-content">
+                      {result.logs || 'No logs available for this testcase.'}
+                    </pre>
                   </div>
                 </div>
-                <div className="ravt-terminal">
-                  <div className="ravt-term-bar">
-                    <span className="dot red" />
-                    <span className="dot yellow" />
-                    <span className="dot green" />
-                    <span className="ravt-term-title">Execution Logs</span>
-                  </div>
-                  <pre className="ravt-term-content">
-                    {result.logs || 'No logs available for this testcase.'}
-                  </pre>
+                <div className="ravt-pane">
+                  {result.url ? (
+                    <video style={{ width: '100%', height: '100%' }} controls src={result.url} />
+                  ) : (
+                    <div style={{ padding: 16 }}>No video available.</div>
+                  )}
                 </div>
               </div>
             </div>

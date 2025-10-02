@@ -15,14 +15,14 @@ export class ProjectService {
                 body: JSON.stringify({}),
             });
         } catch (error) {
-            console.warn('First attempt failed, trying GET method:', error);
+            // console.warn('First attempt failed, trying GET method:', error);
             try {
                 // Try GET method without query parameters
                 response = await apiRouter.request<ProjectGetAllResponse>('/projects/get_list', {
                     method: 'GET',
                 });
             } catch (error2) {
-                console.warn('GET method failed, trying /projects endpoint:', error2);
+                // console.warn('GET method failed, trying /projects endpoint:', error2);
                 // Try different endpoint
                 response = await apiRouter.request<ProjectGetAllResponse>('/projects', {
                     method: 'GET',
@@ -69,7 +69,7 @@ export class ProjectService {
                 totalProjects = (response.data as any).total || (response.data as any).count || projectsArray.length;
             }
             else {
-                console.error('Unexpected projects response structure:', response.data);
+                // console.error('Unexpected projects response structure:', response.data);
                 return {
                     success: false,
                     error: 'Invalid response structure: projects data is not in expected format'
@@ -105,7 +105,7 @@ export class ProjectService {
             // Gracefully handle backend validation error complaining about missing number_project
             // Treat it as an empty list so the UI shows the proper empty state
             if (/number_project/i.test(errorMessage) || /ProjectGetAllResponse/i.test(errorMessage)) {
-                console.warn('[ApiRouter] Backend validation error for projects. Falling back to empty list. Error:', errorMessage);
+                // console.warn('[ApiRouter] Backend validation error for projects. Falling back to empty list. Error:', errorMessage);
                 return {
                     success: true,
                     data: {

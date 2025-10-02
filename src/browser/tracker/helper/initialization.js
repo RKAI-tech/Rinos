@@ -126,10 +126,10 @@ function processAssertClick(e) {
         defaultValue, 
         rect, 
         (finalValue, connection, connection_id, query) => {
-          console.log('finalValue', finalValue);
-          console.log('connection', connection);
-          console.log('connection_id', connection_id);
-          console.log('query', query);
+          // console.log('finalValue', finalValue);
+          // console.log('connection', connection);
+          // console.log('connection_id', connection_id);
+          // console.log('query', query);
           sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement);
         }, 
         () => {
@@ -142,7 +142,7 @@ function processAssertClick(e) {
       sendAssertAction(selector, assertType, '', elementType, elementPreview, elementText, undefined, undefined, undefined, DOMelement);
     }
   } catch (error) {
-    console.error('Error processing assert click:', error);
+    // console.error('Error processing assert click:', error);
   }
 }
 
@@ -168,7 +168,7 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
       title: document.title,
       DOMelement: DOMelement,
     };
-    console.log('Assert action details:', action);
+    // console.log('Assert action details:', action);
     window.sendActionToMain(action);
     // console.log('Assert action sent:', action);
   }

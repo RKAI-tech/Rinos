@@ -125,7 +125,7 @@ export function createScriptForAiAssert(receivedAction: any, action_received: an
 }
 
 export function receiveAction(testcaseId: string, action_recorded: Action[], action_received: any): Action[] {
-    console.log('[rawAction]', action_received);
+    // console.log('[rawAction]', action_received);
     const receivedAction = {
         action_id: Math.random().toString(36),
         testcase_id: testcaseId,
@@ -156,7 +156,7 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         } : undefined,
     } as Action;
 
-    console.log('[receiveAction]', receivedAction);
+    // console.log('[receiveAction]', receivedAction);
 
     const last_action = action_recorded[action_recorded.length - 1];
 
@@ -207,9 +207,9 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
             }
         }
     }
-    if (receivedAction.action_type === ActionType.assert && receivedAction.assert_type === AssertType.ai) {
-         receivedAction.playwright_code = createScriptForAiAssert(receivedAction, action_received);
-    }
+    // if (receivedAction.action_type === ActionType.assert && receivedAction.assert_type === AssertType.ai) {
+    //      receivedAction.playwright_code = createScriptForAiAssert(receivedAction, action_received);
+    // }
     return [...action_recorded, receivedAction];
 }
 

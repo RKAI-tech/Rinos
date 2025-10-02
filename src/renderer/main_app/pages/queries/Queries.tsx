@@ -99,7 +99,7 @@ const Queries: React.FC = () => {
         }
       }
     } catch (e) {
-      console.error('Failed to fetch connections:', e);
+      // console.error('Failed to fetch connections:', e);
     }
   };
 
@@ -210,7 +210,7 @@ const Queries: React.FC = () => {
       });
       
       if (resp.success && resp.data) {
-        console.log(resp.data);
+        // console.log(resp.data);
         // Handle array of objects response
         let items: any[] = [];
         let columns: string[] = [];

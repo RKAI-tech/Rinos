@@ -213,7 +213,7 @@ export function createQueryPanel(assertType, onConfirm) {
   }
 
   function addSelectedCell(row, col) {
-    console.log('addSelectedCell', row, col);
+    // console.log('addSelectedCell', row, col);
     if (typeof window.sendActionToMain === 'function') {
       // const payload = {
       //   type: 'assert',
@@ -228,7 +228,7 @@ export function createQueryPanel(assertType, onConfirm) {
       // }
       // console.log('payload', payload);
       // window.sendActionToMain(payload);
-      console.log('onConfirm', onConfirm);
+      // console.log('onConfirm', onConfirm);
       if (onConfirm) onConfirm(col, lastRun.connectionId || undefined, lastRun.connection || undefined, lastRun.sql);
     }
   }

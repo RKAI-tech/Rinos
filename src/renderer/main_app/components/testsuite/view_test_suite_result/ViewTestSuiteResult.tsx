@@ -29,54 +29,41 @@ interface LogModalProps {
 
 // Log Modal Component
 const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, testcaseName, logs, videoUrl }) => {
-  const [isVideoOpen, setIsVideoOpen] = useState(false);
   if (!isOpen) return null;
 
   return (
     <div className="vtsr-log-overlay" onClick={(e) => e.stopPropagation()}>
-      <div className="vtsr-log-container" onClick={(e) => e.stopPropagation()}>
+      <div className="vtsr-log-combined" onClick={(e) => e.stopPropagation()}>
         <div className="vtsr-log-header">
-          <h3 className="vtsr-log-title">Logs: {testcaseName}</h3>
+          <h3 className="vtsr-log-title">{testcaseName}</h3>
           <button className="vtsr-log-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
-        <div className="vtsr-log-body">
-          <div className="vtsr-terminal">
-            <div className="vtsr-term-bar">
-              <span className="dot red" />
-              <span className="dot yellow" />
-              <span className="dot green" />
-              <span className="vtsr-term-title">Execution Logs</span>
+        <div className="vtsr-log-content-row">
+          <div className="vtsr-log-pane">
+            <div className="vtsr-terminal">
+              <div className="vtsr-term-bar">
+                <span className="dot red" />
+                <span className="dot yellow" />
+                <span className="dot green" />
+                <span className="vtsr-term-title">Execution Logs</span>
+              </div>
+              <pre className="vtsr-term-content">
+                {logs || 'No logs available for this testcase.'}
+              </pre>
             </div>
-            <pre className="vtsr-term-content">
-              {logs || 'No logs available for this testcase.'}
-            </pre>
+          </div>
+          <div className="vtsr-log-pane">
+            {videoUrl ? (
+              <video style={{ width: '100%', height: '100%' }} controls src={videoUrl} />
+            ) : (
+              <div style={{ padding: 16 }}>No video available.</div>
+            )}
           </div>
         </div>
         <div className="vtsr-log-footer">
-          <button className="vtsr-btn" onClick={() => setIsVideoOpen(true)}>Video</button>
           <button className="vtsr-btn" onClick={onClose}>Close</button>
         </div>
       </div>
-      {isVideoOpen && (
-        <div className="vtsr-log-overlay" onClick={(e) => e.stopPropagation()}>
-          <div className="vtsr-log-container" onClick={(e) => e.stopPropagation()}>
-            <div className="vtsr-log-header">
-              <h3 className="vtsr-log-title">Video: {testcaseName}</h3>
-              <button className="vtsr-log-close" onClick={() => setIsVideoOpen(false)} aria-label="Close">✕</button>
-            </div>
-            <div className="vtsr-log-body">
-              {videoUrl ? (
-                <video style={{ width: '100%', maxHeight: '70vh' }} controls src={videoUrl} />
-              ) : (
-                <div>No video available.</div>
-              )}
-            </div>
-            <div className="vtsr-log-footer">
-              <button className="vtsr-btn" onClick={() => setIsVideoOpen(false)}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

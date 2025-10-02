@@ -3,6 +3,7 @@ import './AiAssertModal.css';
 import { StatementService } from '../../services/statements';
 import { apiRouter } from '../../services/baseAPIRequest';
 import QueryResultTable from './QueryResultTable';
+import { Connection } from '../../types/actions';
 
 const statementService = new StatementService();
 
@@ -10,7 +11,6 @@ type ElementType = 'Browser' | 'Database';
 
 interface AiElementItem {
   id: string;
-  name: string;
   type: ElementType;
   // Browser fields
   selector?: string[];
@@ -18,6 +18,7 @@ interface AiElementItem {
   value?: string;
   // Database fields
   connectionId?: string;
+  connection?: Connection;
   query?: string;
   queryResultPreview?: string;
   queryResultData?: any[];
@@ -30,6 +31,7 @@ interface AiAssertModalProps {
   testcaseId?: string | null;
   prompt: string;
   elements: AiElementItem[];
+  isGenerating?: boolean;
   onChangePrompt: (v: string) => void;
   onChangeElement: (idx: number, updater: (el: AiElementItem) => AiElementItem) => void;
   onRemoveElement: (idx: number) => void;
@@ -43,6 +45,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
   testcaseId,
   prompt,
   elements,
+  isGenerating,
   onChangePrompt,
   onChangeElement,
   onRemoveElement,
@@ -51,6 +54,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
   onAddElement,
 }) => {
   const [connections, setConnections] = useState<ConnectionOption[]>([]);
+  const [connectionMap, setConnectionMap] = useState<Record<string, Connection>>({});
   const [isLoadingConns, setIsLoadingConns] = useState(false);
   const [isRunningQueryIdx, setIsRunningQueryIdx] = useState<number | null>(null);
 
@@ -68,13 +72,20 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
           body: JSON.stringify({ project_id: projectId }),
         });
         if (resp.success && (resp as any).data?.connections) {
-          const opts: ConnectionOption[] = (resp as any).data.connections.map((c: any) => ({
+          const rawConns: Connection[] = (resp as any).data.connections;
+          const opts: ConnectionOption[] = rawConns.map((c: any) => ({
             id: c.connection_id,
             label: `${String(c.db_type).toUpperCase()} • ${c.db_name}@${c.host}:${c.port}`,
           }));
           setConnections(opts);
+          const map: Record<string, Connection> = {};
+          rawConns.forEach((c: any) => {
+            map[c.connection_id] = c as Connection;
+          });
+          setConnectionMap(map);
         } else {
           setConnections([]);
+          setConnectionMap({});
         }
       } finally {
         setIsLoadingConns(false);
@@ -91,7 +102,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
       const el = elements[idx];
       if (!el?.connectionId || !el?.query || !el.query.trim()) return;
 
-      console.log('Running query', el.connectionId, el.query);
+      // console.log('Running query', el.connectionId, el.query);
 
       const resp = await statementService.runWithoutCreate({ connection_id: el.connectionId, query: el.query });
       
@@ -134,10 +145,6 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
             {elements.map((el, idx) => (
               <div key={el.id} className="aiam-element-item">
                 <div className="aiam-row">
-                  <div className="aiam-col">
-                    <label className="aiam-sub">Name</label>
-                    <input className="aiam-input" value={el.name} onChange={(e) => onChangeElement(idx, (old) => ({ ...old, name: e.target.value }))} placeholder="Element variable name" />
-                  </div>
                   <div className="aiam-col aiam-col-type">
                     <label className="aiam-sub">Type</label>
                     <input className="aiam-input aiam-disabled" value={el.type} disabled />
@@ -163,7 +170,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                     <div className="aiam-row">
                       <div className="aiam-col">
                         <label className="aiam-sub">Connection</label>
-                        <select className="aiam-input" value={el.connectionId || ''} onChange={(e) => onChangeElement(idx, (old) => ({ ...old, connectionId: e.target.value }))}>
+                        <select className="aiam-input" value={el.connectionId || ''} onChange={(e) => onChangeElement(idx, (old) => ({ ...old, connectionId: e.target.value, connection: connectionMap[e.target.value] }))}>
                           <option value="" disabled>{isLoadingConns ? 'Loading...' : 'Select a connection'}</option>
                           {connections.map(c => (
                             <option key={c.id} value={c.id}>{c.label}</option>
@@ -202,7 +209,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
             <button className="aiam-btn" onClick={onClose}>Cancel</button>
           </div>
           <div className="aiam-right">
-            <button className="aiam-btn aiam-primary" disabled={!prompt.trim() || elements.length === 0} onClick={onSubmit}>Generate</button>
+            <button className="aiam-btn aiam-primary" disabled={isGenerating || !prompt.trim() || elements.length === 0} onClick={onSubmit}>{isGenerating ? 'Generating...' : 'Generate'}</button>
           </div>
         </div>
       </div>

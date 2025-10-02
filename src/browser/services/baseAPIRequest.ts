@@ -7,11 +7,11 @@ export class ApiRouter {
 
   constructor() {
     this.baseUrl = config.API_BASE_URL;
-    console.log('[BrowserApiRouter] Initialized with base URL:', this.baseUrl);
+    // console.log('[BrowserApiRouter] Initialized with base URL:', this.baseUrl);
   }
   setAuthToken(token: string | null) {
     this.token = token;
-    console.log('[BrowserApiRouter] Auth token set:', token ? '***' : 'null');
+    // console.log('[BrowserApiRouter] Auth token set:', token ? '***' : 'null');
   }
 
   async request<T>(
@@ -29,12 +29,12 @@ export class ApiRouter {
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
-    console.log('[BrowserApiRouter] Token available:', this.token ? '***' : 'null');
+    // console.log('[BrowserApiRouter] Token available:', this.token ? '***' : 'null');
     try {
-      console.log('[BrowserApiRouter] Request =>', options.method || 'GET', url);
-      console.log('[BrowserApiRouter] Request headers:', headers);
+      // console.log('[BrowserApiRouter] Request =>', options.method || 'GET', url);
+      // console.log('[BrowserApiRouter] Request headers:', headers);
       if (options.body) {
-        console.log('[BrowserApiRouter] Request body:', options.body);
+        // console.log('[BrowserApiRouter] Request body:', options.body);
       }
       
       const response = await fetch(url, {
@@ -42,23 +42,23 @@ export class ApiRouter {
         headers,
       });
 
-      console.log('[BrowserApiRouter] Response status:', response.status);
-      console.log('[ApiRouter] Response headers:', response.headers);
+      // console.log('[BrowserApiRouter] Response status:', response.status);
+      // console.log('[ApiRouter] Response headers:', response.headers);
 
       let data: unknown;
       try {
         data = await response.json();
       } catch (parseError) {
-        console.error('[BrowserApiRouter] Failed to parse JSON response:', parseError);
+        // console.error('[BrowserApiRouter] Failed to parse JSON response:', parseError);
         const textResponse = await response.text();
-        console.log('[BrowserApiRouter] Raw response text:', textResponse);
+        // console.log('[BrowserApiRouter] Raw response text:', textResponse);
         return {
           success: false,
           error: `Invalid JSON response: ${textResponse}`
         };
       }
 
-      console.log('[BrowserApiRouter] Response <=', url, { status: response.status, data });
+      // console.log('[BrowserApiRouter] Response <=', url, { status: response.status, data });
 
       if (!response.ok) {
         return {
@@ -83,7 +83,7 @@ export class ApiRouter {
         };
       }
     } catch (error) {
-      console.error('[BrowserApiRouter] Request failed:', url, error);
+      // console.error('[BrowserApiRouter] Request failed:', url, error);
       
       if (error instanceof TypeError && error.message.includes('fetch')) {
         return {

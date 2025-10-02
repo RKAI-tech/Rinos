@@ -139,12 +139,19 @@ export interface AssertActionsResponse {
   assert_actions: AssertAction[];
 }
 
+export interface ElementAICreateSelector {
+  value: string;
+}
+
 export interface ElementAICreate {
   domHtml: string;
+  selector?: ElementAICreateSelector[];
 }
 
 export interface ElementAIDatabase {
   data: string;
+  connection?: Connection;
+  query?: string;
 }
 
 export interface AiAssertRequest {

@@ -8,7 +8,7 @@ let lastInputAction = null;
 // Public API: trạng thái
 export function setPauseMode(enabled) {
   isPaused = enabled;
-  console.log('Pause mode set to:', enabled, '- Recording paused but web interactions continue normally');
+  // console.log('Pause mode set to:', enabled, '- Recording paused but web interactions continue normally');
 }
 
 export function getPauseMode() {
@@ -17,7 +17,7 @@ export function getPauseMode() {
 
 export function resetLastInputAction() {
   lastInputAction = null;
-  console.log('lastInputAction reset successfully');
+  // console.log('lastInputAction reset successfully');
 }
 
 export function getLastInputAction() {
@@ -36,11 +36,11 @@ export function shouldIgnoreTarget(target, label = 'Event') {
     if (target.closest('#rikkei-query-panel')) {
       return true;
     } else {
-      console.log(`Skipping ${label} - inside query panel`);
+      // console.log(`Skipping ${label} - inside query panel`);
     }
     // Ignore and log for controls and assert modal only
     if (target.closest('#rikkei-browser-controls') || target.closest('#rikkei-assert-input-modal')) {
-      console.log(`Skipping ${label} - inside browser controls or assert modal`);
+      // console.log(`Skipping ${label} - inside browser controls or assert modal`);
       return true;
     }
   } catch {}
@@ -56,7 +56,7 @@ export function buildSelectors(target, options = {}) {
   try {
     return generateAndValidateSelectors(target, { maxSelectors, minScore, validate });
   } catch (e) {
-    console.warn('buildSelectors failed:', e);
+    // console.warn('buildSelectors failed:', e);
     return [];
   }
 }
@@ -77,7 +77,7 @@ export function buildCommonActionData(e, selectors, extra = {}) {
 
 // Helper: gửi action sang main
 export function sendAction(type, data) {
-  console.log('Attempting to send action:', type, data);
+  // console.log('Attempting to send action:', type, data);
   if (window.sendActionToMain) {
     const timestamp = Date.now();
     try {
@@ -89,11 +89,11 @@ export function sendAction(type, data) {
         title: document.title
       };
       window.sendActionToMain(action);
-      console.log('Action sent successfully:', type, action, 'timestamp:', timestamp);
+      // console.log('Action sent successfully:', type, action, 'timestamp:', timestamp);
     } catch (error) {
-      console.error('Error sending action:', error);
+      // console.error('Error sending action:', error);
     }
   } else {
-    console.error('sendActionToMain function not available');
+    // console.error('sendActionToMain function not available');
   }
 }

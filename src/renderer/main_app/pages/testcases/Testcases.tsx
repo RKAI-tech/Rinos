@@ -35,7 +35,7 @@ const Testcases: React.FC = () => {
   const { projectId } = useParams();
   const projectData = { projectId, projectName: (location.state as { projectName?: string } | null)?.projectName };
   const [resolvedProjectName, setResolvedProjectName] = useState<string>(projectData.projectName || 'Project');
-  console.log('projectData', projectData);
+  // console.log('projectData', projectData);
   // Data from API
   const [testcases, setTestcases] = useState<Testcase[]>([]);
   const [testcasesData, setTestcasesData] = useState<any[]>([]);
@@ -426,13 +426,13 @@ const Testcases: React.FC = () => {
 
   const handleOpenRecorder = async (id: string) => {
     try {
-      console.log('[Testcases] Opening recorder for testcase:', id);
+      // console.log('[Testcases] Opening recorder for testcase:', id);
       // TODO: Get token from apiRouter
       const token = await (window as any).tokenStore?.get?.();
       (window as any).browserAPI?.browser?.setAuthToken?.(token);
       const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectData?.projectId);
     } catch (err) {
-      console.error('[Testcases] openRecorder error:', err);
+      // console.error('[Testcases] openRecorder error:', err);
     }
   };
 

@@ -36,7 +36,7 @@ export class TestSuiteService {
             });
             return response;
         } catch (error) {
-            console.error('[ApiRouter] Remove test case from test suite failed:', error);
+            // console.error('[ApiRouter] Remove test case from test suite failed:', error);
             return {
                 success: false,
                 error: 'Failed to remove test case from test suite'

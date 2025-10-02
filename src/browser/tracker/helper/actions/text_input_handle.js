@@ -8,16 +8,16 @@ import {
 import { previewNode } from '../domUtils.js';
 
 export function handleInputLikeBase(e, actionType = 'input', eventLabel = 'Input') {
-  console.log(`${eventLabel} event detected:`, previewNode(e?.target));
+  // console.log(`${eventLabel} event detected:`, previewNode(e?.target));
   if (shouldIgnoreTarget(e?.target, eventLabel)) return;
   if (getPauseMode && getPauseMode()) {
-    console.log(`Skipping ${eventLabel} recording - recording is paused`);
+    // console.log(`Skipping ${eventLabel} recording - recording is paused`);
     return;
   }
   const selectors = buildSelectors(e?.target);
   const value = e?.target?.value;
   const payload = buildCommonActionData(e, selectors, { value });
-  console.log(`${eventLabel} event - generated selectors:`, selectors, 'value:', value);
+  // console.log(`${eventLabel} event - generated selectors:`, selectors, 'value:', value);
   sendAction(actionType, payload);
 }
 
