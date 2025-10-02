@@ -68,13 +68,6 @@
       "package.json",
       ".env"
     ],
-    "extraResources": [
-      {
-        "from": "node_modules/playwright/.local-browsers",
-        "to": "playwright-browsers",
-        "filter": ["**/*"]
-      }
-    ],
     "linux": {
       "target": [
         {

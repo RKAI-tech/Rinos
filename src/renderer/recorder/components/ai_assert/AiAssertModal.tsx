@@ -34,7 +34,7 @@ interface AiAssertModalProps {
   onChangeElement: (idx: number, updater: (el: AiElementItem) => AiElementItem) => void;
   onRemoveElement: (idx: number) => void;
   onClose: () => void;
-  onSubmit: () => void;
+  onSubmit: () => Promise<boolean | void> | boolean | void;
   onAddElement: () => void;
 }
 
@@ -53,6 +53,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
   const [connections, setConnections] = useState<ConnectionOption[]>([]);
   const [isLoadingConns, setIsLoadingConns] = useState(false);
   const [isRunningQueryIdx, setIsRunningQueryIdx] = useState<number | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     const loadConnections = async () => {
@@ -85,6 +86,19 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
 
   if (!isOpen) return null;
 
+  const handleGenerate = async () => {
+    try {
+      setIsGenerating(true);
+      const result = await Promise.resolve(onSubmit());
+      // Chỉ đóng khi onSubmit báo thành công (result === true)
+      if (result === true) {
+        onClose();
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleRunQuery = async (idx: number) => {
     try {
       setIsRunningQueryIdx(idx);
@@ -105,11 +119,11 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
   };
 
   return (
-    <div className="aiam-overlay" onClick={onClose}>
+    <div className="aiam-overlay" onClick={() => { if (!isGenerating) onClose(); }}>
       <div className="aiam-modal" onClick={(e) => e.stopPropagation()}>
         <div className="aiam-header">
           <div className="aiam-title">AI Assert</div>
-          <button className="aiam-close" onClick={onClose}>✕</button>
+          <button className="aiam-close" onClick={onClose} disabled={isGenerating}>✕</button>
         </div>
 
         <div className="aiam-body">
@@ -199,10 +213,10 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
 
         <div className="aiam-footer">
           <div className="aiam-left">
-            <button className="aiam-btn" onClick={onClose}>Cancel</button>
+            <button className="aiam-btn" onClick={onClose} disabled={isGenerating}>Cancel</button>
           </div>
           <div className="aiam-right">
-            <button className="aiam-btn aiam-primary" disabled={!prompt.trim() || elements.length === 0} onClick={onSubmit}>Generate</button>
+            <button className="aiam-btn aiam-primary" disabled={isGenerating || !prompt.trim() || elements.length === 0} onClick={handleGenerate}>{isGenerating ? 'Generating…' : 'Generate'}</button>
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { Action, Element, Selector, ActionType, AssertType } from "../types/actions";
+import { actionToCode, generateConnectDBCode, processSelector } from "./action_to_code";
 
 export function createDescription(action_received: any): string {
     const type = action_received.type;
@@ -84,10 +85,44 @@ export function createDescription(action_received: any): string {
                     return `Verify the element has accessible description`;
                 case AssertType.toHaveAccessibleName:
                     return `Verify the element has accessible name`;
+                case AssertType.ai:
+                    return `${action_received.description}`;
             }
         default:
             return `Unknown action`;
     }
+}
+
+export function createScriptForAiAssert(receivedAction: any, action_received: any): string {
+    let script = "    " + receivedAction.playwright_code;
+    if (receivedAction.connection) {
+        script += '\n' + generateConnectDBCode(receivedAction);
+    }
+    script += '\n' + `    let outerHTMLs = [];\n` + `  let databaseResults = [];\n`;
+    receivedAction.elements?.forEach((element: Element) => {
+        if (element.selector) {
+            const candidatesLiteral = processSelector([element]);
+            // TODO: script to get outerHTML of the element
+            script += '\n' + `    candidates = ${candidatesLiteral};\n` +
+                `    sel = await resolveUniqueSelector(page, candidates);\n` +
+                `    const outerHTML = await page.locator(sel).evaluate((el) => el.outerHTML);\n` +
+                `    var str = String(outerHTML);\n` +   // ép về string
+                `    outerHTMLs.push(str);\n`;
+
+        }
+        if (element.query) {
+            const dbVar = receivedAction.connection?.db_type?.toLowerCase();
+            script += '\n' + `    var result = await ${dbVar}.query('${element.query}');\n` +
+                `    databaseResults=[result.rows];\n` + 
+                `    await ${dbVar}.end();\n`;
+        }
+    });
+    const function_name = action_received.function_name;
+    // TODO: script to call the function, the function is used to verify the assert, it return True or False
+    script += '\n' + `    var result = await ${function_name}(outerHTMLs, databaseResults);\n` +
+        `    await expect(result).toBe(true);\n`;
+        
+    return script;
 }
 
 export function receiveAction(testcaseId: string, action_recorded: Action[], action_received: any): Action[] {
@@ -97,12 +132,13 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         testcase_id: testcaseId,
         action_type: action_received.type,
         description: createDescription(action_received),
-        elements: [{
+        playwright_code: action_received.playwright_code,
+        elements: action_received.selector ? [{
             selector: action_received.selector.map((sel: string) => ({ value: sel } as Selector)),
             query: action_received.query,
             value: action_received.value,
             variable_name: action_received.variable_name,
-        } as Element],
+        } as Element] : [],
         assert_type: action_received.assertType,
         value: action_received.value,
         connection_id: action_received.connection_id,
@@ -168,6 +204,9 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         if (last_action && (last_action.action_type === ActionType.double_click || last_action.action_type === ActionType.right_click|| last_action.action_type === ActionType.click)) {
             return action_recorded;
         }
+    }
+    if (receivedAction.action_type === ActionType.assert && receivedAction.assert_type === AssertType.ai) {
+         receivedAction.playwright_code = createScriptForAiAssert(receivedAction, action_received);
     }
     return [...action_recorded, receivedAction];
 }

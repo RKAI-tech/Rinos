@@ -42,25 +42,17 @@ function createWindow(options: Electron.BrowserWindowConstructorOptions, page: s
     tryLoadDevPaths(win, page).catch((err) => {
       console.error("Load dev URL failed:", err);
     });
-    if (process.env.OPEN_DEVTOOLS === "1") {
-      try {
-        win.webContents.openDevTools({ mode: "detach" });
-      } catch {}
-    }
   } else {
     console.log('__dirnameResolved', __dirnameResolved);
     win.loadFile(path.join(__dirnameResolved, `renderer/${page}/index.html`));
   }
-
+  win.webContents.openDevTools();
   return win;
 }
 
 export function createMainAppWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   const win = createWindow({ width, height }, "main_app");
-  try {
-    win.webContents.openDevTools({ mode: "detach" });
-  } catch {}
   return win;
 }
 
@@ -84,9 +76,6 @@ export function createRecorderWindow(testcaseId?: string, projectId?: string) {
     console.log('[WindowManager] Creating recorder window without testcaseId and projectId');
   }
   
-  try {
-    win.webContents.openDevTools({ mode: "detach" });
-  } catch {}
   return win;
 }
 

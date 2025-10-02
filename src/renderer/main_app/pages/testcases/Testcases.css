@@ -404,6 +404,34 @@
   color: #b91c1c;
 }
 
+/* Running state styles */
+.is-running {
+  pointer-events: none;
+}
+
+/* Keep actions interactive even when row is running */
+.is-running .actions-container,
+.is-running .actions-btn,
+.is-running .actions-dropdown,
+.is-running .dropdown-item {
+  pointer-events: auto;
+}
+
+.dropdown-item:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Spinner animation */
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .testcases-layout {

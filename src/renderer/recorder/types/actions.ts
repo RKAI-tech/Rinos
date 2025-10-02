@@ -98,7 +98,6 @@ export interface Action {
     connection?: Connection;
     statement_id?: string;
     statement?: Statement;
-    query?: string;
     variable_name?: string;
 }
 
@@ -125,20 +124,11 @@ export interface AiAssertElement {
   database_connection?: AiAssertDatabaseConnection;
 }
 
-export interface AiAssertRequest {
-  testcase_id: string;
-  elements: AiAssertElement[];
-  prompt: string;
-}
-
-export interface AiAssertResponse {
-  success: boolean;
-  data?: {
-    playwright_code: string;
-    description: string;
-  };
-  error?: string;
-}
+// export interface AiAssertRequest {
+//   testcase_id: string;
+//   elements: AiAssertElement[];
+//   prompt: string;
+// }
 
 export interface AssertAction {
   name: string;
@@ -147,4 +137,25 @@ export interface AssertAction {
 
 export interface AssertActionsResponse {
   assert_actions: AssertAction[];
+}
+
+export interface ElementAICreate {
+  domHtml: string;
+}
+
+export interface ElementAIDatabase {
+  data: string;
+}
+
+export interface AiAssertRequest {
+  elements?: ElementAICreate[];
+  database_results?: ElementAIDatabase[];
+  prompt: string;
+}
+
+export interface AiAssertResponse {
+  success: boolean;
+  playwright_code?: string;
+  description?: string;
+  error?: string;
 }
