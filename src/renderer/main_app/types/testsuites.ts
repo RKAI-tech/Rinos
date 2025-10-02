@@ -49,6 +49,7 @@ export interface TestCaseInSuite {
     logs: string;
     created_at: string;
     updated_at: string;
+    url: string;
 }
 
 export interface GetTestCasesBySuiteResponse {
