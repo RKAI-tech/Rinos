@@ -60,8 +60,6 @@ const Testcases: React.FC = () => {
 
   // Service
   const testCaseService = new TestCaseService();
-  const executeScriptsService = new ExecuteScriptsService();
-  const actionService = new ActionService();
 
   // Helper: reload testcases
   const reloadTestcases = async () => {
@@ -338,17 +336,7 @@ const Testcases: React.FC = () => {
     // Execute testcase, reload list, then open view modal
     try {
       setRunningTestcaseId(id);
-      let actions: Action[] = [];
-      const actions_resp = await actionService.getActionsByTestCase(id, 1000, 0);
-      if (actions_resp.success && actions_resp.data) {
-        actions = actions_resp.data.actions || [];
-      } else {
-        toast.error('Test case has no actions');
-        return;
-      }
-
-      const code = actionToCode(actions);
-      const resp = await executeScriptsService.executeJavascript({ code: code, testcase_id: id });
+      const resp = await testCaseService.executeTestCase({ testcase_id: id });
       if (resp.success) {
         toast.success('Testcase executed successfully!');
       } else {
@@ -553,7 +541,11 @@ const Testcases: React.FC = () => {
                 <option value="50 rows/page">50 rows/page</option>
               </select>
 
-              <button className="create-testcase-btn" onClick={handleCreateTestcase}>
+              <button 
+                className="create-testcase-btn" 
+                onClick={handleCreateTestcase}
+                title="Create a new testcase with actions and steps"
+              >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -623,6 +615,7 @@ const Testcases: React.FC = () => {
                               className="dropdown-item"
                               onClick={(e) => handleRunTestcase(testcase.id, e)}
                               disabled={runningTestcaseId === testcase.id}
+                              title="Execute this testcase and view results"
                             >
                               {runningTestcaseId === testcase.id ? (
                                 <>
@@ -641,27 +634,43 @@ const Testcases: React.FC = () => {
                                 </>
                               )}
                             </button>
-                            <button className="dropdown-item" onClick={(e) => handleViewResult(testcase.id, e)}>
+                            <button 
+                              className="dropdown-item" 
+                              onClick={(e) => handleViewResult(testcase.id, e)}
+                              title="View testcase execution results and details"
+                            >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M12 5c5 0 9 4 9 7s-4 7-9 7-9-4-9-7 4-7 9-7zm0 3a4 4 0 100 8 4 4 0 000-8z" fill="currentColor"/>
                               </svg>
                               View
                             </button>
-                            <button className="dropdown-item" onClick={(e) => handleOpenEdit(testcase.id, e)}>
+                            <button 
+                              className="dropdown-item" 
+                              onClick={(e) => handleOpenEdit(testcase.id, e)}
+                              title="Edit testcase name and tag"
+                            >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                               Edit
                             </button>
-                            <button className="dropdown-item" onClick={(e) => handleOpenDuplicate(testcase.id, e)}>
+                            <button 
+                              className="dropdown-item" 
+                              onClick={(e) => handleOpenDuplicate(testcase.id, e)}
+                              title="Create a copy of this testcase with all its actions"
+                            >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M16 1H4a2 2 0 0 0-2 2v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 <rect x="8" y="5" width="14" height="14" rx="2" ry="2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                               Duplicate
                             </button>
-                            <button className="dropdown-item delete" onClick={(e) => handleOpenDelete(testcase.id, e)}>
+                            <button 
+                              className="dropdown-item delete" 
+                              onClick={(e) => handleOpenDelete(testcase.id, e)}
+                              title="Permanently delete this testcase and all its actions"
+                            >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -678,48 +687,46 @@ const Testcases: React.FC = () => {
             </table>
           </div>
           
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="pagination">
-              <div className="pagination-info">
-                Showing {filteredTestcases.length === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, filteredTestcases.length)} of {filteredTestcases.length} testcases
-              </div>
-              <div className="pagination-controls">
-                <button 
-                  className="pagination-btn"
-                  onClick={handlePreviousPage}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </button>
-                
-                <div className="pagination-pages">
-                  {paginationNumbers.map((page, index) => (
-                    <div key={index}>
-                      {page === '...' ? (
-                        <span className="pagination-ellipsis">...</span>
-                      ) : (
-                        <button
-                          className={`pagination-page ${currentPage === page ? 'active' : ''}`}
-                          onClick={() => handlePageChange(page as number)}
-                        >
-                          {page}
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                
-                <button 
-                  className="pagination-btn"
-                  onClick={handleNextPage}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </button>
-              </div>
+          {/* Pagination - Always visible */}
+          <div className="pagination">
+            <div className="pagination-info">
+              Showing {filteredTestcases.length === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, filteredTestcases.length)} of {filteredTestcases.length} testcases
             </div>
-          )}
+            <div className="pagination-controls">
+              <button 
+                className="pagination-btn"
+                onClick={handlePreviousPage}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+              
+              <div className="pagination-pages">
+                {paginationNumbers.map((page, index) => (
+                  <div key={index}>
+                    {page === '...' ? (
+                      <span className="pagination-ellipsis">...</span>
+                    ) : (
+                      <button
+                        className={`pagination-page ${currentPage === page ? 'active' : ''}`}
+                        onClick={() => handlePageChange(page as number)}
+                      >
+                        {page}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              <button 
+                className="pagination-btn"
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </div>
           </div>
         </main>
       </div>

@@ -68,25 +68,31 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
       return;
     }
 
-    // Prepare actions for createTestCaseWithActions
-    const preparedActions: Action[] = (actions || []).map(a => ({
-      testcase_id: '', // Will be filled by backend
-      action_type: a.action_type,
-      description: a.description,
-      playwright_code: a.playwright_code,
-      elements: (a.elements || []).map((el: any) => ({
-        selector: ((el?.selector || []) as any[])
-          .map((s: any) => {
-            const val = typeof s === 'string' ? s : (s?.value || '');
-            return val && val.length > 0 ? { value: val } : null;
-          })
-          .filter(Boolean) as { value: string }[]
-      })),
-      assert_type: a.assert_type as any,
-      value: a.value,
-      selected_value: a.selected_value,
-      checked: a.checked,
+    // TODO: clone actions without action_id and testcase_id
+    const preparedActions = actions.map(a => ({
+      ...a,
+      action_id: '',
+      testcase_id: '',
     }));
+    // Prepare actions for createTestCaseWithActions
+    // const preparedActions: Action[] = (actions || []).map(a => ({
+    //   testcase_id: '', // Will be filled by backend
+    //   action_type: a.action_type,
+    //   description: a.description,
+    //   playwright_code: a.playwright_code,
+    //   elements: (a.elements || []).map((el: any) => ({
+    //     selector: ((el?.selector || []) as any[])
+    //       .map((s: any) => {
+    //         const val = typeof s === 'string' ? s : (s?.value || '');
+    //         return val && val.length > 0 ? { value: val } : null;
+    //       })
+    //       .filter(Boolean) as { value: string }[]
+    //   })),
+    //   assert_type: a.assert_type as any,
+    //   value: a.value,
+    //   selected_value: a.selected_value,
+    //   checked: a.checked,
+    // }));
 
     // Use createTestCaseWithActions to create testcase and actions in one call
     const result = await createTestcaseWithActions(

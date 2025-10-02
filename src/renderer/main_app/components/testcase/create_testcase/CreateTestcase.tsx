@@ -74,6 +74,12 @@ const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave
           <div className="testcase-form-group">
             <label htmlFor="testcaseName" className="testcase-form-label">
               Testcase Name <span className="testcase-required-asterisk">*</span>
+              <div className="tooltip-container">
+                <span className="tooltip-icon">?</span>
+                <div className="tooltip-content">
+                  Enter a descriptive name for your testcase. This will help identify the testcase in the list.
+                </div>
+              </div>
             </label>
             <input
               type="text"
@@ -90,6 +96,12 @@ const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave
           <div className="testcase-form-group">
             <label htmlFor="testcaseTag" className="testcase-form-label">
               Tag
+              <div className="tooltip-container">
+                <span className="tooltip-icon">?</span>
+                <div className="tooltip-content">
+                  Optional tag to categorize your testcase (e.g., smoke, regression, critical). This helps organize and filter testcases.
+                </div>
+              </div>
             </label>
             <input
               type="text"

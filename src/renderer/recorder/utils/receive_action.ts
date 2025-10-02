@@ -197,11 +197,14 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
             return updatedActions;
         }
     }
-    if(receivedAction.action_type === ActionType.click) {
-        const last_action = action_recorded[action_recorded.length - 1];
-        console.log('[last_action]', last_action);
-        if (last_action && (last_action.action_type === ActionType.double_click || last_action.action_type === ActionType.right_click|| last_action.action_type === ActionType.click)) {
-            return action_recorded;
+    if (receivedAction.action_type === ActionType.click) {
+        const last = action_recorded[action_recorded.length - 1];
+        if (last && (last.action_type === ActionType.click || last.action_type === ActionType.right_click || last.action_type === ActionType.double_click)) {
+            const lastSel = last.elements?.[0]?.selector?.map(s => s.value)?.join('|') || '';
+            const newSel = receivedAction.elements?.[0]?.selector?.map(s => s.value)?.join('|') || '';
+            if (lastSel === newSel) {
+                return action_recorded; // same target → dedupe
+            }
         }
     }
     if (receivedAction.action_type === ActionType.assert && receivedAction.assert_type === AssertType.ai) {

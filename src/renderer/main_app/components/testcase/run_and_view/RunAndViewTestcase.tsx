@@ -27,16 +27,17 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
   const executeScriptsService = useMemo(() => new ExecuteScriptsService(), []);
   const actionService = useMemo(() => new ActionService(), []);
 
-  // Load testcase data when modal opens
+  // Load testcase data when modal opens (always try to fetch the latest)
   useEffect(() => {
-    if (isOpen && testcaseData) {
+    if (!isOpen) return;
+    if (testcaseData) {
+      // Show existing data immediately while fetching the freshest logs
       setResult(testcaseData);
-    } else if (isOpen && !testcaseData) {
-      toast.error('Testcase data not available', {
-        containerId: 'modal-toast-container'
-      });
     }
-  }, [isOpen, testcaseData]);
+    if (testcaseId) {
+      void loadTestcaseData();
+    }
+  }, [isOpen, testcaseId, projectId, testcaseData]);
 
   const loadTestcaseData = async () => {
     if (!testcaseId) return;
@@ -73,19 +74,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
     
     try {
       setIsRunning(true);
-      
-      let actions: Action[] = [];
-      const actions_resp = await actionService.getActionsByTestCase(testcaseId, 1000, 0);
-      if (actions_resp.success) {
-        actions = actions_resp.data?.actions || [];
-      } else {
-        toast.error('Failed to load actions', {
-          containerId: 'modal-toast-container'
-        });
-        return;
-      }
-      const code = actionToCode(actions);
-      const resp = await executeScriptsService.executeJavascript({ code: code, testcase_id: testcaseId });
+      const resp = await svc.executeTestCase({ testcase_id: testcaseId });
       
       if (resp.success) {
         toast.success('Testcase executed successfully!', {

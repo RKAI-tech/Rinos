@@ -250,6 +250,8 @@ const TestSuites: React.FC = () => {
         next.delete(id);
         return next;
       });
+      // Reload test suites after running
+      await fetchSuites();
     }
   };
 
@@ -366,7 +368,11 @@ const TestSuites: React.FC = () => {
                   <option value="50 rows/page">50 rows/page</option>
                 </select>
 
-                <button className="create-testsuite-btn" onClick={handleCreateSuite}>
+                <button 
+                  className="create-testsuite-btn" 
+                  onClick={handleCreateSuite}
+                  title="Create a new test suite to organize and run multiple testcases"
+                >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -406,7 +412,12 @@ const TestSuites: React.FC = () => {
                 </thead>
                 <tbody>
                   {currentSuites.map((suite) => (
-                    <tr key={suite.id} className={runningSuiteIds.has(suite.id) ? 'is-running' : ''} aria-busy={runningSuiteIds.has(suite.id)}>
+                    <tr 
+                      key={suite.id} 
+                      className={`${runningSuiteIds.has(suite.id) ? 'is-running' : ''} clickable-row`} 
+                      aria-busy={runningSuiteIds.has(suite.id)}
+                      onClick={() => handleViewSuiteResult(suite.id)}
+                    >
                       <td className="testsuite-name">{suite.name}</td>
                       <td className="testsuite-description">{suite.description || '-'}</td>
                       <td className="testsuite-passrate">{suite.passRate != null ? `${suite.passRate}%` : '-'}</td>
@@ -418,7 +429,10 @@ const TestSuites: React.FC = () => {
                         <div className="actions-container">
                           <button 
                             className="actions-btn"
-                            onClick={() => handleSuiteActions(suite.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSuiteActions(suite.id);
+                            }}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <circle cx="12" cy="12" r="1" fill="currentColor"/>
@@ -428,8 +442,13 @@ const TestSuites: React.FC = () => {
                           </button>
 
                           {openDropdownId === suite.id && (
-                            <div className="actions-dropdown">
-                              <button className="dropdown-item" onClick={() => handleRunSuite(suite.id)} disabled={runningSuiteIds.has(suite.id)}>
+                            <div className="actions-dropdown" onClick={(e) => e.stopPropagation()}>
+                              <button 
+                                className="dropdown-item" 
+                                onClick={(e) => { e.stopPropagation(); handleRunSuite(suite.id); }} 
+                                disabled={runningSuiteIds.has(suite.id)}
+                                title="Execute this test suite and view results"
+                              >
                                 {runningSuiteIds.has(suite.id) ? (
                                   <>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="spinner">
@@ -447,13 +466,11 @@ const TestSuites: React.FC = () => {
                                   </>
                                 )}
                               </button>
-                              <button className="dropdown-item" onClick={() => handleViewSuiteResult(suite.id)}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M12 5c5 0 9 4 9 7s-4 7-9 7-9-4-9-7 4-7 9-7zm0 3a4 4 0 100 8 4 4 0 000-8z" fill="currentColor"/>
-                                </svg>
-                                View Result
-                              </button>
-                              <button className="dropdown-item" onClick={() => handleAddTestcasesToSuite(suite.id)}>
+                              <button 
+                                className="dropdown-item" 
+                                onClick={(e) => { e.stopPropagation(); handleAddTestcasesToSuite(suite.id); }}
+                                title="Add testcases to this test suite"
+                              >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                   <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                   <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -461,21 +478,33 @@ const TestSuites: React.FC = () => {
                                 Add Cases
                               </button>
                               
-                              <button className="dropdown-item" onClick={() => handleOpenEditSuite(suite.id)}>
+                              <button 
+                                className="dropdown-item" 
+                                onClick={(e) => { e.stopPropagation(); handleOpenEditSuite(suite.id); }}
+                                title="Edit test suite name and description"
+                              >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
                                 Edit
                               </button>
-                              <button className="dropdown-item delete" onClick={() => handleRemoveTestcasesFromSuite(suite.id)}>
+                              <button 
+                                className="dropdown-item delete" 
+                                onClick={(e) => { e.stopPropagation(); handleRemoveTestcasesFromSuite(suite.id); }}
+                                title="Remove testcases from this test suite"
+                              >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                   <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                   <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
                                 Remove Cases
                               </button>
-                              <button className="dropdown-item delete" onClick={() => handleOpenDeleteSuite(suite.id)}>
+                              <button 
+                                className="dropdown-item delete" 
+                                onClick={(e) => { e.stopPropagation(); handleOpenDeleteSuite(suite.id); }}
+                                title="Permanently delete this test suite"
+                              >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                   <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                   <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -492,30 +521,29 @@ const TestSuites: React.FC = () => {
               </table>
             </div>
 
-            {totalPages > 1 && (
-              <div className="pagination">
-                <div className="pagination-info">
-                  Showing {filteredSuites.length === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, filteredSuites.length)} of {filteredSuites.length} test suites
-                </div>
-                <div className="pagination-controls">
-                  <button className="pagination-btn" onClick={handlePreviousPage} disabled={currentPage === 1}>Previous</button>
-                  <div className="pagination-pages">
-                    {paginationNumbers.map((page, index) => (
-                      <div key={index}>
-                        {page === '...' ? (
-                          <span className="pagination-ellipsis">...</span>
-                        ) : (
-                          <button className={`pagination-page ${currentPage === page ? 'active' : ''}`} onClick={() => handlePageChange(page as number)}>
-                            {page}
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <button className="pagination-btn" onClick={handleNextPage} disabled={currentPage === totalPages}>Next</button>
-                </div>
+            {/* Pagination - Always visible */}
+            <div className="pagination">
+              <div className="pagination-info">
+                Showing {filteredSuites.length === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, filteredSuites.length)} of {filteredSuites.length} test suites
               </div>
-            )}
+              <div className="pagination-controls">
+                <button className="pagination-btn" onClick={handlePreviousPage} disabled={currentPage === 1}>Previous</button>
+                <div className="pagination-pages">
+                  {paginationNumbers.map((page, index) => (
+                    <div key={index}>
+                      {page === '...' ? (
+                        <span className="pagination-ellipsis">...</span>
+                      ) : (
+                        <button className={`pagination-page ${currentPage === page ? 'active' : ''}`} onClick={() => handlePageChange(page as number)}>
+                          {page}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button className="pagination-btn" onClick={handleNextPage} disabled={currentPage === totalPages}>Next</button>
+              </div>
+            </div>
           </div>
         </main>
       </div>

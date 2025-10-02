@@ -50,6 +50,9 @@
 .testsuites-table th .arrow.down { border-top: 6px solid #6b7280; }
 .testsuites-table th .arrow.active { opacity: 1; border-bottom-color: #111827; border-top-color: #111827; }
 .testsuites-table td { padding: 16px 12px; border-bottom: 1px solid #e1e5e9; font-size: 14px; color: #374151; vertical-align: middle; text-align: center; }
+.clickable-row { cursor: pointer; transition: background-color 0.2s ease; }
+.clickable-row:hover { background-color: #f8fafc; }
+.clickable-row.is-running { background-color: #f0f9ff; }
 .testsuites-table th:first-child { text-align: left; }
 .testsuite-name { font-weight: 600; color: #1a1a1a; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .testsuite-tag, .testsuite-actions-count { font-size: 14px; color: #333; text-align: center; white-space: nowrap; }

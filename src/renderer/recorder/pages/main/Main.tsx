@@ -55,6 +55,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         queryResultPreview?:
         string; queryResultData?: any[]; 
   }[]>([]);
+  const [recordingFromActionIndex, setRecordingFromActionIndex] = useState<number | null>(null);
 
   useEffect(() => {
     console.log('[Main] Setting project ID:', projectId);
@@ -143,9 +144,15 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       console.log('[Main] Browser closed, resetting pause state');
       setIsBrowserOpen(false);
       setIsPaused(true);
+      // Close assert dropdown and reset assert state
+      setSelectedAssert(null);
+      setIsAssertDropdownOpen(false);
+      setAssertSearch('');
+      setIsAssertMode(false);
       // Reset vị trí record khi tắt trình duyệt
       setSelectedInsertPosition(0);
       setDisplayInsertPosition(0);
+      setRecordingFromActionIndex(null);
     };
 
     // Listen for browser close event from main process
@@ -158,7 +165,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     };
   }, []);
 
-  const assertTypes = Object.values(AssertType);
+  const assertTypes = Object.values(AssertType).filter(type => type !== AssertType.ai);
 
   const filteredAssertTypes = assertTypes.filter(type =>
     type.toLowerCase().includes(assertSearch.toLowerCase())
@@ -250,7 +257,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     await (window as any).browserAPI?.browser?.stop();
     setIsBrowserOpen(false);
     setIsPaused(false); // Reset pause state when stopping browser
-    await (window as any).browserAPI?.browser?.setPauseMode(false);
     // TODO: Tắt assert menu và selected assert
     setSelectedAssert(null);
     setIsAssertDropdownOpen(false);
@@ -259,6 +265,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     await (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
     // Reset vị trí record khi dừng trình duyệt thủ công
     setSelectedInsertPosition(0);
+    setRecordingFromActionIndex(null);
   };
 
   const handleAssertSelect = async (assertType: string) => {
@@ -472,6 +479,41 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     }
   };
 
+  const handleStartRecordingFromAction = async (actionIndex: number) => {
+    try {
+      // If clicking the same action that's already selected, reset to default
+      if (recordingFromActionIndex === actionIndex) {
+        if (isBrowserOpen) {
+          toast.warning('Browser is open: recording position reset to end of actions');
+        }
+        setRecordingFromActionIndex(null);
+        setSelectedInsertPosition(actions.length);
+        setDisplayInsertPosition(actions.length);
+        if (!isBrowserOpen) {
+          toast.info('Recording position reset to end of actions');
+        }
+        return;
+      }
+
+      // Set the insert position to after the selected action
+      const insertPosition = actionIndex + 1;
+      setSelectedInsertPosition(insertPosition);
+      setDisplayInsertPosition(insertPosition);
+      setRecordingFromActionIndex(actionIndex);
+      
+      // If browser is not open, start it and execute actions up to the selected index
+      if (!isBrowserOpen) {
+        await startBrowser(url, insertPosition);
+      } else {
+        // If browser is already open, just update the insert position and warn
+        toast.warning(`Browser is opened`);
+      }
+    } catch (error) {
+      console.error('[Main] Error starting recording from action:', error);
+      toast.error('Failed to start recording from this action');
+    }
+  };
+
   const handleSelectAction = (action: Action) => {
     setSelectedAction(action);
     setIsDetailOpen(true);
@@ -651,6 +693,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             displayInsertPosition={displayInsertPosition}
             onSelectInsertPosition={handleSelectInsertPosition}
             onSelectAction={handleSelectAction}
+            onStartRecording={handleStartRecordingFromAction}
+            isBrowserOpen={isBrowserOpen}
+            recordingFromActionIndex={recordingFromActionIndex}
           />
         ) : (
           <TestScriptTab script={customScript || actionToCode(actions)} runResult={runResult} onScriptChange={setCustomScript} />

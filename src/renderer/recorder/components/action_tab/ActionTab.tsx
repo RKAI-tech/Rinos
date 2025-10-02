@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './ActionTab.css';
 import RenderedAction from '../action/Action';
 import { Action } from '../../types/actions';
@@ -15,11 +15,16 @@ interface ActionTabProps {
   displayInsertPosition?: number;
   onSelectInsertPosition?: (position: number | null) => void;
   onSelectAction?: (action: Action) => void;
+  onStartRecording?: (actionIndex: number) => void;
+  isBrowserOpen?: boolean;
+  recordingFromActionIndex?: number | null;
 }
 
-const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteAction, onDeleteAll, onReorderActions, onReload, onSaveActions, selectedInsertPosition, displayInsertPosition, onSelectInsertPosition, onSelectAction }) => {
+const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteAction, onDeleteAll, onReorderActions, onReload, onSaveActions, selectedInsertPosition, displayInsertPosition, onSelectInsertPosition, onSelectAction, onStartRecording, isBrowserOpen, recordingFromActionIndex }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
@@ -85,6 +90,37 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
     }
   };
 
+  // Auto-scroll to bottom when actions list grows or loads
+  useEffect(() => {
+    if (!listRef.current) return;
+    // Smooth scroll to bottom on any length change
+    try {
+      const container = listRef.current;
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    } catch {}
+  }, [actions.length]);
+
+  // Ensure the currently selected recording start index is visible
+  useEffect(() => {
+    if (recordingFromActionIndex == null) return;
+    const node = itemRefs.current[recordingFromActionIndex];
+    if (!node) return;
+    try {
+      node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch {}
+  }, [recordingFromActionIndex]);
+
+  // Ensure the selected insert position is visible (the action before the insertion point)
+  useEffect(() => {
+    if (selectedInsertPosition == null) return;
+    const targetIndex = Math.max(0, Math.min(selectedInsertPosition - 1, actions.length - 1));
+    const node = itemRefs.current[targetIndex];
+    if (!node) return;
+    try {
+      node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch {}
+  }, [selectedInsertPosition, actions.length]);
+
   return (
     <div className="rcd-actions-section">
       <div className="rcd-actions-header">
@@ -117,71 +153,16 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
         </div>
       </div>
       {/* insert-info moved inside header-left directly under the label */}
-      <div className="rcd-actions-list">
+      <div className="rcd-actions-list" ref={listRef}>
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
             Loading actions...
           </div>
         ) : actions.length > 0 ? (
           <>
-            {/* Trigger area cho thanh ngang ở đầu */}
-            <div className="rcd-recording-trigger">
-              {/* Insert position ở đầu danh sách */}
-              <div 
-                className={`rcd-recording-bar-container ${selectedInsertPosition === 0 ? 'rcd-recording-selected' : ''}`}
-              >
-                <div className="rcd-recording-bar">
-                  <div className="rcd-recording-line"></div>
-                  <div className="rcd-recording-btn-container">
-                    <button 
-                      className="rcd-recording-start-btn"
-                      onClick={() => handleInsertPositionClick(0)}
-                      title="Start recording at the beginning"
-                    >
-                    </button>
-                    <div className="rcd-recording-tooltip">
-                      <button 
-                        className="rcd-recording-start-main-btn"
-                        onClick={() => handleInsertPositionClick(0)}
-                        title="Start recording at the beginning"
-                      >
-                        Start Recording
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {actions.map((action, index) => (
-              <div key={action.action_id} className="rcd-action-item">
-                {/* Thanh ngang trước action đầu tiên */}
-                {index === 0 && (
-                  <div 
-                    className={`rcd-recording-bar-container ${selectedInsertPosition === 0 ? 'rcd-recording-selected' : ''}`}
-                  >
-                    <div className="rcd-recording-bar">
-                      <div className="rcd-recording-line"></div>
-                      <div className="rcd-recording-btn-container">
-                        <button 
-                          className="rcd-recording-start-btn"
-                          onClick={() => handleInsertPositionClick(0)}
-                          title="Start recording at the beginning"
-                        >
-                        </button>
-                        <div className="rcd-recording-tooltip">
-                          <button 
-                            className="rcd-recording-start-main-btn"
-                            onClick={() => handleInsertPositionClick(0)}
-                            title="Start recording at the beginning"
-                          >
-                            Start Recording
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+              <div key={action.action_id} className="rcd-action-item" ref={(el) => (itemRefs.current[index] = el)}>
                 
                 <div
                   draggable
@@ -192,34 +173,17 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
                   onDragEnd={handleDragEnd}
                   className={`rcd-action-draggable ${draggedIndex === index ? 'rcd-dragging' : ''} ${dragOverIndex === index ? 'rcd-drag-over' : ''}`}
                 >
-                  <RenderedAction action={action} onDelete={onDeleteAction} onClick={(a) => onSelectAction && onSelectAction(a)} />
+                  <RenderedAction 
+                    action={action} 
+                    onDelete={onDeleteAction} 
+                    onClick={(a) => onSelectAction && onSelectAction(a)}
+                    onStartRecording={() => onStartRecording && onStartRecording(index)}
+                    isBrowserOpen={isBrowserOpen}
+                    isRecordingFromThisAction={recordingFromActionIndex === index}
+                    index={index}
+                  />
                 </div>
                 
-                {/* Insert position sau mỗi action */}
-                <div 
-                  className={`rcd-recording-bar-container ${selectedInsertPosition === index + 1 ? 'rcd-recording-selected' : ''}`}
-                >
-                  <div className="rcd-recording-bar">
-                    <div className="rcd-recording-line"></div>
-                    <div className="rcd-recording-btn-container">
-                      <button 
-                        className="rcd-recording-start-btn"
-                        onClick={() => handleInsertPositionClick(index + 1)}
-                        title="Start recording after this action"
-                      >
-                      </button>
-                      <div className="rcd-recording-tooltip">
-                        <button 
-                          className="rcd-recording-start-main-btn"
-                          onClick={() => handleInsertPositionClick(index + 1)}
-                          title="Start recording after this action"
-                        >
-                          Start Recording
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             ))}
           </>

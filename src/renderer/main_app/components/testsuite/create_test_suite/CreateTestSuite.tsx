@@ -67,6 +67,12 @@ const CreateTestSuite: React.FC<CreateTestSuiteProps> = ({ isOpen, onClose, onSa
           <div className="tsuite-form-group">
             <label htmlFor="suiteName" className="tsuite-form-label">
               Test Suite Name <span className="tsuite-required-asterisk">*</span>
+              <div className="tooltip-container">
+                <span className="tooltip-icon">?</span>
+                <div className="tooltip-content">
+                  Enter a descriptive name for your test suite. This will help identify the test suite in the list.
+                </div>
+              </div>
             </label>
             <input
               type="text"
@@ -82,6 +88,12 @@ const CreateTestSuite: React.FC<CreateTestSuiteProps> = ({ isOpen, onClose, onSa
           <div className="tsuite-form-group">
             <label htmlFor="suiteDescription" className="tsuite-form-label">
               Description
+              <div className="tooltip-container">
+                <span className="tooltip-icon">?</span>
+                <div className="tooltip-content">
+                  Optional description to provide more details about this test suite (e.g., purpose, scope, or notes). This helps organize and document your test suites.
+                </div>
+              </div>
             </label>
             <textarea
               id="suiteDescription"
