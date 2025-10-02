@@ -1,7 +1,7 @@
 import "dotenv/config";
 
 export const MainEnv = {
-  // Dev server URL for renderer (Vite)
+  // Dev server URL for renderer (Vite)lúc 
   API_URL: process.env.VITE_DEV_SERVER_URL || "http://localhost:5173",
 
   // Microsoft Authentication (MSAL) configs

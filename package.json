@@ -1,5 +1,5 @@
 {
-  "name": "Automation Test Execution",
+  "name": "rikkei-automation-test-execution",
   "version": "1.0.0",
   "type": "module",
   "main": "dist/main.cjs",
@@ -13,10 +13,22 @@
     "start": "concurrently \"vite\" \"esbuild src/main/main.ts --bundle --platform=node --format=cjs --external:electron --external:@azure/msal-node --external:playwright --external:playwright-core --external:chromium-bidi --external:../../../package.json --external:./chromium/appIcon.png --external:./loader --outfile=dist/main.cjs --sourcemap --watch\" \"esbuild src/main/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs --sourcemap --watch\" \"wait-on http://localhost:5173/main_app/index.html && electron .\"",
     "start:prod": "npm run build && electron .",
     "build:test": "tsc -p tsconfig.main.json && vite build",
-    "start:prod:logs": "npm run build && electron --enable-logging --v=1 --log-net-log=electron-net-log.json ."
+    "start:prod:logs": "npm run build && electron --enable-logging --v=1 --log-net-log=electron-net-log.json .",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:win-portable": "npm run build && electron-builder --win portable",
+    "dist:win-nsis": "npm run build && electron-builder --win nsis",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "dist:linux-appimage": "npm run build && electron-builder --linux AppImage",
+    "dist:linux-deb": "npm run build && electron-builder --linux deb",
+    "dist:linux-snap": "npm run build && electron-builder --linux snap"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["automation", "testing", "electron"],
+  "author": {
+    "name": "Rikkei",
+    "email": "contact@rikkei.com"
+  },
+  "homepage": "https://github.com/rikkei/automation-test-execution",
   "license": "ISC",
   "dependencies": {
     "@azure/msal-node": "^3.7.4",
@@ -38,9 +50,74 @@
     "@vitejs/plugin-react": "^4.7.0",
     "concurrently": "^9.2.1",
     "electron": "^38.1.2",
+    "electron-builder": "^26.0.12",
     "esbuild": "^0.23.1",
     "typescript": "^5.9.2",
     "vite": "^6.3.6",
     "wait-on": "^9.0.1"
+  },
+  "build": {
+    "appId": "com.rikkei.automation-test-execution",
+    "productName": "Rikkei Automation Test Execution",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "package.json",
+      ".env"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/playwright/.local-browsers",
+        "to": "playwright-browsers",
+        "filter": ["**/*"]
+      }
+    ],
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        },
+        {
+          "target": "deb",
+          "arch": ["x64"]
+        },
+        {
+          "target": "snap",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "src/renderer/main_app/assets/logo_user_icon.png",
+      "category": "Development",
+      "synopsis": "Rikkei Automation Test Execution Tool",
+      "maintainer": "Rikkei <contact@rikkei.com>"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "src/renderer/main_app/assets/logo_user_icon.png",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Rikkei Automation Test"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    }
   }
 }
