@@ -10,7 +10,7 @@ export const config = {
   DEBUG_MSAL: String(env.VITE_DEBUG_MSAL).toLowerCase() === 'true' || !!env.DEV,
 
   // API Configuration
-  API_BASE_URL: env.VITE_API_BASE_URL || 'http://10.1.5.24:7861',
+  API_BASE_URL: env.VITE_API_BASE_URL || 'http://10.1.5.24:7865',
   API_TIMEOUT: Number(env.VITE_API_TIMEOUT || 30000),
   API_RETRY_ATTEMPTS: Number(env.VITE_API_RETRY_ATTEMPTS || 3),
 

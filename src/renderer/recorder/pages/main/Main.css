@@ -11,6 +11,8 @@ body, html { overflow: hidden; }
 .rcd-ctrl.rcd-assert { background: #fff; color: #374151; border: 1px solid #d1d5db; }
 .rcd-ctrl.rcd-assert:hover { background: #f0f9ff; border-color: #93c5fd; color: #2563eb; }
 .rcd-ctrl.rcd-assert.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+.rcd-ctrl.rcd-assert:disabled { opacity: 0.5; cursor: not-allowed; }
+.rcd-ctrl.rcd-assert:disabled:hover { background: #fff; border-color: #d1d5db; color: #374151; transform: none; }
 
 /* Alternative pause/resume button styles */
 .rcd-ctrl.rcd-pause-alt {

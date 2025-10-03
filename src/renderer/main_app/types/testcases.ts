@@ -44,7 +44,7 @@ export interface TestCaseGetResponse {
     actions: Action[];
     status: string;
     script: string | null;
-    gifs_url: string | null;
+    url: string | null;
     logs?: string;
     created_at: string;
     updated_at: string;

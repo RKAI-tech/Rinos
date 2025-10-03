@@ -13,10 +13,10 @@ export function handleSelectChangeEvent(e) {
   const tag = el?.tagName?.toLowerCase?.();
   if (tag !== 'select') return;
 
-  console.log('Select change detected:', previewNode(el));
+  // console.log('Select change detected:', previewNode(el));
   if (shouldIgnoreTarget(el, 'Select Change')) return;
   if (getPauseMode && getPauseMode()) {
-    console.log('Skipping select change recording - recording is paused');
+    // console.log('Skipping select change recording - recording is paused');
     return;
   }
 
@@ -34,7 +34,7 @@ export function handleSelectChangeEvent(e) {
     elementText
   });
 
-  console.log('Select event - selectors:', selectors, 'value:', selectedValue, 'text:', selectedText);
+  // console.log('Select event - selectors:', selectors, 'value:', selectedValue, 'text:', selectedText);
   sendAction('select', payload);
 }
 

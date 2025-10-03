@@ -17,7 +17,7 @@ export class AuthService {
     });
     if (response.success && response.data && response.data.access_token) {
       apiRouter.setAuthToken(response.data.access_token);
-      console.log('[AuthService] Login with Microsoft successful, token set');
+      // console.log('[AuthService] Login with Microsoft successful, token set');
     }
     return response;
   }
@@ -36,10 +36,10 @@ export class AuthService {
       body: JSON.stringify(credentials),
     });
     
-    console.log('[AuthService] Login response:', response);
+    // console.log('[AuthService] Login response:', response);
     if (response.success && response.data && response.data.access_token) {
       apiRouter.setAuthToken(response.data.access_token);
-      console.log('[AuthService] Login successful, token set');
+      // console.log('[AuthService] Login successful, token set');
     }
 
     return response;
@@ -59,10 +59,10 @@ export class AuthService {
       body: JSON.stringify(credentials),
     });
     
-    console.log('[AuthService] Register response:', response);
+    // console.log('[AuthService] Register response:', response);
     if (response.success && response.data && response.data.access_token) {
       apiRouter.setAuthToken(response.data.access_token);
-      console.log('[AuthService] Register successful, token set');
+      // console.log('[AuthService] Register successful, token set');
     }
 
     return response;
@@ -74,14 +74,14 @@ export class AuthService {
     });
 
     apiRouter.clearAuth();
-    console.log('[AuthService] Logout successful, token cleared');
+    // console.log('[AuthService] Logout successful, token cleared');
 
     return response;
   }
 
   async getCurrentUser(): Promise<ApiResponse<AuthMeResponse>> {
     const response = await apiRouter.request<AuthMeResponse>('/auth/me');
-    console.log('[AuthService] Get current user response:', response);
+    // console.log('[AuthService] Get current user response:', response);
     return response;
   }
 
@@ -92,7 +92,7 @@ export class AuthService {
     
     if (response.success && response.data && response.data.access_token) {
       apiRouter.setAuthToken(response.data.access_token);
-      console.log('[AuthService] Token refreshed successfully');
+      // console.log('[AuthService] Token refreshed successfully');
     }
 
     return response;

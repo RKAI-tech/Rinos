@@ -46,7 +46,7 @@ export function generateConnectDBCode(action: Action): string {
             + `    ${dbVar}.query = async (q) => { const result = await ${dbVar}.request().query(q); return { rows: result.recordset }; };\n`
             + `    ${dbVar}.end = async () => { await ${dbVar}.close(); };\n`;
         default:
-            console.error(`Unsupported database type: ${dbType}`);
+            // console.error(`Unsupported database type: ${dbType}`);
             return "";
     }
 }
@@ -66,9 +66,9 @@ export function processSelector(elements: Element[]): string {
 }
 
 export function generateAssertCode(action: Action, index: number): string {
-    console.log(`Generating assert code for action ${index}: ${action.action_type}`);
-    console.log('[generateAssertCode]', action.assert_type);
-    console.log('[generateAssertCode]', action.connection);
+    // console.log(`Generating assert code for action ${index}: ${action.action_type}`);
+    // console.log('[generateAssertCode]', action.assert_type);
+    // console.log('[generateAssertCode]', action.connection);
     const elements = action.elements || [];
     const candidatesLiteral = processSelector(elements);
     switch (action.assert_type) {
@@ -123,7 +123,7 @@ export function generateAssertCode(action: Action, index: number): string {
                 `    await expect(page.locator(sel)).toBeVisible();\n` +
                 `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toContainText:
-            console.log('[generateAssertCode]', action);
+            // console.log('[generateAssertCode]', action);
             if (action.connection) {
                 const dbVar = action.connection?.db_type?.toLowerCase();
                 return `${generateConnectDBCode(action)}\n` +
@@ -160,7 +160,7 @@ export function generateAssertCode(action: Action, index: number): string {
                 `    await expect(page.locator(sel)).toHaveRole('${action.value || ''}');\n` +
                 `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toHaveText:
-            console.log('[generateAssertCode]', action);
+            // console.log('[generateAssertCode]', action);
             if (action.connection) {
                 const dbVar = action.connection?.db_type?.toLowerCase();
                 return `${generateConnectDBCode(action)}\n` +
@@ -177,7 +177,7 @@ export function generateAssertCode(action: Action, index: number): string {
                 `    await expect(page.locator(sel)).toHaveText('${action.value || ''}');\n` +
                 `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toHaveValue:
-            console.log('[generateAssertCode]', action);
+            // console.log('[generateAssertCode]', action);
             if (action.connection) {
                 const dbVar = action.connection?.db_type?.toLowerCase();
                 return `${generateConnectDBCode(action)}\n` +
@@ -194,7 +194,7 @@ export function generateAssertCode(action: Action, index: number): string {
                 `    await expect(page.locator(sel)).toHaveValue('${action.value || ''}');\n` +
                 `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.toHaveValues:
-            console.log('[generateAssertCode]', action);
+            // console.log('[generateAssertCode]', action);
             if (action.connection) {
                 const dbVar = action.connection?.db_type?.toLowerCase();
                 return `${generateConnectDBCode(action)}\n` +
@@ -228,7 +228,7 @@ export function generateAssertCode(action: Action, index: number): string {
 
 }
 export function generateActionCode(action: Action, index: number): string {
-    console.log(`Generating action code for action ${index}: ${action.action_type}`);
+    // console.log(`Generating action code for action ${index}: ${action.action_type}`);
     const elements = action.elements || [];
     const selectors: string[][] = [];
     for (const element of elements) {

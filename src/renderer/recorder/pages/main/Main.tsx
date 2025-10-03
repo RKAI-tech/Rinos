@@ -12,7 +12,7 @@ import { actionToCode } from '../../utils/action_to_code';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
 import { receiveAction, createDescription, receiveActionWithInsert } from '../../utils/receive_action';
-import { apiRouter } from '../../services/baseAPIRequest';
+import { Connection } from '../../types/actions';
 
 
 interface MainProps {
@@ -42,22 +42,24 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiElements, setAiElements] = useState<{
         id: string;
-        name: string;
         type: 'Browser' | 'Database';
         selector?: string[];
         value?: string;
         domHtml?: string;
         connectionId?: string;
+        connection?: Connection;
         query?: string;
-        queryResultPreview?:
-        string; queryResultData?: any[]; 
+        queryResultPreview?:string;
+        queryResultData?: any[]; 
   }[]>([]);
+  const [recordingFromActionIndex, setRecordingFromActionIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    console.log('[Main] Setting project ID:', projectId);
+    // console.log('[Main] Setting project ID:', projectId);
     if (projectId) {
       // Use IPC to set project ID in main process
       (window as any).browserAPI?.browser?.setProjectId?.(projectId);
@@ -68,7 +70,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   useEffect(() => {
     const loadActions = async () => {
       if (testcaseId) {
-        console.log('[Main] Loading actions for testcase ID:', testcaseId);
+        // console.log('[Main] Loading actions for testcase ID:', testcaseId);
         setIsLoading(true);
 
         try {
@@ -77,14 +79,14 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             const loaded = response.data.actions || [];
             setActions(loaded);
             setSelectedInsertPosition(loaded.length);
-            console.log('[Main] Loaded actions:', loaded);
+            // console.log('[Main] Loaded actions:', loaded);
           } else {
-            console.error('[Main] Failed to load actions:', response.error);
+            // console.error('[Main] Failed to load actions:', response.error);
             setActions([]);
             setSelectedInsertPosition(0);
           }
         } catch (error) {
-          console.error('[Main] Error loading actions:', error);
+          // console.error('[Main] Error loading actions:', error);
           setActions([]);
           setSelectedInsertPosition(0);
         } finally {
@@ -109,7 +111,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       if ((action?.type === 'assert') && (action?.assertType === 'AI')) {
         const newItem = {
           id: Math.random().toString(36),
-          name: "",
           domHtml: action.DOMelement || '',
           type: 'Browser' as const,
           selector: action.selector || [],
@@ -140,12 +141,18 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   // Listen for browser close events and reset pause state
   useEffect(() => {
     const handleBrowserClose = () => {
-      console.log('[Main] Browser closed, resetting pause state');
+      // console.log('[Main] Browser closed, resetting pause state');
       setIsBrowserOpen(false);
       setIsPaused(true);
+      // Close assert dropdown and reset assert state
+      setSelectedAssert(null);
+      setIsAssertDropdownOpen(false);
+      setAssertSearch('');
+      setIsAssertMode(false);
       // Reset vị trí record khi tắt trình duyệt
       setSelectedInsertPosition(0);
       setDisplayInsertPosition(0);
+      setRecordingFromActionIndex(null);
     };
 
     // Listen for browser close event from main process
@@ -158,7 +165,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     };
   }, []);
 
-  const assertTypes = Object.values(AssertType);
+  const assertTypes = Object.values(AssertType);//.filter(type => type !== AssertType.ai);
 
   const filteredAssertTypes = assertTypes.filter(type =>
     type.toLowerCase().includes(assertSearch.toLowerCase())
@@ -195,7 +202,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const startBrowser = async (url: string, executeUntilIndex?: number | null) => {
     // Prevent multiple simultaneous starts
     if (isBrowserOpen) {
-      console.log('[Main] Browser already open, skipping start');
+      // console.log('[Main] Browser already open, skipping start');
       return;
     }
 
@@ -209,7 +216,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           ? Math.min(executeUntilIndex, actions.length)
           : actions.length;
         const toExecute = actions.slice(0, limit);
-        console.log(`[Main] Executing ${toExecute.length} existing actions (limit=${limit})`);
+        // console.log(`[Main] Executing ${toExecute.length} existing actions (limit=${limit})`);
         if (toExecute.length > 0) {
           await (window as any).browserAPI?.browser?.executeActions(toExecute);
         }
@@ -225,7 +232,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           url = 'https://' + url;
         }
         
-        console.log(`[Main] Navigating to: ${url}`);
+        // console.log(`[Main] Navigating to: ${url}`);
         await (window as any).browserAPI?.browser?.navigate(url);
         // TODO: Increase insert position by 1
         setSelectedInsertPosition(selectedInsertPosition + 1);
@@ -235,7 +242,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       
       setIsPaused(false);
     } catch (error) {
-      console.error('[Main] Error starting browser:', error);
+      // console.error('[Main] Error starting browser:', error);
       setIsBrowserOpen(false);
       setIsPaused(false);
       throw error;
@@ -250,7 +257,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     await (window as any).browserAPI?.browser?.stop();
     setIsBrowserOpen(false);
     setIsPaused(false); // Reset pause state when stopping browser
-    await (window as any).browserAPI?.browser?.setPauseMode(false);
     // TODO: Tắt assert menu và selected assert
     setSelectedAssert(null);
     setIsAssertDropdownOpen(false);
@@ -259,6 +265,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     await (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
     // Reset vị trí record khi dừng trình duyệt thủ công
     setSelectedInsertPosition(0);
+    setRecordingFromActionIndex(null);
   };
 
   const handleAssertSelect = async (assertType: string) => {
@@ -280,7 +287,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     // Default new element is Database type
     setAiElements(prev => [
       ...prev,
-      { id: Math.random().toString(36), name: "", type: 'Database' as const, selector: [] }
+      { id: Math.random().toString(36), type: 'Database' as const, selector: [] }
     ]);
     // Enable assert pick for AI to allow selecting a browser element (optional)
     // setSelectedAssert('AI');
@@ -289,18 +296,39 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   };
 
   const handleAiSubmit = async () => {
-    console.log('[Main] AI elements:', aiElements);
+    // console.log('[Main] AI elements:', aiElements);
+    // Validation
+    if (!aiPrompt || !aiPrompt.trim()) {
+      toast.error('Prompt is required');
+      return;
+    }
+    if (!aiElements || aiElements.length === 0) {
+      toast.error('Please add at least one element');
+      return;
+    }
+    const invalidDb = aiElements.some(el => el.type === 'Database' && (
+      !el.query || !el.query.trim() || !el.queryResultData || el.queryResultData.length === 0
+    ));
+    if (invalidDb) {
+      toast.error('Database elements must have a query and previewed result data');
+      return;
+    }
     
     const HTMLElements = aiElements
       .filter(el => el.type === 'Browser')
       .map(el => ({
         domHtml: el.domHtml || '',
+        selector: el.selector?.map(s => ({ value: s })) || [],
       }));
 
     const databaseElements = aiElements
       .filter(el => el.type === 'Database')
       .map(el => ({
         data: el.queryResultPreview || '',
+        connection: el.connection
+          ? { ...el.connection, port: String((el.connection as any).port) }
+          : undefined,
+        query: el.query || '',
       }));
 
     const request: AiAssertRequest = {
@@ -308,41 +336,26 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       database_results: databaseElements,
       prompt: aiPrompt,
     };
-      
-    const response = await actionService.generateAiAssert(request);
-    // const response = {
-    //   success: true,
-    //   data: {
-    //     function_name: 'test',
-    //     function_code: 'test([elements], [databases]) => {test}',
-    //     description: 'test',
-    //   },
-    // };
+    
+    // console.log('[Main] AI assert request:', request);
+    setIsGeneratingAi(true);
+    const response = await actionService.generateAiAssert(request).finally(() => setIsGeneratingAi(false));
 
-    const selectedDatabase = aiElements.find(el => el.type === 'Database');
-    const DBresp = await apiRouter.request<any>('/database-connections/get_list', {
-      method: 'POST',
-      body: JSON.stringify({ project_id: projectId }),
-    });
-    const elConnection = DBresp.success ? (DBresp as any).data.connections.find((c: any) => c.connection_id === selectedDatabase?.connectionId) : undefined;
+    
 
-    const selectors = aiElements.find(el => el.type === 'Browser')?.selector || [];
+    // const selectors = aiElements.find(el => el.type === 'Browser')?.selector || [];
 
     if (response.success) {
-      console.log('[Main] AI assert response:', response);
+      // console.log('[Main] AI assert response:', response);
       setActions(prev => {
         return receiveAction(testcaseId || '', prev, 
           { 
             type: ActionType.assert, 
             assertType: AssertType.ai,
-            function_name: (response as any).data.function_name || '',
-            playwright_code: (response as any).data.function_code || '', 
+            playwright_code: (response as any).data.playwright_code || '', 
             description: (response as any).data.description || '',
-            // TODO: Add connection and query from aiElements
-            connection: elConnection,
-            query: aiElements.find(el => el.type === 'Database')?.query || '',
-            // TODO: Add all selector from aiElements if it is not null or empty
-            selector: selectors
+            connection_id: databaseElements[0]?.connection?.connection_id,
+            connection: databaseElements[0]?.connection,
           });
       });
     }
@@ -362,12 +375,12 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     // dùng testcase_id của action đầu tiên để reload
     const effectiveId = testcaseId || actions[0]?.testcase_id || null;
     if (!effectiveId) {
-      console.warn('[Main] Reload aborted: missing testcaseId');
+      // console.warn('[Main] Reload aborted: missing testcaseId');
       return;
     }
     setIsLoading(true);
     try {
-      console.log('[Main] Reloading actions for testcase:', effectiveId);
+      // console.log('[Main] Reloading actions for testcase:', effectiveId);
       const response = await actionService.getActionsByTestCase(effectiveId);
       if (response.success && response.data) {
         const newActions = response.data.actions || [];
@@ -376,7 +389,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         const len = newActions.length;
         setSelectedInsertPosition(len);
         setDisplayInsertPosition(len);
-        console.log('[Main] Reloaded actions count:', len);
+        // console.log('[Main] Reloaded actions count:', len);
       } else {
         setActions([]);
         setSelectedInsertPosition(0);
@@ -442,7 +455,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         toast.error(response.error || 'Failed to delete actions');
       }
     } catch (error) {
-      console.error('[Main] Error deleting all actions:', error);
+      // console.error('[Main] Error deleting all actions:', error);
       toast.error('Failed to delete actions');
     }
   };
@@ -467,8 +480,43 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       try {
         await startBrowser(url, position);
       } catch (e) {
-        console.error('[Main] Failed to auto start browser on insert position select:', e);
+        // console.error('[Main] Failed to auto start browser on insert position select:', e);
       }
+    }
+  };
+
+  const handleStartRecordingFromAction = async (actionIndex: number) => {
+    try {
+      // If clicking the same action that's already selected, reset to default
+      if (recordingFromActionIndex === actionIndex) {
+        if (isBrowserOpen) {
+          toast.warning('Browser is open: recording position reset to end of actions');
+        }
+        setRecordingFromActionIndex(null);
+        setSelectedInsertPosition(actions.length);
+        setDisplayInsertPosition(actions.length);
+        if (!isBrowserOpen) {
+          toast.info('Recording position reset to end of actions');
+        }
+        return;
+      }
+
+      // Set the insert position to after the selected action
+      const insertPosition = actionIndex + 1;
+      setSelectedInsertPosition(insertPosition);
+      setDisplayInsertPosition(insertPosition);
+      setRecordingFromActionIndex(actionIndex);
+      
+      // If browser is not open, start it and execute actions up to the selected index
+      if (!isBrowserOpen) {
+        await startBrowser(url, insertPosition);
+      } else {
+        // If browser is already open, just update the insert position and warn
+        toast.warning(`Browser is opened`);
+      }
+    } catch (error) {
+      // console.error('[Main] Error starting recording from action:', error);
+      toast.error('Failed to start recording from this action');
     }
   };
 
@@ -503,7 +551,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         toast.error(response.error || 'Failed to save actions');
       }
     } catch (error) {
-      console.error('[Main] Error saving actions:', error);
+      // console.error('[Main] Error saving actions:', error);
       toast.error('Failed to save actions');
     }
   };
@@ -514,7 +562,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       const code = (activeTab === 'script' && customScript.trim()) ? customScript : actionToCode(actions);
       const toastId = toast.loading('Running script...');
       const resp = await service.executeJavascript({ testcase_id: testcaseId || '', code });
-      console.log('[Main] Run script response:', resp);
+      // console.log('[Main] Run script response:', resp);
       if (resp.success) {
         const msg = (resp as any).result || 'Executed successfully';
         console.log('[Main] Run script result:', msg);
@@ -651,6 +699,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             displayInsertPosition={displayInsertPosition}
             onSelectInsertPosition={handleSelectInsertPosition}
             onSelectAction={handleSelectAction}
+            onStartRecording={handleStartRecordingFromAction}
+            isBrowserOpen={isBrowserOpen}
+            recordingFromActionIndex={recordingFromActionIndex}
           />
         ) : (
           <TestScriptTab script={customScript || actionToCode(actions)} runResult={runResult} onScriptChange={setCustomScript} />
@@ -677,6 +728,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         testcaseId={testcaseId}
         prompt={aiPrompt}
         elements={aiElements}
+        isGenerating={isGeneratingAi}
         onChangePrompt={setAiPrompt}
         onChangeElement={(idx, updater) => setAiElements(prev => prev.map((el, i) => i === idx ? updater(el) : el))}
         onRemoveElement={(idx) => setAiElements(prev => prev.filter((_, i) => i !== idx))}

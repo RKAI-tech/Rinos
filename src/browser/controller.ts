@@ -31,11 +31,11 @@ export class Controller {
             throw new Error('Actions array is required and cannot be empty');
         }
         
-        console.log(`[Controller] Executing ${actions.length} actions`);
+        // console.log(`[Controller] Executing ${actions.length} actions`);
         
         for (let i = 0; i < actions.length; i++) {
             const action = actions[i];
-            console.log(`[Controller] Executing action ${i + 1}/${actions.length}: ${action.action_type}`);
+            // console.log(`[Controller] Executing action ${i + 1}/${actions.length}: ${action.action_type}`);
             
             try {
                 switch (action.action_type) {
@@ -51,7 +51,7 @@ export class Controller {
                                 try {
                                     await page.click(selector, { timeout: 5000 });
                                 } catch (error) {
-                                    console.log(`[Controller] Click failed, trying JS fallback for selector: ${selector}`);
+                                    // console.log(`[Controller] Click failed, trying JS fallback for selector: ${selector}`);
                                     const jsCode = `document.querySelector('${selector}').click()`;
                                     await page.evaluate(jsCode);
                                 }
@@ -91,7 +91,7 @@ export class Controller {
                         }
                         break;
                     default:
-                        console.log(`[Controller] Skipping unsupported action type: ${action.action_type}`);
+                        // console.log(`[Controller] Skipping unsupported action type: ${action.action_type}`);
                         continue;
                 }
                 
@@ -101,12 +101,12 @@ export class Controller {
                 }
                 
             } catch (error) {
-                console.error(`[Controller] Error executing action ${i + 1} (${action.action_type}):`, error);
+                // console.error(`[Controller] Error executing action ${i + 1} (${action.action_type}):`, error);
                 // Don't throw error, continue with next action
                 // throw error;
             }
         }
         
-        console.log(`[Controller] Finished executing ${actions.length} actions`);
+        // console.log(`[Controller] Finished executing ${actions.length} actions`);
     }
 }

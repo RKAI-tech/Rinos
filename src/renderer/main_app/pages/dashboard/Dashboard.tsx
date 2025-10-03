@@ -39,11 +39,11 @@ const Dashboard: React.FC = () => {
     try {
       const response = await projectService.getProjects();
       if (response.success && response.data) {
-        console.log('Reloaded projects:', response.data.projects);
+        // console.log('Reloaded projects:', response.data.projects);
         setProjects(response.data.projects);
       }
     } catch (err) {
-      console.error('Error reloading projects:', err);
+      // console.error('Error reloading projects:', err);
     }
   };
 
@@ -56,7 +56,7 @@ const Dashboard: React.FC = () => {
         const response = await projectService.getProjects();
         
         if (response.success && response.data) {
-          console.log('Loaded projects from API:', response.data.projects);
+          // console.log('Loaded projects from API:', response.data.projects);
           setProjects(response.data.projects);
         } else {
           setError(response.error || 'Failed to load projects');
@@ -66,7 +66,7 @@ const Dashboard: React.FC = () => {
         const errorMessage = err instanceof Error ? err.message : 'An error occurred';
         setError(errorMessage);
         toast.error('Failed to load projects');
-        console.error('Error loading projects:', err);
+        // console.error('Error loading projects:', err);
       } finally {
         setIsLoading(false);
       }
@@ -92,7 +92,7 @@ const Dashboard: React.FC = () => {
 
   // Statistics calculated from API data using useMemo for performance
   const statistics = useMemo(() => {
-    console.log('Calculating statistics for projects:', projects);
+    // console.log('Calculating statistics for projects:', projects);
     return {
       totalProjects: projects.length,
       totalTestCases: projects.reduce((sum, project) => sum + (project.number_testcase || 0), 0),
@@ -130,7 +130,7 @@ const Dashboard: React.FC = () => {
         setIsCreateModalOpen(false);
         
         // Debug log to check the response data
-        console.log('Created project response:', response.data);
+        // console.log('Created project response:', response.data);
         
         // Reload projects to ensure data consistency
         await reloadProjects();
@@ -140,7 +140,7 @@ const Dashboard: React.FC = () => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       toast.error('Failed to create project');
-      console.error('Error creating project:', err);
+      // console.error('Error creating project:', err);
     }
   };
 
@@ -192,7 +192,7 @@ const Dashboard: React.FC = () => {
       }
     } catch (err) {
       toast.error('Failed to update project');
-      console.error('Error updating project:', err);
+      // console.error('Error updating project:', err);
     }
   };
 
@@ -214,7 +214,7 @@ const Dashboard: React.FC = () => {
       }
     } catch (err) {
       toast.error('Failed to delete project');
-      console.error('Error deleting project:', err);
+      // console.error('Error deleting project:', err);
     }
   };
 

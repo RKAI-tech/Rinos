@@ -10,7 +10,7 @@ export default function App() {
 
 
   useEffect(() => {
-    console.log('[Recorder App] component mounted');
+    // console.log('[Recorder App] component mounted');
     
     // Sync token from electron store to apiRouter if available
     (async () => {
@@ -19,13 +19,13 @@ export default function App() {
         if (token) {
           const { apiRouter } = await import('./services/baseAPIRequest');
           apiRouter.setAuthToken(token);
-          console.log('[Recorder App] Token synced from electron store');
+          // console.log('[Recorder App] Token synced from electron store');
         } else {
-          console.log('[Recorder App] No token found in electron store');
+          // console.log('[Recorder App] No token found in electron store');
         }
         setIsTokenSynced(true);
       } catch (error) {
-        console.warn('[Recorder App] Failed to sync token from electron store:', error);
+        // console.warn('[Recorder App] Failed to sync token from electron store:', error);
         setIsTokenSynced(true);
       }
     })();
@@ -50,17 +50,17 @@ export default function App() {
     const id = getTestcaseId();
     if (id) {
       setTestcaseId(id);
-      console.log('[Recorder App] Received testcase ID:', id);
+      // console.log('[Recorder App] Received testcase ID:', id);
     } else {
-      console.log('[Recorder App] No testcase ID found');
+      // console.log('[Recorder App] No testcase ID found');
     }
 
     const projectId = getProjectId();
     if (projectId) {
       setProjectId(projectId);
-      console.log('[Recorder App] Received project ID:', projectId);
+      // console.log('[Recorder App] Received project ID:', projectId);
     } else {
-      console.log('[Recorder App] No project ID found');
+      // console.log('[Recorder App] No project ID found');
     }
   }, []);
 

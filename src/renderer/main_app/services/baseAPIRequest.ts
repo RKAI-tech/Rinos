@@ -1,4 +1,4 @@
-import { config} from '../env.config';
+import { config} from '../../env.config';
 import { ApiResponse } from '../types/api_responses';
 ;
 export class ApiRouter {
@@ -7,12 +7,12 @@ export class ApiRouter {
 
   constructor() {
     this.baseUrl = config.API_BASE_URL;
-    console.log('[ApiRouter] Initialized with base URL:', this.baseUrl);
+    // console.log('[ApiRouter] Initialized with base URL:', this.baseUrl);
 
   }
   setAuthToken(token: string | null) {
     this.token = token;
-    console.log('[ApiRouter] Auth token set:', token ? '***' : 'null');
+    // console.log('[ApiRouter] Auth token set:', token ? '***' : 'null');
   }
 
   async request<T>(
@@ -32,10 +32,10 @@ export class ApiRouter {
     }
 
     try {
-      console.log('[ApiRouter] Request =>', options.method || 'GET', url);
-      console.log('[ApiRouter] Request headers:', headers);
+      // console.log('[ApiRouter] Request =>', options.method || 'GET', url);
+      // console.log('[ApiRouter] Request headers:', headers);
       if (options.body) {
-        console.log('[ApiRouter] Request body:', options.body);
+        // console.log('[ApiRouter] Request body:', options.body);
       }
       
       const response = await fetch(url, {
@@ -43,23 +43,23 @@ export class ApiRouter {
         headers,
       });
 
-      console.log('[ApiRouter] Response status:', response.status);
-      console.log('[ApiRouter] Response headers:', response.headers);
+      // console.log('[ApiRouter] Response status:', response.status);
+      // console.log('[ApiRouter] Response headers:', response.headers);
 
       let data: unknown;
       try {
         data = await response.json();
       } catch (parseError) {
-        console.error('[ApiRouter] Failed to parse JSON response:', parseError);
+        // console.error('[ApiRouter] Failed to parse JSON response:', parseError);
         const textResponse = await response.text();
-        console.log('[ApiRouter] Raw response text:', textResponse);
+        // console.log('[ApiRouter] Raw response text:', textResponse);
         return {
           success: false,
           error: `Invalid JSON response: ${textResponse}`
         };
       }
 
-      console.log('[ApiRouter] Response <=', url, { status: response.status, data });
+      // console.log('[ApiRouter] Response <=', url, { status: response.status, data });
 
       if (!response.ok) {
         return {
@@ -84,7 +84,7 @@ export class ApiRouter {
         };
       }
     } catch (error) {
-      console.error('[ApiRouter] Request failed:', url, error);
+      // console.error('[ApiRouter] Request failed:', url, error);
       
       if (error instanceof TypeError && error.message.includes('fetch')) {
         return {

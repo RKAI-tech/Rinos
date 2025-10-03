@@ -44,7 +44,7 @@ export class TestCaseService {
                 error: 'Test case name is required'
             };
         }
-        console.log('testCase', testCase.project_id);
+        // console.log('testCase', testCase.project_id);
         if (!testCase.project_id ) {
             return {
                 success: false,
@@ -75,7 +75,7 @@ export class TestCaseService {
             };
         }
         if (!testCase.actions || testCase.actions.length === 0) {
-            console.log('No actions provided');
+            // console.log('No actions provided');
         }
 
         return await apiRouter.request<DefaultResponse>('/testcases/create_with_actions', {
@@ -122,7 +122,7 @@ export class TestCaseService {
             });
             return response;
         } catch (error) {
-            console.error('[ApiRouter] Delete test case failed:', error);
+            // console.error('[ApiRouter] Delete test case failed:', error);
             return {
                 success: false,
                 error: 'Failed to delete test case'

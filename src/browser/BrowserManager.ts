@@ -42,7 +42,7 @@ export class BrowserManager extends EventEmitter {
 
     setProjectId(projectId: string): void {
         this.projectId = projectId;
-        console.log('[BrowserManager] Project ID set:', projectId);
+        // console.log('[BrowserManager] Project ID set:', projectId);
     }
 
     setAuthToken(token: string | null): void {
@@ -91,7 +91,7 @@ export class BrowserManager extends EventEmitter {
     async start(): Promise<void> {
         try {
             if (this.browser) {
-                console.log('Browser already started');
+                // console.log('Browser already started');
                 return;
             }
 
@@ -119,7 +119,7 @@ export class BrowserManager extends EventEmitter {
             // Catch close event
             this.page.on('close', () => {
                 this.emit('page-closed', { timestamp: Date.now() });
-                this.stop().catch((error) => { console.error('Error stopping browser:', error); });
+                this.stop().catch((error) => { });// console.error('Error stopping browser:', error); });
             });
 
             // Catch context close event
@@ -131,7 +131,7 @@ export class BrowserManager extends EventEmitter {
                 this.emit('browser-closed', { timestamp: Date.now() });
             });
         } catch (error) {
-            console.error('Error starting browser:', error);
+            // console.error('Error starting browser:', error);
             throw error;
         }
     }
@@ -153,12 +153,12 @@ export class BrowserManager extends EventEmitter {
                 this.browser = null;
             }
 
-            console.log('Browser stopped');
+            // console.log('Browser stopped');
 
             // Emit stopped event to notify main process
             this.emit('browser-stopped');
         } catch (error) {
-            console.error('Error stopping browser:', error);
+            // console.error('Error stopping browser:', error);
             throw error;
         }
     }
@@ -178,13 +178,13 @@ export class BrowserManager extends EventEmitter {
             await this.context.addInitScript((script) => {
                 try {
                     eval(script);
-                    console.log('Script injected successfully');
+                    // console.log('Script injected successfully');
                 } catch (error) {
-                    console.error('Error evaluating script:', error);
+                    // console.error('Error evaluating script:', error);
                 }
             }, script);
         } catch (error) {
-            console.error('Error injecting script:', error);
+            // console.error('Error injecting script:', error);
             throw error;
         }
 
@@ -192,20 +192,20 @@ export class BrowserManager extends EventEmitter {
             try {
               // Get project ID from BrowserManager instance instead of window API
               const projectId = this.projectId;
-              console.log('[BrowserManager] getVariablesForTracker called, projectId:', projectId);
+            //   console.log('[BrowserManager] getVariablesForTracker called, projectId:', projectId);
               if (!projectId) {
-                console.warn('No project context available for variable loading');
+                // console.warn('No project context available for variable loading');
                 return { success: false, error: 'No project context' };
               }
-              console.log('[BrowserManager] Loading variables for project:', projectId);
+            //   console.log('[BrowserManager] Loading variables for project:', projectId);
               const resp = await variableService.getVariablesByProject(projectId);
-              console.log('[BrowserManager] Variables API response:', resp);
+            //   console.log('[BrowserManager] Variables API response:', resp);
               resp.data?.items.forEach((v: any) => {
                 // console.log('Variable object:', v);
               })
               return resp;
             } catch (e) {
-              console.error('[BrowserManager] getVariablesForTracker failed:', e);
+            //   console.error('[BrowserManager] getVariablesForTracker failed:', e);
               return { success: false, error: String(e) };
             }
           });
@@ -220,7 +220,7 @@ export class BrowserManager extends EventEmitter {
                 const resp = await databaseService.getDatabaseConnections({ project_id: projectId });
                 return resp;
             } catch (e) {
-                console.error('[BrowserManager] getConnection failed:', e);
+                // console.error('[BrowserManager] getConnection failed:', e);
                 return { success: false, error: String(e) };
             }
         });
@@ -250,7 +250,7 @@ export class BrowserManager extends EventEmitter {
                 const runResp = await statementService.runWithoutCreate({ connection_id: useConnId, query: sql.trim() });
                 return runResp;
             } catch (e) {
-                console.error('[BrowserManager] runQueryForTracker failed:', e);
+                // console.error('[BrowserManager] runQueryForTracker failed:', e);
                 return { success: false, error: String(e) };
             }
         });

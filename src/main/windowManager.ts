@@ -2,12 +2,12 @@ import { BrowserWindow, app, screen } from "electron";
 import { MainEnv } from "./env.js";
 import path from "path";
 
-const isDev = !app.isPackaged;
+const isDev = app.isPackaged;
 // Build target is CJS, so __dirname is available; avoid import.meta to silence warnings
 const __dirnameResolved = __dirname;
-console.log(__dirnameResolved)
+// console.log(__dirnameResolved)
 async function tryLoadDevPaths(win: BrowserWindow, page: string) {
-  console.log('tryLoadDevPaths', MainEnv.API_URL, page);
+  // console.log('tryLoadDevPaths', MainEnv.API_URL, page);
   const candidates = [
     `${MainEnv.API_URL}/${page}/index.html`,
     `${MainEnv.API_URL}/${page}.html`,
@@ -17,18 +17,18 @@ async function tryLoadDevPaths(win: BrowserWindow, page: string) {
   for (const url of candidates) {
     try {
       await win.loadURL(url);
-      console.log("Loaded URL:", url);
+      // console.log("Loaded URL:", url);
       return;
     } catch (err) {
-      console.warn("Failed to load URL:", url, err);
+      // console.warn("Failed to load URL:", url, err);
     }
   }
   throw new Error("Không thể load trang renderer từ Vite. Kiểm tra vite.config và đường dẫn.");
 }
 
 function createWindow(options: Electron.BrowserWindowConstructorOptions, page: string) {
-  console.log('createWindow', options, page);
-  console.log('__dirname', __dirnameResolved);
+  // console.log('createWindow', options, page);
+  // console.log('__dirname', __dirnameResolved);
   const win = new BrowserWindow({
     ...options,
     webPreferences: {
@@ -40,10 +40,10 @@ function createWindow(options: Electron.BrowserWindowConstructorOptions, page: s
 
   if (isDev) {
     tryLoadDevPaths(win, page).catch((err) => {
-      console.error("Load dev URL failed:", err);
+      // console.error("Load dev URL failed:", err);
     });
   } else {
-    console.log('__dirnameResolved', __dirnameResolved);
+    // console.log('__dirnameResolved', __dirnameResolved);
     win.loadFile(path.join(__dirnameResolved, `renderer/${page}/index.html`));
   }
   win.webContents.openDevTools();
@@ -66,14 +66,14 @@ export function createRecorderWindow(testcaseId?: string, projectId?: string) {
       const currentUrl = win.webContents.getURL();
       const separator = currentUrl.includes('?') ? '&' : '?';
       const newUrl = `${currentUrl}${separator}testcaseId=${encodeURIComponent(testcaseId)}&projectId=${encodeURIComponent(projectId || '')}`;
-      console.log('[WindowManager] Setting project ID:', projectId);
-      console.log('[WindowManager] Loading recorder with testcaseId:', testcaseId);
-      console.log('[WindowManager] Current URL:', currentUrl);
-      console.log('[WindowManager] New URL:', newUrl);
+      // console.log('[WindowManager] Setting project ID:', projectId);
+      // console.log('[WindowManager] Loading recorder with testcaseId:', testcaseId);
+      // console.log('[WindowManager] Current URL:', currentUrl);
+      // console.log('[WindowManager] New URL:', newUrl);
       win.loadURL(newUrl);
     }, 1000); // Đợi 1 giây để đảm bảo window đã load xong
   } else {
-    console.log('[WindowManager] Creating recorder window without testcaseId and projectId');
+    // console.log('[WindowManager] Creating recorder window without testcaseId and projectId');
   }
   
   return win;

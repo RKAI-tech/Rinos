@@ -21,7 +21,9 @@
     "dist:linux": "npm run build && electron-builder --linux",
     "dist:linux-appimage": "npm run build && electron-builder --linux AppImage",
     "dist:linux-deb": "npm run build && electron-builder --linux deb",
-    "dist:linux-snap": "npm run build && electron-builder --linux snap"
+    "dist:linux-snap": "npm run build && electron-builder --linux snap",
+    "test": "electron .",
+    "vite:dev": "vite build --mode development && vite"
   },
   "keywords": ["automation", "testing", "electron"],
   "author": {

@@ -12,10 +12,10 @@ export function handleUploadChangeEvent(e) {
   const el = e?.target;
   if (!el || el.tagName?.toLowerCase?.() !== 'input' || el.type?.toLowerCase?.() !== 'file') return;
 
-  console.log('File upload change detected:', previewNode(el));
+  // console.log('File upload change detected:', previewNode(el));
   if (shouldIgnoreTarget(el, 'Upload')) return;
   if (getPauseMode && getPauseMode()) {
-    console.log('Skipping upload recording - recording is paused');
+    // console.log('Skipping upload recording - recording is paused');
     return;
   }
 
@@ -28,6 +28,6 @@ export function handleUploadChangeEvent(e) {
     files: fileList
   });
 
-  console.log('Upload event - generated selectors:', selectors, 'files:', fileList);
+  // console.log('Upload event - generated selectors:', selectors, 'files:', fileList);
   sendAction('upload', payload);
 }

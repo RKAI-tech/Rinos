@@ -10,8 +10,15 @@
       "types": ["vite/client", "node", "react", "react-dom"]
     },
     "include": [
-      "src/renderer/**/*",
-      "src/browser/**/*"
+      "src/**/*.ts",
+      "src/**/*.d.ts", // THIS LINE IS IMPORTANT
+      "src/renderer/**/*.env.d.ts", // THIS LINE IS IMPORTANT
+      "src/**/*.tsx",
+      "src/**/*.js",
+      "src/**/*.jsx",
+      "vite.config.ts",
+      "electron-builder.d.ts", // if you have this
+      "dist/renderer" // For build output, less relevant for env.d.ts
     ],
     "exclude": ["dist", "node_modules"]
   }

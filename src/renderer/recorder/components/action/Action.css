@@ -55,3 +55,39 @@
   transform: scale(1.1); 
 }
 
+.rcd-action-record { 
+  background: transparent; 
+  border: none; 
+  color: #22c55e; 
+  cursor: pointer; 
+  width: 24px; 
+  height: 24px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  transition: all 0.2s ease-in-out; 
+  border-radius: 4px; 
+}
+
+.rcd-action-record:hover:not(:disabled) { 
+  color: #16a34a; 
+  background: #f0fdf4; 
+  transform: scale(1.1); 
+}
+
+.rcd-action-record.active { 
+  color: #16a34a; 
+  background: #f0fdf4; 
+  border: 1px solid #22c55e; 
+  transform: scale(1.1); 
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2); 
+}
+
+.rcd-action-record.active:hover { 
+  color: #15803d; 
+  background: #dcfce7; 
+  border-color: #16a34a; 
+  transform: scale(1.15); 
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3); 
+}
+

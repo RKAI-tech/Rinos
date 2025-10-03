@@ -12,7 +12,7 @@ export function initializeErrorHandlers() {
   window.addEventListener('error', function(e) {
     // Only log errors that are not related to undefined variables in our script
     if (e.message && e.message.includes('dragEvent is not defined')) {
-      console.warn('Prevented dragEvent reference error - this may be from browser extensions or third-party code');
+      // console.warn('Prevented dragEvent reference error - this may be from browser extensions or third-party code');
       e.preventDefault();
       return false;
     }
@@ -23,7 +23,7 @@ export function initializeErrorHandlers() {
   // Also handle unhandled promise rejections
   window.addEventListener('unhandledrejection', function(e) {
     if (e.reason && e.reason.message && e.reason.message.includes('dragEvent')) {
-      console.warn('Prevented dragEvent promise rejection error');
+      // console.warn('Prevented dragEvent promise rejection error');
       e.preventDefault();
       return false;
     }

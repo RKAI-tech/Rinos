@@ -126,7 +126,7 @@ export function createScriptForAiAssert(receivedAction: any, action_received: an
 }
 
 export function receiveAction(testcaseId: string, action_recorded: Action[], action_received: any): Action[] {
-    console.log('[rawAction]', action_received);
+    // console.log('[rawAction]', action_received);
     const receivedAction = {
         action_id: Math.random().toString(36),
         testcase_id: testcaseId,
@@ -157,7 +157,7 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         } : undefined,
     } as Action;
 
-    console.log('[receiveAction]', receivedAction);
+    // console.log('[receiveAction]', receivedAction);
 
     const last_action = action_recorded[action_recorded.length - 1];
 
@@ -198,16 +198,19 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
             return updatedActions;
         }
     }
-    if(receivedAction.action_type === ActionType.click) {
-        const last_action = action_recorded[action_recorded.length - 1];
-        console.log('[last_action]', last_action);
-        if (last_action && (last_action.action_type === ActionType.double_click || last_action.action_type === ActionType.right_click|| last_action.action_type === ActionType.click)) {
-            return action_recorded;
+    if (receivedAction.action_type === ActionType.click) {
+        const last = action_recorded[action_recorded.length - 1];
+        if (last && (last.action_type === ActionType.click || last.action_type === ActionType.right_click || last.action_type === ActionType.double_click)) {
+            const lastSel = last.elements?.[0]?.selector?.map(s => s.value)?.join('|') || '';
+            const newSel = receivedAction.elements?.[0]?.selector?.map(s => s.value)?.join('|') || '';
+            if (lastSel === newSel) {
+                return action_recorded; // same target → dedupe
+            }
         }
     }
-    if (receivedAction.action_type === ActionType.assert && receivedAction.assert_type === AssertType.ai) {
-         receivedAction.playwright_code = createScriptForAiAssert(receivedAction, action_received);
-    }
+    // if (receivedAction.action_type === ActionType.assert && receivedAction.assert_type === AssertType.ai) {
+    //      receivedAction.playwright_code = createScriptForAiAssert(receivedAction, action_received);
+    // }
     return [...action_recorded, receivedAction];
 }
 

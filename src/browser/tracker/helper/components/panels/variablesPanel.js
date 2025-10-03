@@ -81,7 +81,7 @@ export function createVariablesPanel(onPickVariable) {
       }
       render('');
     } catch (err) {
-      console.error('Load variables error:', err);
+      // console.error('Load variables error:', err);
       grid.innerHTML = '<div style="grid-column: 1 / -1; font-size:12px; color:#ef4444;">Failed to load</div>';
     }
   }

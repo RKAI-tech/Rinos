@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService } from '../services/auth';
 import { LoginRequest, LoginWithMicrosoftRequest } from '../types/auth';
-import { config } from '../env.config';
+import { config } from '../../env.config';
 // Lưu ý: Không import tĩnh microsoftLogin trong renderer để tránh lôi Electron API vào bundle
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -17,7 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    console.error('[AuthContext] useAuth must be used within an AuthProvider');
+    // console.error('[AuthContext] useAuth must be used within an AuthProvider');
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
@@ -34,7 +34,7 @@ const tokenStorage = {
       if (key !== config.ACCESS_TOKEN_KEY) return null;
       return await (window as any).tokenStore.get();
     } catch (error) {
-      console.error('[AuthContext] Error getting from tokenStore:', error);
+      // console.error('[AuthContext] Error getting from tokenStore:', error);
       return null;
     }
   },
@@ -44,7 +44,7 @@ const tokenStorage = {
       if (key !== config.ACCESS_TOKEN_KEY) return;
       await (window as any).tokenStore.set(value);
     } catch (error) {
-      console.error('Error setting to tokenStore:', error);
+      // console.error('Error setting to tokenStore:', error);
     }
   },
   
@@ -53,7 +53,7 @@ const tokenStorage = {
       if (key !== config.ACCESS_TOKEN_KEY) return;
       await (window as any).tokenStore.remove();
     } catch (error) {
-      console.error('Error removing from tokenStore:', error);
+      // console.error('Error removing from tokenStore:', error);
     }
   }
 };
@@ -65,23 +65,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   
   // Kiểm tra token có sẵn khi component mount
   useEffect(() => {
-    log('initializeAuth: start');
+    // log('initializeAuth: start');
     const initializeAuth = async () => {
       try {
         const token = await tokenStorage.get(config.ACCESS_TOKEN_KEY);
-        log('initializeAuth: token exists =', Boolean(token));
-        log('initializeAuth: token =', token);
+        // log('initializeAuth: token exists =', Boolean(token));
+        // log('initializeAuth: token =', token);
         if (token) {
           // Set token vào authService
           setIsAuthenticated(true);
-          log('initializeAuth: authenticated');
+          // log('initializeAuth: authenticated');
         }
       } catch (error) {
-        console.error('[AuthContext] Error initializing auth:', error);
+        // console.error('[AuthContext] Error initializing auth:', error);
         clearAuthData();
       } finally {
         setIsLoading(false);
-        log('initializeAuth: end');
+        // log('initializeAuth: end');
       }
     };
     
@@ -89,7 +89,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
   
   const clearAuthData = () => {
-    log('clearAuthData');
+    // log('clearAuthData');
     tokenStorage.remove(config.ACCESS_TOKEN_KEY);
     authService.clearAuth();
     setIsAuthenticated(false);
@@ -98,50 +98,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      log('login: start', { email });
+      // log('login: start', { email });
       
       const payload: LoginRequest = { email, password };
       const response = await authService.login(payload);
-      log('login: response', response);
+      // log('login: response', response);
       
       if (response.success && response.data) {
         // Chỉ lưu token
         await tokenStorage.set(config.ACCESS_TOKEN_KEY, response.data.access_token);
         setIsAuthenticated(true);
-        log('login: authenticated');
+        // log('login: authenticated');
       } else {
         throw new Error(response.error || 'Login failed');
       }
       
     } catch (error) {
-      console.error('[AuthContext] Login failed:', error);
+      // console.error('[AuthContext] Login failed:', error);
       throw error;
     } finally {
       setIsLoading(false);
-      log('login: end');
+      // log('login: end');
     }
   };
 
   const register = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      log('register: start', { email });
+      // log('register: start', { email });
       
       const payload: LoginRequest = { email, password };
       const response = await authService.register(payload);
-      log('register: response', response);
+      // log('register: response', response);
       
       if (response.success && response.data) {
         // Chỉ lưu token
         await tokenStorage.set(config.ACCESS_TOKEN_KEY, response.data.access_token);
         setIsAuthenticated(true);
-        log('register: authenticated');
+        // log('register: authenticated');
       } else {
         throw new Error(response.error || 'Registration failed');
       }
       
     } catch (error) {
-      console.error('[AuthContext] Registration failed:', error);
+      // console.error('[AuthContext] Registration failed:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -152,7 +152,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       setIsLoading(true);
-      log('logout: start');
+      // log('logout: start');
       
       // Call logout API
       await authService.logout();
@@ -161,52 +161,52 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       clearAuthData();
       
     } catch (error) {
-      console.error('[AuthContext] Logout failed:', error);
+      // console.error('[AuthContext] Logout failed:', error);
       // Still clear local data even if API call fails
       clearAuthData();
     } finally {
       setIsLoading(false);
-      log('logout: end');
+      // log('logout: end');
     }
   };
 
   const microsoftLogin = async () => {
     try {
       setIsLoading(true);
-      log('microsoftLogin: start');
+      // log('microsoftLogin: start');
       const microsoftApi = (window as any).microsoftAPI;
       if(microsoftApi) {
-        console.log('microsoftApi', microsoftApi);
+        // console.log('microsoftApi', microsoftApi);
       }
       if (!microsoftApi || typeof microsoftApi.login !== 'function') {
         throw new Error('Microsoft API chưa được expose từ preload.');
       }
 
       const tokens = await microsoftApi.login();
-      log('microsoftLogin: tokens acquired =', Boolean(tokens?.idToken));
+      // log('microsoftLogin: tokens acquired =', Boolean(tokens?.idToken));
       if (!tokens || !tokens.idToken) {
         throw new Error('Không lấy được id_token từ Microsoft.');
       }
 
       const payload: LoginWithMicrosoftRequest = { id_token: tokens.idToken };
       const response = await authService.loginWithMicrosoft(payload);
-      log('microsoftLogin: response', response);
+      // log('microsoftLogin: response', response);
       
       if (response.success && response.data) {
         // Chỉ lưu token
         await tokenStorage.set(config.ACCESS_TOKEN_KEY, response.data.access_token);
         setIsAuthenticated(true);
-        log('microsoftLogin: authenticated');
+        // log('microsoftLogin: authenticated');
       } else {
         throw new Error(response.error || 'Microsoft login failed');
       }
       
     } catch (error) {
-      console.error('[AuthContext] Microsoft login failed:', error);
+      // console.error('[AuthContext] Microsoft login failed:', error);
       throw error;
     } finally {
       setIsLoading(false);
-      log('microsoftLogin: end');
+      // log('microsoftLogin: end');
     }
   };
 
