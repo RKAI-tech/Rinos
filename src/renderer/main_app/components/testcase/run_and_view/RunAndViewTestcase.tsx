@@ -1,13 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './RunAndViewTestcase.css';
 import { TestCaseService } from '../../../services/testcases';
-import { ExecuteScriptsService } from '../../../services/executeScripts';
-import { ActionService } from '../../../services/actions';
 import { TestCaseGetResponse } from '../../../types/testcases';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { actionToCode } from '../../../../recorder/utils/action_to_code';
-import { Action } from '../../../types/actions';
 
 interface Props {
   isOpen: boolean;
@@ -24,8 +20,6 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<TestCaseGetResponse | null>(null);
   const svc = useMemo(() => new TestCaseService(), []);
-  const executeScriptsService = useMemo(() => new ExecuteScriptsService(), []);
-  const actionService = useMemo(() => new ActionService(), []);
 
   // Load testcase data when modal opens (always try to fetch the latest)
   useEffect(() => {
@@ -44,6 +38,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
     
     try {
       setIsLoading(true);
+      
       // Get testcase details to show logs
       const response = await svc.getTestCases(projectId || '', 1000, 0);
       if (response.success && response.data) {

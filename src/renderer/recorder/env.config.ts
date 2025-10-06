@@ -1,5 +1,8 @@
 // Cấu hình môi trường cho Microsoft Login và API
 const env = import.meta.env as any;
+console.log('env trong recorder/env.config.ts', env);
+console.log('VITE_MSAL_CLIENT_ID:', env.VITE_MSAL_CLIENT_ID);
+console.log('VITE_API_BASE_URL:', env.VITE_API_BASE_URL);
 
 export const config = {
   // Microsoft Authentication Configuration (use Vite env with VITE_ prefix)
@@ -10,7 +13,7 @@ export const config = {
   DEBUG_MSAL: String(env.VITE_DEBUG_MSAL).toLowerCase() === 'true' || !!env.DEV,
 
   // API Configuration
-  API_BASE_URL: env.VITE_API_BASE_URL || 'http://10.1.5.24:7865',
+  API_BASE_URL: env.VITE_API_BASE_URL || 'http://10.1.5.24:7861',
   API_TIMEOUT: Number(env.VITE_API_TIMEOUT || 30000),
   API_RETRY_ATTEMPTS: Number(env.VITE_API_RETRY_ATTEMPTS || 3),
 

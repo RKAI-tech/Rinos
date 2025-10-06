@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService } from '../services/auth';
 import { LoginRequest, LoginWithMicrosoftRequest } from '../types/auth';
-import { config } from '../env.config';
+import { config } from '../../env.config';
 // Lưu ý: Không import tĩnh microsoftLogin trong renderer để tránh lôi Electron API vào bundle
 interface AuthContextType {
   isAuthenticated: boolean;

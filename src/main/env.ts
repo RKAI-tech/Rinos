@@ -1,12 +1,4 @@
 import "dotenv/config";
-import path from "node:path";
-import dotenv from "dotenv";
-
-// Prefer the Electron resources directory when available (packaged app),
-// otherwise fall back to current working directory for dev.
-const baseEnvDir = (process as any).resourcesPath || process.cwd();
-const envPath = path.resolve(baseEnvDir, ".env");
-dotenv.config({ path: envPath });
 
 export const MainEnv = {
   // Dev server URL for renderer (Vite)

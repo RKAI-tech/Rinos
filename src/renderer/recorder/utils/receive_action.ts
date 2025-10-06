@@ -107,19 +107,20 @@ export function createScriptForAiAssert(receivedAction: any, action_received: an
             script += '\n' + `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates);\n` +
                 `    const outerHTML = await page.locator(sel).evaluate((el) => el.outerHTML);\n` +
-                `    outerHTMLs.push(outerHTML);\n`;
+                `    var str = String(outerHTML);\n` +   // ép về string
+                `    outerHTMLs.push(str);\n`;
 
         }
         if (element.query) {
             const dbVar = receivedAction.connection?.db_type?.toLowerCase();
-            script += '\n' + `    const result = await ${dbVar}.query('${element.query}');\n` +
-                `    databaseResults.push(JSON.stringify(result));\n` + 
+            script += '\n' + `    var result = await ${dbVar}.query('${element.query}');\n` +
+                `    databaseResults=[result.rows];\n` + 
                 `    await ${dbVar}.end();\n`;
         }
     });
     const function_name = action_received.function_name;
     // TODO: script to call the function, the function is used to verify the assert, it return True or False
-    script += '\n' + `    const result = await ${function_name}(outerHTMLs, databaseResults);\n` +
+    script += '\n' + `    var result = await ${function_name}(outerHTMLs, databaseResults);\n` +
         `    await expect(result).toBe(true);\n`;
         
     return script;

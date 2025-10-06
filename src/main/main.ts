@@ -5,7 +5,8 @@ import { registerMicrosoftLoginIpc } from "./ipc/microsoftLogin.js";
 import { registerTokenIpc } from "./ipc/token.js";
 import { registerScreenHandlersIpc } from "./ipc/screen_handle.js";
 import { registerBrowserIpc } from "./ipc/browser.js";
-// .env is loaded centrally in src/main/env.ts
+
+// browserWindow() => BrowserWindow
 
 app.whenReady().then(() => {
   try {

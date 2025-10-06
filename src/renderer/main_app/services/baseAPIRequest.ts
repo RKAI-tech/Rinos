@@ -1,4 +1,4 @@
-import { config} from '../env.config';
+import { config} from '../../env.config';
 import { ApiResponse } from '../types/api_responses';
 ;
 export class ApiRouter {
