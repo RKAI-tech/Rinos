@@ -20,7 +20,10 @@ export function shouldSkipElementForClick(element) {
 }
 export function handleClickLikeBase(e, actionType, eventLabel = 'Click') {
   // console.log(`${eventLabel} event detected:`, previewNode(e?.target));
-  if (shouldIgnoreTarget(e?.target, eventLabel)) return;
+  if (shouldIgnoreTarget(e?.target, eventLabel)) {
+    console.log(`Skipping ${eventLabel} - inside browser controls or assert modal`);
+    return;
+  }
   if (getPauseMode && getPauseMode()) {
     // console.log(`Skipping ${eventLabel} recording - recording is paused`);
     return;

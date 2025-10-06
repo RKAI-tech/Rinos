@@ -81,7 +81,7 @@ export interface Element {
 }
 
 export interface Action {
-    action_id?: string;
+    action_id?: string;                                                                                                                                                                                                               
     testcase_id: string;
     action_type: ActionType;
     description?: string; // edit
@@ -99,6 +99,7 @@ export interface Action {
     statement_id?: string;
     statement?: Statement;
     variable_name?: string;
+    // files?: File[];
 }
 
 export interface ActionBatch {
