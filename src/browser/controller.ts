@@ -1,5 +1,6 @@
 import { Action, ActionType } from "./types";
 import { Page } from "playwright";
+import { BasicAuthentication } from "../renderer/recorder/types/basic_auth";
 
 export class Controller {
     async navigate(page: Page, url: string): Promise<void> {
@@ -26,6 +27,27 @@ export class Controller {
         throw lastError || new Error('All selectors failed');
     }
 
+    async resolveUniqueSelector(page: Page, selectors: string[]): Promise<string> {
+        if (!page || !selectors || !Array.isArray(selectors) || selectors.length === 0) {
+            throw new Error('[Controller] Invalid inputs for resolveUniqueSelector');
+        }
+        for (const raw of selectors) {
+            const s = String(raw).trim();
+            if (!s) continue;
+            try {
+                const locator = page.locator(s);
+                await locator.first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => {});
+                const count = await locator.count();
+                if (count === 1) {
+                    return s;
+                }
+            } catch (_) {
+                // ignore and try next selector
+            }
+        }
+        throw new Error('[Controller] No matching selector found in  ' + selectors);
+    }
+
     async executeMultipleActions(page: Page, actions: Action[]): Promise<void> {
         if(!Array.isArray(actions) || actions.length === 0) {
             throw new Error('Actions array is required and cannot be empty');
@@ -47,34 +69,36 @@ export class Controller {
                         break;
                     case ActionType.click:
                         if (action.elements && action.elements.length === 1) {
-                            await this.executeAction(action.elements[0].selector?.map(selector => selector.value) || null, async (selector) => {
-                                try {
-                                    await page.click(selector, { timeout: 5000 });
-                                } catch (error) {
-                                    // console.log(`[Controller] Click failed, trying JS fallback for selector: ${selector}`);
-                                    const jsCode = `document.querySelector('${selector}').click()`;
-                                    await page.evaluate(jsCode);
-                                }
-                            });
+                            const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
+                            const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
+                            try {
+                                await page.click(uniqueSelector, { timeout: 5000 });
+                                console.log(`[Controller] Clicked on unique selector: ${uniqueSelector}`);
+                            } catch (error) {
+                                // console.log(`[Controller] Click failed, trying JS fallback for unique selector: ${uniqueSelector}`);
+                                const jsCode = `document.querySelector('${uniqueSelector}').click()`;
+                                await page.evaluate(jsCode);
+                                console.log(`[Controller] Clicked on unique selector: ${uniqueSelector} using JS fallback`);
+                            }
                         }
                         break;
                     case ActionType.input:
                         if (action.elements && action.elements.length === 1) {
-                            await this.executeAction(action.elements[0].selector?.map(selector => selector.value) || null, async (selector) => {
+                            await this.executeAction(action.elements[0].selectors?.map(selector => selector.value) || null, async (selector) => {
                                 await page.fill(selector, action.value || '');
                             });
                         }
                         break;
                     case ActionType.select:
                         if (action.elements && action.elements.length === 1) {
-                            await this.executeAction(action.elements[0].selector?.map(selector => selector.value) || null, async (selector) => {
+                            await this.executeAction(action.elements[0].selectors?.map(selector => selector.value) || null, async (selector) => {
                                 await page.selectOption(selector, action.value || '');
                             });
                         }
                         break;
                     case ActionType.checkbox:
                         if (action.elements && action.elements.length === 1) {
-                            await this.executeAction(action.elements[0].selector?.map(selector => selector.value) || null, async (selector) => {
+                            await this.executeAction(action.elements[0].selectors?.map(selector => selector.value) || null, async (selector) => {
                                 if (action.checked) {
                                     await page.check(selector);
                                 } else {
@@ -85,7 +109,7 @@ export class Controller {
                         break;
                     case ActionType.keydown:
                         if (action.elements && action.elements.length === 1) {
-                            await this.executeAction(action.elements[0].selector?.map(selector => selector.value) || null, async (selector) => {
+                            await this.executeAction(action.elements[0].selectors?.map(selector => selector.value) || null, async (selector) => {
                                 await page.locator(selector).press(action.value || '');
                             });
                         }

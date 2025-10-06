@@ -6,20 +6,22 @@ import MAAction from '../../action/Action';
 import { Action } from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
 import MAActionDetailModal from '../../action_detail/ActionDetailModal';
+import { BasicAuthService } from '../../../services/basic_auth';
 
 interface MinimalTestcase {
   testcase_id: string;
   name: string;
   tag: string;
+  basic_authentication?: { username: string; password: string }[];
 }
 
 interface DuplicateTestcaseProps {
   isOpen: boolean;
   onClose: () => void;
   // Return desired name/tag and prepared actions (without testcase_id)
-  onSave: (data: { name: string; tag: string; actions: Action[] }) => void;
+  onSave: (data: { name: string; tag: string; actions: Action[]; basic_authentication?: { username: string; password: string }[] }) => void;
   // Function provided by parent page to create testcase with actions
-  createTestcaseWithActions: (name: string, tag?: string, actions?: Action[]) => Promise<boolean>;
+  createTestcaseWithActions: (name: string, tag?: string, actions?: Action[], basic_authentication?: { username: string; password: string }[]) => Promise<boolean>;
   testcase: MinimalTestcase | null;
 }
 
@@ -31,12 +33,43 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
   const [isLoadingActions, setIsLoadingActions] = useState(false);
   const actionService = useMemo(() => new ActionService(), []);
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
+  const [basicAuthList, setBasicAuthList] = useState<{ username: string; password: string }[]>([]);
+  const [isLoadingBasicAuth, setIsLoadingBasicAuth] = useState(false);
+  const [basicAuthError, setBasicAuthError] = useState<string | null>(null);
+  const [basicAuthService] = useState(() => {
+    return new BasicAuthService();
+  });
 
   useEffect(() => {
     if (testcase) {
       setTestcaseName(`${testcase.name || ''} Copy`);
       setTestcaseTag(testcase.tag || '');
       setErrors({});
+      // Prefer parent-provided list if available, otherwise fetch from API
+      if (Array.isArray(testcase.basic_authentication)) {
+        const list = testcase.basic_authentication || [];
+        setBasicAuthList(list.map((x) => ({ username: x?.username || '', password: x?.password || '' })));
+      } else {
+        const loadBasicAuth = async () => {
+          try {
+            setIsLoadingBasicAuth(true);
+            setBasicAuthError(null);
+            const resp = await basicAuthService.getBasicAuthenticationByTestcaseId(testcase.testcase_id);
+            if (resp.success && resp.data) {
+              const list = Array.isArray(resp.data) ? resp.data : [];
+              setBasicAuthList(list.map((x: any) => ({ username: x?.username || '', password: x?.password || '' })));
+            } else {
+              setBasicAuthList([]);
+            }
+          } catch (e) {
+            setBasicAuthList([]);
+            setBasicAuthError('Failed to load Basic Auth');
+          } finally {
+            setIsLoadingBasicAuth(false);
+          }
+        };
+        loadBasicAuth();
+      }
       const loadActions = async () => {
         try {
           setIsLoadingActions(true);
@@ -81,7 +114,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
     //   description: a.description,
     //   playwright_code: a.playwright_code,
     //   elements: (a.elements || []).map((el: any) => ({
-    //     selector: ((el?.selector || []) as any[])
+    //     selectors: ((el?.selectors || []) as any[])
     //       .map((s: any) => {
     //         const val = typeof s === 'string' ? s : (s?.value || '');
     //         return val && val.length > 0 ? { value: val } : null;
@@ -98,7 +131,8 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
     const result = await createTestcaseWithActions(
       testcaseName.trim(),
       testcaseTag.trim() || undefined,
-      preparedActions
+      preparedActions,
+      (basicAuthList || []).filter(x => x.username || x.password)
     );
 
     if (result) {
@@ -106,6 +140,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
         name: testcaseName.trim(),
         tag: testcaseTag.trim(),
         actions: preparedActions,
+        basic_authentication: (basicAuthList || []).filter(x => x.username || x.password)
       });
     }
   };
@@ -113,6 +148,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
   const handleClose = () => {
     setTestcaseName('');
     setTestcaseTag('');
+    setBasicAuthList([]);
     setErrors({});
     onClose();
   };
@@ -163,6 +199,37 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
               className={`tcase-dup-form-input ${errors.tag ? 'tcase-dup-error' : ''}`}
             />
             {errors.tag && <span className="tcase-dup-error-message">{errors.tag}</span>}
+          </div>
+
+          {/* Basic Authentication - multiple rows */}
+          <div className="tcase-dup-form-group">
+            <label className="tcase-dup-form-label">Basic Authentication</label>
+            {(basicAuthList.length === 0) && (
+              <div style={{ color: '#999', marginBottom: 8 }}>No Basic Auth entries</div>
+            )}
+            {basicAuthList.map((item, idx) => (
+              <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <input
+                  type="text"
+                  placeholder="Username"
+                  value={item.username}
+                  onChange={(e) => setBasicAuthList(prev => prev.map((x, i) => i === idx ? { ...x, username: e.target.value } : x))}
+                  className={`tcase-dup-form-input ${errors.name ? 'tcase-dup-error' : ''}`}
+                  disabled={isLoadingBasicAuth}
+                />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={item.password}
+                  onChange={(e) => setBasicAuthList(prev => prev.map((x, i) => i === idx ? { ...x, password: e.target.value } : x))}
+                  className={`tcase-dup-form-input ${errors.tag ? 'tcase-dup-error' : ''}`}
+                  disabled={isLoadingBasicAuth}
+                />
+                <button type="button" className="tcase-dup-btn-save" onClick={() => setBasicAuthList(prev => prev.filter((_, i) => i !== idx))}>Remove</button>
+              </div>
+            ))}
+            <button type="button" className="tcase-dup-btn-save" onClick={() => setBasicAuthList(prev => [...prev, { username: '', password: '' }])}>Add Basic Auth</button>
+            {basicAuthError && <span className="tcase-dup-error-message">{basicAuthError}</span>}
           </div>
 
           <div style={{ borderTop: '1px solid #e5e7eb', margin: '12px 0' }} />

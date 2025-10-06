@@ -16,6 +16,7 @@ export function createDescription(action_received: any): string {
     if (typeof element === 'string' && element.length > 15) {
         element = element.substring(0, 15) + '...';
     }
+    let files = action_received.files?.map((f: any) => f.name).join(', ') || '';
     switch (type) {
         case ActionType.navigate:
             return `Navigate to ${url}`;
@@ -40,7 +41,7 @@ export function createDescription(action_received: any): string {
         case ActionType.keypress:
             return `Key press ${value}`;
         case ActionType.upload:
-            return `Upload file ${value}`;
+            return `Upload file ${files}`;
         case ActionType.scroll:
             return `Scroll ${value}`;
         case ActionType.connect_db:
@@ -100,7 +101,7 @@ export function createScriptForAiAssert(receivedAction: any, action_received: an
     }
     script += '\n' + `    let outerHTMLs = [];\n` + `  let databaseResults = [];\n`;
     receivedAction.elements?.forEach((element: Element) => {
-        if (element.selector) {
+        if (element.selectors) {
             const candidatesLiteral = processSelector([element]);
             // TODO: script to get outerHTML of the element
             script += '\n' + `    candidates = ${candidatesLiteral};\n` +
@@ -134,13 +135,13 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         description: createDescription(action_received),
         playwright_code: action_received.playwright_code,
         elements: action_received.selector ? [{
-            selector: action_received.selector.map((sel: string) => ({ value: sel } as Selector)),
+            selectors: action_received.selector.map((sel: string) => ({ value: sel } as Selector)),
             query: action_received.query,
             value: action_received.value,
             variable_name: action_received.variable_name,
         } as Element] : [],
         assert_type: action_received.assertType,
-        value: action_received.value,
+        value: action_received.value || action_received.files?.[0]?.name || undefined,
         connection_id: action_received.connection_id,
         connection: action_received.connection ? {
             connection_id: action_received.connection_id,
@@ -155,9 +156,13 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         statement: action_received.query ? {
             query: action_received.query,
         } : undefined,
+        file_upload: action_received.files ? action_received.files.map((file: any) => ({
+            filename: file.name,
+            file_content: file.content.split(',')[1],
+        })) : [],
     } as Action;
 
-    // console.log('[receiveAction]', receivedAction);
+    console.log('[receiveAction]', receivedAction);
 
     const last_action = action_recorded[action_recorded.length - 1];
 
@@ -166,20 +171,8 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         const lastElements = last_action.elements || [];
         const newElements = receivedAction.elements || [];
 
-        // Check if elements are the same (same selectors)
-        const elementsMatch = lastElements.length === newElements.length &&
-            lastElements.every((lastEl, index) => {
-                const newEl = newElements[index];
-                if (!newEl) return false;
-
-                const lastSelectors = lastEl.selector || [];
-                const newSelectors = newEl.selector || [];
-
-                return lastSelectors.length === newSelectors.length &&
-                    lastSelectors.every((lastSel, selIndex) =>
-                        lastSel.value === newSelectors[selIndex]?.value
-                    );
-            });
+        //check if elements are the same least one selector is the same
+        const elementsMatch = lastElements.some((lastElement) => newElements.some((newElement) => lastElement.selectors?.some((lastSelector) => newElement.selectors?.some((newSelector) => lastSelector.value === newSelector.value))));
 
         if (elementsMatch) {
             const updatedActions = [...action_recorded];
@@ -201,8 +194,8 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
     if (receivedAction.action_type === ActionType.click) {
         const last = action_recorded[action_recorded.length - 1];
         if (last && (last.action_type === ActionType.click || last.action_type === ActionType.right_click || last.action_type === ActionType.double_click)) {
-            const lastSel = last.elements?.[0]?.selector?.map(s => s.value)?.join('|') || '';
-            const newSel = receivedAction.elements?.[0]?.selector?.map(s => s.value)?.join('|') || '';
+            const lastSel = last.elements?.[0]?.selectors?.map(s => s.value)?.join('|') || '';
+            const newSel = receivedAction.elements?.[0]?.selectors?.map(s => s.value)?.join('|') || '';
             if (lastSel === newSel) {
                 return action_recorded; // same target → dedupe
             }

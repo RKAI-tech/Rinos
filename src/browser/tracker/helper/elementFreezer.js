@@ -8,37 +8,6 @@ let originalStyles = new Map();
 let originalAnimations = new Map();
 let assertedElements = new Set(); // Track elements that are currently being asserted
 let screenFrozenState = false; // Track if entire screen is frozen
-let mutationObserver = null; // Observe DOM removals during freeze
-let protectedElements = new WeakMap(); // Track important nodes to keep alive when removed
-let eventBlockers = []; // Global event blockers added during freeze
-
-function isOverlayCandidate(el) {
-  if (!(el instanceof HTMLElement)) return false;
-  const cs = window.getComputedStyle(el);
-  const rect = el.getBoundingClientRect();
-  const hasSize = rect.width > 0 && rect.height > 0;
-  const isVisible = cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity || '1') > 0.01;
-  if (!hasSize || !isVisible) return false;
-
-  const pos = cs.position;
-  const posFloating = pos === 'fixed' || pos === 'absolute' || pos === 'sticky';
-  const attrPrevent = el.getAttribute('data-prevent-outside-click') === 'true';
-  const role = (el.getAttribute('role') || '').toLowerCase();
-  const isDialog = role === 'dialog' || role === 'alert' || role === 'alertdialog';
-  const zIndexVal = cs.zIndex === 'auto' ? 0 : parseInt(cs.zIndex, 10) || 0;
-  const highZIndex = zIndexVal >= 1000;
-
-  return posFloating || attrPrevent || isDialog || highZIndex;
-}
-
-function isVisibleCandidate(el) {
-  if (!(el instanceof HTMLElement)) return false;
-  const cs = window.getComputedStyle(el);
-  const rect = el.getBoundingClientRect();
-  const hasSize = rect.width > 0 && rect.height > 0;
-  const isVisible = cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity || '1') > 0.01;
-  return hasSize && isVisible;
-}
 
 // Preserve originals for JS timers and RAF
 let originalSetTimeout = null;
@@ -49,12 +18,8 @@ let originalRequestAnimationFrame = null;
 let originalCancelAnimationFrame = null;
 
 // Queues for timers scheduled during freeze
-let queuedTimeouts = []; // { id, fn }
-let queuedIntervals = []; // { id, fn, delay }
-let activeFrozenTimeoutIds = new Set();
-let activeFrozenIntervalIds = new Set();
-let timeoutIdSeed = 1;
-let intervalIdSeed = 1;
+let queuedTimeouts = [];
+let queuedIntervals = [];
 
 /**
  * Freeze an element to prevent it from disappearing
@@ -155,7 +120,9 @@ export function unfreezeElement(element) {
   // Clean up
   frozenElements.delete(element);
   originalStyles.delete(element);
-  originalAnimations.delete(element);
+  originalAnimwindow.currentAssertType 
+  
+  ations.delete(element);
 
   // console.log('Element unfrozen successfully:', element);
 }
@@ -269,18 +236,15 @@ export function freezeEntireScreen() {
   // console.log('Freezing entire screen for assert mode');
   screenFrozenState = true;
   
-  // 1) Pause CSS animations and transitions non-destructively using CSS (keep computed values)
+  // 1) Pause CSS animations non-destructively using CSS (keep computed values)
   const style = document.createElement('style');
   style.id = 'rikkei-screen-freeze';
   style.textContent = `
-    * { 
-      animation-play-state: paused !important; 
-      transition: none !important;
-    }
+    * { animation-play-state: paused !important; }
   `;
   document.head.appendChild(style);
   
-  // 2) Hook JS timers và RAF: khi freeze, KHÔNG tạo timer thật; chỉ xếp callback vào hàng đợi
+  // 2) Hook JS timers and RAF so app timers are paused during freeze
   if (!originalSetTimeout) {
     originalSetTimeout = window.setTimeout;
     originalClearTimeout = window.clearTimeout;
@@ -290,55 +254,24 @@ export function freezeEntireScreen() {
     originalCancelAnimationFrame = window.cancelAnimationFrame;
     
     window.setTimeout = function(cb, delay, ...args) {
-      if (screenFrozenState) {
-        const id = timeoutIdSeed++;
-        const fn = () => cb.apply(null, args);
-        queuedTimeouts.push({ id, fn });
-        activeFrozenTimeoutIds.add(id);
-        return id;
-      }
-      return originalSetTimeout(cb, delay, ...args);
+      const id = originalSetTimeout(() => {
+        if (screenFrozenState) {
+          // queue to run after unfreeze
+          queuedTimeouts.push(() => cb.apply(null, args));
+        } else {
+          cb.apply(null, args);
+        }
+      }, delay);
+      return id;
     };
-
-    window.clearTimeout = function(id) {
-      if (screenFrozenState && activeFrozenTimeoutIds.has(id)) {
-        activeFrozenTimeoutIds.delete(id);
-        queuedTimeouts = queuedTimeouts.filter(t => t.id !== id);
-        return;
-      }
-      return originalClearTimeout(id);
-    };
-
     window.setInterval = function(cb, delay, ...args) {
-      if (screenFrozenState) {
-        const id = intervalIdSeed++;
-        const fn = () => cb.apply(null, args);
-        queuedIntervals.push({ id, fn, delay: Number(delay) || 0 });
-        activeFrozenIntervalIds.add(id);
-        return id;
-      }
-      return originalSetInterval(cb, delay, ...args);
+      const wrapped = () => { if (!screenFrozenState) cb.apply(null, args); };
+      const id = originalSetInterval(wrapped, delay);
+      queuedIntervals.push({ id, wrapped });
+      return id;
     };
-
-    window.clearInterval = function(id) {
-      if (screenFrozenState && activeFrozenIntervalIds.has(id)) {
-        activeFrozenIntervalIds.delete(id);
-        queuedIntervals = queuedIntervals.filter(item => item.id !== id);
-        return;
-      }
-      return originalClearInterval(id);
-    };
-    
     window.requestAnimationFrame = function(cb) {
       return originalRequestAnimationFrame((ts) => { if (!screenFrozenState) cb(ts); });
-    };
-    
-    window.cancelAnimationFrame = function(id) {
-      if (screenFrozenState) {
-        // Don't cancel RAF during freeze
-        return;
-      }
-      return originalCancelAnimationFrame(id);
     };
   }
   
@@ -362,94 +295,6 @@ export function freezeEntireScreen() {
   `;
   document.head.appendChild(badgeStyle);
   document.body.classList.add('rikkei-screen-frozen');
-
-  // 3) Snapshot ALL currently visible elements to protect them from unmount
-  try {
-    const all = document.querySelectorAll('*');
-    all.forEach((el) => {
-      if (!isVisibleCandidate(el)) return;
-      const cs = window.getComputedStyle(el);
-      const rect = el.getBoundingClientRect();
-      protectedElements.set(el, {
-        parent: el.parentNode,
-        nextSibling: el.nextSibling,
-        rect,
-        zIndex: cs.zIndex,
-      });
-    });
-  } catch (_) { /* ignore */ }
-
-  // 4) Observe DOM removals to keep protected floating elements alive
-  try {
-    mutationObserver = new MutationObserver((mutations) => {
-      if (!screenFrozenState) return;
-      for (const m of mutations) {
-        // Mark newly added VISIBLE elements as protected, so if they unmount, we can restore
-        if (m.type === 'childList' && m.addedNodes && m.addedNodes.length) {
-          m.addedNodes.forEach((node) => {
-            if (!(node instanceof HTMLElement)) return;
-            const stackAdd = [node];
-            while (stackAdd.length) {
-              const cur = stackAdd.pop();
-              if (!(cur instanceof HTMLElement)) continue;
-              if (isVisibleCandidate(cur)) {
-                const cs = window.getComputedStyle(cur);
-                const rect = cur.getBoundingClientRect();
-                protectedElements.set(cur, {
-                  parent: cur.parentNode,
-                  nextSibling: cur.nextSibling,
-                  rect,
-                  zIndex: cs.zIndex,
-                });
-              }
-              cur.childNodes.forEach((c) => stackAdd.push(c));
-            }
-          });
-        }
-        if (m.type === 'childList' && m.removedNodes && m.removedNodes.length) {
-          m.removedNodes.forEach((node) => {
-            if (!(node instanceof HTMLElement)) return;
-            // Check removed node and its descendants
-            const stack = [node];
-            while (stack.length) {
-              const cur = stack.pop();
-              if (!(cur instanceof HTMLElement)) continue;
-              if (protectedElements.has(cur)) {
-                // Re-attach to body, fix position and visibility
-                const meta = protectedElements.get(cur);
-                document.body.appendChild(cur);
-                cur.style.position = 'fixed';
-                cur.style.left = meta.rect.left + 'px';
-                cur.style.top = meta.rect.top + 'px';
-                cur.style.width = meta.rect.width + 'px';
-                cur.style.height = meta.rect.height + 'px';
-                cur.style.zIndex = (meta.zIndex && meta.zIndex !== 'auto') ? meta.zIndex : '999999';
-                cur.style.opacity = '1';
-                cur.style.visibility = 'visible';
-                cur.style.transition = 'none';
-              }
-              // Explore subtree
-              cur.childNodes.forEach((c) => stack.push(c));
-            }
-          });
-        }
-      }
-    });
-    mutationObserver.observe(document.documentElement, { childList: true, subtree: true });
-  } catch (_) { /* ignore */ }
-
-  // 5) Block global interactions that commonly close popups (ESC/click/etc.)
-  const block = (e) => { try { e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation(); } catch (_) {} };
-  const keyBlock = (e) => { if (e && e.key === 'Escape') block(e); };
-  const types = ['click', 'mousedown', 'mouseup', 'wheel', 'touchstart'];
-  try {
-    types.forEach((t) => {
-      document.addEventListener(t, block, true);
-      eventBlockers.push({ t, h: block });
-    });
-    document.addEventListener('keydown', keyBlock, true);
-    eventBlockers.push({ t: 'keydown', h: keyBlock });
-  } catch (_) { /* ignore */ }
 }
 
 /**
@@ -471,52 +316,19 @@ export function unfreezeEntireScreen() {
   // Remove class from body
   document.body.classList.remove('rikkei-screen-frozen');
   
-  // 2) Khôi phục timers/RAF và xử lý hàng đợi đã xếp
+  // 2) Restore JS timers/RAF behavior and flush queued timeouts
   if (originalSetTimeout) {
-    // Restore original timer functions
-    window.setTimeout = originalSetTimeout;
-    window.clearTimeout = originalClearTimeout;
-    window.setInterval = originalSetInterval;
-    window.clearInterval = originalClearInterval;
-    window.requestAnimationFrame = originalRequestAnimationFrame;
-    window.cancelAnimationFrame = originalCancelAnimationFrame;
-    
-    // Flush queued timeouts (run once)
     const timeoutsToRun = queuedTimeouts.slice();
     queuedTimeouts = [];
-    activeFrozenTimeoutIds.clear();
-    timeoutsToRun.forEach(item => {
-      try { item.fn(); } catch (e) { console.warn('Queued timeout error:', e); }
+    timeoutsToRun.forEach(run => {
+      try { run(); } catch (e) { console.warn('Queued timeout error:', e); }
     });
-    
-    // Start queued intervals now that we are unfrozen
-    const intervalsToStart = queuedIntervals.slice();
-    queuedIntervals = [];
-    const startedIds = [];
-    intervalsToStart.forEach(item => {
-      try {
-        const realId = originalSetInterval(item.fn, item.delay);
-        startedIds.push(realId);
-      } catch (e) { console.warn('Queued interval start error:', e); }
-    });
-    activeFrozenIntervalIds.clear();
   }
+  
+  // Note: intervals were suppressed during freeze and continue now without change
   
   // 3) Unfreeze all individual elements to restore original inline styles
   unfreezeAllElements();
-
-  // 4) Stop observing and clear protected set
-  if (mutationObserver) {
-    try { mutationObserver.disconnect(); } catch (_) {}
-    mutationObserver = null;
-  }
-  protectedElements = new WeakMap();
-
-  // 5) Remove global event blockers
-  try {
-    eventBlockers.forEach(({ t, h }) => document.removeEventListener(t, h, true));
-  } catch (_) { /* ignore */ }
-  eventBlockers = [];
 }
 
 /**

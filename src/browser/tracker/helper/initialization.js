@@ -96,7 +96,7 @@ function processAssertClick(e) {
   const assertType = window.currentAssertType || 'toBeVisible';
   try {
     // Generate selector for the clicked element
-    const rawSelector = generateSelector(e.target);
+    const rawSelector = generateSelector(e.target, { minScore: 200 });
     const selector = validateAndImproveSelector(rawSelector, e.target);
     const elementType = e.target.tagName.toLowerCase();
     const elementPreview = previewNode(e.target);
@@ -206,7 +206,7 @@ export function initializeEventListeners() {
   document.addEventListener('change', handleSelectChangeEvent);
   
   // Enhanced click tracking with assert mode support
-  document.addEventListener('click', handleClickEvent);
+  document.addEventListener('click', handleClickEvent, true);
   
   // Double click tracking
   document.addEventListener('dblclick', handleDoubleClickEvent);

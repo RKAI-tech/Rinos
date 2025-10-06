@@ -5,14 +5,17 @@ import ActionDetailModal from '../../components/action_detail/ActionDetailModal'
 import TestScriptTab from '../../components/code_convert/TestScriptTab';
 import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab';
 import AiAssertModal from '../../components/ai_assert/AiAssertModal';
+import BasicAuthModal from '../../components/basic_auth/BasicAuthModal';
 import DeleteAllActions from '../../components/delete_all_action/DeleteAllActions';
+import ConfirmCloseModal from '../../components/confirm_close/ConfirmCloseModal';
 import { ActionService } from '../../services/actions';
-import { Action, ActionType, AiAssertRequest, AssertType } from '../../types/actions';
+import { Action, ActionBatch, ActionType, AiAssertRequest, AssertType } from '../../types/actions';
 import { actionToCode } from '../../utils/action_to_code';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
 import { receiveAction, createDescription, receiveActionWithInsert } from '../../utils/receive_action';
 import { Connection } from '../../types/actions';
+import { BasicAuthentication } from '../../types/basic_auth';
 
 
 interface MainProps {
@@ -57,6 +60,10 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         queryResultData?: any[]; 
   }[]>([]);
   const [recordingFromActionIndex, setRecordingFromActionIndex] = useState<number | null>(null);
+  const [isBasicAuthOpen, setIsBasicAuthOpen] = useState(false);
+  const [basicAuthItems, setBasicAuthItems] = useState<BasicAuthentication[]>([]);
+  const [isConfirmCloseOpen, setIsConfirmCloseOpen] = useState(false);
+  const service = new ExecuteScriptsService();
 
   useEffect(() => {
     // console.log('[Main] Setting project ID:', projectId);
@@ -79,7 +86,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             const loaded = response.data.actions || [];
             setActions(loaded);
             setSelectedInsertPosition(loaded.length);
-            // console.log('[Main] Loaded actions:', loaded);
+            console.log('[Main] Loaded actions:', loaded);
           } else {
             // console.error('[Main] Failed to load actions:', response.error);
             setActions([]);
@@ -103,7 +110,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
 
   // Single onAction listener: handles AI and normal actions, with optional insert position
   useEffect(() => {
-    return (window as any).browserAPI?.browser?.onAction((action: any) => {
+    return (window as any).browserAPI?.browser?.onAction(async (action: any) => {
       if (isPaused) return;
       if (!testcaseId) return;
 
@@ -119,6 +126,22 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         setAiElements(prev => [...prev, newItem]);
         return;
       }
+
+      // if (action.type === 'upload') {
+      //   const filename = action.files?.[0]?.name;
+      //   const file = action.files?.[0]?.content.split(',')[1];
+      //   if (!filename || !file) {
+      //     toast.error('Upload file failed. No filename or file content.');
+      //     return;
+      //   }
+      //   const payload = { filename, file_content: file };
+      //   console.log('[Main] Uploading file:', payload);
+      //   const response = await service.uploadFile(payload);
+      //   if (!response.success) {
+      //     toast.error('Upload file failed. ' + response.error);
+      //     return;
+      //   }
+      // }
 
       setActions(prev => {
         const next = receiveActionWithInsert(testcaseId, prev, action, selectedInsertPosition);
@@ -157,6 +180,22 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
 
     // Listen for browser close event from main process
     const removeListener = (window as any).browserAPI?.browser?.onBrowserClose?.(handleBrowserClose);
+    
+    return () => {
+      if (removeListener) {
+        removeListener();
+      }
+    };
+  }, []);
+
+  // Listen for window close request from main process
+  useEffect(() => {
+    const handleCloseRequest = () => {
+      setIsConfirmCloseOpen(true);
+    };
+
+    // Listen for window close request event from main process
+    const removeListener = (window as any).electronAPI?.window?.onCloseRequested?.(handleCloseRequest);
     
     return () => {
       if (removeListener) {
@@ -558,17 +597,32 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
 
   const handleRunScript = async () => {
     try {
-      const service = new ExecuteScriptsService();
       const code = (activeTab === 'script' && customScript.trim()) ? customScript : actionToCode(actions);
       const toastId = toast.loading('Running script...');
-      const resp = await service.executeJavascript({ testcase_id: testcaseId || '', code });
-      // console.log('[Main] Run script response:', resp);
+      // const resp = await service.executeJavascript({ testcase_id: testcaseId || '', code });
+      // // console.log('[Main] Run script response:', resp);
+      // if (resp.success) {
+      //   const msg = (resp as any).result || 'Executed successfully';
+      //   console.log('[Main] Run script result:', msg);
+      //   setRunResult(msg);
+      //   toast.update(toastId, { render: 'Run succeeded', type: 'success', isLoading: false, autoClose: 2000 });
+      // } else {
+      //   setRunResult((resp as any).result || 'Run failed');
+      //   toast.update(toastId, { render: resp.error || 'Run failed', type: 'error', isLoading: false, autoClose: 3000 });
+      // }
+      const payload = {
+        actions: actions,
+      };
+      console.log('[Main] Run script payload:', payload);
+      const resp = await service.executeActions(payload);
+      console.log('[Main] Run script response:', resp);
       if (resp.success) {
         const msg = (resp as any).result || 'Executed successfully';
         console.log('[Main] Run script result:', msg);
-        setRunResult(msg);
+        setRunResult(msg.logs);
         toast.update(toastId, { render: 'Run succeeded', type: 'success', isLoading: false, autoClose: 2000 });
-      } else {
+      }
+      else {
         setRunResult((resp as any).result || 'Run failed');
         toast.update(toastId, { render: resp.error || 'Run failed', type: 'error', isLoading: false, autoClose: 3000 });
       }
@@ -580,11 +634,69 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     }
   };
 
+  const handleConfirmClose = async () => {
+    setIsConfirmCloseOpen(false);
+    // handleDeleteTmpFile();
+    // Gửi xác nhận đóng cửa sổ đến main process
+    await (window as any).electronAPI?.window?.confirmCloseRecorder?.(true);
+  };
+
+  const handleCancelClose = async () => {
+    setIsConfirmCloseOpen(false);
+    // Gửi hủy đóng cửa sổ đến main process
+    await (window as any).electronAPI?.window?.confirmCloseRecorder?.(false);
+  };
+
+  const handleDeleteTmpFile = async () => {
+    setIsConfirmCloseOpen(false);
+    actions.forEach(async action => {
+      if (action.action_type === ActionType.upload) {
+        const filename = action.value;
+        if (filename) {
+          await service.deleteFile({ filename });
+        }
+      }
+    });
+  };
+
+  const handleSaveAndClose = async () => {
+    setIsConfirmCloseOpen(false);
+    // handleDeleteTmpFile();
+    try {
+      // Lưu actions trước khi đóng
+      await handleSaveActions();
+      // Đợi một chút để đảm bảo lưu thành công
+      setTimeout(async () => {
+        await (window as any).electronAPI?.window?.confirmCloseRecorder?.(true);
+      }, 500);
+    } catch (error) {
+      // Nếu lưu thất bại, vẫn hiển thị modal để người dùng quyết định
+      setIsConfirmCloseOpen(true);
+      toast.error('Failed to save actions. Please try again.');
+    }
+  };
+
+  // Kiểm tra xem có actions chưa được lưu không
+  // Actions được coi là chưa lưu nếu:
+  // 1. Có actions trong danh sách
+  // 2. Và testcaseId tồn tại (có thể lưu được)
+  const hasUnsavedActions = actions.length > 0 && !!testcaseId;
+
   return (
     <div className="rcd-page">
       <div className="rcd-topbar">
         <input className="rcd-url" placeholder="Type your URL here.." value={url} onChange={(e) => setUrl(e.target.value)} />
         <div className="rcd-topbar-actions">
+        <button
+            className={`rcd-btn`}
+            title="HTTP Authentication"
+            onClick={() => setIsBasicAuthOpen(true)}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 1C9.79086 1 8 2.79086 8 5V7H7C5.34315 7 4 8.34315 4 10V18C4 19.6569 5.34315 21 7 21H17C18.6569 21 20 19.6569 20 18V10C20 8.34315 18.6569 7 17 7H16V5C16 2.79086 14.2091 1 12 1ZM14 7V5C14 3.89543 13.1046 3 12 3C10.8954 3 10 3.89543 10 5V7H14Z" fill="currentColor"/>
+            </svg>
+            HTTP Authentication
+          </button>
         <button
             className={`rcd-ctrl ${isBrowserOpen ? 'rcd-stop' : 'rcd-record'}`}
             title={isBrowserOpen ? "Stop recording" : "Start recording"}
@@ -735,6 +847,20 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         onClose={() => { setIsAiModalOpen(false); }}
         onSubmit={handleAiSubmit}
         onAddElement={handleAiAddElement}
+      />
+      <BasicAuthModal
+        isOpen={isBasicAuthOpen}
+        testcaseId={testcaseId}
+        onClose={() => setIsBasicAuthOpen(false)}
+        items={basicAuthItems}
+        onSaved={setBasicAuthItems}
+      />
+      <ConfirmCloseModal
+        isOpen={isConfirmCloseOpen}
+        onConfirm={handleConfirmClose}
+        onCancel={handleCancelClose}
+        onSaveAndClose={handleSaveAndClose}
+        hasUnsavedActions={hasUnsavedActions}
       />
     </div>
   );

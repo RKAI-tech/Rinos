@@ -13,7 +13,7 @@ body, html { overflow: hidden; }
 .rcd-ctrl.rcd-assert.active { background: #2563eb; color: #fff; border-color: #2563eb; }
 .rcd-ctrl.rcd-assert:disabled { opacity: 0.5; cursor: not-allowed; }
 .rcd-ctrl.rcd-assert:disabled:hover { background: #fff; border-color: #d1d5db; color: #374151; transform: none; }
-
+.rcd-btn { background: #fff; border: 1px solid #e5e7eb; border-radius: 25px; padding: 8px 12px; cursor: pointer; transition: all 0.2s ease-in-out; display: flex; align-items: center; gap: 8px; height: 40px; }
 /* Alternative pause/resume button styles */
 .rcd-ctrl.rcd-pause-alt {
   background: transparent;

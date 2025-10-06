@@ -18,7 +18,7 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
       const cloned: Action = {
         ...action,
         elements: action.elements ? action.elements.map(el => ({
-          selector: el.selector ? el.selector.map(s => ({ ...s })) : undefined,
+          selectors: el.selectors ? el.selectors.map(s => ({ ...s })) : undefined,
           query: el.query,
           value: el.value,
           variable_name: el.variable_name,
@@ -151,23 +151,23 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
     updateElement(elementIndex, (cur) => ({
       ...cur,
       // Add new selector to the BEGINNING so user-provided selector is on top
-      selector: [{ value: '' }, ...(cur.selector || [])]
+      selectors: [{ value: '' }, ...(cur.selectors || [])]
     }));
   };
 
   const updateSelector = (elementIndex: number, selectorIndex: number, value: string) => {
     updateElement(elementIndex, (cur) => {
-      const newSelectors = [...(cur.selector || [])];
+      const newSelectors = [...(cur.selectors || [])];
       newSelectors[selectorIndex] = { value };
-      return { ...cur, selector: newSelectors };
+      return { ...cur, selectors: newSelectors };
     });
   };
 
   const removeSelector = (elementIndex: number, selectorIndex: number) => {
     updateElement(elementIndex, (cur) => {
-      const newSelectors = [...(cur.selector || [])];
+      const newSelectors = [...(cur.selectors || [])];
       newSelectors.splice(selectorIndex, 1);
-      return { ...cur, selector: newSelectors };
+      return { ...cur, selectors: newSelectors };
     });
   };
 
@@ -199,8 +199,8 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
                   </button>
                 </div>
                 <div className="rcd-action-detail-selectors-list">
-                  {el.selector && el.selector.length > 0 ? (
-                    el.selector.map((sel, selIdx) => (
+                  {el.selectors && el.selectors.length > 0 ? (
+                    el.selectors.map((sel, selIdx) => (
                       <div key={selIdx} className="rcd-action-detail-selector-item">
                         <input
                           className="rcd-action-detail-input"

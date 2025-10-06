@@ -1,3 +1,5 @@
+import { ActionBatch } from "./actions";
+
 export interface RunCodeRequest {
     code: string;
     testcase_id?: string;
@@ -8,4 +10,38 @@ export interface RunCodeResponse {
     result?: string;
     error?: string;
     execution_time?: number;
+}
+
+export interface UploadFileRequest {
+    filename: string;
+    file_content: string;
+}
+
+export interface UploadFileResponse {
+    success: boolean;
+    message?: string;
+    filename?: string;
+    file_path?: string;
+    error?: string;
+}
+
+export interface FileDeleteRequest {
+    filename: string;
+}
+
+export interface FileDeleteResponse {
+    success: boolean;
+    message?: string;
+    filename?: string;
+    error?: string;
+}
+
+export interface ExecuteActionsRequest {
+    actions: ActionBatch;
+}
+
+export interface ExecuteActionsResponse {
+    success?: boolean;
+    message?: string;
+    error?: string;
 }
