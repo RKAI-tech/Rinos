@@ -27,6 +27,7 @@ interface Testcase {
   updated?: string;
   status: string;
   actionsCount: number;
+  basic_authentication?: { username: string; password: string }[];
 }
 
 const Testcases: React.FC = () => {
@@ -86,8 +87,10 @@ const Testcases: React.FC = () => {
             updated: tc.updated_at,
             status: tc.status, //safeStatus,
             actionsCount: Array.isArray(tc.actions) ? tc.actions.length : 0,
+            basic_authentication: tc.basic_authentication,
           };
         });
+        // console.log('[MAIN_APP] mapped', mapped.find(x => x.name === 'FXON'));
         setTestcases(mapped);
       } else {
         setError(response.error || 'Failed to load testcases');
@@ -404,7 +407,7 @@ const Testcases: React.FC = () => {
   };
 
   // Create testcase with actions in one call
-  const createTestcaseWithActions = async (name: string, tag?: string, actions?: any[]) => {
+  const createTestcaseWithActions = async (name: string, tag?: string, actions?: any[], basic_authentication?: { username: string; password: string }[]) => {
     const effectiveProjectId = projectData?.projectId;
     if (!effectiveProjectId) {
       toast.error('Missing project ID');
@@ -414,7 +417,8 @@ const Testcases: React.FC = () => {
       project_id: effectiveProjectId, 
       name, 
       tag: tag || undefined,
-      actions: actions || []
+      actions: actions || [],
+      basic_authentication: basic_authentication || []
     } as any;
     const resp = await testCaseService.createTestCaseWithActions(payload);
     if (!resp.success) {
@@ -436,9 +440,16 @@ const Testcases: React.FC = () => {
     }
   };
 
-  const handleSaveEditTestcase = async ({ id, name, tag }: { id: string; name: string; tag: string }) => {
+  const handleSaveEditTestcase = async ({ id, name, tag, basic_authentication }: { id: string; name: string; tag: string; basic_authentication?: { username: string; password: string }[] }) => {
     try {
-      const resp = await testCaseService.updateTestCase({ testcase_id: id, name, tag: tag || undefined });
+      const payload = {
+        testcase_id: id,
+        name,
+        tag: tag || undefined,
+        basic_authentication: basic_authentication || []
+      } as any;
+      console.log('[MAIN_APP] payload', payload);
+      const resp = await testCaseService.updateTestCase(payload);
       if (resp.success) {
         toast.success('Testcase updated successfully!');
         handleCloseEditModal();
@@ -746,7 +757,7 @@ const Testcases: React.FC = () => {
         isOpen={isEditModalOpen}
         onClose={handleCloseEditModal}
         onSave={handleSaveEditTestcase}
-        testcase={selectedTestcase ? { testcase_id: selectedTestcase.id, name: selectedTestcase.name, tag: selectedTestcase.tag } : null}
+        testcase={selectedTestcase ? { testcase_id: selectedTestcase.id, name: selectedTestcase.name, tag: selectedTestcase.tag, basic_authentication: selectedTestcase.basic_authentication } : null}
       />
 
       {/* Delete Testcase Modal */}
@@ -763,7 +774,7 @@ const Testcases: React.FC = () => {
         onClose={handleCloseDuplicateModal}
         onSave={handleSaveDuplicateTestcase}
         createTestcaseWithActions={createTestcaseWithActions}
-        testcase={selectedTestcase ? { testcase_id: selectedTestcase.id, name: selectedTestcase.name, tag: selectedTestcase.tag } : null}
+        testcase={selectedTestcase ? { testcase_id: selectedTestcase.id, name: selectedTestcase.name, tag: selectedTestcase.tag, basic_authentication: selectedTestcase.basic_authentication } : null}
       />
 
       {/* Run And View Testcase Modal */}

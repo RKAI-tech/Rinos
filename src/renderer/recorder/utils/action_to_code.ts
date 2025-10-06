@@ -55,7 +55,7 @@ export function processSelector(elements: Element[]): string {
     const selectors: string[][] = [];
     for (const element of elements) {
         const element_selector: string[] = [];
-        for (const selector of element.selector || []) {
+        for (const selector of element.selectors || []) {
             element_selector.push(escapeSelector(selector.value || ''));
         }
         selectors.push(element_selector);
@@ -233,7 +233,7 @@ export function generateActionCode(action: Action, index: number): string {
     const selectors: string[][] = [];
     for (const element of elements) {
         const element_selector: string[] = [];
-        for (const selector of element.selector || []) {
+        for (const selector of element.selectors || []) {
             element_selector.push(escapeSelector(selector.value || ''));
         }
         selectors.push(element_selector);
@@ -305,6 +305,11 @@ export function generateActionCode(action: Action, index: number): string {
                 `    await page.waitForLoadState('networkidle');\n`;
         case ActionType.assert:
             return generateAssertCode(action, index);
+        case ActionType.upload:
+            return `    candidates = ${candidatesLiteral};\n` +
+                `    sel = await resolveUniqueSelector(page, candidates);\n` +
+                `    await page.setInputFiles(sel, '${action.value || ''}');\n` +
+                `    await page.waitForLoadState('networkidle');\n`;
         default:
             return "";
     }

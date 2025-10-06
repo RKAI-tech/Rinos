@@ -114,7 +114,10 @@ export function showHoverEffect(element) {
   // Get element info
   const tagName = element.tagName.toLowerCase();
   const elementId = element.id ? `#${element.id}` : '';
-  const elementClass = element.className ? `.${element.className.split(' ')[0]}` : '';
+  let elementClass = '';
+  if (typeof element.className === 'string' && element.className.trim() !== '') {
+    elementClass = `.${element.className.split(' ')[0]}`;
+  }
   const elementText = element.textContent?.trim().substring(0, 30) || '';
   
   tooltip.textContent = `${tagName}${elementId}${elementClass} ${elementText}`;

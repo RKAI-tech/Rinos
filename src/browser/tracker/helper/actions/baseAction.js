@@ -89,7 +89,7 @@ export function sendAction(type, data) {
         title: document.title
       };
       window.sendActionToMain(action);
-      // console.log('Action sent successfully:', type, action, 'timestamp:', timestamp);
+      console.log('Action sent successfully:', type, action, 'timestamp:', timestamp);
     } catch (error) {
       // console.error('Error sending action:', error);
     }

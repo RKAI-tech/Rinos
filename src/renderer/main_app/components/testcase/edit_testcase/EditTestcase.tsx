@@ -6,34 +6,69 @@ import MAAction from '../../action/Action';
 import { Action} from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
 import MAActionDetailModal from '../../action_detail/ActionDetailModal';
+import { BasicAuthService } from '../../../services/basic_auth';
 
 interface MinimalTestcase {
   testcase_id: string;
   name: string;
   tag: string;
+  basic_authentication?: { username: string; password: string }[];
 }
 
 interface EditTestcaseProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { id: string; name: string; tag: string }) => void;
+  onSave: (data: { id: string; name: string; tag: string; basic_authentication?: { username: string; password: string }[] }) => void;
   testcase: MinimalTestcase | null;
 }
 
 const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, testcase }) => {
   const [testcaseName, setTestcaseName] = useState('');
   const [testcaseTag, setTestcaseTag] = useState('');
-  const [errors, setErrors] = useState<{ name?: string; tag?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; tag?: string; username?: string; password?: string }>({});
   const [actions, setActions] = useState<Action[]>([]);
   const [isLoadingActions, setIsLoadingActions] = useState(false);
   const actionService = useMemo(() => new ActionService(), []);
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
+  const [basicAuthList, setBasicAuthList] = useState<{ username: string; password: string }[]>([]);
+  const [isLoadingBasicAuth, setIsLoadingBasicAuth] = useState(false);
+  const [basicAuthError, setBasicAuthError] = useState<string | null>(null);
+  
+  // Lazy import to avoid circulars in tests
+  const [basicAuthService] = useState(() => {
+    return new BasicAuthService();
+  });
 
   useEffect(() => {
     if (testcase) {
       setTestcaseName(testcase.name || '');
       setTestcaseTag(testcase.tag || '');
       setErrors({});
+      // Prefer data from parent (already loaded with testcases), fallback to API fetch
+      if (Array.isArray(testcase.basic_authentication)) {
+        const list = testcase.basic_authentication || [];
+        setBasicAuthList(list.map((x) => ({ username: x?.username || '', password: x?.password || '' })));
+      } else {
+        const loadBasicAuth = async () => {
+          try {
+            setIsLoadingBasicAuth(true);
+            setBasicAuthError(null);
+            const resp = await basicAuthService.getBasicAuthenticationByTestcaseId(testcase.testcase_id);
+            if (resp.success && resp.data) {
+              const list = Array.isArray(resp.data) ? resp.data : [];
+              setBasicAuthList(list.map((x: any) => ({ username: x?.username || '', password: x?.password || '' })));
+            } else {
+              setBasicAuthList([]);
+            }
+          } catch (e) {
+            setBasicAuthList([]);
+            setBasicAuthError('Failed to load Basic Auth');
+          } finally {
+            setIsLoadingBasicAuth(false);
+          }
+        };
+        loadBasicAuth();
+      }
       // Load actions by testcase
       const loadActions = async () => {
         try {
@@ -57,10 +92,11 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
     e.preventDefault();
     if (!testcase) return;
 
-    const newErrors: { name?: string; tag?: string } = {};
+    const newErrors: { name?: string; tag?: string; username?: string; password?: string } = {};
     if (!testcaseName.trim()) {
       newErrors.name = 'Testcase name is required';
     }
+    // allow empty username/password meaning remove basic auth
     // Tag is optional; no validation needed
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -77,7 +113,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
           description: a.description,
           playwright_code: a.playwright_code,
           elements: (a.elements || []).map((el: any) => ({
-            selector: ((el?.selector || []) as any[])
+            selectors: ((el?.selectors || []) as any[])
               .map((s: any) => {
                 const val = typeof s === 'string' ? s : (s?.value || '');
                 return val && val.length > 0 ? { value: val } : null;
@@ -96,15 +132,17 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
         }
       }
 
-      // 2) Then update testcase info
+      // 2) Then update testcase info (including Basic Auth if provided)
       onSave({
         id: testcase.testcase_id,
         name: testcaseName.trim(),
-        tag: testcaseTag.trim()
+        tag: testcaseTag.trim(),
+        basic_authentication: (basicAuthList || []).filter(x => x.username || x.password)
       });
 
       setTestcaseName('');
       setTestcaseTag('');
+      setBasicAuthList([]);
       setErrors({});
       onClose();
     } catch (err) {
@@ -115,6 +153,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
   const handleClose = () => {
     setTestcaseName('');
     setTestcaseTag('');
+    setBasicAuthList([]);
     setErrors({});
     onClose();
   };
@@ -168,6 +207,37 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
               className={`tcase-edit-form-input ${errors.tag ? 'tcase-edit-error' : ''}`}
             />
             {errors.tag && <span className="tcase-edit-error-message">{errors.tag}</span>}
+          </div>
+
+          {/* Basic Authentication - multiple rows */}
+          <div className="tcase-edit-form-group">
+            <label className="tcase-edit-form-label">Basic Authentication</label>
+            {(basicAuthList.length === 0) && (
+              <div style={{ color: '#999', marginBottom: 8 }}>No Basic Auth entries</div>
+            )}
+            {basicAuthList.map((item, idx) => (
+              <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <input
+                  type="text"
+                  placeholder="Username"
+                  value={item.username}
+                  onChange={(e) => setBasicAuthList(prev => prev.map((x, i) => i === idx ? { ...x, username: e.target.value } : x))}
+                  className={`tcase-edit-form-input ${errors.username ? 'tcase-edit-error' : ''}`}
+                  disabled={isLoadingBasicAuth}
+                />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={item.password}
+                  onChange={(e) => setBasicAuthList(prev => prev.map((x, i) => i === idx ? { ...x, password: e.target.value } : x))}
+                  className={`tcase-edit-form-input ${errors.password ? 'tcase-edit-error' : ''}`}
+                  disabled={isLoadingBasicAuth}
+                />
+                <button type="button" className="tcase-edit-btn-save" onClick={() => setBasicAuthList(prev => prev.filter((_, i) => i !== idx))}>Remove</button>
+              </div>
+            ))}
+            <button type="button" className="tcase-edit-btn-save" onClick={() => setBasicAuthList(prev => [...prev, { username: '', password: '' }])}>Add Basic Auth</button>
+            {basicAuthError && <span className="tcase-edit-error-message">{basicAuthError}</span>}
           </div>
 
           {/* Divider between tag and actions */}

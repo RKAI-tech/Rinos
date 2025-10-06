@@ -74,10 +74,17 @@ export interface Selector {
 }
 
 export interface Element {
-  selector?: Selector[];
+  selectors?: Selector[];
   query?: string;
   value?: string;
   variable_name?: string;
+}
+
+export interface FileUpload {
+  file_upload_id?: string;
+  filename?: string;
+  file_path?: string;
+  file_content?: string;
 }
 
 export interface Action {
@@ -99,6 +106,7 @@ export interface Action {
     statement_id?: string;
     statement?: Statement;
     variable_name?: string;
+    file_upload?: FileUpload[];
 }
 
 export interface ActionBatch {

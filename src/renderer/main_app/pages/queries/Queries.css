@@ -49,8 +49,8 @@
 
 /* SQL Query & Results Side by Side Section */
 .qry-sql-results-section { display: flex; gap: 24px; margin-bottom: 32px; }
-.qry-query-panel { flex: 1; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(74, 144, 226, 0.08); border: 1px solid #e1e5e9; padding: 24px; }
-.qry-results-panel { flex: 1; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(74, 144, 226, 0.08); border: 1px solid #e1e5e9; padding: 24px; }
+.qry-query-panel { flex: 1 1 0; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(74, 144, 226, 0.08); border: 1px solid #e1e5e9; padding: 24px; }
+.qry-results-panel { flex: 2 1 0; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(74, 144, 226, 0.08); border: 1px solid #e1e5e9; padding: 24px; max-width: 100%; overflow: hidden; }
 .qry-sql-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .qry-sql-header h3 { margin: 0; font-size: 18px; font-weight: 600; color: #1a1a1a; }
 .qry-sql-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
@@ -71,6 +71,8 @@
 .qry-results-container { 
   overflow-x: auto; 
   overflow-y: hidden;
+  max-width: 100%;
+  width: 100%;
 }
 .qry-results-container::-webkit-scrollbar {
   height: 8px;
@@ -92,7 +94,7 @@
   border: 1px solid #e1e5e9; 
 }
 .qry-results-table { 
-  width: 100%; 
+  width: max-content; 
   border-collapse: collapse; 
   font-size: 14px; 
   background: white; 
@@ -133,7 +135,7 @@
   .qry-layout { flex-direction: column; margin-top: 96px; } 
   .qry-main { padding: 24px; margin-left: 200px; } 
   .qry-sql-results-section { flex-direction: column; gap: 16px; margin-bottom: 24px; }
-  .qry-query-panel, .qry-results-panel { padding: 16px; }
+  .qry-query-panel, .qry-results-panel { padding: 16px; flex: 1 1 auto; }
 }
 @media (max-width: 768px) { 
   .qry-layout { margin-top: 76px; } 

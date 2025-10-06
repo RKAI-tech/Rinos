@@ -48,4 +48,16 @@ export function registerIpcHandlers() {
       }
     }
   });
+
+  // Handler để xác nhận đóng cửa sổ recorder
+  ipcMain.handle("confirm-close-recorder", (event, confirmed: boolean) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (window && !window.isDestroyed()) {
+      if (confirmed) {
+        // Nếu người dùng xác nhận đóng, đóng cửa sổ
+        window.destroy();
+      }
+      // Nếu không xác nhận, không làm gì (cửa sổ vẫn mở)
+    }
+  });
 }

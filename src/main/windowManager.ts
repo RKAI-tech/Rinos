@@ -2,7 +2,7 @@ import { BrowserWindow, app, screen } from "electron";
 import { MainEnv } from "./env.js";
 import path from "path";
 
-const isDev = false; //app.isPackaged;
+const isDev = true; //app.isPackaged;
 // Build target is CJS, so __dirname is available; avoid import.meta to silence warnings
 const __dirnameResolved = __dirname;
 // console.log(__dirnameResolved)
@@ -39,6 +39,7 @@ function createWindow(options: Electron.BrowserWindowConstructorOptions, page: s
   });
 
   if (isDev) {
+    win.webContents.openDevTools();
     tryLoadDevPaths(win, page).catch((err) => {
       // console.error("Load dev URL failed:", err);
     });
@@ -46,7 +47,6 @@ function createWindow(options: Electron.BrowserWindowConstructorOptions, page: s
     // console.log('__dirnameResolved', __dirnameResolved);
     win.loadFile(path.join(__dirnameResolved, `renderer/${page}/index.html`));
   }
-  // win.webContents.openDevTools();
   return win;
 }
 
@@ -58,6 +58,15 @@ export function createMainAppWindow() {
 
 export function createRecorderWindow(testcaseId?: string, projectId?: string) {
   const win = createWindow({ width: 500, height: 800 }, "recorder");
+  
+  // Thêm event listener cho window close event
+  win.on('close', (event) => {
+    // Ngăn chặn việc đóng cửa sổ ngay lập tức
+    event.preventDefault();
+    
+    // Gửi sự kiện đến renderer để hiển thị modal xác nhận
+    win.webContents.send('window:close-requested');
+  });
   
   // Nếu có testcaseId, thêm vào URL sau khi window được tạo
   if (testcaseId) {

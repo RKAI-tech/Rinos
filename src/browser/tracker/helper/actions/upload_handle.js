@@ -7,8 +7,18 @@ import {
 } from './baseAction.js';
 import { previewNode } from '../domUtils.js';
 
+function readFileContent(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file); // Hoặc readAsText(file)
+  });
+}
+
+
 // Xử lý sự kiện upload file (input[type="file"]) 
-export function handleUploadChangeEvent(e) {
+export async function handleUploadChangeEvent(e) {
   const el = e?.target;
   if (!el || el.tagName?.toLowerCase?.() !== 'input' || el.type?.toLowerCase?.() !== 'file') return;
 
@@ -20,14 +30,20 @@ export function handleUploadChangeEvent(e) {
   }
 
   const selectors = buildSelectors(el);
-  const fileList = Array.from(el.files || []).map(f => ({ name: f.name, size: f.size, type: f.type }));
-  const value = fileList.map(f => f.name).join(', ');
+  const fileList = await Promise.all(
+    Array.from(el.files || []).map(async f => ({
+      name: f.name,
+      size: f.size,
+      type: f.type,
+      content: await readFileContent(f) // data: URL
+    }))
+  );
+
+  const value= undefined;
 
   const payload = buildCommonActionData(e, selectors, {
     value,
     files: fileList
   });
-
-  // console.log('Upload event - generated selectors:', selectors, 'files:', fileList);
   sendAction('upload', payload);
 }

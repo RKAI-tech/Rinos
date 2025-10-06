@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './ActionDetailModal.css';
-import { ActionGetResponse, ActionType, AssertType, UIActionDraft as Action, UIElement as Element, UISelector as Selector } from '../../types/actions';
+import { Action as ActionGetResponse, ActionType, AssertType, Action, Element, Selector } from '../../types/actions';
 
 interface Props {
   isOpen: boolean;
@@ -25,7 +25,7 @@ const mapFromResponse = (src: ActionGetResponse): Action => ({
 const mapToResponse = (src: Action): ActionGetResponse => ({
   action_id: src.action_id || '',
   testcase_id: src.testcase_id,
-  action_type: String(src.action_type),
+  action_type: src.action_type,
   description: src.description || '',
   playwright_code: src.playwright_code || '',
   elements: (src.elements || []) as any,
@@ -56,22 +56,22 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
   };
 
   const addNewSelector = (elementIndex: number) => {
-    updateElement(elementIndex, cur => ({ ...cur, selector: [{ value: '' }, ...(cur.selector || [])] }));
+    updateElement(elementIndex, cur => ({ ...cur, selectors: [{ value: '' }, ...(cur.selectors || [])] }));
   };
 
   const updateSelector = (elementIndex: number, selectorIndex: number, value: string) => {
     updateElement(elementIndex, cur => {
-      const next = [...(cur.selector || [])];
+      const next = [...(cur.selectors || [])];
       next[selectorIndex] = { value };
-      return { ...cur, selector: next };
+      return { ...cur, selectors: next };
     });
   };
 
   const removeSelector = (elementIndex: number, selectorIndex: number) => {
     updateElement(elementIndex, cur => {
-      const next = [...(cur.selector || [])];
+      const next = [...(cur.selectors || [])];
       next.splice(selectorIndex, 1);
-      return { ...cur, selector: next };
+      return { ...cur, selectors: next };
     });
   };
 
@@ -203,7 +203,7 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
       ...src,
       elements: (src.elements || []).map(el => ({
         ...el,
-        selector: (el.selector || [])
+        selectors: (el.selectors || [])
           .map(s => ({ value: (s.value || '').trim() }))
           .filter(s => s.value.length > 0)
       })),
@@ -278,7 +278,7 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
             <div className="rcd-action-detail-section">
               <div className="rcd-action-detail-section-title">Elements</div>
               <div className="rcd-action-detail-list">
-                {(draft.elements && draft.elements.length > 0 ? draft.elements : [{ selector: [] as Selector[] } as Element]).map((el, idx) => (
+                {(draft.elements && draft.elements.length > 0 ? draft.elements : [{ selectors: [] as Selector[] } as Element]).map((el, idx) => (
                   <div key={idx} className="rcd-action-detail-list-item">
                     <div className="rcd-action-detail-kv">
                       <div className="rcd-action-detail-kv-label-container">
@@ -289,8 +289,8 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
                         </button>
                       </div>
                       <div className="rcd-action-detail-selectors-list">
-                        {(el.selector || []).length > 0 ? (
-                          (el.selector || []).map((s, sIdx) => (
+                        {(el.selectors || []).length > 0 ? (
+                          (el.selectors || []).map((s, sIdx) => (
                             <div key={sIdx} className="rcd-action-detail-selector-item">
                               <input className="rcd-action-detail-input" value={s.value || ''} onChange={(e) => updateSelector(idx, sIdx, e.target.value)} placeholder="Enter CSS selector" />
                               <button type="button" className="rcd-action-detail-remove-btn" onClick={() => removeSelector(idx, sIdx)}>

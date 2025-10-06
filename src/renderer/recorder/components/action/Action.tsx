@@ -22,8 +22,8 @@ export default function RenderedAction({ action, onDelete, onClick, onStartRecor
   const getSelector = () => {
     if (action.elements && action.elements.length > 0) {
       const element = action.elements[0];
-      if (element.selector && element.selector.length > 0) {
-        return element.selector[0].value; // Lấy selector đầu tiên
+      if (element.selectors && element.selectors.length > 0) {
+        return element.selectors[0].value;
       }
       return 'No selector';
     }

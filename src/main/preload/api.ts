@@ -6,6 +6,11 @@ const windowAPI = {
   closeAllWindows: () => ipcRenderer.invoke("close-all-windows"),
   minimizeWindow: () => ipcRenderer.invoke("minimize-window"),
   toggleMaximizeWindow: () => ipcRenderer.invoke("toggle-maximize-window"),
+  confirmCloseRecorder: (confirmed: boolean) => ipcRenderer.invoke("confirm-close-recorder", confirmed),
+  onCloseRequested: (callback: () => void) => {
+    ipcRenderer.on('window:close-requested', callback);
+    return () => ipcRenderer.removeListener('window:close-requested', callback);
+  },
 };
 
 // App info API

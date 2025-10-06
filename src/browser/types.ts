@@ -4,7 +4,7 @@ export interface Selector {
 
 export interface Element {
     name?: string;
-    selector?: Selector[];
+    selectors?: Selector[];
     query?: string;
     value?: string;
 }
