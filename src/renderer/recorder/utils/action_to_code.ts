@@ -241,7 +241,8 @@ export function generateActionCode(action: Action, index: number): string {
 
     const firstCandidates = selectors[0] || [];
     const candidatesLiteral = `[${firstCandidates.join(', ')}]`;
-
+    const secondCandidates = selectors[1] || [];
+    const secondCandidatesLiteral = `[${secondCandidates.join(', ')}]`;
     switch (action.action_type) {
         case ActionType.navigate:
             return `    await page.goto('${action.value || ''}');\n` +
@@ -302,6 +303,13 @@ export function generateActionCode(action: Action, index: number): string {
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates);\n` +
                 `    await page.locator(sel).press('${action.value || ''}');\n` +
+                `    await page.waitForLoadState('networkidle');\n`;
+        case ActionType.drag_and_drop:
+            return `    candidates = ${candidatesLiteral};\n` +
+                `    sel = await resolveUniqueSelector(page, candidates);\n` +
+                `    var second_candidates = ${secondCandidatesLiteral};\n` +
+                `    var second_sel = await resolveUniqueSelector(page, second_candidates);\n` +
+                `    await page.dragAndDrop(sel, second_sel);\n` +
                 `    await page.waitForLoadState('networkidle');\n`;
         case ActionType.assert:
             return generateAssertCode(action, index);
