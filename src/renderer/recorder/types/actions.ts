@@ -88,7 +88,7 @@ export interface FileUpload {
 }
 
 export interface Action {
-    action_id?: string;
+    action_id?: string;                                                                                                                                                                                                               
     testcase_id: string;
     action_type: ActionType;
     description?: string; // edit

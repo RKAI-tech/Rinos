@@ -172,20 +172,8 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         const lastElements = last_action.elements || [];
         const newElements = receivedAction.elements || [];
 
-        // Check if elements are the same (same selectors)
-        const elementsMatch = lastElements.length === newElements.length &&
-            lastElements.every((lastEl, index) => {
-                const newEl = newElements[index];
-                if (!newEl) return false;
-
-                const lastSelectors = lastEl.selectors || [];
-                const newSelectors = newEl.selectors || [];
-
-                return lastSelectors.length === newSelectors.length &&
-                    lastSelectors.every((lastSel, selIndex) =>
-                        lastSel.value === newSelectors[selIndex]?.value
-                    );
-            });
+        //check if elements are the same least one selector is the same
+        const elementsMatch = lastElements.some((lastElement) => newElements.some((newElement) => lastElement.selectors?.some((lastSelector) => newElement.selectors?.some((newSelector) => lastSelector.value === newSelector.value))));
 
         if (elementsMatch) {
             const updatedActions = [...action_recorded];
