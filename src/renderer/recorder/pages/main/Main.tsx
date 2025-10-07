@@ -357,7 +357,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       .filter(el => el.type === 'Browser')
       .map(el => ({
         domHtml: el.domHtml || '',
-        selector: el.selector?.map(s => ({ value: s })) || [],
+        selectors: el.selector?.map(s => ({ value: s })) || [],
       }));
 
     const databaseElements = aiElements
@@ -597,10 +597,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
 
   const handleRunScript = async () => {
     try {
-      const code = (activeTab === 'script' && customScript.trim()) ? customScript : actionToCode(actions);
       const toastId = toast.loading('Running script...');
+      // const code = (activeTab === 'script' && customScript.trim()) ? customScript : actionToCode(actions);
       // const resp = await service.executeJavascript({ testcase_id: testcaseId || '', code });
-      // // console.log('[Main] Run script response:', resp);
       // if (resp.success) {
       //   const msg = (resp as any).result || 'Executed successfully';
       //   console.log('[Main] Run script result:', msg);
@@ -611,19 +610,28 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       //   toast.update(toastId, { render: resp.error || 'Run failed', type: 'error', isLoading: false, autoClose: 3000 });
       // }
       const payload = {
-        actions: actions,
+        actions: actions.map(action => {
+          if (action.connection && typeof action.connection.port === 'string') {
+            return {
+              ...action,
+              connection: {
+                ...action.connection,
+                port: Number(action.connection.port)
+              }
+            };
+          }
+          return action;
+        }),
       };
       console.log('[Main] Run script payload:', payload);
       const resp = await service.executeActions(payload);
       console.log('[Main] Run script response:', resp);
       if (resp.success) {
-        const msg = (resp as any).result || 'Executed successfully';
-        console.log('[Main] Run script result:', msg);
-        setRunResult(msg.logs);
+        setRunResult((resp as any).logs || 'Executed successfully');
         toast.update(toastId, { render: 'Run succeeded', type: 'success', isLoading: false, autoClose: 2000 });
       }
       else {
-        setRunResult((resp as any).result || 'Run failed');
+        setRunResult((resp as any).logs || 'Run failed');
         toast.update(toastId, { render: resp.error || 'Run failed', type: 'error', isLoading: false, autoClose: 3000 });
       }
     } catch (e) {

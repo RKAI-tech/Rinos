@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu } from "electron";
+import { app, BrowserWindow, globalShortcut, Menu } from "electron";
 import { createMainAppWindow } from "./windowManager.js";
 import { registerIpcHandlers } from "./ipc/index.js";
 import { registerMicrosoftLoginIpc } from "./ipc/microsoftLogin.js";
@@ -19,6 +19,19 @@ app.whenReady().then(() => {
   registerScreenHandlersIpc(); // Then register screen handlers
   createMainAppWindow();
 
+  try {
+    globalShortcut.register("F11", () => {
+      const wins = BrowserWindow.getAllWindows();
+      wins.forEach((win: BrowserWindow) => {
+        if (win && !win.isDestroyed()) {
+          win.setFullScreen(!win.isFullScreen());
+        }
+      });
+    });
+  } catch (e) {
+    console.error("Error registering global shortcut:", e);
+  }
+  
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainAppWindow();
   });

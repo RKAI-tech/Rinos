@@ -75,7 +75,8 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
           const rawConns: Connection[] = (resp as any).data.connections;
           const opts: ConnectionOption[] = rawConns.map((c: any) => ({
             id: c.connection_id,
-            label: `${String(c.db_type).toUpperCase()} • ${c.db_name}@${c.host}:${c.port}`,
+            // label: `${String(c.db_type).toUpperCase()} • ${c.db_name}@:${c.port}`,
+            label: `${String(c.db_type).toUpperCase()} • PLANE@:${c.port}`
           }));
           setConnections(opts);
           const map: Record<string, Connection> = {};
@@ -222,14 +223,21 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
             <button className="aiam-btn" onClick={onClose} disabled={isGenerating}>Cancel</button>
           </div>
           <div className="aiam-right">
-            <button className="aiam-btn aiam-primary" disabled={isGenerating || !prompt.trim() || elements.length === 0} onClick={onSubmit}>{isGenerating ? 'Generating...' : 'Generate'}</button>
+            <button className="aiam-btn aiam-primary" disabled={isGenerating || !prompt.trim() || elements.length === 0} onClick={handleGenerate}>{isGenerating ? 'Generating...' : 'Generate'}</button>
           </div>
         </div>
+        {isGenerating && (
+          <div className="aiam-loading-overlay">
+            <div className="aiam-spinner" />
+            <div className="aiam-loading-text">Generating...</div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 export default AiAssertModal;
+
 
 

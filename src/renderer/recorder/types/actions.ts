@@ -59,7 +59,7 @@ export interface Connection {
   username: string;
   password: string;
   host: string;
-  port: string;
+  port: string | number;
   db_name: string;
   db_type: ConnectionType;
 }
@@ -153,7 +153,7 @@ export interface ElementAICreateSelector {
 
 export interface ElementAICreate {
   domHtml: string;
-  selector?: ElementAICreateSelector[];
+  selectors?: ElementAICreateSelector[];
 }
 
 export interface ElementAIDatabase {

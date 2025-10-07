@@ -29,7 +29,7 @@ export class DatabaseService {
         if (!connectionId) {
             return { success: false, error: 'connection_id is required' };
         }
-        return await apiRouter.request<DefaultResponse>(`/database-connections/${connectionId}`, {
+        return await apiRouter.request<DefaultResponse>(`/database-connections/delete/${connectionId}`, {
             method: 'DELETE'
         });
     }

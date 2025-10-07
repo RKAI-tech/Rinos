@@ -316,18 +316,24 @@ export function generateActionCode(action: Action, index: number): string {
 }
 
 export function getResolveUniqueSelectorFunctionString(): string {
-    return `async function resolveUniqueSelector(page, selectors) {\n`+
-              `if (!page || !selectors || !Array.isArray(selectors) || selectors.length === 0) {\n`+
-              `throw new Error('resolveUniqueSelector: invalid inputs');\n`+
-             `}\n`+
-              `const locators = selectors.map(s => page.locator(String(s).trim()));\n`+
-             `await Promise.allSettled(locators.map(l => l.first().waitFor({ state: 'attached', timeout:3000 }).catch(() => {})));\n`+
-             `for (let i = 0; i < locators.length; i++) {\n`+
-                `const count = await locators[i].count();\n`+
-            `if (count === 1) { return selectors[i]; }\n`+
-             `}\n`+
-              `throw new Error('No matching selector found in  '+selectors+'. Please try again.');\n`+
-            `}`
+    return `
+async function resolveUniqueSelector(page, selectors) {
+    if (!page || !selectors || !Array.isArray(selectors) || selectors.length === 0) {
+        throw new Error('resolveUniqueSelector: invalid inputs');
+    }
+    const locators = selectors.map(s => page.locator(String(s).trim()));
+    await Promise.allSettled(
+        locators.map(l => l.first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => {}))
+    );
+    for (let i = 0; i < locators.length; i++) {
+        const count = await locators[i].count();
+        if (count === 1) {
+            return selectors[i];
+        }
+    }
+    throw new Error('No matching selector found in ' + selectors + '. Please try again.');
+}
+`.trim();
 }
 
 export function getImportDB(actions: Action[]): string {

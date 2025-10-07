@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './TestScriptTab.css';
 import Editor from '@monaco-editor/react';
+import { toast } from 'react-toastify';
 
 interface TestScriptTabProps {
   script: string;
@@ -20,10 +21,17 @@ const TestScriptTab: React.FC<TestScriptTabProps> = ({ script, runResult, onScri
     }
   }, [runResult]);
 
-  const handleCopyScript = () => {
-    if (localScript) {
-      navigator.clipboard.writeText(localScript);
-      // TODO: Show toast notification
+  useEffect(() => {
+    setLocalScript(script || '');
+  }, [script]);
+
+  const handleCopyScript = async () => {
+    if (!localScript) return;
+    try {
+      await navigator.clipboard.writeText(localScript);
+      toast.success('Copied script to clipboard');
+    } catch {
+      toast.error('Something went wrong');
     }
   };
 
@@ -83,18 +91,14 @@ const TestScriptTab: React.FC<TestScriptTabProps> = ({ script, runResult, onScri
               value={localScript}
               language="javascript"
               theme="vs"
-              onChange={(value) => {
-                const next = value || '';
-                setLocalScript(next);
-                onScriptChange && onScriptChange(next);
-              }}
               options={{
                 minimap: { enabled: false },
-                fontSize: 14,
+                fontSize: 13,
                 lineHeight: 21,
                 wordWrap: 'off',
                 scrollBeyondLastLine: false,
                 automaticLayout: true,
+                readOnly: true,
               }}
             />
           </div>

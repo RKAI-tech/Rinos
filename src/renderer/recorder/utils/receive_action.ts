@@ -156,9 +156,10 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         statement: action_received.query ? {
             query: action_received.query,
         } : undefined,
-        file_upload: action_received.files ? action_received.files.map((file: any) => ({
-            filename: file.name,
+        files: action_received.files ? action_received.files.map((file: any) => ({
+            file_name: file.name,
             file_content: file.content.split(',')[1],
+            file_path: undefined,
         })) : [],
     } as Action;
 
