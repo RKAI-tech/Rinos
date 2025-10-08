@@ -150,13 +150,15 @@ const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onC
                 )}
               </div>
               <div className="rcd-ba-actions">
-                <button className="rcd-ba-btn" onClick={addItem}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 6 }}>
-                    <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Add authentication
-                </button>
+                {items.length === 0 && (
+                  <button className="rcd-ba-btn" onClick={addItem}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 6 }}>
+                      <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Add authentication
+                  </button>
+                )}
               </div>
             </>
           )}

@@ -149,7 +149,8 @@ const Dashboard: React.FC = () => {
     setOpenDropdownId(openDropdownId === projectId ? null : projectId);
   };
 
-  const handleEditProject = (projectId: string) => {
+  const handleEditProject = (projectId: string, event?: React.MouseEvent) => {
+    if (event) event.stopPropagation(); // Ngăn chặn event bubbling
     const project = projects.find(p => p.project_id === projectId);
     if (project) {
       setSelectedProject(project);
@@ -158,7 +159,8 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleDeleteProjectClick = (projectId: string) => {
+  const handleDeleteProjectClick = (projectId: string, event?: React.MouseEvent) => {
+    if (event) event.stopPropagation(); // Ngăn chặn event bubbling
     const project = projects.find(p => p.project_id === projectId);
     if (project) {
       setSelectedProject(project);
@@ -660,7 +662,7 @@ const Dashboard: React.FC = () => {
                             <div className="actions-dropdown">
                               <button 
                                 className="dropdown-item"
-                                onClick={() => handleEditProject(project.project_id)}
+                                onClick={(e) => handleEditProject(project.project_id, e)}
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -670,7 +672,7 @@ const Dashboard: React.FC = () => {
                               </button>
                               <button 
                                 className="dropdown-item delete"
-                                onClick={() => handleDeleteProjectClick(project.project_id)}
+                                onClick={(e) => handleDeleteProjectClick(project.project_id, e)}
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                   <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

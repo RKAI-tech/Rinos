@@ -6,7 +6,7 @@ import MAAction from '../../action/Action';
 import { Action} from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
 import MAActionDetailModal from '../../action_detail/ActionDetailModal';
-import { BasicAuthService } from '../../../services/basic_auth';
+// import { BasicAuthService } from '../../../services/basic_auth'; // temporarily hidden
 
 interface MinimalTestcase {
   testcase_id: string;
@@ -30,14 +30,14 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
   const [isLoadingActions, setIsLoadingActions] = useState(false);
   const actionService = useMemo(() => new ActionService(), []);
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
-  const [basicAuthList, setBasicAuthList] = useState<{ username: string; password: string }[]>([]);
-  const [isLoadingBasicAuth, setIsLoadingBasicAuth] = useState(false);
-  const [basicAuthError, setBasicAuthError] = useState<string | null>(null);
+  // const [basicAuthList, setBasicAuthList] = useState<{ username: string; password: string }[]>([]); // temporarily hidden
+  // const [isLoadingBasicAuth, setIsLoadingBasicAuth] = useState(false); // temporarily hidden
+  // const [basicAuthError, setBasicAuthError] = useState<string | null>(null); // temporarily hidden
   
   // Lazy import to avoid circulars in tests
-  const [basicAuthService] = useState(() => {
-    return new BasicAuthService();
-  });
+  // const [basicAuthService] = useState(() => {
+  //   return new BasicAuthService();
+  // });
 
   useEffect(() => {
     if (testcase) {
@@ -45,30 +45,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
       setTestcaseTag(testcase.tag || '');
       setErrors({});
       // Prefer data from parent (already loaded with testcases), fallback to API fetch
-      if (Array.isArray(testcase.basic_authentication)) {
-        const list = testcase.basic_authentication || [];
-        setBasicAuthList(list.map((x) => ({ username: x?.username || '', password: x?.password || '' })));
-      } else {
-        const loadBasicAuth = async () => {
-          try {
-            setIsLoadingBasicAuth(true);
-            setBasicAuthError(null);
-            const resp = await basicAuthService.getBasicAuthenticationByTestcaseId(testcase.testcase_id);
-            if (resp.success && resp.data) {
-              const list = Array.isArray(resp.data) ? resp.data : [];
-              setBasicAuthList(list.map((x: any) => ({ username: x?.username || '', password: x?.password || '' })));
-            } else {
-              setBasicAuthList([]);
-            }
-          } catch (e) {
-            setBasicAuthList([]);
-            setBasicAuthError('Failed to load Basic Auth');
-          } finally {
-            setIsLoadingBasicAuth(false);
-          }
-        };
-        loadBasicAuth();
-      }
+      // Basic Auth temporarily hidden
       // Load actions by testcase
       const loadActions = async () => {
         try {
@@ -137,12 +114,12 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
         id: testcase.testcase_id,
         name: testcaseName.trim(),
         tag: testcaseTag.trim(),
-        basic_authentication: (basicAuthList || []).filter(x => x.username || x.password)
+        // basic_authentication: (basicAuthList || []).filter(x => x.username || x.password) // temporarily hidden
       });
 
       setTestcaseName('');
       setTestcaseTag('');
-      setBasicAuthList([]);
+      // setBasicAuthList([]); // temporarily hidden
       setErrors({});
       onClose();
     } catch (err) {
@@ -153,7 +130,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
   const handleClose = () => {
     setTestcaseName('');
     setTestcaseTag('');
-    setBasicAuthList([]);
+    // setBasicAuthList([]); // temporarily hidden
     setErrors({});
     onClose();
   };
@@ -209,36 +186,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
             {errors.tag && <span className="tcase-edit-error-message">{errors.tag}</span>}
           </div>
 
-          {/* Basic Authentication - multiple rows */}
-          <div className="tcase-edit-form-group">
-            <label className="tcase-edit-form-label">Basic Authentication</label>
-            {(basicAuthList.length === 0) && (
-              <div style={{ color: '#999', marginBottom: 8 }}>No Basic Auth entries</div>
-            )}
-            {basicAuthList.map((item, idx) => (
-              <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                <input
-                  type="text"
-                  placeholder="Username"
-                  value={item.username}
-                  onChange={(e) => setBasicAuthList(prev => prev.map((x, i) => i === idx ? { ...x, username: e.target.value } : x))}
-                  className={`tcase-edit-form-input ${errors.username ? 'tcase-edit-error' : ''}`}
-                  disabled={isLoadingBasicAuth}
-                />
-                <input
-                  type="password"
-                  placeholder="Password"
-                  value={item.password}
-                  onChange={(e) => setBasicAuthList(prev => prev.map((x, i) => i === idx ? { ...x, password: e.target.value } : x))}
-                  className={`tcase-edit-form-input ${errors.password ? 'tcase-edit-error' : ''}`}
-                  disabled={isLoadingBasicAuth}
-                />
-                <button type="button" className="tcase-edit-btn-save" onClick={() => setBasicAuthList(prev => prev.filter((_, i) => i !== idx))}>Remove</button>
-              </div>
-            ))}
-            <button type="button" className="tcase-edit-btn-save" onClick={() => setBasicAuthList(prev => [...prev, { username: '', password: '' }])}>Add Basic Auth</button>
-            {basicAuthError && <span className="tcase-edit-error-message">{basicAuthError}</span>}
-          </div>
+          {/** Basic Authentication temporarily hidden */}
 
           {/* Divider between tag and actions */}
           <div style={{ borderTop: '1px solid #e5e7eb', margin: '12px 0' }} />

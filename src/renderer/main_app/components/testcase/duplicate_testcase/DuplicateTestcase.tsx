@@ -6,7 +6,7 @@ import MAAction from '../../action/Action';
 import { Action } from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
 import MAActionDetailModal from '../../action_detail/ActionDetailModal';
-import { BasicAuthService } from '../../../services/basic_auth';
+// import { BasicAuthService } from '../../../services/basic_auth'; // temporarily hidden
 
 interface MinimalTestcase {
   testcase_id: string;
@@ -33,43 +33,19 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
   const [isLoadingActions, setIsLoadingActions] = useState(false);
   const actionService = useMemo(() => new ActionService(), []);
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
-  const [basicAuthList, setBasicAuthList] = useState<{ username: string; password: string }[]>([]);
-  const [isLoadingBasicAuth, setIsLoadingBasicAuth] = useState(false);
-  const [basicAuthError, setBasicAuthError] = useState<string | null>(null);
-  const [basicAuthService] = useState(() => {
-    return new BasicAuthService();
-  });
+  // const [basicAuthList, setBasicAuthList] = useState<{ username: string; password: string }[]>([]); // temporarily hidden
+  // const [isLoadingBasicAuth, setIsLoadingBasicAuth] = useState(false); // temporarily hidden
+  // const [basicAuthError, setBasicAuthError] = useState<string | null>(null); // temporarily hidden
+  // const [basicAuthService] = useState(() => {
+  //   return new BasicAuthService();
+  // });
 
   useEffect(() => {
     if (testcase) {
       setTestcaseName(`${testcase.name || ''} Copy`);
       setTestcaseTag(testcase.tag || '');
       setErrors({});
-      // Prefer parent-provided list if available, otherwise fetch from API
-      if (Array.isArray(testcase.basic_authentication)) {
-        const list = testcase.basic_authentication || [];
-        setBasicAuthList(list.map((x) => ({ username: x?.username || '', password: x?.password || '' })));
-      } else {
-        const loadBasicAuth = async () => {
-          try {
-            setIsLoadingBasicAuth(true);
-            setBasicAuthError(null);
-            const resp = await basicAuthService.getBasicAuthenticationByTestcaseId(testcase.testcase_id);
-            if (resp.success && resp.data) {
-              const list = Array.isArray(resp.data) ? resp.data : [];
-              setBasicAuthList(list.map((x: any) => ({ username: x?.username || '', password: x?.password || '' })));
-            } else {
-              setBasicAuthList([]);
-            }
-          } catch (e) {
-            setBasicAuthList([]);
-            setBasicAuthError('Failed to load Basic Auth');
-          } finally {
-            setIsLoadingBasicAuth(false);
-          }
-        };
-        loadBasicAuth();
-      }
+      // Basic Auth temporarily hidden
       const loadActions = async () => {
         try {
           setIsLoadingActions(true);
@@ -131,16 +107,16 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
     const result = await createTestcaseWithActions(
       testcaseName.trim(),
       testcaseTag.trim() || undefined,
-      preparedActions,
-      (basicAuthList || []).filter(x => x.username || x.password)
+      preparedActions
+      // , (basicAuthList || []).filter(x => x.username || x.password) // temporarily hidden
     );
 
     if (result) {
       onSave({
         name: testcaseName.trim(),
         tag: testcaseTag.trim(),
-        actions: preparedActions,
-        basic_authentication: (basicAuthList || []).filter(x => x.username || x.password)
+        actions: preparedActions
+        // , basic_authentication: (basicAuthList || []).filter(x => x.username || x.password) // temporarily hidden
       });
     }
   };
@@ -148,7 +124,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
   const handleClose = () => {
     setTestcaseName('');
     setTestcaseTag('');
-    setBasicAuthList([]);
+    // setBasicAuthList([]); // temporarily hidden
     setErrors({});
     onClose();
   };
@@ -201,36 +177,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
             {errors.tag && <span className="tcase-dup-error-message">{errors.tag}</span>}
           </div>
 
-          {/* Basic Authentication - multiple rows */}
-          <div className="tcase-dup-form-group">
-            <label className="tcase-dup-form-label">Basic Authentication</label>
-            {(basicAuthList.length === 0) && (
-              <div style={{ color: '#999', marginBottom: 8 }}>No Basic Auth entries</div>
-            )}
-            {basicAuthList.map((item, idx) => (
-              <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                <input
-                  type="text"
-                  placeholder="Username"
-                  value={item.username}
-                  onChange={(e) => setBasicAuthList(prev => prev.map((x, i) => i === idx ? { ...x, username: e.target.value } : x))}
-                  className={`tcase-dup-form-input ${errors.name ? 'tcase-dup-error' : ''}`}
-                  disabled={isLoadingBasicAuth}
-                />
-                <input
-                  type="password"
-                  placeholder="Password"
-                  value={item.password}
-                  onChange={(e) => setBasicAuthList(prev => prev.map((x, i) => i === idx ? { ...x, password: e.target.value } : x))}
-                  className={`tcase-dup-form-input ${errors.tag ? 'tcase-dup-error' : ''}`}
-                  disabled={isLoadingBasicAuth}
-                />
-                <button type="button" className="tcase-dup-btn-save" onClick={() => setBasicAuthList(prev => prev.filter((_, i) => i !== idx))}>Remove</button>
-              </div>
-            ))}
-            <button type="button" className="tcase-dup-btn-save" onClick={() => setBasicAuthList(prev => [...prev, { username: '', password: '' }])}>Add Basic Auth</button>
-            {basicAuthError && <span className="tcase-dup-error-message">{basicAuthError}</span>}
-          </div>
+          {/** Basic Authentication temporarily hidden */}
 
           <div style={{ borderTop: '1px solid #e5e7eb', margin: '12px 0' }} />
 
