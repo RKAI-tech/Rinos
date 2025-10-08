@@ -8,6 +8,8 @@ import AiAssertModal from '../../components/ai_assert/AiAssertModal';
 import BasicAuthModal from '../../components/basic_auth/BasicAuthModal';
 import DeleteAllActions from '../../components/delete_all_action/DeleteAllActions';
 import ConfirmCloseModal from '../../components/confirm_close/ConfirmCloseModal';
+import URLInputModal from '../../components/url_input_modal/URLInputModal';
+import TitleInputModal from '../../components/title_input_modal/TitleInputModal';
 import { ActionService } from '../../services/actions';
 import { Action, ActionBatch, ActionType, AiAssertRequest, AssertType } from '../../types/actions';
 import { actionToCode } from '../../utils/action_to_code';
@@ -63,6 +65,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [isBasicAuthOpen, setIsBasicAuthOpen] = useState(false);
   const [basicAuthItems, setBasicAuthItems] = useState<BasicAuthentication[]>([]);
   const [isConfirmCloseOpen, setIsConfirmCloseOpen] = useState(false);
+  const [isUrlInputOpen, setIsUrlInputOpen] = useState(false);
+  const [isTitleInputOpen, setIsTitleInputOpen] = useState(false);
   const service = new ExecuteScriptsService();
 
   useEffect(() => {
@@ -86,7 +90,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             const loaded = response.data.actions || [];
             setActions(loaded);
             setSelectedInsertPosition(loaded.length);
-            console.log('[Main] Loaded actions:', loaded);
+            // console.log('[Main] Loaded actions:', loaded);
           } else {
             // console.error('[Main] Failed to load actions:', response.error);
             setActions([]);
@@ -113,6 +117,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     return (window as any).browserAPI?.browser?.onAction(async (action: any) => {
       if (isPaused) return;
       if (!testcaseId) return;
+      if (isAssertMode) return;
 
       // AI assert goes to modal only
       if ((action?.type === 'assert') && (action?.assertType === 'AI')) {
@@ -127,22 +132,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         return;
       }
 
-      // if (action.type === 'upload') {
-      //   const filename = action.files?.[0]?.name;
-      //   const file = action.files?.[0]?.content.split(',')[1];
-      //   if (!filename || !file) {
-      //     toast.error('Upload file failed. No filename or file content.');
-      //     return;
-      //   }
-      //   const payload = { filename, file_content: file };
-      //   console.log('[Main] Uploading file:', payload);
-      //   const response = await service.uploadFile(payload);
-      //   if (!response.success) {
-      //     toast.error('Upload file failed. ' + response.error);
-      //     return;
-      //   }
-      // }
-
       setActions(prev => {
         const next = receiveActionWithInsert(testcaseId, prev, action, selectedInsertPosition);
         const added = next.length > prev.length;
@@ -152,7 +141,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         return next;
       });
     });
-  }, [testcaseId, isPaused, selectedInsertPosition]);
+  }, [testcaseId, isPaused, selectedInsertPosition, isAssertMode]);
 
   // Đồng bộ nhãn vị trí chèn với độ dài actions khi không chọn vị trí cụ thể
   useEffect(() => {
@@ -204,7 +193,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     };
   }, []);
 
-  const assertTypes = Object.values(AssertType);//.filter(type => type !== AssertType.ai);
+  const assertTypes = Object.values(AssertType);//.filter(type => type !== AssertType.pageHasAURL);
 
   const filteredAssertTypes = assertTypes.filter(type =>
     type.toLowerCase().includes(assertSearch.toLowerCase())
@@ -318,6 +307,10 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setDisplayInsertPosition(endPos);
     if ((assertType as any) === AssertType.ai || assertType === 'AI') {
       setIsAiModalOpen(true);
+    } else if (assertType === AssertType.pageHasAURL) {
+      setIsUrlInputOpen(true);
+    } else if (assertType === AssertType.pageHasATitle) {
+      setIsTitleInputOpen(true);
     }
     await (window as any).browserAPI?.browser?.setAssertMode(true, assertType as AssertType);
   };
@@ -401,6 +394,60 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setIsAiModalOpen(false);
     setSelectedAssert(null);
     setIsAssertMode(false);
+    (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
+  };
+
+  const handleUrlConfirm = (url: string) => {
+    // Create action with the URL value
+    setActions(prev => {
+      return receiveAction(testcaseId || '', prev, {
+        type: ActionType.assert,
+        assertType: AssertType.pageHasAURL,
+        value: url,
+        playwright_code: `await expect(page).toHaveURL('${url}');`,
+        description: `Verify the page has URL ${url}`,
+      });
+    });
+    
+    // Reset assert state
+    setSelectedAssert(null);
+    setIsAssertMode(false);
+    setIsUrlInputOpen(false);
+    (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
+  };
+
+  const handleTitleConfirm = (title: string) => {
+    // Create action with the title value
+    setActions(prev => {
+      return receiveAction(testcaseId || '', prev, {
+        type: ActionType.assert,
+        assertType: AssertType.pageHasATitle,
+        value: title,
+        playwright_code: `await expect(page).toHaveTitle('${title}');`,
+        description: `Verify the page has title ${title}`,
+      });
+    });
+    
+    // Reset assert state
+    setSelectedAssert(null);
+    setIsAssertMode(false);
+    setIsTitleInputOpen(false);
+    (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
+  };
+
+  const handleUrlCancel = () => {
+    // Reset assert state when canceling URL input
+    setSelectedAssert(null);
+    setIsAssertMode(false);
+    setIsUrlInputOpen(false);
+    (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
+  };
+
+  const handleTitleCancel = () => {
+    // Reset assert state when canceling Title input
+    setSelectedAssert(null);
+    setIsAssertMode(false);
+    setIsTitleInputOpen(false);
     (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
   };
 
@@ -869,6 +916,16 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         onCancel={handleCancelClose}
         onSaveAndClose={handleSaveAndClose}
         hasUnsavedActions={hasUnsavedActions}
+      />
+      <URLInputModal
+        isOpen={isUrlInputOpen}
+        onClose={handleUrlCancel}
+        onConfirm={handleUrlConfirm}
+      />
+      <TitleInputModal
+        isOpen={isTitleInputOpen}
+        onClose={handleTitleCancel}
+        onConfirm={handleTitleConfirm}
       />
     </div>
   );

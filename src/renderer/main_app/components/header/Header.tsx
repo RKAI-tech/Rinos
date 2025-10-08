@@ -34,7 +34,7 @@ const Header: React.FC = () => {
       await logout();
       setShowUserDropdown(false);
     } catch (error) {
-      console.error('Logout failed:', error);
+      // console.error('Logout failed:', error);
     }
   };
 

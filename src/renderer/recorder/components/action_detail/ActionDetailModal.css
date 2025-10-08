@@ -273,35 +273,14 @@
   border-color: #9ca3af;
 }
 
-/* Action Detail Code Block */
-.rcd-action-detail-code {
-  background: #1f2937;
-  color: #f9fafb;
-  padding: 16px;
+/* Action Detail Monaco Editor */
+.rcd-action-detail-editor {
+  border: 1px solid #d1d5db;
   border-radius: 8px;
-  overflow-x: auto;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 13px;
-  line-height: 1.5;
-  border: 1px solid #374151;
-}
-
-.rcd-action-detail-code::-webkit-scrollbar {
-  height: 6px;
-}
-
-.rcd-action-detail-code::-webkit-scrollbar-track {
-  background: #374151;
-  border-radius: 3px;
-}
-
-.rcd-action-detail-code::-webkit-scrollbar-thumb {
-  background: #6b7280;
-  border-radius: 3px;
-}
-
-.rcd-action-detail-code::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  overflow: hidden;
+  height: 200px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Action Detail Empty State */

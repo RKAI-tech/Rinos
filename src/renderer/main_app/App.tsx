@@ -59,7 +59,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 function App() {
   useEffect(() => {
-    console.log('App component mounted');
+    // console.log('App component mounted');
     // Sync token from electron store to apiRouter if available
     (async () => {
       try {

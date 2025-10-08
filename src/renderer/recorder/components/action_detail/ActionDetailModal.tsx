@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './ActionDetailModal.css';
 import { Action, Element, ActionType, AssertType } from '../../types/actions';
+import Editor from '@monaco-editor/react';
 
 interface ActionDetailModalProps {
   isOpen: boolean;
@@ -284,9 +285,9 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
       // Ensure elements selectors are trimmed and non-empty
       elements: (source.elements || []).map(el => ({
         ...el,
-        selector: (el.selector || [])
-          .map(s => ({ value: (s.value || '').trim() }))
-          .filter(s => s.value.length > 0)
+        selectors: (el.selectors || [])
+          .map((s: any) => ({ value: (s.value || '').trim() }))
+          .filter((s: any) => s.value.length > 0)
       })),
     };
 
@@ -432,11 +433,23 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
           {draft.playwright_code && (
             <div className="rcd-action-detail-section">
               <div className="rcd-action-detail-section-title">Playwright</div>
-              <textarea
-                className="rcd-action-detail-code"
-                value={draft.playwright_code || ''}
-                onChange={(e) => updateField('playwright_code', e.target.value)}
-              />
+              <div className="rcd-action-detail-editor">
+                <Editor
+                  value={draft.playwright_code || ''}
+                  language="javascript"
+                  theme="vs"
+                  onChange={(value) => updateField('playwright_code', value || '')}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 13,
+                    lineHeight: 21,
+                    wordWrap: 'off',
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    readOnly: false,
+                  }}
+                />
+              </div>
             </div>
           )}
 

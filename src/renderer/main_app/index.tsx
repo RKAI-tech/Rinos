@@ -8,8 +8,8 @@ const container = document.getElementById("root");
 if (!container) {
   throw new Error("Root container not found");
 }
-console.log('VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
-console.log('import.meta.env:', import.meta.env);
+// console.log('VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
+// console.log('import.meta.env:', import.meta.env);
 const root = createRoot(container);
 root.render(
   <React.StrictMode>

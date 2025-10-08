@@ -5,17 +5,17 @@ import path from "node:path";
 
 export default defineConfig(({ mode }) => {
   const rootPath = process.cwd();
-  console.log('--- Vite Config Debug ---');
-  console.log('CWD:', rootPath);
-  console.log('Mode:', mode);
+  // console.log('--- Vite Config Debug ---');
+  // console.log('CWD:', rootPath);
+  // console.log('Mode:', mode);
 
   // Load all .env variables (no prefix restriction here for diagnostic)
   const allEnv = loadEnv(mode, rootPath, '');
-  console.log('All .env variables found (no prefix):', JSON.stringify(allEnv, null, 2)); // Use JSON.stringify for clear output
+  // console.log('All .env variables found (no prefix):', JSON.stringify(allEnv, null, 2)); // Use JSON.stringify for clear output
 
   // Load VITE_ prefixed variables
   const viteEnv = loadEnv(mode, rootPath, "VITE_");
-  console.log('VITE_ prefixed variables found:', JSON.stringify(viteEnv, null, 2)); // Use JSON.stringify for clear output
+  // console.log('VITE_ prefixed variables found:', JSON.stringify(viteEnv, null, 2)); // Use JSON.stringify for clear output
 
   const defineValue = JSON.stringify({
       BASE_URL: './',
@@ -26,15 +26,15 @@ export default defineConfig(({ mode }) => {
       ...viteEnv,
   });
 
-  console.log('Final import.meta.env definition content (raw string):', defineValue);
+  // console.log('Final import.meta.env definition content (raw string):', defineValue);
   // Optional: Try parsing it back to see the object structure
   try {
-    console.log('Parsed define value object:', JSON.parse(defineValue));
+    // console.log('Parsed define value object:', JSON.parse(defineValue));
   } catch (e) {
-    console.error('Error parsing defineValue:', e);
+    // console.error('Error parsing defineValue:', e);
   }
-  console.log('--- End Vite Config Debug ---');
-  console.log(path.resolve(rootPath, "src/renderer"));
+  // console.log('--- End Vite Config Debug ---');
+  // console.log(path.resolve(rootPath, "src/renderer"));
 
 
   return {

@@ -25,6 +25,11 @@ export enum ActionType {
 }
 
 export enum AssertType {
+  ai = "AI",
+  toContainText = "toContainText",
+  toHaveText = "toHaveText",
+  toHaveValue = "toHaveValue",
+  toHaveValues = "toHaveValues",
   toBeChecked = "toBeChecked",
   toBeUnchecked = "toBeUnchecked",
   toBeDisabled = "toBeDisabled",
@@ -35,17 +40,12 @@ export enum AssertType {
   toBeFocused = "toBeFocused",
   toBeHidden = "toBeHidden",
   toBeVisible = "toBeVisible",
-  toContainText = "toContainText",
   toHaveAccessibleDescription = "toHaveAccessibleDescription",
   toHaveAccessibleName = "toHaveAccessibleName",
   toHaveCount = "toHaveCount",
   toHaveRole = "toHaveRole",
-  toHaveText = "toHaveText",
-  toHaveValue = "toHaveValue",
-  toHaveValues = "toHaveValues",
   pageHasATitle = "pageHasATitle",
   pageHasAURL = "pageHasAURL",
-  ai = "AI"
 }
 
 export enum ConnectionType {

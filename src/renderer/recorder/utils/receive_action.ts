@@ -83,9 +83,17 @@ export function createDescription(action_received: any): string {
                 case AssertType.toBeReadOnly:
                     return `Verify the element is read only`;
                 case AssertType.toHaveAccessibleDescription:
-                    return `Verify the element has accessible description`;
+                    return `Verify the element has accessible description ${value}`;
                 case AssertType.toHaveAccessibleName:
-                    return `Verify the element has accessible name`;
+                    return `Verify the element has accessible name ${value}`;
+                case AssertType.toHaveCount:
+                    return `Verify the element has count ${value}`;
+                case AssertType.toHaveRole:
+                    return `Verify the element has role ${value}`;
+                case AssertType.pageHasAURL:
+                    return `Verify the page has URL ${value}`;
+                case AssertType.pageHasATitle:
+                    return `Verify the page has title ${value}`;
                 case AssertType.ai:
                     return `${action_received.description}`;
             }
@@ -163,7 +171,7 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         })) : [],
     } as Action;
 
-    console.log('[receiveAction]', receivedAction);
+    // console.log('[receiveAction]', receivedAction);
 
     const last_action = action_recorded[action_recorded.length - 1];
 

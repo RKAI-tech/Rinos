@@ -211,10 +211,10 @@ export function generateAssertCode(action: Action, index: number): string {
                 `    await expect(page.locator(sel)).toHaveValues('${action.value || ''}');\n` +
                 `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.pageHasATitle:
-            return `    await expect(page).pageHasATitle('${action.value || ''}');\n` +
+            return `    await expect(page).toHaveTitle('${action.value || ''}');\n` +
                 `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.pageHasAURL:
-            return `    await expect(page).pageHasAURL('${action.value || ''}');\n` +
+            return `    await expect(page).toHaveURL('${action.value || ''}');\n` +
                 `    await page.waitForLoadState('networkidle');\n`;
         case AssertType.ai:
             let playwrightCode = '\n' + (action.playwright_code || '// Action number ' + index + ' is not generated.');

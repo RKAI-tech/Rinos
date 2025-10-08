@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './ActionDetailModal.css';
 import { Action as ActionGetResponse, ActionType, AssertType, Action, Element, Selector } from '../../types/actions';
+import Editor from '@monaco-editor/react';
 
 interface Props {
   isOpen: boolean;
@@ -312,7 +313,23 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
           {draft.playwright_code && (
             <div className="rcd-action-detail-section">
               <div className="rcd-action-detail-section-title">Playwright</div>
-              <textarea className="rcd-action-detail-code" value={draft.playwright_code || ''} onChange={(e) => updateField('playwright_code', e.target.value)} />
+              <div className="rcd-action-detail-editor">
+                <Editor
+                  value={draft.playwright_code || ''}
+                  language="javascript"
+                  theme="vs"
+                  onChange={(value) => updateField('playwright_code', value || '')}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 13,
+                    lineHeight: 21,
+                    wordWrap: 'off',
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    readOnly: false,
+                  }}
+                />
+              </div>
             </div>
           )}
 

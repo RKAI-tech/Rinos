@@ -73,12 +73,12 @@ export class Controller {
                             const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
                             try {
                                 await page.click(uniqueSelector, { timeout: 5000 });
-                                console.log(`[Controller] Clicked on unique selector: ${uniqueSelector}`);
+                                // console.log(`[Controller] Clicked on unique selector: ${uniqueSelector}`);
                             } catch (error) {
                                 // console.log(`[Controller] Click failed, trying JS fallback for unique selector: ${uniqueSelector}`);
                                 const jsCode = `document.querySelector('${uniqueSelector}').click()`;
                                 await page.evaluate(jsCode);
-                                console.log(`[Controller] Clicked on unique selector: ${uniqueSelector} using JS fallback`);
+                                // console.log(`[Controller] Clicked on unique selector: ${uniqueSelector} using JS fallback`);
                             }
                         }
                         break;

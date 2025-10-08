@@ -105,8 +105,10 @@ function processAssertClick(e) {
     
     // console.log('Generated selector:', selector);
     
+    const types = ['toHaveText', 'toContainText', 'toHaveValue', 'toHaveAccessibleDescription', 'toHaveAccessibleName', 'toHaveCount', 'toHaveRole'];
+
     // Handle different assert types
-    if (assertType === 'toHaveText' || assertType === 'toContainText' || assertType === 'toHaveValue') {
+    if (types.includes(assertType)) {
       let defaultValue = '';
       if (assertType === 'toHaveValue') {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {

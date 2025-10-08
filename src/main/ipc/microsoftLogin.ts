@@ -24,7 +24,7 @@ export function registerMicrosoftLoginIpc() {
         loggerOptions: {
           loggerCallback: (_level, message) => {
             if (MainEnv.DEBUG_MSAL) {
-              console.log("[MSAL]", message);
+              // console.log("[MSAL]", message);
             }
           },
           logLevel: LogLevel.Info,

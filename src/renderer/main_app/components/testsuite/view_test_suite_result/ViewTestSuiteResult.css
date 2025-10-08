@@ -339,6 +339,7 @@
   padding: 12px 16px;
   border-bottom: 1px solid #f3f4f6;
   vertical-align: middle;
+  font-weight: 400;
 }
 
 .vtsr-table td:first-child {
@@ -359,7 +360,7 @@
 }
 
 .vtsr-table-name {
-  font-weight: 500;
+  font-weight: 400;
   color: #1f2937;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -375,7 +376,7 @@
 
 .vtsr-status-badge {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 400;
   padding: 4px 8px;
   border-radius: 9999px;
   text-transform: uppercase;
@@ -394,6 +395,100 @@
 .vtsr-status-badge.draft { 
   background: #f3f4f6; 
   color: #6b7280; 
+}
+
+/* Additional status colors */
+.vtsr-status-badge.running {
+  background: #e0e7ff; /* indigo-100 */
+  color: #3730a3; /* indigo-800 */
+}
+
+.vtsr-status-badge.pending,
+.vtsr-status-badge.queued,
+.vtsr-status-badge.waiting {
+  background: #fef9c3; /* yellow-100 */
+  color: #854d0e; /* yellow-900 */
+}
+
+.vtsr-status-badge.canceled,
+.vtsr-status-badge.cancelled,
+.vtsr-status-badge.skipped {
+  background: #f3f4f6; /* gray-100 */
+  color: #6b7280; /* gray-500 */
+}
+
+.vtsr-status-badge.error {
+  background: #fee2e2; /* red-100 */
+  color: #991b1b; /* red-800 */
+}
+
+.vtsr-status-badge.passed,
+.vtsr-status-badge.success {
+  background: #dcfce7; /* green-100 */
+  color: #166534; /* green-800 */
+}
+
+/* Inline loading for running status */
+.vtsr-loading-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vtsr-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(0,0,0,0.15);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  display: inline-block;
+  animation: vtsr-spin 0.8s linear infinite;
+}
+
+@keyframes vtsr-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Progress bar */
+.vtsr-progress {
+  margin-bottom: 16px;
+}
+
+.vtsr-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.vtsr-progress-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vtsr-progress-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.vtsr-progress-bar {
+  width: 100%;
+  height: 10px;
+  background: #f1f5f9; /* slate-100 */
+  border-radius: 9999px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.vtsr-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #22c55e);
+  border-radius: 9999px 0 0 9999px;
+  transition: width 0.3s ease;
 }
 
 .vtsr-footer { 

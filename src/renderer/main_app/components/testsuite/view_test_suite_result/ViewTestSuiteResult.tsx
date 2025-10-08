@@ -83,10 +83,10 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
   const tcs = useMemo(() => new TestCaseService(), []);
   const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
 
-  const fetchResults = useCallback(async () => {
+  const fetchResults = useCallback(async (silent: boolean = false) => {
     if (!isOpen || !testSuiteId) return;
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       setError(null);
       const resp = await svc.getTestCasesBySuite({ test_suite_id: testSuiteId });
       if (resp.success && resp.data) {
@@ -106,13 +106,24 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       setCases([]);
       toast.error(e instanceof Error ? e.message : 'An error occurred');
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, [isOpen, testSuiteId, svc]);
 
   useEffect(() => {
     fetchResults();
   }, [fetchResults]);
+
+  // Auto-refresh every 2 seconds while modal is open
+  useEffect(() => {
+    if (!isOpen || !testSuiteId) return;
+    const intervalId = window.setInterval(() => {
+      fetchResults(true);
+    }, 2000);
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isOpen, testSuiteId, fetchResults]);
 
   const handleRetry = async (testcaseId: string) => {
     setRetryingIds(prev => {
@@ -157,6 +168,14 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
     const passRate = total > 0 ? Math.round((passed / total) * 100) : 0;
     
     return { total, passed, failed, passRate };
+  }, [cases]);
+
+  // Calculate suite execution progress: non-running cases / total
+  const progressPercent = useMemo(() => {
+    const total = cases.length;
+    if (total === 0) return 0;
+    const nonRunning = cases.filter(c => String(c.status || '').toLowerCase() !== 'running').length;
+    return Math.round((nonRunning / total) * 100);
   }, [cases]);
 
   // Filter and sort cases
@@ -280,6 +299,17 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
                   </div>
                 </div>
 
+                {/* Progress Bar */}
+                <div className="vtsr-progress">
+                  <div className="vtsr-progress-header">
+                    <span className="vtsr-progress-label">Progress</span>
+                    <span className="vtsr-progress-value">{progressPercent}%</span>
+                  </div>
+                  <div className="vtsr-progress-bar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent} role="progressbar">
+                    <div className="vtsr-progress-fill" style={{ width: `${progressPercent}%` }} />
+                  </div>
+                </div>
+
                 {/* Search Input */}
                 <div className="vtsr-search-container">
                   <input
@@ -333,7 +363,14 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
                           <td className="vtsr-table-name">{c.name}</td>
                           <td className="vtsr-table-status">
                             <span className={`vtsr-status-badge ${String(c.status || '').toLowerCase()}`}>
-                              {c.status || 'DRAFT'}
+                              {String(c.status || '').toLowerCase() === 'running' ? (
+                                <span className="vtsr-loading-inline">
+                                  <span className="vtsr-spinner" />
+                                  Running
+                                </span>
+                              ) : (
+                                c.status || 'DRAFT'
+                              )}
                             </span>
                           </td>
                           <td className="vtsr-table-actions">
