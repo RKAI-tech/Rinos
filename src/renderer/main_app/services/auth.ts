@@ -5,7 +5,8 @@ import {
   LoginRequest, 
   LoginResponse, 
   RegisterRequest,
-  AuthMeResponse 
+  AuthMeResponse,
+  ValidateTokenRequest
 } from '../types/auth';
 
 export class AuthService {
@@ -105,6 +106,14 @@ export class AuthService {
 
   clearAuth(): void {
     apiRouter.clearAuth();
+  }
+
+  async validateToken(token: ValidateTokenRequest): Promise<ApiResponse<void>> {
+    const response = await apiRouter.request<void>('/auth/validate-token', {
+      method: 'POST',
+      body: JSON.stringify(token),
+    });
+    return response;
   }
 }
 
