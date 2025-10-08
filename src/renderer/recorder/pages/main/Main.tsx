@@ -117,7 +117,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     return (window as any).browserAPI?.browser?.onAction(async (action: any) => {
       if (isPaused) return;
       if (!testcaseId) return;
-      if (isAssertMode) return;
+      
 
       // AI assert goes to modal only
       if ((action?.type === 'assert') && (action?.assertType === 'AI')) {
@@ -131,6 +131,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         setAiElements(prev => [...prev, newItem]);
         return;
       }
+
+      if (isAssertMode) return;
 
       setActions(prev => {
         const next = receiveActionWithInsert(testcaseId, prev, action, selectedInsertPosition);
