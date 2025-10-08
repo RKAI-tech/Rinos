@@ -83,26 +83,5 @@ export function handleDropEvent(e) {
   isDragging = false;
 }
 
-// Xử lý sự kiện drag over
-export function handleDragOverEvent(e) {
-  // console.log('Drag over event detected:', previewNode(e?.target));
-  
-  if (shouldIgnoreTarget(e?.target, 'Drag Over')) return;
-  if (getPauseMode && getPauseMode()) {
-    // console.log('Skipping drag over recording - recording is paused');
-    return;
-  }
-  
-  if (!isDragging) {
-    // console.log('No active drag operation, skipping drag over');
-    return;
-  }
-  
-  const selectors = buildSelectors(e?.target);
-    
-  const payload = buildCommonActionData(e, selectors);
-  
-  // console.log('Drag over event - generated selectors:', selectors);
-  sendAction('drag_over', payload);
-}
+
 

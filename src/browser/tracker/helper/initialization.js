@@ -13,7 +13,7 @@ import { initializeElementFreezer, freezeEntireScreen, unfreezeEntireScreen, unf
 import { handleCheckboxRadioChangeEvent } from './actions/change_handle.js';
 import { handleKeyDownEvent} from './actions/keyboard_handle.js';
 import { handleSelectChangeEvent } from './actions/select_handle.js';
-
+import { handleDragStartEvent, handleDragEndEvent, handleDropEvent } from './actions/drag_and_drop.js';
 import { handleUploadChangeEvent } from './actions/upload_handle.js';
 // Global assert mode state for capture phase blocking
 let globalAssertMode = false;
@@ -218,9 +218,9 @@ export function initializeEventListeners() {
   document.addEventListener('change', handleUploadChangeEvent);
   
   // Drag and drop tracking
-  // document.addEventListener('dragstart', handleDragStartEvent);
+  document.addEventListener('dragstart', handleDragStartEvent);
   // document.addEventListener('dragend', handleDragEndEvent);
-  // document.addEventListener('drop', handleDropEvent);
+  document.addEventListener('drop', handleDropEvent);
   // document.addEventListener('dragover', handleDragOverEvent);
   // document.addEventListener('dragleave', handleDragLeaveEvent);
   

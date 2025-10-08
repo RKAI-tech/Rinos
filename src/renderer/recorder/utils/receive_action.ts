@@ -49,11 +49,13 @@ export function createDescription(action_received: any): string {
         case ActionType.change:
             return `Change ${value}`;
         case ActionType.drag_and_drop:
-            return `Drag and drop ${value}`;
+            return `Drag and drop ${element}`;
         case ActionType.drag_start:
-            return `Drag start ${value}`;
+            return `Drag start ${element}`;
         case ActionType.drag_end:
-            return `Drag end ${value}`;
+            return `Drag end ${element}`;
+        case ActionType.drop:
+            return `Drop ${element}`;
         case ActionType.assert:
             switch (action_received.assertType) {
                 case AssertType.toHaveText:
@@ -210,6 +212,42 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
             }
         }
     }
+    if ( last_action && last_action.action_type===ActionType.drag_start) {
+        if (receivedAction.action_type!==ActionType.drop){
+            //remove last action if any
+            var updatedActions = [...action_recorded];
+            updatedActions.pop();
+            return updatedActions;
+        }
+    }
+    if (last_action && last_action.action_type===ActionType.drop) {
+        if (receivedAction.action_type!==ActionType.drag_end){
+            //remove last action if any
+            var updatedActions = [...action_recorded];
+            updatedActions.pop();
+            updatedActions.pop();
+            return updatedActions;
+        }
+    }
+    if(receivedAction.action_type===ActionType.drop) {
+        if (last_action && last_action.action_type!==ActionType.drag_start) {
+            return action_recorded;
+        }
+        var updatedActions = [...action_recorded];
+        var update_last_action = updatedActions[updatedActions.length - 1];
+        update_last_action.action_type = ActionType.drag_and_drop;
+        update_last_action.description = update_last_action.description?.replace('Drag start', 'Drag and drop');
+        if (receivedAction.elements?.[0]) {
+
+        update_last_action.elements?.push(receivedAction.elements?.[0]);}
+        updatedActions[updatedActions.length - 1] = update_last_action;
+        return updatedActions;
+    }
+    // if (receivedAction.action_type===ActionType.drag_end) {
+    //     if (last_action && last_action.action_type!==ActionType.drop) {
+    //         return action_recorded;
+    //     }
+    // }
     // if (receivedAction.action_type === ActionType.assert && receivedAction.assert_type === AssertType.ai) {
     //      receivedAction.playwright_code = createScriptForAiAssert(receivedAction, action_received);
     // }

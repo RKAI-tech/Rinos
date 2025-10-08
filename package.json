@@ -25,7 +25,11 @@
     "test": "electron .",
     "vite:dev": "vite build --mode development && vite"
   },
-  "keywords": ["automation", "testing", "electron"],
+  "keywords": [
+    "automation",
+    "testing",
+    "electron"
+  ],
   "author": {
     "name": "Rikkei",
     "email": "contact@rikkei.com"
@@ -34,10 +38,11 @@
   "license": "ISC",
   "dependencies": {
     "@azure/msal-node": "^3.7.4",
+    "@monaco-editor/react": "^4.7.0",
     "chromium-bidi": "^9.1.0",
     "dotenv": "^17.2.2",
     "electron-store": "^10.1.0",
-    "playwright": "^1.55.1",
+    "playwright": "^1.56.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.1",
@@ -74,15 +79,21 @@
       "target": [
         {
           "target": "AppImage",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "deb",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "snap",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "src/renderer/main_app/assets/logo_user_icon.png",
@@ -94,11 +105,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "src/renderer/main_app/assets/logo_user_icon.png",
