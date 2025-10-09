@@ -215,12 +215,14 @@ export class BrowserManager extends EventEmitter {
             try {
                 const projectId = this.projectId;
                 if (!projectId) {
+                    console.log('[BrowserManager] getConnection failed: No project context');
                     return { success: false, error: 'No project context' };
                 }
                 const resp = await databaseService.getDatabaseConnections({ project_id: projectId });
+                console.log('[BrowserManager] getConnection response:', resp);
                 return resp;
             } catch (e) {
-                // console.error('[BrowserManager] getConnection failed:', e);
+                console.log('[BrowserManager] getConnection failed:', e);
                 return { success: false, error: String(e) };
             }
         });

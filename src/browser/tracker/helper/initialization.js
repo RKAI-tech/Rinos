@@ -129,8 +129,8 @@ function processAssertClick(e) {
         rect, 
         (finalValue, connection, connection_id, query) => {
           // console.log('finalValue', finalValue);
-          // console.log('connection', connection);
-          // console.log('connection_id', connection_id);
+          console.log('connection', connection);
+          console.log('connection_id', connection_id);
           // console.log('query', query);
           sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement);
         }, 

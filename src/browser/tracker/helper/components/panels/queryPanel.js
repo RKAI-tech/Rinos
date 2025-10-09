@@ -42,10 +42,6 @@ export function createQueryPanel(assertType, onConfirm) {
   runBtn.title = 'Run query';
   runBtn.style.cssText = 'width:28px;height:28px;border:none;border-radius:6px;background:#10b981;color:#fff;cursor:pointer;';
 
-  const useBtn = document.createElement('button');
-  useBtn.innerHTML = '<i class="fas fa-level-down-alt"></i>';
-  useBtn.title = 'Use result';
-  useBtn.style.cssText = 'width:28px;height:28px;border:none;border-radius:6px;background:#e5e7eb;color:#111827;cursor:pointer;';
 
   const resultBox = document.createElement('div');
   resultBox.style.cssText = 'border:1px solid #e6ebee;border-radius:8px;padding:8px;min-height:48px;font-size:12px;color:#111827;background:#fafafa;';
@@ -243,11 +239,10 @@ export function createQueryPanel(assertType, onConfirm) {
   panel.appendChild(queryInput);
   actions.appendChild(connWrap);
   actions.appendChild(runBtn);
-  actions.appendChild(useBtn);
   panel.appendChild(actions);
   panel.appendChild(resultBox);
 
-  return { element: panel, open, close, isOpen, getTextResult, useBtn };
+  return { element: panel, open, close, isOpen, getTextResult };
 }
 
 
