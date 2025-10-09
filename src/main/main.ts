@@ -5,6 +5,15 @@ import { registerMicrosoftLoginIpc } from "./ipc/microsoftLogin.js";
 import { registerTokenIpc } from "./ipc/token.js";
 import { registerScreenHandlersIpc } from "./ipc/screen_handle.js";
 import { registerBrowserIpc } from "./ipc/browser.js";
+import "./env.js"; // Load environment variables
+
+// Disable Chromium/Electron sandbox in environments where SUID sandbox is unavailable (e.g., AppImage mount)
+app.commandLine.appendSwitch("no-sandbox");
+app.commandLine.appendSwitch("disable-setuid-sandbox");
+app.commandLine.appendSwitch("disable-gpu-sandbox");
+app.commandLine.appendSwitch("disable-gpu");
+app.commandLine.appendSwitch("disable-dev-shm-usage");
+app.commandLine.appendSwitch("no-zygote");
 
 // browserWindow() => BrowserWindow
 
@@ -12,6 +21,7 @@ app.whenReady().then(() => {
   try {
     Menu.setApplicationMenu(null);
   } catch {}
+  
   registerIpcHandlers();
   registerTokenIpc();
   registerMicrosoftLoginIpc();

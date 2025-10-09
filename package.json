@@ -7,7 +7,8 @@
     "build:main": "esbuild src/main/main.ts --bundle --platform=node --format=cjs --external:electron --external:@azure/msal-node --external:playwright --external:playwright-core --external:chromium-bidi --external:../../../package.json --external:./chromium/appIcon.png --external:./loader --outfile=dist/main.cjs --sourcemap",
     "build:preload": "esbuild src/main/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs --sourcemap",
     "build:renderer": "vite build",
-    "build": "npm run build:main && npm run build:preload && npm run build:renderer",
+    "install:playwright": "npx playwright install",
+    "build": "npm run build:main && npm run build:preload && npm run build:renderer && npm run install:playwright",
     "dev": "concurrently \"vite\" \"esbuild src/main/main.ts --bundle --platform=node --format=cjs --external:electron --external:@azure/msal-node --external:playwright --external:playwright-core --external:chromium-bidi --external:../../../package.json --external:./chromium/appIcon.png --external:./loader --outfile=dist/main.cjs --sourcemap --watch\" \"esbuild src/main/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs --sourcemap --watch\" \"wait-on http://localhost:5173/main_app/index.html && electron .\"",
     "dev:logs": "concurrently -n VITE,MAIN,PRELOAD,APP -c blue,magenta,yellow,green \"vite --clearScreen false --debug\" \"esbuild src/main/main.ts --bundle --platform=node --format=cjs --external:electron --external:@azure/msal-node --external:playwright --external:playwright-core --external:chromium-bidi --external:../../../package.json --external:./chromium/appIcon.png --external:./loader --outfile=dist/main.cjs --sourcemap --watch\" \"esbuild src/main/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs --sourcemap --watch\" \"wait-on --log http-get://127.0.0.1:5173/main_app/index.html && electron --enable-logging --v=1 .\"",
     "start": "concurrently \"vite\" \"esbuild src/main/main.ts --bundle --platform=node --format=cjs --external:electron --external:@azure/msal-node --external:playwright --external:playwright-core --external:chromium-bidi --external:../../../package.json --external:./chromium/appIcon.png --external:./loader --outfile=dist/main.cjs --sourcemap --watch\" \"esbuild src/main/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs --sourcemap --watch\" \"wait-on http://localhost:5173/main_app/index.html && electron .\"",
@@ -74,6 +75,17 @@
       "node_modules/**/*",
       "package.json",
       ".env"
+    ],
+    "extraResources": [
+      {
+        "from": ".env",
+        "to": ".env"
+      },
+      {
+        "from": "/home/hunghd/.cache/ms-playwright",
+        "to": "playwright-browsers",
+        "filter": ["**/*"]
+      }
     ],
     "linux": {
       "target": [

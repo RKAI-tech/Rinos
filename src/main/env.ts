@@ -1,4 +1,14 @@
-import "dotenv/config";
+import { config } from "dotenv";
+import { app } from "electron";
+import path from "path";
+
+// Load environment variables from the correct location
+const isDev = process.env.NODE_ENV === "development";
+const envPath = isDev 
+  ? path.join(process.cwd(), ".env")
+  : path.join(process.resourcesPath, ".env");
+
+config({ path: envPath });
 
 export const MainEnv = {
   // Dev server URL for renderer (Vite)

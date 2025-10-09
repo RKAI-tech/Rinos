@@ -18,6 +18,8 @@ if (!app.isPackaged) {
     browsersPath = pathenv.join(process.resourcesPath, "playwright-browsers");
 }
 process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
+// Skip host requirement validation on end-user machines to avoid missing lib errors
+process.env.PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = '1';
 
 const variableService = new VariableService();
 const databaseService = new DatabaseService();
@@ -96,9 +98,17 @@ export class BrowserManager extends EventEmitter {
             }
 
             // Launch browser
+            const { chromium } = await import('playwright');
             this.browser = await chromium.launch({
                 headless: false,
-                args: ['--no-sandbox', '--disable-setuid-sandbox'],
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-gpu-sandbox',
+                    '--disable-gpu',
+                    '--disable-dev-shm-usage',
+                    '--no-zygote'
+                ],
             });
 
             // Create context
