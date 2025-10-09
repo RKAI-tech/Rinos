@@ -373,25 +373,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     
     // console.log('[Main] AI assert request:', request);
     setIsGeneratingAi(true);
-    const response = await actionService.generateAiAssert(request).finally(() => setIsGeneratingAi(false));
+    try {
+      const response = await actionService.generateAiAssert(request);
 
-    
-
-    // const selectors = aiElements.find(el => el.type === 'Browser')?.selector || [];
-
-    if (response.success) {
-      // console.log('[Main] AI assert response:', response);
-      // setActions(prev => {
-      //   return receiveAction(testcaseId || '', prev, 
-      //     { 
-      //       type: ActionType.assert, 
-      //       assertType: AssertType.ai,
-      //       playwright_code: (response as any).data.playwright_code || '', 
-      //       description: (response as any).data.description || '',
-      //       connection_id: databaseElements[0]?.connection?.connection_id,
-      //       connection: databaseElements[0]?.connection,
-      //     });
-      // });
       if (response.success) {
         const aiAction = {
           type: ActionType.assert,
@@ -401,7 +385,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           connection_id: databaseElements[0]?.connection?.connection_id,
           connection: databaseElements[0]?.connection,
         };
-      
+
         console.log('[Main] AI action:', aiAction);
 
         setActions(prev => {
@@ -416,7 +400,14 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           setDisplayInsertPosition(newPos);
           return next;
         });
+        toast.success('Successfully generated AI assertion');
+      } else {
+        toast.error('Gemini modal is overloaded');
       }
+    } catch (e) {
+      toast.error('Gemini modal is overloaded');
+    } finally {
+      setIsGeneratingAi(false);
     }
     // Reset assert state on successful generation
     setSelectedAssert(null);
