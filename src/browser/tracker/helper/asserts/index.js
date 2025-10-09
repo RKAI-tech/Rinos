@@ -41,10 +41,32 @@ export function getAssertState() {
 }
 
 export function setAssertMode(enabled, assertType) {
+  // isAssertMode = enabled;
+  // currentAssertType = assertType;
+  // try {
+  //   if (!enabled || (enabled && assertType && assertType !== 'toHaveText' && assertType !== 'toContainText' && assertType !== 'toHaveValue')) {
+  //     closeAssertInputModal();
+  //     if (hoverCloseTimeoutId) {
+  //       clearTimeout(hoverCloseTimeoutId);
+  //       hoverCloseTimeoutId = null;
+  //     }
+  //     hoverAssertTarget = null;
+  //     assertModalOpenedByHover = false;
+  //   }
+  // } catch {}
   isAssertMode = enabled;
   currentAssertType = assertType;
   try {
-    if (!enabled || (enabled && assertType && assertType !== 'toHaveText' && assertType !== 'toContainText' && assertType !== 'toHaveValue')) {
+    const modalTypes = [
+      'toHaveText',
+      'toContainText',
+      'toHaveValue',
+      'toHaveAccessibleDescription',
+      'toHaveAccessibleName',
+      'toHaveCount',
+      'toHaveRole'
+    ];
+    if (!enabled || (enabled && assertType && !modalTypes.includes(assertType))) {
       closeAssertInputModal();
       if (hoverCloseTimeoutId) {
         clearTimeout(hoverCloseTimeoutId);

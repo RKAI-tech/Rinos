@@ -14,6 +14,7 @@ let assertInputModal = null;
  */
 export function closeAssertInputModal() {
   if (assertInputModal && assertInputModal.parentNode) {
+    console.log('closeAssertInputModal', assertInputModal);
     assertInputModal.parentNode.removeChild(assertInputModal);
   }
   assertInputModal = null;
@@ -36,6 +37,7 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
   const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
   const scrollY = window.pageYOffset || document.documentElement.scrollTop;
   const container = document.createElement('div');
+  
   container.id = 'rikkei-assert-input-modal';
   container.style.cssText = `
     position: absolute;
@@ -247,6 +249,8 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
   container.appendChild(variablesPanel.element);
   container.appendChild(queryPanel.element);
   document.body.appendChild(container);
+
+  
   // After rendering, adjust to keep the modal within viewport bounds
   try {
     const viewportW = window.innerWidth || document.documentElement.clientWidth;
