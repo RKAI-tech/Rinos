@@ -223,7 +223,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
             <button className="aiam-btn" onClick={onClose} disabled={isGenerating}>Cancel</button>
           </div>
           <div className="aiam-right">
-            <button className="aiam-btn aiam-primary" disabled={isGenerating || !prompt.trim() || elements.length === 0} onClick={handleGenerate}>{isGenerating ? 'Generating...' : 'Generate'}</button>
+            <button className="aiam-btn aiam-primary" disabled={isGenerating} onClick={handleGenerate}>{isGenerating ? 'Generating...' : 'Generate'}</button>
           </div>
         </div>
         {isGenerating && (
