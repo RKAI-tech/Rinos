@@ -3,7 +3,7 @@ import './EditTestcase.css';
 import '../../../../../renderer/recorder/components/action/Action.css';
 import '../../../../../renderer/recorder/components/action_tab/ActionTab.css';
 import MAAction from '../../action/Action';
-import { Action} from '../../../types/actions';
+import { Action } from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
 import MAActionDetailModal from '../../action_detail/ActionDetailModal';
 // import { BasicAuthService } from '../../../services/basic_auth'; // temporarily hidden
@@ -33,7 +33,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
   // const [basicAuthList, setBasicAuthList] = useState<{ username: string; password: string }[]>([]); // temporarily hidden
   // const [isLoadingBasicAuth, setIsLoadingBasicAuth] = useState(false); // temporarily hidden
   // const [basicAuthError, setBasicAuthError] = useState<string | null>(null); // temporarily hidden
-  
+
   // Lazy import to avoid circulars in tests
   // const [basicAuthService] = useState(() => {
   //   return new BasicAuthService();
@@ -52,7 +52,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
           setIsLoadingActions(true);
           const resp = await actionService.getActionsByTestCase(testcase.testcase_id, 1000, 0);
           if (resp.success && resp.data) {
-            const mapped = (resp.data.actions || []) as   Action[];
+            const mapped = (resp.data.actions || []) as Action[];
             setActions(mapped);
           } else {
             setActions([]);
@@ -95,12 +95,22 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
                 const val = typeof s === 'string' ? s : (s?.value || '');
                 return val && val.length > 0 ? { value: val } : null;
               })
-              .filter(Boolean) as { value: string }[]
+              .filter(Boolean) as { value: string }[],
+            query: el.query,
+            value: el.value,
+            variable_name: el.variable_name,
           })),
           assert_type: a.assert_type as any,
           value: a.value,
           selected_value: a.selected_value,
           checked: a.checked,
+          connection_id: a.connection_id,
+          connection: a.connection,
+          statement_id: a.statement_id,
+          statement: a.statement,
+          variable_name: a.variable_name,
+          order_index: a.order_index,
+          file_upload: a.file_upload,
         }));
         const resp = await actionService.batchCreateActions(requests);
         if (!resp.success) {
@@ -145,8 +155,8 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
           <h2 className="tcase-edit-modal-title">Edit Testcase</h2>
           <button className="tcase-edit-modal-close-btn" onClick={handleClose}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         </div>

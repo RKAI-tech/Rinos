@@ -27,6 +27,11 @@ export function closeAssertInputModal() {
  * Hiển thị modal nhập assert
  */
 export function showAssertInputModal(assertType, defaultValue, anchorRect, onConfirm, onCancel) {
+  console.log('assertType', assertType);
+  console.log('defaultValue', defaultValue);
+  console.log('anchorRect', anchorRect);
+  console.log('onConfirm', onConfirm);
+  console.log('onCancel', onCancel);
   closeAssertInputModal();
   const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
   const scrollY = window.pageYOffset || document.documentElement.scrollTop;
@@ -36,7 +41,7 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
     position: absolute;
     top: ${Math.max(8, (anchorRect?.bottom || 0) + scrollY + 8)}px;
     left: ${Math.max(8, (anchorRect?.left || 0) + scrollX)}px;
-    z-index: 10002;
+    z-index: 10000002;
     background: #ffffff;
     border: 1px solid rgba(0,0,0,0.1);
     box-shadow: 0 8px 24px rgba(0,0,0,0.15);

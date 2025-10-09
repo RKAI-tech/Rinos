@@ -90,7 +90,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             const loaded = response.data.actions || [];
             setActions(loaded);
             setSelectedInsertPosition(loaded.length);
-            // console.log('[Main] Loaded actions:', loaded);
+            console.log('[Main] Loaded actions:', loaded);
           } else {
             // console.error('[Main] Failed to load actions:', response.error);
             setActions([]);
@@ -304,9 +304,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setAssertSearch('');
     setIsAssertMode(true);
     // Khi bật assert từ thanh assert, cập nhật vị trí insert và label về cuối danh sách
-    const endPos = actions.length;
-    setSelectedInsertPosition(endPos);
-    setDisplayInsertPosition(endPos);
+    // const endPos = actions.length;
+    // setSelectedInsertPosition(endPos);
+    // setDisplayInsertPosition(endPos);
     if ((assertType as any) === AssertType.ai || assertType === 'AI') {
       setIsAiModalOpen(true);
     } else if (assertType === AssertType.pageHasAURL) {
@@ -381,22 +381,49 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
 
     if (response.success) {
       // console.log('[Main] AI assert response:', response);
-      setActions(prev => {
-        return receiveAction(testcaseId || '', prev, 
-          { 
-            type: ActionType.assert, 
-            assertType: AssertType.ai,
-            playwright_code: (response as any).data.playwright_code || '', 
-            description: (response as any).data.description || '',
-            connection_id: databaseElements[0]?.connection?.connection_id,
-            connection: databaseElements[0]?.connection,
-          });
-      });
+      // setActions(prev => {
+      //   return receiveAction(testcaseId || '', prev, 
+      //     { 
+      //       type: ActionType.assert, 
+      //       assertType: AssertType.ai,
+      //       playwright_code: (response as any).data.playwright_code || '', 
+      //       description: (response as any).data.description || '',
+      //       connection_id: databaseElements[0]?.connection?.connection_id,
+      //       connection: databaseElements[0]?.connection,
+      //     });
+      // });
+      if (response.success) {
+        const aiAction = {
+          type: ActionType.assert,
+          assertType: AssertType.ai,
+          playwright_code: (response as any).data.playwright_code || '',
+          description: (response as any).data.description || '',
+          connection_id: databaseElements[0]?.connection?.connection_id,
+          connection: databaseElements[0]?.connection,
+        };
+      
+        console.log('[Main] AI action:', aiAction);
+
+        setActions(prev => {
+          const next = receiveActionWithInsert(
+            testcaseId || '',
+            prev,
+            aiAction,
+            selectedInsertPosition // chèn đúng vị trí đang chọn
+          );
+          const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
+          setSelectedInsertPosition(newPos);
+          setDisplayInsertPosition(newPos);
+          return next;
+        });
+      }
     }
-    setIsAiModalOpen(false);
+    // Reset assert state on successful generation
     setSelectedAssert(null);
     setIsAssertMode(false);
     (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
+    // Inform modal to close by returning true; onClose will clear modal content
+    return true;
   };
 
   const handleUrlConfirm = (url: string) => {
@@ -904,7 +931,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         onChangePrompt={setAiPrompt}
         onChangeElement={(idx, updater) => setAiElements(prev => prev.map((el, i) => i === idx ? updater(el) : el))}
         onRemoveElement={(idx) => setAiElements(prev => prev.filter((_, i) => i !== idx))}
-        onClose={() => { setIsAiModalOpen(false); }}
+        onClose={() => { setIsAiModalOpen(false); setAiPrompt(''); setAiElements([]); }}
         onSubmit={handleAiSubmit}
         onAddElement={handleAiAddElement}
       />

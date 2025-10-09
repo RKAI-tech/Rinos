@@ -103,11 +103,8 @@ function processAssertClick(e) {
     const elementText = extractElementText(e.target);
     const DOMelement = e.target.outerHTML;
     
-    // console.log('Generated selector:', selector);
     
     const types = ['toHaveText', 'toContainText', 'toHaveValue', 'toHaveAccessibleDescription', 'toHaveAccessibleName', 'toHaveCount', 'toHaveRole'];
-
-    // Handle different assert types
     if (types.includes(assertType)) {
       let defaultValue = '';
       if (assertType === 'toHaveValue') {
@@ -121,17 +118,13 @@ function processAssertClick(e) {
       }
       
       const rect = e.target.getBoundingClientRect();
-      // console.log('Showing assert modal for type:', assertType, 'default value:', defaultValue);
+      console.log('Showing assert modal for type:', assertType, 'default value:', defaultValue);
       
       showAssertInputModal(
         assertType, 
         defaultValue, 
         rect, 
         (finalValue, connection, connection_id, query) => {
-          // console.log('finalValue', finalValue);
-          console.log('connection', connection);
-          console.log('connection_id', connection_id);
-          // console.log('query', query);
           sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement);
         }, 
         () => {
