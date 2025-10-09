@@ -7,7 +7,8 @@ export function handleCheckboxRadioChangeEvent(e) {
   const tag = el?.tagName?.toLowerCase?.();
   const type = el?.type?.toLowerCase?.();
   // Hỗ trợ input[checkbox|radio] và select
-  if (!((tag === 'input' && (type === 'checkbox' || type === 'radio')) || tag === 'select')) return;
+  // if (!((tag === 'input' && (type === 'checkbox' || type === 'radio')) || tag === 'select')) return;
+  if (!((tag === 'input' && (type === 'checkbox' || type === 'radio')))) return;
  
   const selectors = buildSelectors(el, { maxSelectors: 5, minScore: 300, validate: true });
   const isChecked = !!el.checked;
@@ -41,21 +42,21 @@ export function handleCheckboxRadioChangeEvent(e) {
     return;
   }
 
-  if (tag === 'select') {
-    const selectedOptions = Array.from(el.selectedOptions || []);
-    const selectedTexts = selectedOptions.map(o => (o.textContent || '').trim()).filter(Boolean);
-    const selectedValues = selectedOptions.map(o => o.value);
-    const normalizedText = selectedTexts.join(', ');
-    const normalizedValues = selectedValues.join(',');
-    sendAction("change", {
-      selector: selectors,
-      value: normalizedText,
-      selected_value: normalizedValues,
-      multiple: !!el.multiple,
-      element: 'select',
-      elementPreview: previewNode(el),
-      elementText
-    });
-    return;
-  }
+  // if (tag === 'select') {
+  //   const selectedOptions = Array.from(el.selectedOptions || []);
+  //   const selectedTexts = selectedOptions.map(o => (o.textContent || '').trim()).filter(Boolean);
+  //   const selectedValues = selectedOptions.map(o => o.value);
+  //   const normalizedText = selectedTexts.join(', ');
+  //   const normalizedValues = selectedValues.join(',');
+  //   sendAction("change", {
+  //     selector: selectors,
+  //     value: normalizedText,
+  //     selected_value: normalizedValues,
+  //     multiple: !!el.multiple,
+  //     element: 'select',
+  //     elementPreview: previewNode(el),
+  //     elementText
+  //   });
+  //   return;
+  // }
 }

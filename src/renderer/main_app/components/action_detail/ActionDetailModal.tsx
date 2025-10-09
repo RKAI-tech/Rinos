@@ -21,6 +21,14 @@ const mapFromResponse = (src: ActionGetResponse): Action => ({
   value: src.value,
   selected_value: src.selected_value,
   checked: src.checked,
+  // Preserve database-related fields to avoid losing them on save
+  connection_id: (src as any).connection_id,
+  connection: (src as any).connection,
+  statement_id: (src as any).statement_id,
+  statement: (src as any).statement,
+  variable_name: (src as any).variable_name,
+  order_index: (src as any).order_index,
+  file_upload: (src as any).file_upload,
 });
 
 const mapToResponse = (src: Action): ActionGetResponse => ({
@@ -32,9 +40,15 @@ const mapToResponse = (src: Action): ActionGetResponse => ({
   elements: (src.elements || []) as any,
   assert_type: (src.assert_type as any) || undefined,
   value: src.value || '',
-  order_index: 0,
   selected_value: src.selected_value,
   checked: src.checked,
+  connection_id: src.connection_id,
+  connection: src.connection,
+  statement_id: src.statement_id,
+  statement: src.statement,
+  variable_name: src.variable_name,
+  order_index: src.order_index,
+  file_upload: src.file_upload,
 });
 
 const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave }) => {
