@@ -118,11 +118,11 @@ const Dashboard: React.FC = () => {
     setIsCreateModalOpen(false);
   };
 
-  const handleSaveProject = async (projectData: { name: string; description: string }) => {
+  const handleSaveProject = async (projectData: { name: string; description?: string }) => {
     try {
       const response = await projectService.createProject({
         name: projectData.name,
-        description: projectData.description
+        description: projectData.description ?? ''
       });
 
       if (response.success && response.data) {

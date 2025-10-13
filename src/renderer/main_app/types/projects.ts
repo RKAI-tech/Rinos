@@ -5,7 +5,7 @@ export interface ProjectGetAllResponse {
 
 export interface ProjectCreateRequest {
     name: string;
-    description: string;
+    description?: string;
 }
 
 export interface ProjectDeleteRequest {

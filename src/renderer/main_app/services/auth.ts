@@ -108,15 +108,17 @@ export class AuthService {
     apiRouter.clearAuth();
   }
 
-  async validateToken(token: ValidateTokenRequest): Promise<ApiResponse<void>> {
-    const response = await apiRouter.request<void>('/auth/validate-token', {
-      method: 'POST',
-      body: JSON.stringify(token),
-    });
+  async validateToken(token: string): Promise<ApiResponse<LoginResponse>> {
+    const response = await apiRouter.request<LoginResponse>(
+      `auth/validate_token/${token}`,
+      {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
     return response;
   }
 }
-
 // Export singleton instance
 export const authService = new AuthService();
 export default authService;

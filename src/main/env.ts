@@ -3,7 +3,8 @@ import { app } from "electron";
 import path from "path";
 
 // Load environment variables from the correct location
-const isDev = process.env.NODE_ENV === "development";
+// Ưu tiên nhận diện dev qua Electron (không đóng gói) và fallback bằng NODE_ENV
+const isDev =  !app.isPackaged;
 const envPath = isDev 
   ? path.join(process.cwd(), ".env")
   : path.join(process.resourcesPath, ".env");
