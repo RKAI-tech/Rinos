@@ -5,7 +5,7 @@ import {
   buildCommonActionData,
   sendAction
 } from './baseAction.js';
-import { previewNode } from '../domUtils.js';
+import { previewNode } from '../dom/domUtils.js';
 
 // Trạng thái drag and drop đơn giản
 let isDragging = false;

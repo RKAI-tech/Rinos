@@ -1,5 +1,5 @@
 import { buildSelectors, sendAction } from './baseAction.js';
-import { previewNode, extractElementText } from '../domUtils.js';
+import { previewNode, extractElementText } from '../dom/domUtils.js';
 import {shouldIgnoreTarget} from './baseAction.js';
 // Xử lý sự kiện change cho checkbox, radio, select
 export function handleCheckboxRadioChangeEvent(e) {

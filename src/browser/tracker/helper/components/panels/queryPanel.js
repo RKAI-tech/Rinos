@@ -3,8 +3,8 @@
  * Builds a SQL query runner panel, renders results, exposes selection to consumer
  */
 
-import { getCurrentHoveredElement } from "../../hoverOverlay";
-import { generateAndValidateSelectors } from "../../selectorGenerator";
+import { getCurrentHoveredElement } from "../../dom/hoverOverlay";
+import { generateAndValidateSelectors } from "../../selector_generator/selectorGenerator";
 
 export function createQueryPanel(assertType, onConfirm) {
   const panel = document.createElement('div');

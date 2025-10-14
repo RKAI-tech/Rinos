@@ -1,5 +1,5 @@
-import { generateAndValidateSelectors } from '../selectorGenerator.js';
-import { previewNode, extractElementText } from '../domUtils.js';
+import { generateAndValidateSelectors } from '../selector_generator/selectorGenerator.js';
+import { previewNode, extractElementText } from '../dom/domUtils.js';
 
 // Trạng thái chung
 let isPaused = false;

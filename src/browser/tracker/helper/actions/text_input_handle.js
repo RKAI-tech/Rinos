@@ -5,7 +5,7 @@ import {
   buildCommonActionData,
   sendAction
 } from './baseAction.js';
-import { previewNode } from '../domUtils.js';
+import { previewNode } from '../dom/domUtils.js';
 
 export function handleInputLikeBase(e, actionType = 'input', eventLabel = 'Input') {
   // console.log(`${eventLabel} event detected:`, previewNode(e?.target));

@@ -5,7 +5,7 @@ import {
   buildCommonActionData,
   sendAction
 } from './baseAction.js';
-import { previewNode, extractElementText } from '../domUtils.js';
+import { previewNode, extractElementText } from '../dom/domUtils.js';
 
 // Xử lý sự kiện change cho <select>
 export function handleSelectChangeEvent(e) {

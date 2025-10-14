@@ -5,7 +5,7 @@ import {
     buildCommonActionData,
     sendAction
   } from './baseAction.js';
-  import { previewNode } from '../domUtils.js';
+  import { previewNode } from '../dom/domUtils.js';
   
   // Danh sách phím modifier/special không cần ghi lại riêng lẻ
   const SKIP_KEYS = new Set([

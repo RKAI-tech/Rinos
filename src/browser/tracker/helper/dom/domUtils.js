@@ -3,7 +3,7 @@
  * Các hàm tiện ích để làm việc với DOM
  */
 
-import { normalizeWhiteSpace, trimStringWithEllipsis, oneLine } from './stringUtils.js';
+import { normalizeWhiteSpace, trimStringWithEllipsis, oneLine } from '../utils/stringUtils.js';
 
 // Re-export string utilities for convenience
 export { normalizeWhiteSpace, trimStringWithEllipsis, oneLine };
