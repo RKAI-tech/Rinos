@@ -72,9 +72,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // log('initializeAuth: token exists =', Boolean(token));
         // log('initializeAuth: token =', token);
         if (token) {
-          // Set token vào authService
-          setIsAuthenticated(true);
-          // log('initializeAuth: authenticated');
+          const response = await authService.validateToken(token);
+          log('initializeAuth: response', response);
+          if (response.success && response.data?.access_token) {
+            setIsAuthenticated(true);
+          }
+          else {
+            clearAuthData();
+          }
+
         }
       } catch (error) {
         // console.error('[AuthContext] Error initializing auth:', error);

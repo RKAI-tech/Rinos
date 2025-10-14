@@ -750,7 +750,25 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   return (
     <div className="rcd-page">
       <div className="rcd-topbar">
-        <input className="rcd-url" placeholder="Type your URL here.." value={url} onChange={(e) => setUrl(e.target.value)} />
+        <input
+          className="rcd-url"
+          placeholder="Type your URL here.."
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              if (isBrowserOpen) {
+                stopBrowser();
+              } else {
+                const endPos = actions.length;
+                setSelectedInsertPosition(endPos);
+                setDisplayInsertPosition(endPos);
+                startBrowser(url);
+              }
+            }
+          }}
+        />
         <div className="rcd-topbar-actions">
         {/**
          * HTTP Authentication temporarily hidden

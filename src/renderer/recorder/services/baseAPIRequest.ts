@@ -6,7 +6,7 @@ export class ApiRouter {
   private token: string | null = null;
 
   constructor() {
-    this.baseUrl = 'https://testscripts.rikkei.org'; //config.API_BASE_URL;
+    this.baseUrl = config.API_BASE_URL;
     // console.log('[ApiRouter] Initialized with base URL:', this.baseUrl);
   }
   setAuthToken(token: string | null) {

@@ -146,12 +146,7 @@ export class ProjectService {
             };
         }
 
-        if (!project.description || project.description.trim().length === 0) {
-            return {
-                success: false,
-                error: 'Project description is required'
-            };
-        }
+        // description không còn bắt buộc
 
         return await apiRouter.request<Project>('/projects/create', {
             method: 'POST',
