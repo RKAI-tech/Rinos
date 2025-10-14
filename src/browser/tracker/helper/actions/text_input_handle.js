@@ -31,6 +31,11 @@ export function handleTextInputEvent(e) {
     return;
   }
 
+  // Bỏ qua các loại có type là file
+  if (type === 'file') {
+    return;
+  }
+
   if (tag === 'input') {
     return handleInputLikeBase(e, 'input', 'Input');
   }

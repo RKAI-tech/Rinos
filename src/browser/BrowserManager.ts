@@ -27,7 +27,6 @@ export class BrowserManager extends EventEmitter {
     private browser: Browser | null = null;
     private context: BrowserContext | null = null;
     page: Page | null = null;
-    private pendingRequests: number;
     controller: Controller | null = null;
     private isAssertMode: boolean = false;
     private assertType: AssertType | null = null;
@@ -36,7 +35,6 @@ export class BrowserManager extends EventEmitter {
 
     constructor() {
         super();
-        this.pendingRequests = 0;
         this.controller = new Controller();
     }
 
@@ -47,45 +45,6 @@ export class BrowserManager extends EventEmitter {
 
     setAuthToken(token: string | null): void {
         apiRouter.setAuthToken(token);
-    }
-
-    trackRequests(page: Page): void {
-        page.on('request', (request: Request) => {
-            if (['xhr', 'fetch'].includes(request.resourceType())) {
-                this.pendingRequests++;
-            }
-        });
-
-        const decrement = (request: Request) => {
-            if (['xhr', 'fetch'].includes(request.resourceType())) {
-                this.pendingRequests = Math.max(0, this.pendingRequests - 1);
-            }
-        };
-
-        page.on('requestfinished', decrement);
-        page.on('requestfailed', decrement);
-    }
-
-    async waitForAppIdle(timeout: number = 10000, idleTime: number = 500): Promise<void> {
-        const start = Date.now();
-        let idleStart: number | null = null;
-
-        while (true) {
-            if (this.pendingRequests === 0) {
-                if (!idleStart) {
-                    idleStart = Date.now();
-                } else if (Date.now() - idleStart >= idleTime) {
-                    return;
-                }
-            } else {
-                idleStart = null;
-            }
-
-            if (Date.now() - start > timeout) {
-                return;
-            }
-            await new Promise((resolve) => setTimeout(resolve, 100));
-        }
     }
 
     async start(): Promise<void> {
@@ -114,7 +73,7 @@ export class BrowserManager extends EventEmitter {
             await this.injectingScript(path.join(__dirname, 'renderer', 'browser', 'tracker', 'trackingScript.js'));
 
             // Track requests
-            this.trackRequests(this.page);
+            this.controller?.trackRequests(this.page);
 
             // Catch close event
             this.page.on('close', () => {

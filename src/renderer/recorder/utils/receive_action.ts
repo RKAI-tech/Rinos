@@ -173,7 +173,7 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         })) : [],
     } as Action;
 
-    // console.log('[receiveAction]', receivedAction);
+    console.log('[receiveAction]', receivedAction);
 
     const last_action = action_recorded[action_recorded.length - 1];
 

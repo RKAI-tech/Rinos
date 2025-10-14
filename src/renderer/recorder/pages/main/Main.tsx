@@ -249,6 +249,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         // console.log(`[Main] Executing ${toExecute.length} existing actions (limit=${limit})`);
         if (toExecute.length > 0) {
           await (window as any).browserAPI?.browser?.executeActions(toExecute);
+          setIsPaused(false);
         }
       } else {
         if (!url) {
@@ -268,14 +269,14 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         setSelectedInsertPosition(selectedInsertPosition + 1);
         setDisplayInsertPosition(selectedInsertPosition + 1);
         setActions(prev => receiveAction(testcaseId || '', prev, { type: ActionType.navigate, selector: [], url: url, value: url }));
+        setIsPaused(false);
       }
-      
-      setIsPaused(false);
     } catch (error) {
       // console.error('[Main] Error starting browser:', error);
       setIsBrowserOpen(false);
-      setIsPaused(false);
       throw error;
+    } finally {
+      // setIsPaused(false);
     }
   };
 
@@ -665,17 +666,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const handleRunScript = async () => {
     try {
       const toastId = toast.loading('Running script...');
-      // const code = (activeTab === 'script' && customScript.trim()) ? customScript : actionToCode(actions);
-      // const resp = await service.executeJavascript({ testcase_id: testcaseId || '', code });
-      // if (resp.success) {
-      //   const msg = (resp as any).result || 'Executed successfully';
-      //   console.log('[Main] Run script result:', msg);
-      //   setRunResult(msg);
-      //   toast.update(toastId, { render: 'Run succeeded', type: 'success', isLoading: false, autoClose: 2000 });
-      // } else {
-      //   setRunResult((resp as any).result || 'Run failed');
-      //   toast.update(toastId, { render: resp.error || 'Run failed', type: 'error', isLoading: false, autoClose: 3000 });
-      // }
       const payload = {
         actions: actions.map(action => {
           if (action.connection && typeof action.connection.port === 'string') {
