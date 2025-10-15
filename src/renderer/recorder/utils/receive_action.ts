@@ -56,6 +56,12 @@ export function createDescription(action_received: any): string {
             return `Drag end ${element}`;
         case ActionType.drop:
             return `Drop ${element}`;
+        case ActionType.reload:
+            return `Reload page`;
+        case ActionType.back_forward:
+            return `Back/Forward to ${url}`;
+        case ActionType.search_enter:
+            return `Search for ${value}`;
         case ActionType.assert:
             switch (action_received.assertType) {
                 case AssertType.toHaveText:
@@ -137,12 +143,15 @@ export function createScriptForAiAssert(receivedAction: any, action_received: an
 }
 
 export function receiveAction(testcaseId: string, action_recorded: Action[], action_received: any): Action[] {
-    // console.log('[rawAction]', action_received);
+    console.log('[rawAction]', action_received);
+    const normalizedType = (action_received?.action_type ?? action_received?.type) as ActionType | undefined;
+    const normalizedDescription = (action_received?.description ?? createDescription(action_received)) as string | undefined;
+
     const receivedAction = {
         action_id: Math.random().toString(36),
         testcase_id: testcaseId,
-        action_type: action_received.type,
-        description: createDescription(action_received),
+        action_type: normalizedType as ActionType,
+        description: normalizedDescription,
         playwright_code: action_received.playwright_code,
         elements: action_received.selector ? [{
             selectors: action_received.selector.map((sel: string) => ({ value: sel } as Selector)),
@@ -151,7 +160,7 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
             variable_name: action_received.variable_name,
         } as Element] : [],
         assert_type: action_received.assertType,
-        value: action_received.value || action_received.files?.[0]?.name || undefined,
+        value: action_received.value || action_received.files?.[0]?.name || action_received.url || undefined,
         connection_id: action_received.connection_id,
         connection: action_received.connection ? {
             connection_id: action_received.connection_id,
@@ -163,19 +172,39 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
             db_type: action_received.connection.db_type,
         } : undefined,
         statement_id: action_received.statement_id,
-        statement: action_received.query ? {
-            query: action_received.query,
-        } : undefined,
+        query: action_received.query,
+        statement: (action_received.statement && action_received.statement.query)
+            ? { query: action_received.statement.query }
+            : (action_received.query ? { query: action_received.query } : undefined),
         files: action_received.files ? action_received.files.map((file: any) => ({
             file_name: file.name,
             file_content: file.content.split(',')[1],
             file_path: undefined,
         })) : [],
+        // Browser events
+        url: action_received.url,
+        timestamp: action_received.timeStamp || action_received.timestamp,
     } as Action;
 
     // console.log('[receiveAction]', receivedAction);
 
     const last_action = action_recorded[action_recorded.length - 1];
+
+    // Xử lý đặc biệt cho browser events - tránh duplicate
+    if (receivedAction.action_type === ActionType.reload || 
+        receivedAction.action_type === ActionType.back_forward || 
+        receivedAction.action_type === ActionType.navigate) {
+        console.log('[receiveAction] Browser event detected:', receivedAction.action_type, receivedAction.url);
+        
+        // Kiểm tra duplicate với action cuối cùng
+        if (last_action && 
+            last_action.action_type === receivedAction.action_type && 
+            last_action.value === receivedAction.value &&
+            Math.abs((last_action.timestamp || 0) - (receivedAction.timestamp || 0)) < 1000) {
+            console.log('[receiveAction] Duplicate browser event detected, skipping');
+            return action_recorded;
+        }
+    }
 
     if (last_action && last_action.action_type === ActionType.input && receivedAction.action_type === ActionType.input) {
         // Compare elements content instead of object reference

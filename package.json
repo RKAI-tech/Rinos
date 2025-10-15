@@ -84,7 +84,9 @@
       {
         "from": "/home/hunghd/.cache/ms-playwright",
         "to": "playwright-browsers",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "linux": {

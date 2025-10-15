@@ -22,6 +22,12 @@ export enum ActionType {
   keypress = "keypress",
   upload = "upload",
   scroll = "scroll",
+  database_execution = "database_execution",
+  wait = "wait",
+  // Browser events
+  reload = "reload",
+  back_forward = "back_forward",
+  search_enter = "search_enter",
 }
 
 export enum AssertType {
@@ -105,8 +111,12 @@ export interface Action {
     connection?: Connection;
     statement_id?: string;
     statement?: Statement;
+    query?: string;
     variable_name?: string;
     file_upload?: FileUpload[];
+    // Browser events
+    url?: string;
+    timestamp?: number;
 }
 
 export interface ActionBatch {

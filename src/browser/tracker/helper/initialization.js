@@ -15,17 +15,12 @@ import { handleKeyDownEvent} from './actions/keyboard_handle.js';
 import { handleSelectChangeEvent } from './actions/select_handle.js';
 import { handleDragStartEvent, handleDragEndEvent, handleDropEvent } from './actions/drag_and_drop.js';
 import { handleUploadChangeEvent } from './actions/upload_handle.js';
-// Global assert mode state for capture phase blocking
+// import { attachBrowserHandlers } from './actions/browser_handle.js';
 let globalAssertMode = false;
 
 let browserControls = null;
+let browserHandlersDisposer = null;
 
-// Note: Global event blocker removed - using targeted blocking in individual handlers
-
-/**
- * Capture phase event blocker for assert mode - blocks ALL events
- * Chặn TẤT CẢ sự kiện ở capture phase khi đang assert
- */
 function handleAssertCaptureBlocking(e) {
   if (!globalAssertMode) {
     // console.log('Not in assert mode, allowing event:', e.type);
@@ -236,7 +231,7 @@ export function initializeEventListeners() {
   document.addEventListener('drop', handleAssertCaptureBlocking, true);
   document.addEventListener('contextmenu', handleAssertCaptureBlocking, true);
   document.addEventListener('dblclick', handleAssertCaptureBlocking, true);
-
+ 
 }
 
 /**
@@ -309,6 +304,8 @@ export function initializeTracking() {
   // Initialize hover effects
   initializeHoverEffects();
   
+  // browserHandlersDisposer = attachBrowserHandlers();
+  
   // Expose functions to main process
   window.setAssertMode = function(enabled, assertType) {
     globalAssertMode = enabled;
@@ -347,6 +344,14 @@ export function initializeTracking() {
   window.unfreezeEntireScreen = unfreezeEntireScreen;
   window.unfreezeAllElements = unfreezeAllElements;
   // Note: per new full-screen freeze design, no per-element unfreeze API exposed
+  
+  // Expose cleanup function for browser handlers
+  // window.cleanupBrowserHandlers = function() {
+  //   if (browserHandlersDisposer) {
+  //     browserHandlersDisposer();
+  //     browserHandlersDisposer = null;
+  //   }
+  // };
 }
 
 /**
