@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import { Action, AssertType } from "../../browser/types";
 
 const browserMethods = {
-    start: async () => ipcRenderer.invoke("browser:start"),
+    start: async (basicAuthentication: { username: string, password: string }) => ipcRenderer.invoke("browser:start", basicAuthentication),
     stop: async () => ipcRenderer.invoke("browser:stop"),
     executeActions: async (actions: Action[]) => ipcRenderer.invoke("browser:executeActions", actions),
     navigate: async (url: string) => ipcRenderer.invoke("browser:navigate", url),

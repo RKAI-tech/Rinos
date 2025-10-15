@@ -116,4 +116,21 @@
   border-color: #2563eb;
 }
 
+.rcd-ba-btn.danger {
+  background: #dc2626;
+  color: white;
+  border-color: #dc2626;
+}
+
+.rcd-ba-btn.danger:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.rcd-ba-btn.danger:disabled {
+  background: #fca5a5;
+  border-color: #fca5a5;
+  cursor: not-allowed;
+}
+
 

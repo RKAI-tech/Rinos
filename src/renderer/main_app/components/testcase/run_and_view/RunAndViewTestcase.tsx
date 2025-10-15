@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import './RunAndViewTestcase.css';
 import { TestCaseService } from '../../../services/testcases';
 import { TestCaseGetResponse } from '../../../types/testcases';
@@ -154,9 +156,11 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                       <span className="dot green" />
                       <span className="ravt-term-title">Execution Logs</span>
                     </div>
-                    <pre className="ravt-term-content">
-                      {result.logs || 'No logs available for this testcase.'}
-                    </pre>
+                    <div className="ravt-term-content">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {result.logs || 'No logs available for this testcase.'}
+                      </ReactMarkdown>
+                    </div>
                   </div>
                 </div>
                 <div className="ravt-pane">

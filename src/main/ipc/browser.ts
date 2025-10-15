@@ -28,8 +28,8 @@ browserManager.on('browser-stopped', () => {
 });
 
 export function registerBrowserIpc() {
-    ipcMain.handle("browser:start", async () => {
-        await browserManager.start();
+    ipcMain.handle("browser:start", async (_, basicAuthentication: { username: string, password: string }) => {
+        await browserManager.start(basicAuthentication);
     });
     ipcMain.handle("browser:stop", async () => {
         (browserManager as any).isExecuting = false; // Reset execution flag

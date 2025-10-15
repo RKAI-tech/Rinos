@@ -27,7 +27,7 @@ interface Testcase {
   updated?: string;
   status: string;
   actionsCount: number;
-  basic_authentication?: { username: string; password: string }[];
+  basic_authentication?: { username: string; password: string };
 }
 
 const Testcases: React.FC = () => {
@@ -407,7 +407,7 @@ const Testcases: React.FC = () => {
   };
 
   // Create testcase with actions in one call
-  const createTestcaseWithActions = async (name: string, tag?: string, actions?: any[], basic_authentication?: { username: string; password: string }[]) => {
+  const createTestcaseWithActions = async (name: string, tag?: string, actions?: any[], basic_authentication?: { username: string; password: string }) => {
     const effectiveProjectId = projectData?.projectId;
     if (!effectiveProjectId) {
       toast.error('Missing project ID');
@@ -418,7 +418,7 @@ const Testcases: React.FC = () => {
       name, 
       tag: tag || undefined,
       actions: actions || [],
-      basic_authentication: basic_authentication || []
+      basic_authentication: basic_authentication || undefined
     } as any;
     const resp = await testCaseService.createTestCaseWithActions(payload);
     if (!resp.success) {
@@ -440,13 +440,13 @@ const Testcases: React.FC = () => {
     }
   };
 
-  const handleSaveEditTestcase = async ({ id, name, tag, basic_authentication }: { id: string; name: string; tag: string; basic_authentication?: { username: string; password: string }[] }) => {
+  const handleSaveEditTestcase = async ({ id, name, tag, basic_authentication }: { id: string; name: string; tag: string; basic_authentication?: { username: string; password: string } }) => {
     try {
       const payload = {
         testcase_id: id,
         name,
         tag: tag || undefined,
-        basic_authentication: basic_authentication || []
+        basic_authentication: basic_authentication || undefined
       } as any;
       console.log('[MAIN_APP] payload', payload);
       const resp = await testCaseService.updateTestCase(payload);

@@ -54,7 +54,9 @@ export class BrowserManager extends EventEmitter {
         apiRouter.setAuthToken(token);
     }
 
-    async start(): Promise<void> {
+    async start(
+        basicAuthentication: { username: string, password: string }
+    ): Promise<void> {
         try {
             if (this.browser) {
                 // console.log('Browser already started');
@@ -76,9 +78,10 @@ export class BrowserManager extends EventEmitter {
             });
 
             // Create context
-            this.context = await this.browser.newContext(
-                { viewport: null }
-            );
+            this.context = await this.browser.newContext({
+                viewport: null,
+                httpCredentials: basicAuthentication,
+            });
 
             // Create page
             this.page = await this.context.newPage();
