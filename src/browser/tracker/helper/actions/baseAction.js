@@ -52,7 +52,7 @@ export function shouldIgnoreTarget(target, label = 'Event') {
 
 // Helper: tạo selectors chuẩn
 export function buildSelectors(target, options = {}) {
-  const { maxSelectors = 5, minScore = 300, validate = true } = options;
+  const { maxSelectors = 5, minScore = 100, validate = true } = options;
   try {
     return generateAndValidateSelectors(target, { maxSelectors, minScore, validate });
   } catch (e) {

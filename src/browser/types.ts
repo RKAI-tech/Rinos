@@ -32,7 +32,12 @@ export enum ActionType {
     keyup = 'keyup',
     keypress = 'keypress',
     upload = 'upload',
-    scroll = 'scroll'
+    scroll = 'scroll',
+    wait = 'wait',
+    database_execution = 'database_execution',
+    reload = 'reload',
+    back_forward = 'back_forward',
+    search_enter = 'search_enter'
 }
 
 export enum AssertType {

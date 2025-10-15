@@ -291,7 +291,7 @@ export function generateActionCode(action: Action, index: number): string {
         case ActionType.change:
             return `    candidates = ${candidatesLiteral};\n` +
                 `    sel = await resolveUniqueSelector(page, candidates);\n` +
-                `    // CHANGE is not a Playwright API; add custom handling here if needed\n` +
+                `    await page.locator(sel).click();\n` +
                 `    await page.waitForLoadState('networkidle');\n`;
 
         case ActionType.keydown:
@@ -348,21 +348,51 @@ export function generateActionCode(action: Action, index: number): string {
 export function getResolveUniqueSelectorFunctionString(): string {
     return `
 async function resolveUniqueSelector(page, selectors) {
-    if (!page || !selectors || !Array.isArray(selectors) || selectors.length === 0) {
-        throw new Error('resolveUniqueSelector: invalid inputs');
+  if (!page || !selectors || !Array.isArray(selectors) || selectors.length === 0) {
+    throw new Error('resolveUniqueSelector: invalid inputs');
+  }
+
+  // Normalize all selectors into locators
+  const toLocator = (s) => {
+    const selector = String(s).trim();
+    if (selector.startsWith('xpath=')) {
+      // Already a valid XPath
+      return page.locator(selector);
     }
-    const locators = selectors.map(s => page.locator(String(s).trim()));
-    await Promise.allSettled(
-        locators.map(l => l.first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => {}))
-    );
-    for (let i = 0; i < locators.length; i++) {
-        const count = await locators[i].count();
-        if (count === 1) {
-            return selectors[i];
-        }
+    if (selector.startsWith('/') || selector.startsWith('(')) {
+      // Absolute or relative XPath -> prefix with "xpath="
+      return page.locator(\`xpath=\${selector}\`);
     }
-    throw new Error('No matching selector found in ' + selectors + '. Please try again.');
+    // Otherwise, treat as CSS or text selector
+    return page.locator(selector);
+  };
+
+  const locators = selectors.map(toLocator);
+
+  // Wait for selectors to be attached (exist in DOM)
+  await Promise.allSettled(
+    locators.map(l => l.first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => {}))
+  );
+
+  // Find the first valid, unique selector
+  for (let i = 0; i < locators.length; i++) {
+    const locator = locators[i];
+    const selector = selectors[i];
+    const count = await locator.count();
+
+    if (count === 1 && await locator.first().isVisible()) {
+      // If it's an XPath without prefix, add "xpath="
+      if (selector.startsWith('/') || selector.startsWith('(')) {
+        return \`xpath=\${selector}\`;
+      }
+      // Otherwise, return as-is
+      return selector;
+    }
+  }
+
+  throw new Error(\`No matching selector found among: \${selectors.join(', ')}\`);
 }
+
 `.trim();
 }
 

@@ -27,7 +27,7 @@ import { getAccessibleName, getElementRole, retargetElement } from '../dom/domUt
  * @returns {Array} Array of selector strings
  */
 export function generateSelector(element, options = {}) {
-  const { maxSelectors = 5, minScore = 300, parentDepth = 0, maxParentDepth = 3 } = options;
+  const { maxSelectors = 5, minScore = 100, parentDepth = 0, maxParentDepth = 3 } = options;
   
   if (!element || element.nodeType !== Node.ELEMENT_NODE) return [];
   
@@ -164,15 +164,24 @@ export function generateSelector(element, options = {}) {
     }
   } catch {}
 
-  // 5. Text-based selector (Playwright engine supports :has-text("..."))
+  // 5. Text-based selector (use XPath for HTML compatibility)
   try {
     const elementText = getElementText(element);
     // Use reasonable-length, meaningful text snippets
     if (isMeaningfulValue(elementText) && elementText.length <= 100) {
-      const safeText = elementText.replace(/"/g, '\\"');
-      // Push without DOM validation because :has-text is not a native CSS selector
-      selectorCandidates.push({ selector: `:has-text("${safeText}")`, score: 810, type: 'text' });
-      selectorCandidates.push({ selector: `${tag}:has-text("${safeText}")`, score: 805, type: 'text' });
+      // Convert text to a safe XPath literal
+      const toXPathLiteral = (s) => {
+        if (s.indexOf('"') === -1) return `"${s}"`;
+        if (s.indexOf("'") === -1) return `'${s}'`;
+        return 'concat(' + s.split('"').map((part, i) => (i > 0 ? ',""",' : '') + `'${part}'`).join('') + ')';
+      };
+      const textLiteral = toXPathLiteral(elementText);
+      // Exact text match using normalize-space
+      selectorCandidates.push({ selector: `xpath=//*[normalize-space(.)=${textLiteral}]`, score: 810, type: 'text-xpath' });
+      selectorCandidates.push({ selector: `xpath=//${tag}[normalize-space(.)=${textLiteral}]`, score: 805, type: 'text-xpath' });
+      // Contains text variant (slightly lower score)
+      selectorCandidates.push({ selector: `xpath=//*[contains(normalize-space(.), ${textLiteral})]`, score: 790, type: 'text-xpath-contains' });
+      selectorCandidates.push({ selector: `xpath=//${tag}[contains(normalize-space(.), ${textLiteral})]`, score: 785, type: 'text-xpath-contains' });
     }
   } catch {}
 
@@ -319,7 +328,7 @@ export function generateSelector(element, options = {}) {
  * @returns {Array} Array of improved selector strings
  */
 export function validateAndImproveSelector(selectors, element, options = {}) {
-  const { maxImprovements = 3 } = options;
+  const { maxImprovements = 10 } = options;
   
   if (!Array.isArray(selectors) || selectors.length === 0) return [];
   if (!element || element.nodeType !== Node.ELEMENT_NODE) return selectors;
@@ -329,14 +338,23 @@ export function validateAndImproveSelector(selectors, element, options = {}) {
   
   function validateSingleSelector(selector) {
     try {
-      const matches = doc.querySelectorAll(selector);
-      if (matches.length === 1 && matches[0] === element) {
-        return { selector, isValid: true, elementCount: matches.length };
+      if (selector.startsWith('xpath=')) {
+        // Xử lý XPath selector
+        const xpathExpr = selector.replace(/^xpath=/, '');
+        const result = doc.evaluate(xpathExpr, doc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        const count = result.snapshotLength;
+        for (let i = 0; i < count; i++) {
+          if (result.snapshotItem(i) === element) {
+            return { selector, isValid: true, elementCount: count };
+          }
+        }
+        return { selector, isValid: false, elementCount: count };
+      } else {
+        // Xử lý CSS selector
+        const matches = doc.querySelectorAll(selector);
+        const isValid = matches.length > 0 && [...matches].includes(element);
+        return { selector, isValid, elementCount: matches.length };
       }
-      if (matches.length > 1) {
-        return { selector, isValid: true, elementCount: matches.length };
-      }
-      return { selector, isValid: false, elementCount: 0 };
     } catch (e) {
       return { selector, isValid: false, elementCount: 0, error: e.message };
     }
@@ -404,11 +422,190 @@ export function generateAndValidateSelectors(element, options = {}) {
   const { 
     maxSelectors = 5, 
     minScore = 300,
-    validate = true
+    validate = true,
+    // If true, convert final selectors to XPath form (prefixed with 'xpath=')
+    returnXPath = false
   } = options;
   const selectors = generateSelector(element, { maxSelectors, minScore });
-  if (!validate || selectors.length === 0) {
-    return selectors;
+  console.log('[generateAndValidateSelectors] Selectors:', selectors);
+  let finalSelectors = (!validate) ? selectors : validateAndImproveSelector(selectors, element);
+  console.log('[generateAndValidateSelectors] Final selectors:', finalSelectors);
+  // Đảm bảo unique theo thứ tự xuất hiện
+  try {
+    const seen = new Set();
+    finalSelectors = finalSelectors.filter(s => {
+      if (!s || typeof s !== 'string') return false;
+      if (seen.has(s)) return false;
+      seen.add(s);
+      return true;
+    });
+  } catch {}
+
+  // Hàm dựng XPath tuyệt đối từ root tới element
+  function buildAbsoluteXPath(el) {
+    try {
+      if (!el || el.nodeType !== Node.ELEMENT_NODE) return '';
+      const doc = el.ownerDocument || document;
+
+      // Helper: convert string to a safe XPath literal
+      const toXPathLiteral = (s) => {
+        if (s.indexOf('"') === -1) return `"${s}"`;
+        if (s.indexOf("'") === -1) return `'${s}'`;
+        return 'concat(' + s.split('"').map((part, i) => (i > 0 ? ',""",' : '') + `'${part}'`).join('') + ')';
+      };
+
+      // Prefer short id-based XPath if available and unique
+      try {
+        const id = el.getAttribute && el.getAttribute('id');
+        if (id && id.trim()) {
+          // If unique in document, return by-id path
+          let unique = true;
+          try {
+            const esc = (window.CSS && CSS.escape) ? CSS.escape(id) : id;
+            const q = doc.querySelectorAll(`#${esc}`);
+            unique = q.length === 1 && q[0] === el;
+          } catch {}
+          if (unique) {
+            return `//*[@id=${toXPathLiteral(id)}]`;
+          }
+        }
+      } catch {}
+
+      // Absolute path using tag and :nth-of-type-like indexing
+      const segments = [];
+      let node = el;
+      while (node && node.nodeType === Node.ELEMENT_NODE && node !== doc.documentElement) {
+        const tag = node.tagName.toLowerCase();
+        const parent = node.parentElement;
+        let index = 1;
+        if (parent) {
+          const sameTagSiblings = Array.from(parent.children).filter(n => n.tagName === node.tagName);
+          if (sameTagSiblings.length > 1) {
+            index = sameTagSiblings.indexOf(node) + 1;
+          }
+        }
+        segments.unshift(index > 1 ? `${tag}[${index}]` : tag);
+        node = parent;
+      }
+      // Prepend html as root
+      const path = ['/html', ...segments].join('/');
+      return path;
+    } catch {
+      return '';
+    }
   }
-  return validateAndImproveSelector(selectors, element);
+
+  // Nếu không có selector nào, trả về XPath tuyệt đối
+  if (!finalSelectors || finalSelectors.length === 0) {
+    const xpath = buildAbsoluteXPath(element);
+    const only = xpath ? [xpath] : ['*'];
+    return returnXPath ? only.map(s => s.startsWith('xpath=') ? s : `xpath=${s}`) : only;
+  }
+
+  // Nếu ít hơn maxSelectors, thêm XPath là phần tử cuối cùng
+  if (finalSelectors.length < maxSelectors) {
+    const xpath = buildAbsoluteXPath(element);
+    if (xpath && !finalSelectors.includes(xpath)) {
+      finalSelectors.push(xpath);
+    }
+  }
+
+  // Cắt còn tối đa maxSelectors, đảm bảo XPath (nếu có) là phần tử cuối cùng
+  if (finalSelectors.length > maxSelectors) {
+    finalSelectors = finalSelectors.slice(0, maxSelectors);
+  }
+  // Helper: limited CSS → XPath converter for common patterns
+  function cssToXPathLimited(sel) {
+    try {
+      if (!sel || typeof sel !== 'string') return sel;
+      if (sel.startsWith('xpath=')) return sel; // already XPath
+      // Split by descendant ' ' and child '>' combinators, preserving relation
+      const tokens = [];
+      let buf = '';
+      let last = 'desc';
+      for (let i = 0; i < sel.length; i++) {
+        const ch = sel[i];
+        if (ch === '>') {
+          if (buf.trim()) tokens.push({ type: last, value: buf.trim() });
+          buf = '';
+          last = 'child';
+        } else if (ch === ' ') {
+          if (buf.trim()) {
+            tokens.push({ type: last, value: buf.trim() });
+            buf = '';
+          }
+          last = 'desc';
+        } else {
+          buf += ch;
+        }
+      }
+      if (buf.trim()) tokens.push({ type: last, value: buf.trim() });
+
+      const stepFromSimple = (simple) => {
+        // Support: tag, #id, .class, tag.class1.class2, [attr="val"], :nth-of-type(n)
+        let tag = '*';
+        let rest = simple;
+        const mTag = rest.match(/^([a-zA-Z][a-zA-Z0-9_-]*)/);
+        if (mTag) {
+          tag = mTag[1].toLowerCase();
+          rest = rest.slice(mTag[0].length);
+        }
+        let xpath = `//${tag}`; // axis will be replaced by relation
+        const predicates = [];
+        // id
+        const idMatch = rest.match(/#([a-zA-Z0-9_\-:]+)/);
+        if (idMatch) {
+          predicates.push(`@id='${idMatch[1]}'`);
+          rest = rest.replace(idMatch[0], '');
+        }
+        // classes
+        const classRegex = /\.([a-zA-Z0-9_\-:]+)/g;
+        let c;
+        while ((c = classRegex.exec(rest)) !== null) {
+          const cls = c[1];
+          predicates.push(`contains(concat(' ', normalize-space(@class), ' '), ' ${cls} ')`);
+        }
+        rest = rest.replace(/\.[a-zA-Z0-9_\-:]+/g, '');
+        // attributes [attr="value"]
+        const attrRegex = /\[([a-zA-Z0-9_\-:]+)=("([^"]*)"|'([^']*)')\]/g;
+        let a;
+        while ((a = attrRegex.exec(rest)) !== null) {
+          const attr = a[1];
+          const val = a[3] !== undefined ? a[3] : a[4] || '';
+          predicates.push(`@${attr}='${val.replace(/'/g, "'\"\"'")}'`);
+        }
+        rest = rest.replace(/\[[^\]]+\]/g, '');
+        // :nth-of-type(n)
+        const nth = rest.match(/:nth-of-type\((\d+)\)/);
+        if (nth) {
+          predicates.push(`position()=${nth[1]}`);
+          rest = rest.replace(nth[0], '');
+        }
+        if (predicates.length) xpath += '[' + predicates.join(' and ') + ']';
+        return xpath;
+      };
+
+      // Build XPath using relations
+      let xpath = '';
+      tokens.forEach((t, idx) => {
+        let step = stepFromSimple(t.value);
+        // adjust axis: '//' for desc, '/' for child
+        if (idx === 0) {
+          step = step.replace(/^\/\//, t.type === 'child' ? '/' : '//');
+        } else {
+          step = step.replace(/^\/\//, t.type === 'child' ? '/' : '//');
+        }
+        xpath += step;
+      });
+      if (!xpath) xpath = '//*';
+      return `xpath=${xpath}`;
+    } catch {
+      return sel;
+    }
+  }
+
+  const output = returnXPath
+    ? finalSelectors.map(s => (s.startsWith('xpath=') ? s : cssToXPathLimited(s)))
+    : finalSelectors;
+  return output;
 }
