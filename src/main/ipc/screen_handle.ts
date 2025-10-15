@@ -2,70 +2,56 @@ import { BrowserWindow, ipcMain } from "electron";
 import { createRecorderWindow } from "../windowManager.js";
 import { BrowserManager } from "../../browser/BrowserManager.js";
 
-let recorderWin: BrowserWindow | null = null;
-let browserManager: BrowserManager | null = null;
-
-// Function to set browser manager reference
+// Giữ API để file khác có thể set nếu cần, nhưng không còn dùng để stop theo cửa sổ
+let _lastBrowserManagerRef: BrowserManager | null = null;
 export function setBrowserManager(bm: BrowserManager) {
-  browserManager = bm;
-  // console.log('[Screen Handle] Browser manager reference set');
+  _lastBrowserManagerRef = bm;
 }
 
-// Function to stop browser
-async function stopBrowser() {
-  try {
-    // console.log('[Screen Handle] Stopping browser');
-    
-    if (browserManager) {
-      // console.log('[Screen Handle] Calling browserManager.stop()');
-      await browserManager.stop();
-      // console.log('[Screen Handle] Browser stopped successfully');
-    } else {
-      // console.log('[Screen Handle] No browser manager reference available');
-    }
-  } catch (error) {
-    // console.error('[Screen Handle] Error stopping browser:', error);
-  }
-}
+// Map testcaseId -> BrowserWindow để tránh mở trùng và có thể focus lại
+const testcaseIdToWindow = new Map<string, BrowserWindow>();
 
 export function registerScreenHandlersIpc() {
   // Open (or focus) the recorder window
   ipcMain.handle("screen:open_recorder", (_evt, testcaseId?: string, projectId?: string) => {
     try {
-        // console.log('[Screen Handle] Opening recorder for testcase:', testcaseId, 'and project:', projectId);
-      // Always open a new recorder window for a testcase
+      const key = testcaseId || '';
+      const existing = key ? testcaseIdToWindow.get(key) : undefined;
+      if (existing && !existing.isDestroyed()) {
+        try { existing.focus(); } catch {}
+        return { success: true, created: false, alreadyOpen: true, testcaseId };
+      }
+
       const win: BrowserWindow = createRecorderWindow(testcaseId, projectId);
+      if (key) testcaseIdToWindow.set(key, win);
       if (testcaseId) {
         try { win.setTitle(`Recorder`); } catch {}
-        // console.log('[Screen Handle] Set title to:', `Recorder - TC: ${testcaseId} - Project: ${projectId}`);
       }
-      win.on("closed", async () => {
-        // Close browser when recorder window is closed
-        await stopBrowser();
-        
-        // keep last reference for close_recorder if needed
-        if (recorderWin === win) recorderWin = null;
+      win.on("closed", () => {
+        if (key) testcaseIdToWindow.delete(key);
+        // Không gọi stopBrowser ở đây; mỗi BrowserManager đã tự gắn theo BrowserWindow trong module browser IPC
       });
-      recorderWin = win;
-      return { success: true, created: true, testcaseId };
+      return { success: true, created: true, alreadyOpen: false, testcaseId };
     } catch (e) {
       return { success: false, error: (e as Error).message };
     }
   });
 
-  // Close recorder window
+  // Close recorder window (giữ nguyên hành vi cũ nếu có nơi gọi, không ép stop browser ở đây)
   ipcMain.handle("screen:close_recorder", async () => {
     try {
-      // Close browser first if it's running
-      await stopBrowser();
-
-      // Then close recorder window
-      if (recorderWin && !recorderWin.isDestroyed()) {
-        recorderWin.close();
-        recorderWin = null;
-        return { success: true, closed: true };
+      // Không tự động stop browser ở đây để tránh đóng nhầm phiên
+      // Tùy vào nơi gọi close cụ thể, có thể mở rộng nhận testcaseId để đóng đúng cửa sổ
+      let closed = false;
+      for (const [key, win] of testcaseIdToWindow.entries()) {
+        if (win && !win.isDestroyed()) {
+          win.close();
+          testcaseIdToWindow.delete(key);
+          closed = true;
+          break;
+        }
       }
-      return { success: true, closed: false };
+      return { success: true, closed };
     } catch (e) {
       return { success: false, error: (e as Error).message };
     }
