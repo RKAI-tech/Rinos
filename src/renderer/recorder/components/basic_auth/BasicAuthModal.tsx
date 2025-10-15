@@ -28,53 +28,93 @@ const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onC
   const [currentAuth, setCurrentAuth] = useState<BasicAuthentication>(emptyItem(testcaseId));
   const [hasAuthData, setHasAuthData] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
 
+  // useEffect(() => {
+  //   if (!isOpen) return;
+  //   if (!testcaseId) {
+  //     setCurrentAuth(emptyItem(testcaseId));
+  //     setHasAuthData(false);
+  //     setShowForm(false);
+  //     setErrors({});
+  //     return;
+  //   }
+  //   const load = async () => {
+  //     setIsLoading(true);
+  //     try {
+  //       const resp = await service.getBasicAuthenticationByTestcaseId(testcaseId);
+  //       console.log('resp', resp);
+  //       if (resp.success && resp.data && resp.data.username) {
+  //         setCurrentAuth({
+  //           username: resp.data.username,
+  //           password: resp.data.password,
+  //         });
+  //         setHasAuthData(true);
+  //         setShowForm(true);
+  //         setErrors({});
+  //       } else {
+  //         setCurrentAuth(emptyItem(testcaseId));
+  //         setHasAuthData(false);
+  //         setShowForm(false);
+  //         setErrors({});
+  //         if (resp.error) toast.error(resp.error);
+  //       }
+  //     } catch (e) {
+  //       setCurrentAuth(emptyItem(testcaseId));
+  //       setHasAuthData(false);
+  //       setShowForm(false);
+  //       setErrors({});
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+  //   load();
+  // }, [isOpen, testcaseId, service]);
   useEffect(() => {
     if (!isOpen) return;
-    if (!testcaseId) {
+    if (basicAuth && (basicAuth.username || basicAuth.password)) {
+      setCurrentAuth({
+        username: basicAuth.username || '',
+        password: basicAuth.password || '',
+      });
+      setHasAuthData(true);
+      setShowForm(true);
+      setErrors({});
+    } else if (!testcaseId) {
       setCurrentAuth(emptyItem(testcaseId));
       setHasAuthData(false);
       setShowForm(false);
-      return;
+      setErrors({});
     }
-    const load = async () => {
-      setIsLoading(true);
-      try {
-        const resp = await service.getBasicAuthenticationByTestcaseId(testcaseId);
-        console.log('resp', resp);
-        if (resp.success && resp.data && resp.data.username) {
-          setCurrentAuth({
-            username: resp.data.username,
-            password: resp.data.password,
-          });
-          setHasAuthData(true);
-          setShowForm(true);
-        } else {
-          setCurrentAuth(emptyItem(testcaseId));
-          setHasAuthData(false);
-          setShowForm(false);
-          if (resp.error) toast.error(resp.error);
-        }
-      } catch (e) {
-        setCurrentAuth(emptyItem(testcaseId));
-        setHasAuthData(false);
-        setShowForm(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
-  }, [isOpen, testcaseId, service]);
+  }, [isOpen, basicAuth, testcaseId]);
 
   if (!isOpen) return null;
 
   const updateField = (field: keyof BasicAuthentication, value: string) => {
     setCurrentAuth(prev => ({ ...prev, [field]: value }));
+    if (field === 'username' || field === 'password') {
+      if (value && value.trim().length > 0) {
+        setErrors(prev => ({ ...prev, [field]: undefined }));
+      }
+    }
   };
 
   const handleAddAuth = () => {
     setCurrentAuth(emptyItem(testcaseId));
     setShowForm(true);
+    setErrors({});
+  };
+
+  const validate = (): boolean => {
+    const newErrors: { username?: string; password?: string } = {};
+    if (!currentAuth.username || currentAuth.username.trim().length === 0) {
+      newErrors.username = 'Username is required';
+    }
+    if (!currentAuth.password || currentAuth.password.trim().length === 0) {
+      newErrors.password = 'Password is required';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = () => {
@@ -84,11 +124,7 @@ const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onC
     }
     
     const authToSave = { ...currentAuth, testcase_id: testcaseId };
-    
-    if (!authToSave.username?.trim()) {
-      toast.warning('Please enter a username');
-      return;
-    }
+    if (!validate()) return;
     
     // Chỉ lưu trên UI, không gọi API
     setHasAuthData(true);
@@ -101,16 +137,12 @@ const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onC
     if (!hasAuthData) {
       toast.warning('No authentication data to delete');
       return;
-    }
-    
-    const confirmed = window.confirm('Are you sure you want to delete the HTTP authentication?');
-    if (!confirmed) return;
-    
+    }   
     // Chỉ xóa trên UI, không gọi API
     setCurrentAuth(emptyItem(testcaseId));
     setHasAuthData(false);
     setShowForm(false);
-    toast.success('HTTP Authentication removed');
+    setErrors({});
     if (onSaved) onSaved(undefined);
   };
 
@@ -146,21 +178,27 @@ const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onC
               <div className="rcd-ba-field">
                 <label className="rcd-ba-label">Username</label>
                 <input
-                  className="rcd-ba-input"
+                  className={`rcd-ba-input${errors.username ? ' error' : ''}`}
                   value={currentAuth.username || ''}
                   onChange={(e) => updateField('username', e.target.value)}
                   placeholder="Enter username"
                 />
+                {errors.username && (
+                  <div className="rcd-ba-error">{errors.username}</div>
+                )}
               </div>
               <div className="rcd-ba-field">
                 <label className="rcd-ba-label">Password</label>
                 <input
-                  className="rcd-ba-input"
+                  className={`rcd-ba-input${errors.password ? ' error' : ''}`}
                   type="password"
                   value={currentAuth.password || ''}
                   onChange={(e) => updateField('password', e.target.value)}
                   placeholder="Enter password"
                 />
+                {errors.password && (
+                  <div className="rcd-ba-error">{errors.password}</div>
+                )}
               </div>
             </div>
           )}

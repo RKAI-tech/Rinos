@@ -42,6 +42,12 @@ export function registerScreenHandlersIpc() {
       win.on("closed", async () => {
         // Close browser when recorder window is closed
         await stopBrowser();
+
+        BrowserWindow.getAllWindows().forEach((window: BrowserWindow) => {
+          if (!window.isDestroyed()) {
+            window.webContents.send('recorder:closed');
+          }
+        });
         
         // keep last reference for close_recorder if needed
         if (recorderWin === win) recorderWin = null;

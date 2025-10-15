@@ -111,6 +111,17 @@ const Testcases: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectData?.projectId]);
 
+  // Reload testcases when recorder window is closed
+  useEffect(() => {
+    const unsubscribe = (window as any)?.screenHandleAPI?.onRecorderClosed?.(async () => {
+      await reloadTestcases();
+    });
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectData?.projectId]);
+
   // Load project name from API
   useEffect(() => {
     const loadProjectName = async () => {

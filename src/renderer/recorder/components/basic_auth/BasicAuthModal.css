@@ -79,6 +79,17 @@
   padding: 0 10px;
 }
 
+.rcd-ba-input.error {
+  border-color: #dc2626;
+  background: #fff7f7;
+}
+
+.rcd-ba-error {
+  margin-top: 6px;
+  color: #dc2626;
+  font-size: 12px;
+}
+
 .rcd-ba-remove {
   height: 32px;
   width: 36px;

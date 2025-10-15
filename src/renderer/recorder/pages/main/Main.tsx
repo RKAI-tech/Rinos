@@ -34,6 +34,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [isAssertMode, setIsAssertMode] = useState(false);
   const [actions, setActions] = useState<Action[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'actions' | 'script'>('actions');
   const [customScript, setCustomScript] = useState<string>('');
   const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
@@ -683,7 +684,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     try {
       const response = await actionService.batchCreateActions(actions);
       if (response.success) {
-        toast.success('All actions saved successfully');
+        toast.success('Saved successfully');
       } else {
         toast.error(response.error || 'Failed to save actions');
       }
@@ -701,9 +702,16 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       } else {
         await basicAuthService.upsertBasicAuthentication(basicAuth);
       }
-      toast.success('Basic authentication saved successfully');
     } catch (error) {
       toast.error('Failed to save basic authentication');
+    }
+  };
+
+  const reloadBasicAuth = async () => {
+    const basicAuthService = new BasicAuthService();
+    const response = await basicAuthService.getBasicAuthenticationByTestcaseId(testcaseId || '');
+    if (response.success && response.data) {
+      setBasicAuth(response.data);
     }
   };
 
@@ -785,6 +793,23 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       toast.error('Failed to save actions. Please try again.');
     }
   };
+
+  const reloadAll = () => {
+    reloadActions();
+    reloadBasicAuth();
+  }
+
+  const saveAll = () => {
+    setIsSaving(true);
+    (async () => {
+      try {
+        await handleSaveActions();
+        await handleSaveBasicAuth();
+      } finally {
+        setIsSaving(false);
+      }
+    })();
+  }
 
   // Kiểm tra xem có actions chưa được lưu không
   // Actions được coi là chưa lưu nếu:
@@ -930,11 +955,13 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           <ActionTab 
             actions={actions} 
             isLoading={isLoading} 
+            isReloading={isLoading}
+            isSaving={isSaving}
             onDeleteAction={handleDeleteAction} 
             onDeleteAll={handleDeleteAllActions} 
             onReorderActions={handleReorderActions} 
-            onReload={reloadActions}
-            onSaveActions={handleSaveActions}
+            onReload={reloadAll}
+            onSaveActions={saveAll}
             selectedInsertPosition={selectedInsertPosition}
             displayInsertPosition={displayInsertPosition}
             onSelectInsertPosition={handleSelectInsertPosition}
