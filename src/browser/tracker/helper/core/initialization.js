@@ -1,4 +1,4 @@
-import { createHoverOverlay, enableHoverEffects, disableHoverEffects, showHoverEffect, hideHoverEffect, getCurrentHoveredElement, getHoverOverlay } from './hoverOverlay.js';
+import { createHoverOverlay, enableHoverEffects, disableHoverEffects, showHoverEffect, hideHoverEffect, getCurrentHoveredElement, getHoverOverlay } from '../dom/hoverOverlay.js';
 import { initializeErrorHandlers } from './errorHandler.js';
 import { initializeNavigationPrevention, setAssertMode as setNavAssertMode } from './navigationPrevention.js';
 import {handleClickEvent} from './eventHandlers.js';
@@ -17,51 +17,55 @@ import { handleDragStartEvent, handleDragEndEvent, handleDropEvent } from './act
 import { handleUploadChangeEvent } from './actions/upload_handle.js';
 // import { attachBrowserHandlers } from './actions/browser_handle.js';
 let globalAssertMode = false;
-
 let browserControls = null;
 let browserHandlersDisposer = null;
 
 function handleAssertCaptureBlocking(e) {
   if (!globalAssertMode) {
-    // console.log('Not in assert mode, allowing event:', e.type);
     return;
   }
   
-  // console.log('In assert mode, checking event:', e.type, 'on', e.target);
-  
   // Allow interactions with assert modal
   if (e.target && e.target.closest && e.target.closest('#rikkei-assert-input-modal')) {
-    // console.log('Allowing event on assert modal');
     return;
   }
   
   // Allow interactions with browser controls
   if (e.target && e.target.closest && e.target.closest('#rikkei-browser-controls')) {
-    // console.log('Allowing event on browser controls');
     return;
   }
 
   // Allow interactions with query panel
   if (e.target && e.target.closest && e.target.closest('#rikkei-query-panel')) {
-    // console.log('Allowing event on query panel');
     return;
   }
   
   // Only block specific events that could trigger unwanted actions
-  const blockableEvents = ['click', 'submit', 'mousedown', 'mouseup', 'keydown', 'keyup', 'input', 'change', 'dragstart', 'dragend', 'dragover', 'dragleave', 'drop', 'contextmenu', 'dblclick'];
+  const blockableEvents = [
+    'click',
+    'submit',
+    'mousedown', 
+    'mouseup', 
+    'keydown', 
+    'keyup', 
+    'input', 
+    'change', 
+    'dragstart', 
+    'dragend', 
+    'dragover', 
+    'dragleave', 
+    'drop', 
+    'contextmenu', 
+    'dblclick'
+  ];
   
   if (blockableEvents.includes(e.type)) {
-    // Block the event
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
     e.returnValue = false;
     
-    // console.log('ASSERT MODE: Blocked event -', e.type, 'on', e.target);
-    
-    // For click events, we'll handle assert logic here instead of in the normal handler
     if (e.type === 'click') {
-      // Use a stable reference to target to avoid stale event object after async
       const clickTarget = e.target;
       queueMicrotask(() => {
         if (clickTarget) {
@@ -70,7 +74,6 @@ function handleAssertCaptureBlocking(e) {
       });
     }
   } else {
-    // console.log('Event not blockable:', e.type);
   }
 }
 
@@ -79,25 +82,18 @@ function handleAssertCaptureBlocking(e) {
  * Xử lý logic click assert khi đang ở chế độ assert
  */
 function handleAssertClick(e) {
-  // console.log('Handling assert click for element:', e.target);
   processAssertClick(e);
 }
 
 function processAssertClick(e) {
-  // console.log('Processing assert click for element:', e.target);
-  
-  // Get assert type from global state\
-  // console.log('[baoviet browser] currentAssertType:', window.currentAssertType);
   const assertType = window.currentAssertType || 'toBeVisible';
   try {
-    // Generate selector for the clicked element
     const rawSelector = generateSelector(e.target, { minScore: 200 });
     const selector = validateAndImproveSelector(rawSelector, e.target);
     const elementType = e.target.tagName.toLowerCase();
     const elementPreview = previewNode(e.target);
     const elementText = extractElementText(e.target);
     const DOMelement = e.target.outerHTML;
-    
     
     const types = ['toHaveText', 'toContainText', 'toHaveValue', 'toHaveAccessibleDescription', 'toHaveAccessibleName', 'toHaveCount', 'toHaveRole'];
     if (types.includes(assertType)) {
@@ -111,10 +107,7 @@ function processAssertClick(e) {
       } else {
         defaultValue = e.target.textContent?.trim() || e.target.innerText?.trim() || '';
       }
-      
-      const rect = e.target.getBoundingClientRect();
-      console.log('Showing assert modal for type:', assertType, 'default value:', defaultValue);
-      
+      const rect = e.target.getBoundingClientRect();  
       showAssertInputModal(
         assertType, 
         defaultValue, 
@@ -123,23 +116,15 @@ function processAssertClick(e) {
           sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement);
         }, 
         () => {
-          // console.log('Assert modal canceled');
         }
       );
     } else {
-      // Send immediate assert action for other types
-      // console.log('Sending immediate assert action for type:', assertType);
       sendAssertAction(selector, assertType, '', elementType, elementPreview, elementText, undefined, undefined, undefined, DOMelement);
     }
   } catch (error) {
-    // console.error('Error processing assert click:', error);
   }
 }
 
-/**
- * Send assert action to main process
- * Gửi action assert đến main process
- */
 function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection_id, connection, query, DOMelement) {
   if (window.sendActionToMain) {
     const action = {
@@ -158,16 +143,10 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
       title: document.title,
       DOMelement: DOMelement,
     };
-    // console.log('Assert action details:', action);
     window.sendActionToMain(action);
-    // console.log('Assert action sent:', action);
   }
 }
 
-/**
- * Initialize browser controls and hover overlay
- * Khởi tạo browser controls và hover overlay
- */
 export function initBrowserControls() {
   // Load Font Awesome if not already loaded
   if (!document.querySelector('link[href*="font-awesome"]')) {
@@ -177,42 +156,22 @@ export function initBrowserControls() {
     document.head.appendChild(link);
   }
   
-  // Create hover overlay after a short delay; controls moved to recorder window UI
   setTimeout(() => {
     createHoverOverlay();
   }, 100);
 }
 
-/**
- * Initialize all event listeners
- * Khởi tạo tất cả event listeners
- */
 export function initializeEventListeners() {
   // Enhanced input tracking
   document.addEventListener('input', handleTextInputEvent);
-  
-  // // Track select element changes
   document.addEventListener('change', handleCheckboxRadioChangeEvent);
   document.addEventListener('change', handleSelectChangeEvent);
-  
-  // Enhanced click tracking with assert mode support
   document.addEventListener('click', handleClickEvent, true);
-  
-  // Double click tracking
   document.addEventListener('dblclick', handleDoubleClickEvent);
   document.addEventListener('keydown', handleKeyDownEvent);
-  
-  // Upload tracking (change trên input[type=file])
   document.addEventListener('change', handleUploadChangeEvent);
-  
-  // Drag and drop tracking
   document.addEventListener('dragstart', handleDragStartEvent);
-  // document.addEventListener('dragend', handleDragEndEvent);
   document.addEventListener('drop', handleDropEvent);
-  // document.addEventListener('dragover', handleDragOverEvent);
-  // document.addEventListener('dragleave', handleDragLeaveEvent);
-  
-  //right click
   document.addEventListener('contextmenu', handleRightClickEvent);
   
   // Add capture phase event blocker for assert mode - blocks specific events only
@@ -234,29 +193,19 @@ export function initializeEventListeners() {
  
 }
 
-/**
- * Initialize hover effects
- * Khởi tạo hiệu ứng hover
- */
 export function initializeHoverEffects() {
-  // Mouse hover tracking for element highlighting
   document.addEventListener('mouseover', function(e) {
-    // Ignore hover on browser controls
     if (e.target.closest('#rikkei-browser-controls') || e.target.closest('#rikkei-hover-overlay')) {
       return;
     }
-    
-    // Show hover effect for the element
     showHoverEffect(e.target);
   });
   
+  // Mouse out tracking
   document.addEventListener('mouseout', function(e) {
-    // Ignore if moving to browser controls or overlay
     if (e.relatedTarget && (e.relatedTarget.closest('#rikkei-browser-controls') || e.relatedTarget.closest('#rikkei-hover-overlay'))) {
       return;
     }
-    
-    // Hide hover effect
     hideHoverEffect();
   });
   
@@ -279,29 +228,12 @@ export function initializeHoverEffects() {
   });
 }
 
-/**
- * Initialize all tracking functionality
- * Khởi tạo tất cả chức năng tracking
- */
 export function initializeTracking() {
-  // console.log('Playwright-style tracking script loaded and initialized');
-  
-  // Initialize error handlers
   initializeErrorHandlers();
-  
-  // Initialize navigation prevention
   initializeNavigationPrevention();
-  
-  // Initialize element freezer
   initializeElementFreezer();
-  
-  // Initialize browser controls
   initBrowserControls();
-  
-  // Initialize event listeners
   initializeEventListeners();
-  
-  // Initialize hover effects
   initializeHoverEffects();
   
   // browserHandlersDisposer = attachBrowserHandlers();
@@ -312,19 +244,14 @@ export function initializeTracking() {
     if (enabled) {
       window.currentAssertType = assertType;
     }
-    setAssertMode(enabled, assertType);
+    // setAssertMode(enabled, assertType);
     setNavAssertMode(enabled, assertType);
     
     if (enabled) {
-      // console.log('Assert mode enabled, freezing entire screen, type:', assertType);
       freezeEntireScreen();
     } else {
-      // console.log('Assert mode disabled, unfreezing entire screen');
       unfreezeEntireScreen();
     }
-    
-    // console.log('Assert mode set to:', enabled, 'Type:', assertType);
-    // console.log('Global assert mode:', globalAssertMode);
   };
 
   window.setPauseMode = function(enabled) {
@@ -354,10 +281,7 @@ export function initializeTracking() {
   // };
 }
 
-/**
- * Initialize when DOM is ready
- * Khởi tạo khi DOM đã sẵn sàng
- */
+// Check if DOM is ready
 export function initializeWhenReady() {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeTracking);

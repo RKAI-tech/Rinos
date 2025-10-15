@@ -47,7 +47,7 @@ function createWindow(options: Electron.BrowserWindowConstructorOptions, page: s
     // console.log('__dirnameResolved', __dirnameResolved);
     win.loadFile(path.join(__dirnameResolved, `renderer/${page}/index.html`));
   }
-  // win.webContents.openDevTools();
+  win.webContents.openDevTools();
   return win;
 }
 

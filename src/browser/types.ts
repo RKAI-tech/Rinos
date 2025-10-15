@@ -55,6 +55,12 @@ export interface Connection {
     db_type?: ConnectionType;
 }
 
+export interface FileUpload {
+    file_name: string;
+    file_content: string;
+    file_path?: string;
+}
+
 export interface Action {
     action_type: ActionType;
     elements: Element[];
@@ -66,4 +72,5 @@ export interface Action {
     checked?: boolean;
     query?: string;
     connection?: Connection;
+    files?: FileUpload[];
 }

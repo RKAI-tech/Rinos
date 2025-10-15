@@ -11,9 +11,9 @@ import {
   SELECTOR_SCORES,
   MAX_CSS_PATH_DEPTH,
   MAX_CLASS_COMBINATION
-} from './constants.js';
-import { escapeSelector, isMeaningfulValue } from './stringUtils.js';
-import { getAccessibleName, getElementRole, retargetElement } from './domUtils.js';
+} from '../core/constants.js';
+import { escapeSelector, isMeaningfulValue } from '../utils/stringUtils.js';
+import { getAccessibleName, getElementRole, retargetElement } from '../dom/domUtils.js';
 
 /**
  * Generate CSS selectors for element following Playwright's sophisticated approach

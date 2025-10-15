@@ -10,7 +10,7 @@
  */
 
 // Import all helper modules
-import { initializeWhenReady } from './helper/initialization.js';
+import { initializeWhenReady } from './helper/core/initialization.js';
 // Initialize the tracking script when DOM is ready
 // Khởi tạo tracking script khi DOM đã sẵn sàng
 initializeWhenReady();

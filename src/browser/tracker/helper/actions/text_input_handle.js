@@ -5,7 +5,7 @@ import {
   buildCommonActionData,
   sendAction
 } from './baseAction.js';
-import { previewNode } from '../domUtils.js';
+import { previewNode } from '../dom/domUtils.js';
 
 export function handleInputLikeBase(e, actionType = 'input', eventLabel = 'Input') {
   // console.log(`${eventLabel} event detected:`, previewNode(e?.target));
@@ -28,6 +28,11 @@ export function handleTextInputEvent(e) {
 
   // Bỏ qua các loại đã có handler riêng qua change
   if (tag === 'input' && (type === 'checkbox' || type === 'radio')) {
+    return;
+  }
+
+  // Bỏ qua các loại có type là file
+  if (type === 'file') {
     return;
   }
 

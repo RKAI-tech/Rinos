@@ -1,37 +1,18 @@
-/**
- * String utility functions
- * Các hàm tiện ích để xử lý chuỗi
- */
-
-/**
- * Normalize whitespace in text content
- * Chuẩn hóa khoảng trắng trong nội dung text
- */
 export function normalizeWhiteSpace(text) {
   return text.replace(/\s+/g, ' ').trim();
 }
 
-/**
- * Trim string with ellipsis if too long
- * Cắt chuỗi và thêm dấu ... nếu quá dài
- */
 export function trimStringWithEllipsis(str, maxLength) {
   if (str.length <= maxLength) return str;
   return str.substring(0, maxLength - 1) + '…';
 }
 
-/**
- * Convert multi-line string to single line
- * Chuyển chuỗi nhiều dòng thành một dòng
- */
+
 export function oneLine(s) {
   return s.replace(/\n/g, '↵').replace(/\t/g, '⇆');
 }
 
-/**
- * Escape input values for safe handling
- * Escape giá trị input để xử lý an toàn
- */
+
 export function escapeInputValue(value) {
   if (typeof value !== 'string') {
     return value;
@@ -47,10 +28,7 @@ export function escapeInputValue(value) {
     .replace(/\t/g, '\\t');  // Escape tabs
 }
 
-/**
- * Escape CSS selectors safely
- * Escape CSS selector một cách an toàn
- */
+
 export function escapeSelector(value) {
   if (!value) return '';
   const fallbackEscape = function(s) { return String(s).replace(/[^\w-]/g, '\\$&'); };
@@ -58,10 +36,7 @@ export function escapeSelector(value) {
   return esc(value);
 }
 
-/**
- * Check if attribute value is meaningful
- * Kiểm tra xem giá trị attribute có ý nghĩa không
- */
+
 export function isMeaningfulValue(value) {
   if (!value || !value.trim()) return false;
   const trimmed = value.trim();

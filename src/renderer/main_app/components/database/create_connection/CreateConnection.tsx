@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './CreateConnection.css';
 
-type DbTypeOption = 'postgres' | 'mysql';
+type DbTypeOption = 'postgres' | 'mysql' | 'mssql';
 
 interface CreateConnectionProps {
   isOpen: boolean;
@@ -22,7 +22,7 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
   const [dbType, setDbType] = useState<DbTypeOption>('postgres');
   const [dbName, setDbName] = useState('');
   const [host, setHost] = useState('');
-  const [port, setPort] = useState('5432');
+  const [port, setPort] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Partial<Record<'db_name' | 'host' | 'port' | 'username' | 'password', string>>>({});
@@ -55,7 +55,7 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
     setDbType('postgres');
     setDbName('');
     setHost('');
-    setPort('5432');
+    setPort('');
     setUsername('');
     setPassword('');
     setErrors({});
@@ -84,6 +84,7 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
               <select id="dbType" className="cc-form-select" value={dbType} onChange={(e) => setDbType(e.target.value as DbTypeOption)}>
                 <option value="postgres">PostgreSQL</option>
                 <option value="mysql">MySQL</option>
+                <option value="mssql">Microsoft SQL Server</option>
               </select>
             </div>
             <div className="cc-form-group">

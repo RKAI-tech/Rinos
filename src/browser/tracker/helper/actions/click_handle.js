@@ -5,7 +5,7 @@ import {
   buildCommonActionData,
   sendAction
 } from './baseAction.js';
-import { previewNode } from '../domUtils.js';
+import { previewNode } from '../dom/domUtils.js';
 export function shouldSkipElementForClick(element) {
   try {
     const tagName = element?.tagName?.toLowerCase?.();
