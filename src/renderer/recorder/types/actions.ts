@@ -26,8 +26,9 @@ export enum ActionType {
   wait = "wait",
   // Browser events
   reload = "reload",
-  back_forward = "back_forward",
-  search_enter = "search_enter",
+  back = "back",
+  forward = "forward",
+  window_resize = "window_resize",
 }
 
 export enum AssertType {

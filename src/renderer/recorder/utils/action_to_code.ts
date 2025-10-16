@@ -331,15 +331,38 @@ export function generateActionCode(action: Action, index: number): string {
                 `    await page.waitForLoadState('networkidle');\n`;
         case ActionType.wait:
             return `    await page.waitForTimeout(${action.value || '1000'});\n`;
-        // case ActionType.reload:
-        //     return `    await page.reload();\n` +
-        //         `    await page.waitForLoadState('networkidle');\n`;
-        // case ActionType.back_forward:
-            
-        //     return `    // Back/Forward navigation to: ${action.url || action.value || ''}\n` +
-        //         `    // Note: This is a generic back/forward action. Adjust as needed.\n` +
-        //         `    await page.goBack();\n` +
-                // `    await page.waitForLoadState('networkidle');\n`;
+        case ActionType.reload:
+            return `    await page.reload();\n` +
+                `    await page.waitForLoadState('networkidle');\n`;
+        case ActionType.back:
+            return `    await page.goBack();\n` +
+                `    await page.waitForLoadState('networkidle');\n`;
+        case ActionType.forward:
+            return `    await page.goForward();\n` +
+                `    await page.waitForLoadState('networkidle');\n`;
+        case ActionType.scroll:
+            //Format y X:3, Y:4
+            let x = 0;
+            let y = 0;
+            let match_scroll = action.value?.match(/X\s*:\s*(\d+)\s*,\s*Y\s*:\s*(\d+)/i);
+            if (match_scroll) {
+                x = Number(match_scroll[1]);
+                y = Number(match_scroll[2]);
+            } 
+            return `    candidates = ${candidatesLiteral};\n` +
+                `    sel = await resolveUniqueSelector(page, candidates);\n` +
+                `    await page.locator(sel).evaluate(e=>{ e.scrollTo(${x || '0'}, ${y || '0'}); });\n` +
+                `    await page.waitForLoadState('networkidle');\n`;
+        case ActionType.window_resize:
+            let width = 0;
+            let height = 0;
+            let match_window_resize = action.value?.match(/Width\s*:\s*(\d+)\s*,\s*Height\s*:\s*(\d+)/i);
+            if (match_window_resize) {
+                width = Number(match_window_resize[1]);
+                height = Number(match_window_resize[2]);
+            } 
+            return `    await page.setViewportSize({ width: ${width || '1920'}, height: ${height || '1080'} });\n` +
+                `    await page.waitForLoadState('networkidle');\n`;
         default:
             return "";
     }

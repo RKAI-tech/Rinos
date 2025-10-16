@@ -44,6 +44,8 @@ export function createDescription(action_received: any): string {
             return `Upload file ${files}`;
         case ActionType.scroll:
             return `Scroll ${value}`;
+        case ActionType.window_resize:
+            return `Window resize`;
         case ActionType.connect_db:
             return `Connect to database ${value}`;
         case ActionType.change:
@@ -58,10 +60,8 @@ export function createDescription(action_received: any): string {
             return `Drop ${element}`;
         case ActionType.reload:
             return `Reload page`;
-        case ActionType.back_forward:
-            return `Back/Forward to ${url}`;
-        case ActionType.search_enter:
-            return `Search for ${value}`;
+        case ActionType.scroll:
+            return `Scroll ${value}`;
         case ActionType.assert:
             switch (action_received.assertType) {
                 case AssertType.toHaveText:
@@ -190,22 +190,6 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
 
     const last_action = action_recorded[action_recorded.length - 1];
 
-    // Xử lý đặc biệt cho browser events - tránh duplicate
-    if (receivedAction.action_type === ActionType.reload || 
-        receivedAction.action_type === ActionType.back_forward || 
-        receivedAction.action_type === ActionType.navigate) {
-        console.log('[receiveAction] Browser event detected:', receivedAction.action_type, receivedAction.url);
-        
-        // Kiểm tra duplicate với action cuối cùng
-        if (last_action && 
-            last_action.action_type === receivedAction.action_type && 
-            last_action.value === receivedAction.value &&
-            Math.abs((last_action.timestamp || 0) - (receivedAction.timestamp || 0)) < 1000) {
-            console.log('[receiveAction] Duplicate browser event detected, skipping');
-            return action_recorded;
-        }
-    }
-
     if (last_action && last_action.action_type === ActionType.input && receivedAction.action_type === ActionType.input) {
         // Compare elements content instead of object reference
         const lastElements = last_action.elements || [];
@@ -271,6 +255,31 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         update_last_action.elements?.push(receivedAction.elements?.[0]);}
         updatedActions[updatedActions.length - 1] = update_last_action;
         return updatedActions;
+    }
+    if (receivedAction.action_type===ActionType.scroll) {
+        const lastElements = last_action.elements || [];
+        const newElements = receivedAction.elements || [];
+
+        //check if elements are the same least one selector is the same
+        const elementsMatch = lastElements.some((lastElement) => newElements.some((newElement) => lastElement.selectors?.some((lastSelector) => newElement.selectors?.some((newSelector) => lastSelector.value === newSelector.value))));
+
+        if (elementsMatch && last_action.action_type===ActionType.scroll) {
+            var updatedActions = [...action_recorded];
+            updatedActions[updatedActions.length - 1] = receivedAction;
+            return updatedActions;
+        }
+        if (last_action && last_action.action_type===ActionType.window_resize) {
+            return action_recorded;
+        }
+        
+    }
+    if (receivedAction.action_type===ActionType.window_resize) {
+        if (last_action && last_action.action_type===ActionType.window_resize) {
+            const updatedActions = [...action_recorded];
+            updatedActions[updatedActions.length - 1] = receivedAction; // replace last resize with latest
+            return updatedActions;
+        }
+        // else fall through to append below
     }
     // if (receivedAction.action_type===ActionType.drag_end) {
     //     if (last_action && last_action.action_type!==ActionType.drop) {

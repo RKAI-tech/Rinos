@@ -72,6 +72,10 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [isAddActionOpen, setIsAddActionOpen] = useState(false);
   const [isDatabaseExecutionOpen, setIsDatabaseExecutionOpen] = useState(false);
   const service = new ExecuteScriptsService();
+  
+  // Execution tracking states
+  const [executingActionIndex, setExecutingActionIndex] = useState<number | null>(null);
+  const [failedActionIndex, setFailedActionIndex] = useState<number | null>(null);
 
   useEffect(() => {
     // console.log('[Main] Setting project ID:', projectId);
@@ -122,6 +126,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       if (isPaused) return;
       if (!testcaseId) return;
       
+      // Reset execution effects when new action is recorded
+      setExecutingActionIndex(null);
+      setFailedActionIndex(null);
 
       // AI assert goes to modal only
       if ((action?.type === 'assert') && (action?.assertType === 'AI')) {
@@ -171,6 +178,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       setSelectedInsertPosition(0);
       setDisplayInsertPosition(0);
       setRecordingFromActionIndex(null);
+      // Reset execution effects
+      setExecutingActionIndex(null);
+      setFailedActionIndex(null);
     };
 
     // Listen for browser close event from main process
@@ -179,6 +189,38 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     return () => {
       if (removeListener) {
         removeListener();
+      }
+    };
+  }, []);
+
+  // Listen for action execution events
+  useEffect(() => {
+    const handleActionExecuting = (data: { index: number }) => {
+      if (data.index === -1) {
+        // All actions completed - clear all effects
+        setExecutingActionIndex(null);
+        setFailedActionIndex(null);
+      } else {
+        // Single action executing
+        setExecutingActionIndex(data.index);
+        setFailedActionIndex(null); // Clear any previous failed state
+      }
+    };
+
+    const handleActionFailed = (data: { index: number }) => {
+      setFailedActionIndex(data.index);
+      setExecutingActionIndex(null); // Clear executing state
+    };
+
+    const removeExecutingListener = (window as any).browserAPI?.browser?.onActionExecuting?.(handleActionExecuting);
+    const removeFailedListener = (window as any).browserAPI?.browser?.onActionFailed?.(handleActionFailed);
+    
+    return () => {
+      if (removeExecutingListener) {
+        removeExecutingListener();
+      }
+      if (removeFailedListener) {
+        removeFailedListener();
       }
     };
   }, []);
@@ -300,6 +342,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     // Reset vị trí record khi dừng trình duyệt thủ công
     setSelectedInsertPosition(0);
     setRecordingFromActionIndex(null);
+    // Reset execution effects
+    setExecutingActionIndex(null);
+    setFailedActionIndex(null);
   };
 
   const handleAssertSelect = async (assertType: string) => {
@@ -925,6 +970,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             onActionsChange={setActions}
             onInsertPositionChange={setSelectedInsertPosition}
             onDisplayPositionChange={setDisplayInsertPosition}
+            executingActionIndex={executingActionIndex}
+            failedActionIndex={failedActionIndex}
           />
         ) : (
           <TestScriptTab script={customScript || actionToCode(actions)} runResult={runResult} onScriptChange={setCustomScript} />

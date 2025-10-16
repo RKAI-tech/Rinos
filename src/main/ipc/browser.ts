@@ -36,6 +36,16 @@ function getOrCreateManagerForWindow(win: BrowserWindow): BrowserManager {
             win.webContents.send('browser:stopped');
         }
     });
+    manager.on('action-executing', (data: { index: number }) => {
+        if (!win.isDestroyed()) {
+            win.webContents.send('browser:action-executing', data);
+        }
+    });
+    manager.on('action-failed', (data: { index: number }) => {
+        if (!win.isDestroyed()) {
+            win.webContents.send('browser:action-failed', data);
+        }
+    });
 
     // Khi cửa sổ đóng, đảm bảo tắt browser và dọn dẹp
     const closedHandler = async () => {
