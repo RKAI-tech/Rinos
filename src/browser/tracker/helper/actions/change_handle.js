@@ -10,7 +10,7 @@ export function handleCheckboxRadioChangeEvent(e) {
   // if (!((tag === 'input' && (type === 'checkbox' || type === 'radio')) || tag === 'select')) return;
   if (!((tag === 'input' && (type === 'checkbox' || type === 'radio')))) return;
  
-  const selectors = buildSelectors(el, { maxSelectors: 5, minScore: 300, validate: true });
+  const selectors = buildSelectors(el, { maxSelectors: 5, minScore: 100, validate: true });
   const isChecked = !!el.checked;
   const elementText = extractElementText(el);
   // Chuẩn hóa value theo loại phần tử

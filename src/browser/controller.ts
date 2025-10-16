@@ -207,6 +207,26 @@ export class Controller {
                                 }
                             }
                         }
+                        break;
+                    case ActionType.change:
+                        if (action.elements && action.elements.length === 1) {
+                            await this.executeAction(action.elements[0].selectors?.map(selector => selector.value) || null, async (selector) => {
+                                await page.locator(selector).click();
+                            });
+                        }
+                        break;
+                    case ActionType.wait:
+                        await page.waitForTimeout(Number(action.value) || 0);
+                        break;
+                    case ActionType.drag_and_drop:
+                        if (action.elements && action.elements.length === 2) {
+                            const sourceCandidates = action.elements[0].selectors?.map(s => s.value) || [];
+                            const targetCandidates = action.elements[1].selectors?.map(s => s.value) || [];
+                            const source = await this.resolveUniqueSelector(page, sourceCandidates);
+                            const target = await this.resolveUniqueSelector(page, targetCandidates);
+                            await page.dragAndDrop(source, target);
+                        }
+                        break;
                     default:
                         // console.log(`[Controller] Skipping unsupported action type: ${action.action_type}`);
                         continue;

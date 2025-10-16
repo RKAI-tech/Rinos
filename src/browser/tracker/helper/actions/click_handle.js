@@ -36,7 +36,7 @@ export function handleClickLikeBase(e, actionType, eventLabel = 'Click') {
     return;
   }
   
-  const selectors = buildSelectors(e?.target, { minScore: 200, validate: false });
+  const selectors = buildSelectors(e?.target, { minScore: 100, validate: true });
   const payload = buildCommonActionData(e, selectors);
   // console.log(`${eventLabel} event - generated selectors:`, selectors);
   if (! shouldSkipElementForClick(e?.target)) {
