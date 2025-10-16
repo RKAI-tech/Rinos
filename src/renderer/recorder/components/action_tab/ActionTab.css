@@ -79,6 +79,21 @@
   color: #ef4444;
 }
 
+.rcd-add-action-container {
+  position: relative;
+}
+
+.rcd-action-btn.add {
+  color: #3b82f6;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.rcd-action-btn.add:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
 /* Disabled state */
 .rcd-action-btn:disabled {
   opacity: 0.6;

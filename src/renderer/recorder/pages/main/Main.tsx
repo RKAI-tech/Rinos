@@ -10,6 +10,8 @@ import DeleteAllActions from '../../components/delete_all_action/DeleteAllAction
 import ConfirmCloseModal from '../../components/confirm_close/ConfirmCloseModal';
 import URLInputModal from '../../components/url_input_modal/URLInputModal';
 import TitleInputModal from '../../components/title_input_modal/TitleInputModal';
+import AddActionModal from '../../components/add_action_modal/AddActionModal';
+import DatabaseExecutionModal from '../../components/database_execution_modal/DatabaseExecutionModal';
 import { ActionService } from '../../services/actions';
 import { Action, ActionBatch, ActionType, AiAssertRequest, AssertType } from '../../types/actions';
 import { actionToCode } from '../../utils/action_to_code';
@@ -69,6 +71,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [isConfirmCloseOpen, setIsConfirmCloseOpen] = useState(false);
   const [isUrlInputOpen, setIsUrlInputOpen] = useState(false);
   const [isTitleInputOpen, setIsTitleInputOpen] = useState(false);
+  const [isAddActionOpen, setIsAddActionOpen] = useState(false);
+  const [isDatabaseExecutionOpen, setIsDatabaseExecutionOpen] = useState(false);
   const service = new ExecuteScriptsService();
 
   useEffect(() => {
@@ -263,6 +267,12 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       return;
     }
 
+    // Check if URL is required but not provided
+    if (actions.length === 0 && !url) {
+      toast.error('Please enter a URL to start recording');
+      return;
+    }
+
     try {
       setIsBrowserOpen(true);
       setIsPaused(true);
@@ -283,13 +293,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           setIsPaused(false);
         }
       } else {
-        if (!url) {
-          alert('Please enter a URL');
-          setIsBrowserOpen(false);
-          setIsPaused(false);
-          return;
-        }
-        
         if (!url.startsWith('http')) {
           url = 'https://' + url;
         }
@@ -694,6 +697,11 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     }
   };
 
+  const handleAddAction = () => {
+    setIsAddActionOpen(true);
+  };
+
+
   const handleSaveBasicAuth = async () => {
     try {
       const basicAuthService = new BasicAuthService();
@@ -831,6 +839,11 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
               if (isBrowserOpen) {
                 stopBrowser();
               } else {
+                // Check if URL is required but not provided
+                if (actions.length === 0 && !url.trim()) {
+                  toast.error('Please enter a URL to start recording');
+                  return;
+                }
                 const endPos = actions.length;
                 setSelectedInsertPosition(endPos);
                 setDisplayInsertPosition(endPos);
@@ -857,6 +870,11 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
               if (isBrowserOpen) {
                 stopBrowser();
               } else {
+                // Check if URL is required but not provided
+                if (actions.length === 0 && !url.trim()) {
+                  toast.error('Please enter a URL to start recording');
+                  return;
+                }
                 // Khi bắt đầu record bằng nút trên thanh URL, cập nhật cả vị trí insert và label về cuối danh sách
                 const endPos = actions.length;
                 setSelectedInsertPosition(endPos);
@@ -969,6 +987,13 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             onStartRecording={handleStartRecordingFromAction}
             isBrowserOpen={isBrowserOpen}
             recordingFromActionIndex={recordingFromActionIndex}
+            onAddAction={handleAddAction}
+            isAddActionOpen={isAddActionOpen}
+            onCloseAddAction={() => setIsAddActionOpen(false)}
+            testcaseId={testcaseId}
+            onActionsChange={setActions}
+            onInsertPositionChange={setSelectedInsertPosition}
+            onDisplayPositionChange={setDisplayInsertPosition}
           />
         ) : (
           <TestScriptTab script={customScript || actionToCode(actions)} runResult={runResult} onScriptChange={setCustomScript} />

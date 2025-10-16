@@ -110,7 +110,7 @@ export class AuthService {
 
   async validateToken(token: string): Promise<ApiResponse<LoginResponse>> {
     const response = await apiRouter.request<LoginResponse>(
-      `auth/validate_token/${token}`,
+      `/auth/validate_token/${token}`,
       {
         method: 'GET',
         headers: { Authorization: `Bearer ${token}` },

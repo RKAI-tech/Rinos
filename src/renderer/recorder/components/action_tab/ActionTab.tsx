@@ -1,7 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './ActionTab.css';
 import RenderedAction from '../action/Action';
-import { Action } from '../../types/actions';
+import AddActionModal from '../add_action_modal/AddActionModal';
+import DatabaseExecutionModal from '../database_execution_modal/DatabaseExecutionModal';
+import WaitModal from '../wait_modal/WaitModal';
+import NavigateModal from '../navigate_modal/NavigateModal';
+import { Action, ActionType, AssertType, Connection } from '../../types/actions';
+import { receiveActionWithInsert } from '../../utils/receive_action';
+import { toast } from 'react-toastify';
 
 interface ActionTabProps {
   actions: Action[];
@@ -20,11 +26,45 @@ interface ActionTabProps {
   onStartRecording?: (actionIndex: number) => void;
   isBrowserOpen?: boolean;
   recordingFromActionIndex?: number | null;
+  onAddAction?: () => void;
+  isAddActionOpen?: boolean;
+  onCloseAddAction?: () => void;
+  testcaseId?: string | null;
+  onActionsChange?: (updater: (prev: Action[]) => Action[]) => void;
+  onInsertPositionChange?: (position: number) => void;
+  onDisplayPositionChange?: (position: number) => void;
 }
 
-const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, isReloading, isSaving, onDeleteAction, onDeleteAll, onReorderActions, onReload, onSaveActions, selectedInsertPosition, displayInsertPosition, onSelectInsertPosition, onSelectAction, onStartRecording, isBrowserOpen, recordingFromActionIndex }) => {
+const ActionTab: React.FC<ActionTabProps> = ({ 
+  actions, 
+  isLoading, 
+  isReloading, 
+  isSaving, 
+  onDeleteAction, 
+  onDeleteAll, 
+  onReorderActions, 
+  onReload, 
+  onSaveActions, 
+  selectedInsertPosition, 
+  displayInsertPosition, 
+  onSelectInsertPosition, 
+  onSelectAction, 
+  onStartRecording, 
+  isBrowserOpen, 
+  recordingFromActionIndex, 
+  onAddAction, 
+  isAddActionOpen, 
+  onCloseAddAction, 
+  testcaseId, 
+  onActionsChange, 
+  onInsertPositionChange, 
+  onDisplayPositionChange 
+}) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [isDatabaseExecutionOpen, setIsDatabaseExecutionOpen] = useState(false);
+  const [isWaitOpen, setIsWaitOpen] = useState(false);
+  const [isNavigateOpen, setIsNavigateOpen] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
 
@@ -92,6 +132,161 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, isReloading, 
     }
   };
 
+  // Add action handlers
+  const handleSelectDatabaseExecution = () => {
+    setIsDatabaseExecutionOpen(true);
+  };
+
+  const handleSelectWait = () => {
+    setIsWaitOpen(true);
+  };
+
+  const handleSelectNavigate = () => {
+    setIsNavigateOpen(true);
+  };
+
+  const handleDatabaseExecutionConfirm = (query: string, connectionId: string, connection: Connection) => {
+    if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+
+    const newAction = {
+      testcase_id: testcaseId,
+      action_id: Math.random().toString(36),
+      action_type: ActionType.database_execution,
+      connection_id: connectionId,
+      connection: connection,
+      query: query,
+      statement: { query },
+      playwright_code: 'Database execution will be handled by backend',
+      description: `Execute database query: ${query.substring(0, 50)}${query.length > 50 ? '...' : ''}`,
+    };
+     onActionsChange(prev => {
+      console.log("Previous actions:", prev);
+      const next = receiveActionWithInsert(
+        testcaseId,
+        prev,
+        newAction,
+        selectedInsertPosition || 0
+      );
+      
+     console.log("Next actions:", next);
+      
+      const added = next.length > prev.length;
+      if (added) {
+        const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
+        onInsertPositionChange(newPos);
+        onDisplayPositionChange(newPos);
+      }
+      return next;
+    });
+    toast.success('Added database execution action');
+  
+  };
+
+  const handleSelectAddAction = (actionType: string) => {
+    if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+
+    console.log("handleSelectAddAction called with type:", actionType);
+    
+    // For database_execution, it's handled by modal, so don't add to list here
+    if (actionType === 'database_execution') {
+      console.log("Database execution handled by modal, not adding to list");
+      return;
+    }
+
+    if (actionType === 'wait') {
+      handleSelectWait();
+      return;
+    }
+
+    if (actionType === 'navigate') {
+      handleSelectNavigate();
+      return;
+    }
+
+    const newAction = createActionByType(actionType);
+    console.log("Created action:", newAction);
+    
+    if (newAction) {
+      onActionsChange(prev => {
+        console.log(`=== BEFORE ADDING ${actionType.toUpperCase()} ACTION ===`);
+        console.log("Previous actions count:", prev.length);
+        console.log("Previous actions:", prev.map(a => ({ id: a.action_id, type: a.action_type, desc: a.description })));
+        console.log("Insert position:", selectedInsertPosition);
+        console.log("New action to add:", { id: newAction.action_id, type: newAction.action_type, desc: newAction.description });
+        
+        const next = receiveActionWithInsert(
+          testcaseId,
+          prev,
+          newAction,
+          selectedInsertPosition || 0
+        );
+        
+        console.log(`=== AFTER ADDING ${actionType.toUpperCase()} ACTION ===`);
+        console.log("Next actions count:", next.length);
+        console.log("Next actions:", next.map(a => ({ id: a.action_id, type: a.action_type, desc: a.description })));
+        console.log("Action added successfully:", next.length > prev.length);
+        
+        const added = next.length > prev.length;
+        if (added) {
+          const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
+          onInsertPositionChange(newPos);
+          onDisplayPositionChange(newPos);
+          console.log("Updated insert position to:", newPos);
+        }
+        return next;
+      });
+      toast.success(`Added ${actionType} action`);
+    } else {
+      console.error("Failed to create action for type:", actionType);
+    }
+  };
+
+  const createActionByType = (actionType: string): any => {
+    if (!testcaseId) return null;
+
+    const baseAction = {
+      testcase_id: testcaseId,
+      action_id: Math.random().toString(36),
+    };
+
+    console.log("Creating action for type:", actionType);
+    console.log("Base action:", baseAction);
+
+    switch (actionType) {
+      case 'wait':
+        const waitAction = {
+          ...baseAction,
+          action_type: ActionType.wait,
+          value: '1000', 
+          description: 'Wait for 1 second',
+        };
+        console.log("Created wait action:", waitAction);
+        return waitAction;
+      
+      case 'database_execution':
+        // This will be handled by the modal
+        console.log("Database execution will be handled by modal");
+        handleSelectDatabaseExecution();
+        return null;
+      
+      case 'visit_url':
+        const visitAction = {
+          ...baseAction,
+          action_type: ActionType.navigate,
+          url: 'https://example.com',
+          value: 'https://example.com',
+          playwright_code: 'await page.goto("https://example.com");',
+          description: 'Navigate to URL',
+        };
+        console.log("Created visit_url action:", visitAction);
+        return visitAction;
+      
+      default:
+        console.error('Unknown action type:', actionType);
+        return null;
+    }
+  };
+
   // Auto-scroll to bottom when actions list grows or loads
   useEffect(() => {
     if (!listRef.current) return;
@@ -131,15 +326,93 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, isReloading, 
           <div className="rcd-actions-insert-info">Inserting at position #{selectedInsertPosition}</div>
         </div>
         <div className="rcd-actions-buttons">
-          <button className="rcd-action-btn reset" title="Reload actions" onClick={() => onReload && onReload()} disabled={!!isReloading || !!isSaving}>
-            {isReloading ? (
-              <span className="rcd-spinner" aria-label="reloading" />
-            ) : (
+          <div className="rcd-add-action-container">
+            <button className="rcd-action-btn add" title="Add new action" onClick={() => onAddAction && onAddAction()}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <polyline points="21,3 21,9 15,9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
-            )}
+            </button>
+            <AddActionModal
+              isOpen={isAddActionOpen || false}
+              onClose={() => onCloseAddAction && onCloseAddAction()}
+              onSelectAction={handleSelectAddAction}
+              onSelectDatabaseExecution={handleSelectDatabaseExecution}
+            />
+            <DatabaseExecutionModal
+              isOpen={isDatabaseExecutionOpen}
+              onClose={() => setIsDatabaseExecutionOpen(false)}
+              onConfirm={handleDatabaseExecutionConfirm}
+            />
+            <WaitModal
+              isOpen={isWaitOpen}
+              onClose={() => setIsWaitOpen(false)}
+              onConfirm={(ms) => {
+                if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+                const newAction = {
+                  testcase_id: testcaseId,
+                  action_id: Math.random().toString(36),
+                  action_type: ActionType.wait,
+                  value: String(ms),
+                  description: `Wait for ${ms} ms`,
+                };
+                onActionsChange(prev => {
+                  const next = receiveActionWithInsert(
+                    testcaseId,
+                    prev,
+                    newAction,
+                    selectedInsertPosition || 0
+                  );
+                  const added = next.length > prev.length;
+                  if (added) {
+                    const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
+                    onInsertPositionChange(newPos);
+                    onDisplayPositionChange(newPos);
+                  }
+                  return next;
+                });
+                setIsWaitOpen(false);
+                toast.success('Added wait action');
+              }}
+            />
+            <NavigateModal
+              isOpen={isNavigateOpen}
+              onClose={() => setIsNavigateOpen(false)}
+              onConfirm={(url) => {
+                if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+                const newAction = {
+                  testcase_id: testcaseId,
+                  action_id: Math.random().toString(36),
+                  action_type: ActionType.navigate,
+                  value: url,
+                  description: `Navigate to ${url}`,
+                } as any;
+                onActionsChange(prev => {
+                  const next = receiveActionWithInsert(
+                    testcaseId,
+                    prev,
+                    newAction,
+                    selectedInsertPosition || 0
+                  );
+                  const added = next.length > prev.length;
+                  if (added) {
+                    const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
+                    onInsertPositionChange(newPos);
+                    onDisplayPositionChange(newPos);
+                  }
+                  return next;
+                });
+                setIsNavigateOpen(false);
+                toast.success('Added navigate action');
+              }}
+            />
+          </div>
+          <button className="rcd-action-btn reset" title="Reload actions" onClick={() => onReload && onReload()}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <polyline points="21,3 21,9 15,9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </button>
           <button className="rcd-action-btn save" title="Save actions" onClick={() => onSaveActions && onSaveActions()} disabled={!!isSaving || !!isReloading}>
             {isSaving ? (

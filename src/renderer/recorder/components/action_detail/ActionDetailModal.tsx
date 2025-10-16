@@ -43,6 +43,15 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
     });
   };
 
+  const updateStatementQuery = (sql: string) => {
+    setDraft(prev => {
+      if (!prev) return prev;
+      const next = { ...prev } as Action;
+      next.statement = { ...(next.statement || { statement_id: '', query: '' }), query: sql };
+      return next;
+    });
+  };
+
   const handleSave = () => {
     if (draft && onSave) {
       const normalized = normalizeActionForSave(draft);
@@ -68,6 +77,9 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
     switch (type) {
       case ActionType.navigate:
         return { ...base, showSelectors: false, showValue: true, valueLabel: 'URL' };
+      case ActionType.database_execution:
+        // Database execution: hide selectors/value controls here; will render a dedicated SQL editor section
+        return { ...base, showSelectors: false, showValue: false };
       case ActionType.input:
         return { ...base, showSelectors: true, showValue: true };
       case ActionType.click:
@@ -102,6 +114,8 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
       case ActionType.assert:
         // Assert-specific visibility handled below by assert config
         return { ...base, showAssertType: true };
+      case ActionType.wait:
+        return { ...base, showValue: true, valueLabel: 'Milliseconds' ,showSelectors: false};
       default:
         return base;
     }
@@ -428,9 +442,9 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
             </div>
           </div>
 
-        {(assertConfig ? assertConfig.showSelectors : visibility.showSelectors) && renderElements()}
+        {(draft.action_type !== ActionType.database_execution && (assertConfig ? assertConfig.showSelectors : visibility.showSelectors)) && renderElements()}
 
-          {draft.playwright_code && (
+          {(draft.action_type !== ActionType.database_execution && draft.playwright_code) && (
             <div className="rcd-action-detail-section">
               <div className="rcd-action-detail-section-title">Playwright</div>
               <div className="rcd-action-detail-editor">
@@ -448,6 +462,22 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
                     automaticLayout: true,
                     readOnly: false,
                   }}
+                />
+              </div>
+            </div>
+          )}
+
+          {draft.action_type === ActionType.database_execution && (
+            <div className="rcd-action-detail-section">
+              <div className="rcd-action-detail-section-title">Database</div>
+              <div className="rcd-action-detail-kv">
+                <label className="rcd-action-detail-kv-label">SQL Query</label>
+                <textarea
+                  className="rcd-action-detail-input"
+                  style={{ minHeight: '120px', fontFamily: 'monospace' }}
+                  value={(draft.statement?.query || '')}
+                  onChange={(e) => updateStatementQuery(e.target.value)}
+                  placeholder="SELECT * FROM table_name;"
                 />
               </div>
             </div>

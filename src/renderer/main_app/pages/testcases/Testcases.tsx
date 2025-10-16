@@ -446,6 +446,10 @@ const Testcases: React.FC = () => {
       const token = await (window as any).tokenStore?.get?.();
       (window as any).browserAPI?.browser?.setAuthToken?.(token);
       const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectData?.projectId);
+      if (result?.alreadyOpen) {
+        toast.warning('Recorder for this testcase is already open.');
+      } else if (result?.created) {
+      }
     } catch (err) {
       // console.error('[Testcases] openRecorder error:', err);
     }

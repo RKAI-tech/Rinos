@@ -22,6 +22,8 @@ export enum ActionType {
     keypress = "keypress",
     upload = "upload",
     scroll = "scroll",
+    database_execution = "database_execution",
+    wait = "wait",
   }
   
   export enum AssertType {

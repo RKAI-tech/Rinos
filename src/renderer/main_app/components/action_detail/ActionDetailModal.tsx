@@ -70,6 +70,15 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
     });
   };
 
+  const updateStatementQuery = (sql: string) => {
+    setDraft(prev => {
+      if (!prev) return prev;
+      const next = { ...prev } as Action;
+      next.statement = { ...(next.statement || { statement_id: '', query: '' }), query: sql };
+      return next;
+    });
+  };
+
   const addNewSelector = (elementIndex: number) => {
     updateElement(elementIndex, cur => ({ ...cur, selectors: [{ value: '' }, ...(cur.selectors || [])] }));
   };
@@ -104,6 +113,9 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
     switch (type) {
       case ActionType.navigate:
         return { ...base, showSelectors: false, showValue: true, valueLabel: 'URL' };
+      case ActionType.database_execution:
+        // hide selectors/value; render dedicated SQL section below
+        return { ...base, showSelectors: false, showValue: false };
       case ActionType.input:
         return { ...base, showSelectors: true, showValue: true };
       case ActionType.click:
@@ -136,6 +148,8 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
         return { ...base, showSelectors: false };
       case ActionType.assert:
         return { ...base, showAssertType: true };
+      case ActionType.wait:
+        return { ...base, showValue: true, valueLabel: 'Milliseconds' ,showSelectors: false};
       default:
         return base;
     }
@@ -289,7 +303,7 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
             </div>
           </div>
 
-          {(assertConfig ? (assertConfig as any).showSelectors : visibility.showSelectors) && (
+          {(draft.action_type !== ActionType.database_execution && (assertConfig ? (assertConfig as any).showSelectors : visibility.showSelectors)) && (
             <div className="rcd-action-detail-section">
               <div className="rcd-action-detail-section-title">Elements</div>
               <div className="rcd-action-detail-list">
@@ -324,7 +338,7 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
             </div>
           )}
 
-          {draft.playwright_code && (
+          {(draft.action_type !== ActionType.database_execution && draft.playwright_code) && (
             <div className="rcd-action-detail-section">
               <div className="rcd-action-detail-section-title">Playwright</div>
               <div className="rcd-action-detail-editor">
@@ -342,6 +356,22 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
                     automaticLayout: true,
                     readOnly: false,
                   }}
+                />
+              </div>
+            </div>
+          )}
+
+          {draft.action_type === ActionType.database_execution && (
+            <div className="rcd-action-detail-section">
+              <div className="rcd-action-detail-section-title">Database</div>
+              <div className="rcd-action-detail-kv">
+                <label className="rcd-action-detail-kv-label">SQL Query</label>
+                <textarea
+                  className="rcd-action-detail-input"
+                  style={{ minHeight: '120px', fontFamily: 'monospace' }}
+                  value={(draft.statement?.query || '')}
+                  onChange={(e) => updateStatementQuery(e.target.value)}
+                  placeholder="SELECT * FROM table_name;"
                 />
               </div>
             </div>

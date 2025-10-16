@@ -148,6 +148,7 @@ export class BrowserManager extends EventEmitter {
 
         try {
             await this.context.exposeFunction('sendActionToMain', (action: Action) => {
+                console.log('[BrowserManager] Received action from page:', action);
                 this.emit('action', action);
             });
             
@@ -164,6 +165,9 @@ export class BrowserManager extends EventEmitter {
             // console.error('Error injecting script:', error);
             throw error;
         }
+
+        // Note: CDP navigation detection disabled - using browser_handle.js instead
+        // This prevents duplicate navigation events and allows proper type detection
 
         await this.context.exposeFunction('getVariablesForTracker', async () => {
             try {

@@ -238,11 +238,16 @@ export function generateActionCode(action: Action, index: number): string {
         }
         selectors.push(element_selector);
     }
-
     const firstCandidates = selectors[0] || [];
     const candidatesLiteral = `[${firstCandidates.join(', ')}]`;
     const secondCandidates = selectors[1] || [];
     const secondCandidatesLiteral = `[${secondCandidates.join(', ')}]`;
+    const dbVar = action.connection?.db_type?.toLowerCase();
+    var connect_db_code="";
+    if (action.connection) {
+        connect_db_code = generateConnectDBCode(action);
+    }
+    console.log('generateActionCode', action);
     switch (action.action_type) {
         case ActionType.navigate:
             return `    await page.goto('${action.value || ''}');\n` +
@@ -318,6 +323,23 @@ export function generateActionCode(action: Action, index: number): string {
                 `    sel = await resolveUniqueSelector(page, candidates);\n` +
                 `    await page.setInputFiles(sel, '${action.value || ''}');\n` +
                 `    await page.waitForLoadState('networkidle');\n`;
+        case ActionType.database_execution:
+            return connect_db_code +    
+            `    const result = await ${dbVar}.query('${(action.statement?.query ||action.query || '').replace(/\\/g, "\\\\").replace(/'/g, "\\'")}');\n` +
+                `    console.log(result);\n` +
+                `    await ${dbVar}.end();\n` +
+                `    await page.waitForLoadState('networkidle');\n`;
+        case ActionType.wait:
+            return `    await page.waitForTimeout(${action.value || '1000'});\n`;
+        // case ActionType.reload:
+        //     return `    await page.reload();\n` +
+        //         `    await page.waitForLoadState('networkidle');\n`;
+        // case ActionType.back_forward:
+            
+        //     return `    // Back/Forward navigation to: ${action.url || action.value || ''}\n` +
+        //         `    // Note: This is a generic back/forward action. Adjust as needed.\n` +
+        //         `    await page.goBack();\n` +
+                // `    await page.waitForLoadState('networkidle');\n`;
         default:
             return "";
     }

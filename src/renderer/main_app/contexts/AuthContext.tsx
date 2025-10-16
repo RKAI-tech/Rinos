@@ -73,12 +73,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // log('initializeAuth: token =', token);
         if (token) {
           const response = await authService.validateToken(token);
-          log('initializeAuth: response', response);
           if (response.success && response.data?.access_token) {
             setIsAuthenticated(true);
-          }
-          else {
-            clearAuthData();
           }
 
         }

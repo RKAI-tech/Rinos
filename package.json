@@ -86,7 +86,7 @@
         "to": ".env"
       },
       {
-        "from": "/home/hunghd/.cache/ms-playwright",
+        "from": "./playwright-browsers",
         "to": "playwright-browsers",
         "filter": [
           "**/*"

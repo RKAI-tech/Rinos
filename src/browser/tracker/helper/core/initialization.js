@@ -2,7 +2,6 @@ import { createHoverOverlay, enableHoverEffects, disableHoverEffects, showHoverE
 import { initializeErrorHandlers } from './errorHandler.js';
 import { initializeNavigationPrevention, setAssertMode as setNavAssertMode } from './navigationPrevention.js';
 import {handleClickEvent} from './eventHandlers.js';
-// import { setAssertMode } from './asserts/index.js';
 import { setPauseMode } from '../actions/baseAction.js';
 import { handleDoubleClickEvent, handleRightClickEvent, handleShiftClickEvent } from '../actions/click_handle.js';
 import { generateSelector, validateAndImproveSelector } from '../selector_generator/selectorGenerator.js';
@@ -15,9 +14,10 @@ import { handleKeyDownEvent} from '../actions/keyboard_handle.js';
 import { handleSelectChangeEvent } from '../actions/select_handle.js';
 import { handleDragStartEvent, handleDragEndEvent, handleDropEvent } from '../actions/drag_and_drop.js';
 import { handleUploadChangeEvent } from '../actions/upload_handle.js';
-// Global assert mode state for capture phase blocking
+// import { attachBrowserHandlers } from './actions/browser_handle.js';
 let globalAssertMode = false;
 let browserControls = null;
+let browserHandlersDisposer = null;
 
 function handleAssertCaptureBlocking(e) {
   if (!globalAssertMode) {
@@ -189,6 +189,7 @@ export function initializeEventListeners() {
   document.addEventListener('drop', handleAssertCaptureBlocking, true);
   document.addEventListener('contextmenu', handleAssertCaptureBlocking, true);
   document.addEventListener('dblclick', handleAssertCaptureBlocking, true);
+ 
 }
 
 export function initializeHoverEffects() {
@@ -233,7 +234,10 @@ export function initializeTracking() {
   initBrowserControls();
   initializeEventListeners();
   initializeHoverEffects();
-
+  
+  // browserHandlersDisposer = attachBrowserHandlers();
+  
+  // Expose functions to main process
   window.setAssertMode = function(enabled, assertType) {
     globalAssertMode = enabled;
     if (enabled) {
@@ -266,6 +270,14 @@ export function initializeTracking() {
   window.unfreezeEntireScreen = unfreezeEntireScreen;
   window.unfreezeAllElements = unfreezeAllElements;
   // Note: per new full-screen freeze design, no per-element unfreeze API exposed
+  
+  // Expose cleanup function for browser handlers
+  // window.cleanupBrowserHandlers = function() {
+  //   if (browserHandlersDisposer) {
+  //     browserHandlersDisposer();
+  //     browserHandlersDisposer = null;
+  //   }
+  // };
 }
 
 // Check if DOM is ready
