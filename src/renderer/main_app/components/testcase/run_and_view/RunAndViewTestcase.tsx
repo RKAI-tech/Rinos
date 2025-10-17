@@ -6,6 +6,7 @@ import { TestCaseService } from '../../../services/testcases';
 import { TestCaseGetResponse } from '../../../types/testcases';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { canEdit } from '../../../hooks/useProjectPermissions';
 
 interface Props {
   isOpen: boolean;
@@ -22,6 +23,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<TestCaseGetResponse | null>(null);
   const svc = useMemo(() => new TestCaseService(), []);
+  const canEditPermission = canEdit(projectId);
 
   // Load testcase data when modal opens (always try to fetch the latest)
   useEffect(() => {
@@ -67,8 +69,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
   };
 
   const handleRunTestcase = async () => {
-    if (!testcaseId) return;
-    
+    if (!testcaseId || !canEditPermission) return;
     try {
       setIsRunning(true);
       const resp = await svc.executeTestCase({ testcase_id: testcaseId });
@@ -185,7 +186,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
           <button 
             className="ravt-run-btn" 
             onClick={handleRunTestcase}
-            disabled={isRunning || !testcaseId}
+            disabled={isRunning || !testcaseId || !canEditPermission}
           >
             {isRunning ? 'Running...' : 'Run Testcase'}
           </button>

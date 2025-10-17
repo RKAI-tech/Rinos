@@ -4,6 +4,8 @@ import { TestSuiteService } from '../../../services/testsuites';
 import { TestCaseService } from '../../../services/testcases';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { canEdit } from '../../../hooks/useProjectPermissions';
+import { useParams } from 'react-router-dom';
 
 interface Props {
   isOpen: boolean;
@@ -69,6 +71,7 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, testcaseName, logs
 };
 
 const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) => {
+  const { projectId } = useParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cases, setCases] = useState<CaseItem[]>([]);
@@ -82,6 +85,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
   const svc = useMemo(() => new TestSuiteService(), []);
   const tcs = useMemo(() => new TestCaseService(), []);
   const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
+  const canEditPermission = canEdit(projectId);
 
   const fetchResults = useCallback(async (silent: boolean = false) => {
     if (!isOpen || !testSuiteId) return;
@@ -126,6 +130,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
   }, [isOpen, testSuiteId, fetchResults]);
 
   const handleRetry = async (testcaseId: string) => {
+    if (!canEditPermission) return;
     setRetryingIds(prev => {
       const next = new Set(prev);
       next.add(testcaseId);
@@ -377,7 +382,8 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
                             <button 
                               className="vtsr-btn" 
                               onClick={(e) => { e.stopPropagation(); handleRetry(c.id); }}
-                              disabled={retryingIds.has(c.id) || isLoading}
+                              disabled={retryingIds.has(c.id) || isLoading || !canEditPermission}                             
+                              style={{ cursor: (retryingIds.has(c.id) || isLoading || !canEditPermission) ? 'not-allowed' : 'pointer' }}
                               aria-label="Retry Testcase"
                             >
                               {retryingIds.has(c.id) ? 'Retrying...' : 'Retry'}
