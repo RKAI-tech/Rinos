@@ -288,11 +288,11 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
           Result: c.status || '',
           Date: now,
           Tester: '',
-          Reference: c.url || full?.url || ''
+          Evidence: c.url || full?.url || ''
         };
       });
 
-      const headers = ['Name','Description','Step','Expected','Result','Date','Tester','Reference'];
+      const headers = ['Name','Description','Step','Expected','Result','Date','Tester','Evidence'];
       const escapeCsv = (val: unknown) => {
         const s = String(val ?? '');
         if (/[",\n,]/.test(s)) {
