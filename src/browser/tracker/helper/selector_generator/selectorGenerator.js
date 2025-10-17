@@ -51,12 +51,56 @@ export function generateSelector(element, options = {}) {
   // Scoring system for selectors (higher score = better selector)
   const selectorCandidates = [];
   
-  // Helper function to check uniqueness and add to candidates
+  // Helper function to build absolute XPath from root to element (always from root, no ID shortcuts)
+  function buildAbsoluteXPath(el) {
+    try {
+      if (!el || el.nodeType !== Node.ELEMENT_NODE) return '';
+      const doc = el.ownerDocument || document;
+
+      // Helper: convert string to a safe XPath literal
+      const toXPathLiteral = (s) => {
+        if (s.indexOf('"') === -1) return `"${s}"`;
+        if (s.indexOf("'") === -1) return `'${s}'`;
+        return 'concat(' + s.split('"').map((part, i) => (i > 0 ? ',""",' : '') + `'${part}'`).join('') + ')';
+      };
+
+      // Always build absolute path from root using tag and :nth-of-type-like indexing
+      const segments = [];
+      let node = el;
+      while (node && node.nodeType === Node.ELEMENT_NODE && node !== doc.documentElement) {
+        const tag = node.tagName.toLowerCase();
+        const parent = node.parentElement;
+        let index = 1;
+        if (parent) {
+          const sameTagSiblings = Array.from(parent.children).filter(n => n.tagName === node.tagName);
+          if (sameTagSiblings.length > 1) {
+            index = sameTagSiblings.indexOf(node) + 1;
+          }
+        }
+        segments.unshift(index > 1 ? `${tag}[${index}]` : tag);
+        node = parent;
+      }
+      // Always start from /html root
+      const path = ['/html', ...segments].join('/');
+      return path;
+    } catch {
+      return '';
+    }
+  }
+  
+  // Helper function to add selector candidates (generate all possible selectors)
   function addCandidate(selector, score, type) {
     try {
       const matches = doc.querySelectorAll(selector);
-      if (matches.length === 1 && matches[0] === element) {
-        selectorCandidates.push({ selector, score, type });
+      // Add all valid selectors, let validation filter for uniqueness later
+      if (matches.length > 0) {
+        selectorCandidates.push({ 
+          selector, 
+          score, 
+          type,
+          elementCount: matches.length,
+          isUnique: matches.length === 1 && matches[0] === element
+        });
       }
     } catch (e) {
       // Invalid selector, skip
@@ -129,6 +173,23 @@ export function generateSelector(element, options = {}) {
   if (element.id && element.id.trim()) {
     const escapedId = escapeSelector(element.id);
     addCandidate(`#${escapedId}`, SELECTOR_SCORES.ID, 'id');
+    
+    // Also add ID-based XPath selector
+    try {
+      const doc = element.ownerDocument || document;
+      const esc = (window.CSS && CSS.escape) ? CSS.escape(element.id) : element.id;
+      const q = doc.querySelectorAll(`#${esc}`);
+      if (q.length === 1 && q[0] === element) {
+        // Helper: convert string to a safe XPath literal
+        const toXPathLiteral = (s) => {
+          if (s.indexOf('"') === -1) return `"${s}"`;
+          if (s.indexOf("'") === -1) return `'${s}'`;
+          return 'concat(' + s.split('"').map((part, i) => (i > 0 ? ',""",' : '') + `'${part}'`).join('') + ')';
+        };
+        const idXPath = `//*[@id=${toXPathLiteral(element.id)}]`;
+        selectorCandidates.push({ selector: `xpath=${idXPath}`, score: SELECTOR_SCORES.ID - 10, type: 'id-xpath' });
+      }
+    } catch {}
   }
 
   // 3. Role + Accessible Name (score 850) - Playwright's preferred approach
@@ -161,6 +222,72 @@ export function generateSelector(element, options = {}) {
       const escaped = escapeSelector(placeholderAttr.trim());
       addCandidate(`[placeholder="${escaped}"]`, SELECTOR_SCORES.SEMANTIC_ATTR - 5, 'placeholder');
       addCandidate(`${tag}[placeholder="${escaped}"]`, SELECTOR_SCORES.TAG_ATTR, 'tag-placeholder');
+    }
+  } catch {}
+
+  // 4c. Additional accessibility and data attributes
+  try {
+    // aria-label attribute
+    const ariaLabel = element.getAttribute && element.getAttribute('aria-label');
+    if (isMeaningfulValue(ariaLabel)) {
+      const escaped = escapeSelector(ariaLabel.trim());
+      addCandidate(`[aria-label="${escaped}"]`, SELECTOR_SCORES.SEMANTIC_ATTR - 10, 'aria-label');
+      addCandidate(`${tag}[aria-label="${escaped}"]`, SELECTOR_SCORES.TAG_ATTR - 5, 'tag-aria-label');
+    }
+
+    // title attribute
+    const titleAttr = element.getAttribute && element.getAttribute('title');
+    if (isMeaningfulValue(titleAttr)) {
+      const escaped = escapeSelector(titleAttr.trim());
+      addCandidate(`[title="${escaped}"]`, SELECTOR_SCORES.SEMANTIC_ATTR - 15, 'title');
+      addCandidate(`${tag}[title="${escaped}"]`, SELECTOR_SCORES.TAG_ATTR - 10, 'tag-title');
+    }
+
+    // data-* attributes
+    const dataAttrs = [];
+    if (element.attributes) {
+      for (const attr of element.attributes) {
+        if (attr.name.startsWith('data-') && isMeaningfulValue(attr.value)) {
+          dataAttrs.push({ name: attr.name, value: attr.value.trim() });
+        }
+      }
+    }
+    for (const { name, value } of dataAttrs) {
+      const escaped = escapeSelector(value);
+      addCandidate(`[${name}="${escaped}"]`, SELECTOR_SCORES.SEMANTIC_ATTR - 20, 'data-attr');
+      addCandidate(`${tag}[${name}="${escaped}"]`, SELECTOR_SCORES.TAG_ATTR - 15, 'tag-data-attr');
+    }
+
+    // alt attribute for images
+    const altAttr = element.getAttribute && element.getAttribute('alt');
+    if (isMeaningfulValue(altAttr)) {
+      const escaped = escapeSelector(altAttr.trim());
+      addCandidate(`[alt="${escaped}"]`, SELECTOR_SCORES.SEMANTIC_ATTR - 10, 'alt');
+      addCandidate(`${tag}[alt="${escaped}"]`, SELECTOR_SCORES.TAG_ATTR - 5, 'tag-alt');
+    }
+
+    // src attribute for images/scripts
+    const srcAttr = element.getAttribute && element.getAttribute('src');
+    if (isMeaningfulValue(srcAttr)) {
+      const escaped = escapeSelector(srcAttr.trim());
+      addCandidate(`[src="${escaped}"]`, SELECTOR_SCORES.SEMANTIC_ATTR - 25, 'src');
+      addCandidate(`${tag}[src="${escaped}"]`, SELECTOR_SCORES.TAG_ATTR - 20, 'tag-src');
+    }
+
+    // href attribute for links
+    const hrefAttr = element.getAttribute && element.getAttribute('href');
+    if (isMeaningfulValue(hrefAttr)) {
+      const escaped = escapeSelector(hrefAttr.trim());
+      addCandidate(`[href="${escaped}"]`, SELECTOR_SCORES.SEMANTIC_ATTR - 10, 'href');
+      addCandidate(`${tag}[href="${escaped}"]`, SELECTOR_SCORES.TAG_ATTR - 5, 'tag-href');
+    }
+
+    // value attribute for inputs
+    const valueAttr = element.getAttribute && element.getAttribute('value');
+    if (isMeaningfulValue(valueAttr)) {
+      const escaped = escapeSelector(valueAttr.trim());
+      addCandidate(`[value="${escaped}"]`, SELECTOR_SCORES.SEMANTIC_ATTR - 15, 'value');
+      addCandidate(`${tag}[value="${escaped}"]`, SELECTOR_SCORES.TAG_ATTR - 10, 'tag-value');
     }
   } catch {}
 
@@ -276,11 +403,16 @@ export function generateSelector(element, options = {}) {
     addCandidate(tag, SELECTOR_SCORES.FALLBACK, 'fallback');
   }
 
+  // Add absolute XPath from root (always from /html, no shortcuts) with higher score to ensure it passes minScore filter
+  const absoluteXPath = buildAbsoluteXPath(element);
+  if (absoluteXPath) {
+    selectorCandidates.push({ selector: `xpath=${absoluteXPath}`, score: 200, type: 'absolute-xpath' });
+  }
+
   selectorCandidates.sort((a, b) => b.score - a.score);
-  const filteredCandidates = selectorCandidates
-    .filter(candidate => candidate.score >= minScore)
-    .slice(0, maxSelectors);
-  const selectors = filteredCandidates.map(candidate => candidate.selector);
+  
+  // Return all generated selectors, let validation filter for uniqueness
+  const selectors = selectorCandidates.map(candidate => candidate.selector);
 
   if (selectors.length > 0) {
     return selectors;
@@ -338,79 +470,112 @@ export function validateAndImproveSelector(selectors, element, options = {}) {
   
   function validateSingleSelector(selector) {
     try {
-      if (selector.startsWith('xpath=')) {
-        // Xử lý XPath selector
+      // Check if it's XPath (starts with xpath= or /)
+      if (selector.startsWith('xpath=') || selector.startsWith('/')) {
+        // Handle XPath selector
         const xpathExpr = selector.replace(/^xpath=/, '');
         const result = doc.evaluate(xpathExpr, doc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
         const count = result.snapshotLength;
-        for (let i = 0; i < count; i++) {
-          if (result.snapshotItem(i) === element) {
-            return { selector, isValid: true, elementCount: count };
-          }
+        
+        // Only accept if exactly 1 element and it's our target element
+        if (count === 1 && result.snapshotItem(0) === element) {
+          return { selector, isValid: true, elementCount: count, isUnique: true };
         }
-        return { selector, isValid: false, elementCount: count };
+        return { selector, isValid: false, elementCount: count, isUnique: false };
       } else {
-        // Xử lý CSS selector
+        // Handle CSS selector
         const matches = doc.querySelectorAll(selector);
-        const isValid = matches.length > 0 && [...matches].includes(element);
-        return { selector, isValid, elementCount: matches.length };
+        const count = matches.length;
+        
+        // Only accept if exactly 1 element and it's our target element
+        if (count === 1 && matches[0] === element) {
+          return { selector, isValid: true, elementCount: count, isUnique: true };
+        }
+        return { selector, isValid: false, elementCount: count, isUnique: false };
       }
     } catch (e) {
-      return { selector, isValid: false, elementCount: 0, error: e.message };
+      return { selector, isValid: false, elementCount: 0, isUnique: false, error: e.message };
     }
   }
   
   function generateImprovedSelectors(originalSelector) {
     const tag = element.tagName.toLowerCase();
     const improvements = [];
+    
+    // Helper function to check if selector is unique and targets our element
+    function isUniqueSelector(selector) {
+      try {
+        const matches = doc.querySelectorAll(selector);
+        return matches.length === 1 && matches[0] === element;
+      } catch (e) {
+        return false;
+      }
+    }
+    
     if (element.type) {
       const typeSelector = `${tag}[type="${element.type}"]`;
-      try {
-        const typeMatches = doc.querySelectorAll(typeSelector);
-        if (typeMatches.length === 1 && typeMatches[0] === element) {
-          improvements.push(typeSelector);
-        }
-      } catch (e) {}
+      if (isUniqueSelector(typeSelector)) {
+        improvements.push(typeSelector);
+      }
     }
     if (element.name) {
       const nameSelector = `${tag}[name="${element.name}"]`;
-      try {
-        const nameMatches = doc.querySelectorAll(nameSelector);
-        if (nameMatches.length === 1 && nameMatches[0] === element) {
-          improvements.push(nameSelector);
-        }
-      } catch (e) {}
+      if (isUniqueSelector(nameSelector)) {
+        improvements.push(nameSelector);
+      }
     }
     if (element.placeholder) {
       const placeholderSelector = `${tag}[placeholder="${element.placeholder}"]`;
-      try {
-        const placeholderMatches = doc.querySelectorAll(placeholderSelector);
-        if (placeholderMatches.length === 1 && placeholderMatches[0] === element) {
-          improvements.push(placeholderSelector);
-        }
-      } catch (e) {}
+      if (isUniqueSelector(placeholderSelector)) {
+        improvements.push(placeholderSelector);
+      }
     }
     if (element.value && element.tagName.toLowerCase() === 'input') {
       const valueSelector = `${tag}[value="${element.value}"]`;
-      try {
-        const valueMatches = doc.querySelectorAll(valueSelector);
-        if (valueMatches.length === 1 && valueMatches[0] === element) {
-          improvements.push(valueSelector);
-        }
-      } catch (e) {}
+      if (isUniqueSelector(valueSelector)) {
+        improvements.push(valueSelector);
+      }
     }
     return improvements;
   }
   
+  // Separate XPath selectors from CSS selectors for priority handling
+  const xpathSelectors = [];
+  const cssSelectors = [];
+  
   for (const selector of selectors) {
-    const validatedSelector = validateSingleSelector(selector);
-    if (validatedSelector.isValid) {
-      improvedSelectors.push(selector);
+    if (selector.startsWith('xpath=') || selector.startsWith('/')) {
+      xpathSelectors.push(selector);
     } else {
-      const improvements = generateImprovedSelectors(selector);
-      improvedSelectors.push(...improvements.slice(0, maxImprovements));
+      cssSelectors.push(selector);
     }
   }
+  
+  // Validate XPath selectors first (higher priority for uniqueness)
+  for (const selector of xpathSelectors) {
+    const validatedSelector = validateSingleSelector(selector);
+    if (validatedSelector.isValid && validatedSelector.isUnique) {
+      improvedSelectors.push(selector);
+    }
+  }
+  
+  // Validate CSS selectors
+  for (const selector of cssSelectors) {
+    const validatedSelector = validateSingleSelector(selector);
+    if (validatedSelector.isValid && validatedSelector.isUnique) {
+      improvedSelectors.push(selector);
+    } else {
+      // Try to generate improved selectors only for CSS selectors
+      const improvements = generateImprovedSelectors(selector);
+      for (const improvement of improvements.slice(0, maxImprovements)) {
+        const validatedImprovement = validateSingleSelector(improvement);
+        if (validatedImprovement.isValid && validatedImprovement.isUnique) {
+          improvedSelectors.push(improvement);
+        }
+      }
+    }
+  }
+  
   return improvedSelectors;
 }
 
@@ -421,16 +586,23 @@ export function validateAndImproveSelector(selectors, element, options = {}) {
 export function generateAndValidateSelectors(element, options = {}) {
   const { 
     maxSelectors = 5, 
-    minScore = 300,
+    minScore = 100, // Lower threshold to get more selectors initially
     validate = true,
     // If true, convert final selectors to XPath form (prefixed with 'xpath=')
     returnXPath = false
   } = options;
-  const selectors = generateSelector(element, { maxSelectors, minScore });
-  console.log('[generateAndValidateSelectors] Selectors:', selectors);
-  let finalSelectors = (!validate) ? selectors : validateAndImproveSelector(selectors, element);
-  console.log('[generateAndValidateSelectors] Final selectors:', finalSelectors);
-  // Đảm bảo unique theo thứ tự xuất hiện
+  
+  const allSelectors = generateSelector(element, { maxSelectors: 50, minScore: 0 }); // Generate all selectors
+  console.log('[generateAndValidateSelectors] All generated selectors:', allSelectors);
+  
+  let finalSelectors = (!validate) ? allSelectors : validateAndImproveSelector(allSelectors, element);
+  
+  // Apply minScore filter after validation (if validate is false, we need to filter by score)
+  if (!validate) {
+    // For now, just limit to maxSelectors since we don't have score info after generateSelector
+    finalSelectors = finalSelectors.slice(0, maxSelectors);
+  }
+  
   try {
     const seen = new Set();
     finalSelectors = finalSelectors.filter(s => {
@@ -441,76 +613,16 @@ export function generateAndValidateSelectors(element, options = {}) {
     });
   } catch {}
 
-  // Hàm dựng XPath tuyệt đối từ root tới element
-  function buildAbsoluteXPath(el) {
-    try {
-      if (!el || el.nodeType !== Node.ELEMENT_NODE) return '';
-      const doc = el.ownerDocument || document;
 
-      // Helper: convert string to a safe XPath literal
-      const toXPathLiteral = (s) => {
-        if (s.indexOf('"') === -1) return `"${s}"`;
-        if (s.indexOf("'") === -1) return `'${s}'`;
-        return 'concat(' + s.split('"').map((part, i) => (i > 0 ? ',""",' : '') + `'${part}'`).join('') + ')';
-      };
-
-      // Prefer short id-based XPath if available and unique
-      try {
-        const id = el.getAttribute && el.getAttribute('id');
-        if (id && id.trim()) {
-          // If unique in document, return by-id path
-          let unique = true;
-          try {
-            const esc = (window.CSS && CSS.escape) ? CSS.escape(id) : id;
-            const q = doc.querySelectorAll(`#${esc}`);
-            unique = q.length === 1 && q[0] === el;
-          } catch {}
-          if (unique) {
-            return `//*[@id=${toXPathLiteral(id)}]`;
-          }
-        }
-      } catch {}
-
-      // Absolute path using tag and :nth-of-type-like indexing
-      const segments = [];
-      let node = el;
-      while (node && node.nodeType === Node.ELEMENT_NODE && node !== doc.documentElement) {
-        const tag = node.tagName.toLowerCase();
-        const parent = node.parentElement;
-        let index = 1;
-        if (parent) {
-          const sameTagSiblings = Array.from(parent.children).filter(n => n.tagName === node.tagName);
-          if (sameTagSiblings.length > 1) {
-            index = sameTagSiblings.indexOf(node) + 1;
-          }
-        }
-        segments.unshift(index > 1 ? `${tag}[${index}]` : tag);
-        node = parent;
-      }
-      // Prepend html as root
-      const path = ['/html', ...segments].join('/');
-      return path;
-    } catch {
-      return '';
-    }
-  }
-
-  // Nếu không có selector nào, trả về XPath tuyệt đối
+  // If no selectors, return fallback
   if (!finalSelectors || finalSelectors.length === 0) {
-    const xpath = buildAbsoluteXPath(element);
-    const only = xpath ? [xpath] : ['*'];
-    return returnXPath ? only.map(s => s.startsWith('xpath=') ? s : `xpath=${s}`) : only;
+    const fallback = ['*'];
+    return returnXPath ? fallback.map(s => s.startsWith('xpath=') ? s : `xpath=${s}`) : fallback;
   }
 
-  // Nếu ít hơn maxSelectors, thêm XPath là phần tử cuối cùng
-  if (finalSelectors.length < maxSelectors) {
-    const xpath = buildAbsoluteXPath(element);
-    if (xpath && !finalSelectors.includes(xpath)) {
-      finalSelectors.push(xpath);
-    }
-  }
+  // XPath has already been added before validation, no need to add again
 
-  // Cắt còn tối đa maxSelectors, đảm bảo XPath (nếu có) là phần tử cuối cùng
+  // Limit to maxSelectors at the end, ensuring XPath (if any) is the last element
   if (finalSelectors.length > maxSelectors) {
     finalSelectors = finalSelectors.slice(0, maxSelectors);
   }

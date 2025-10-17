@@ -62,7 +62,19 @@ export function buildSelectors(target, options = {}) {
 }
 
 // Helper: dựng payload chung
-export function buildCommonActionData(e, selectors, extra = {}) {
+export function buildCommonActionData(e, selectors, extra = {}, actionType = 'unknown') {
+  if (actionType === 'scroll_handle' || actionType === 'window_resize') {
+    return {
+      selector: selectors,
+      element: 'window',
+      elementPreview:  undefined,
+      elementText: undefined,
+      coordinates: (typeof e?.clientX === 'number' && typeof e?.clientY === 'number')
+        ? { x: e.clientX, y: e.clientY }
+        : undefined,
+      ...extra
+    };
+  }
   return {
     selector: selectors,
     element: e?.target?.tagName?.toLowerCase?.() || 'unknown',

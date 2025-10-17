@@ -24,6 +24,10 @@ export enum ActionType {
     scroll = "scroll",
     database_execution = "database_execution",
     wait = "wait",
+    reload = "reload",
+    back = "back",
+    forward = "forward",
+    window_resize = "window_resize",
   }
   
   export enum AssertType {

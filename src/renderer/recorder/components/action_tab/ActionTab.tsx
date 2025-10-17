@@ -33,6 +33,8 @@ interface ActionTabProps {
   onActionsChange?: (updater: (prev: Action[]) => Action[]) => void;
   onInsertPositionChange?: (position: number) => void;
   onDisplayPositionChange?: (position: number) => void;
+  executingActionIndex?: number | null;
+  failedActionIndex?: number | null;
 }
 
 const ActionTab: React.FC<ActionTabProps> = ({ 
@@ -58,7 +60,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
   testcaseId, 
   onActionsChange, 
   onInsertPositionChange, 
-  onDisplayPositionChange 
+  onDisplayPositionChange, executingActionIndex, failedActionIndex 
 }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -263,6 +265,33 @@ const ActionTab: React.FC<ActionTabProps> = ({
         console.log("Created wait action:", waitAction);
         return waitAction;
       
+      case 'reload':
+        const reloadAction = {
+          ...baseAction,
+          action_type: ActionType.reload,
+          description: 'Reload current page',
+        } as any;
+        console.log("Created reload action:", reloadAction);
+        return reloadAction;
+
+      case 'back':
+        const backAction = {
+          ...baseAction,
+          action_type: ActionType.back,
+          description: 'Go back to previous page',
+        } as any;
+        console.log("Created back action:", backAction);
+        return backAction;
+
+      case 'forward':
+        const forwardAction = {
+          ...baseAction,
+          action_type: ActionType.forward,
+          description: 'Go forward to next page',
+        } as any;
+        console.log("Created forward action:", forwardAction);
+        return forwardAction;
+      
       case 'database_execution':
         // This will be handled by the modal
         console.log("Database execution will be handled by modal");
@@ -317,6 +346,17 @@ const ActionTab: React.FC<ActionTabProps> = ({
       node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch {}
   }, [selectedInsertPosition, actions.length]);
+
+  // Auto-scroll to the currently executing or failed action
+  useEffect(() => {
+    const targetIndex = (failedActionIndex != null) ? failedActionIndex : executingActionIndex;
+    if (targetIndex == null) return;
+    const node = itemRefs.current[targetIndex];
+    if (!node) return;
+    try {
+      node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch {}
+  }, [executingActionIndex, failedActionIndex]);
 
   return (
     <div className="rcd-actions-section">
@@ -454,7 +494,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, index)}
                   onDragEnd={handleDragEnd}
-                  className={`rcd-action-draggable ${draggedIndex === index ? 'rcd-dragging' : ''} ${dragOverIndex === index ? 'rcd-drag-over' : ''}`}
+                  className={`rcd-action-draggable ${draggedIndex === index ? 'rcd-dragging' : ''} ${dragOverIndex === index ? 'rcd-drag-over' : ''} ${executingActionIndex === index ? 'rcd-executing' : ''} ${failedActionIndex === index ? 'rcd-failed' : ''}`}
                 >
                   <RenderedAction 
                     action={action} 

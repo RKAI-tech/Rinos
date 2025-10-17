@@ -20,6 +20,20 @@ const browserMethods = {
             ipcRenderer.removeListener("browser:stopped", listener);
         };
     },
+    onActionExecuting: (handler: (data: { index: number }) => void) => {
+        const listener = (_: unknown, data: { index: number }) => handler(data);
+        ipcRenderer.on("browser:action-executing", listener);
+        return () => {
+            ipcRenderer.removeListener("browser:action-executing", listener);
+        };
+    },
+    onActionFailed: (handler: (data: { index: number }) => void) => {
+        const listener = (_: unknown, data: { index: number }) => handler(data);
+        ipcRenderer.on("browser:action-failed", listener);
+        return () => {
+            ipcRenderer.removeListener("browser:action-failed", listener);
+        };
+    },
     setAssertMode: async (enabled: boolean, assertType: AssertType) => ipcRenderer.invoke("browser:setAssertMode", enabled, assertType),
     setProjectId: async (projectId: string) => ipcRenderer.invoke("browser:setProjectId", projectId),
     getProjectId: async () => ipcRenderer.invoke("browser:getProjectId"),

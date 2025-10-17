@@ -36,6 +36,16 @@ function getOrCreateManagerForWindow(win: BrowserWindow): BrowserManager {
             win.webContents.send('browser:stopped');
         }
     });
+    manager.on('action-executing', (data: { index: number }) => {
+        if (!win.isDestroyed()) {
+            win.webContents.send('browser:action-executing', data);
+        }
+    });
+    manager.on('action-failed', (data: { index: number }) => {
+        if (!win.isDestroyed()) {
+            win.webContents.send('browser:action-failed', data);
+        }
+    });
 
     // Khi cửa sổ đóng, đảm bảo tắt browser và dọn dẹp
     const closedHandler = async () => {
@@ -77,10 +87,42 @@ export function registerBrowserIpc() {
             return;
         }
         (manager as any).isExecuting = true;
+        
+        // Set executing state in tracking script to prevent resize event recording
+        try {
+            if (manager.page) {
+                await manager.page.evaluate(() => {
+                    const global: any = globalThis as any;
+                    if (global.setExecutingActionsState) {
+                        global.setExecutingActionsState(true);
+                    }
+                });
+            }
+        } catch (e) {
+            // Ignore if function doesn't exist
+        }
+        
         try {
             await manager.controller?.executeMultipleActions(manager.page as Page, actions);
         } finally {
             (manager as any).isExecuting = false;
+            
+            // Reset executing state in tracking script
+            try {
+                if (manager.page) {
+                    await manager.page.evaluate(() => {
+                        const global: any = globalThis as any;
+                        if (global.setExecutingActionsState) {
+                            global.setExecutingActionsState(false);
+                        }
+                    });
+                    
+                    // Add a small delay to ensure resize events can be recorded again
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            } catch (e) {
+                // Ignore if function doesn't exist
+            }
         }
     });
 

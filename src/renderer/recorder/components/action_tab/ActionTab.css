@@ -132,6 +132,94 @@
   position: relative;
 }
 
+/* Execution States */
+.rcd-executing .rcd-action {
+  background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 25%, #81d4fa 50%, #4fc3f7 75%, #29b6f6 100%);
+  background-size: 300% 300%;
+  animation: executing-flow 2s ease-in-out infinite;
+  border: 2px solid #0288d1;
+  box-shadow: 0 4px 20px rgba(2, 136, 209, 0.4), 0 0 0 1px rgba(2, 136, 209, 0.1);
+  transform: scale(1.02);
+  transition: all 0.3s ease;
+}
+
+.rcd-failed .rcd-action {
+  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 25%, #ef9a9a 50%, #e57373 75%, #ef5350 100%);
+  background-size: 300% 300%;
+  animation: failed-pulse 1s ease-in-out infinite;
+  border: 2px solid #d32f2f;
+  box-shadow: 0 4px 20px rgba(211, 47, 47, 0.4), 0 0 0 1px rgba(211, 47, 47, 0.1);
+  transform: scale(1.01);
+  transition: all 0.3s ease;
+}
+
+@keyframes executing-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes failed-pulse {
+  0% {
+    background-position: 0% 50%;
+    transform: scale(1.01);
+  }
+  50% {
+    background-position: 100% 50%;
+    transform: scale(1.03);
+  }
+  100% {
+    background-position: 0% 50%;
+    transform: scale(1.01);
+  }
+}
+
+/* Enhanced text and icon effects for execution states */
+.rcd-executing .rcd-action * {
+  color: #01579b !important;
+  text-shadow: 0 1px 2px rgba(1, 87, 155, 0.3);
+}
+
+.rcd-failed .rcd-action * {
+  color: #b71c1c !important;
+  text-shadow: 0 1px 2px rgba(183, 28, 28, 0.3);
+}
+
+/* Icon glow effects */
+.rcd-executing .rcd-action svg {
+  filter: drop-shadow(0 0 4px rgba(2, 136, 209, 0.6));
+  animation: icon-glow-blue 2s ease-in-out infinite;
+}
+
+.rcd-failed .rcd-action svg {
+  filter: drop-shadow(0 0 4px rgba(211, 47, 47, 0.6));
+  animation: icon-glow-red 1s ease-in-out infinite;
+}
+
+@keyframes icon-glow-blue {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px rgba(2, 136, 209, 0.6));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(2, 136, 209, 0.8));
+  }
+}
+
+@keyframes icon-glow-red {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px rgba(211, 47, 47, 0.6));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(211, 47, 47, 0.8));
+  }
+}
+
 /* Drag and Drop Styles */
 .rcd-action-draggable {
   cursor: move;

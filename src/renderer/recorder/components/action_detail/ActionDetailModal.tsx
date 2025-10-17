@@ -77,6 +77,15 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
     switch (type) {
       case ActionType.navigate:
         return { ...base, showSelectors: false, showValue: true, valueLabel: 'URL' };
+      case ActionType.reload:
+        // Reload: chỉ hiển thị Type và Description
+        return { ...base, showSelectors: false, showValue: false };
+      case ActionType.back:
+        // Back: chỉ hiển thị Type và Description
+        return { ...base, showSelectors: false, showValue: false };
+      case ActionType.forward:
+        // Forward: chỉ hiển thị Type và Description
+        return { ...base, showSelectors: false, showValue: false };
       case ActionType.database_execution:
         // Database execution: hide selectors/value controls here; will render a dedicated SQL editor section
         return { ...base, showSelectors: false, showValue: false };
@@ -107,7 +116,7 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
       case ActionType.upload:
         return { ...base, showSelectors: true, showValue: true, valueLabel: 'File Path' };
       case ActionType.scroll:
-        return { ...base, showSelectors: true };
+        return { ...base, showSelectors: true, showValue: true, valueLabel: 'Position' };
       case ActionType.connect_db:
         // Not supported in this modal yet
         return { ...base, showSelectors: false };

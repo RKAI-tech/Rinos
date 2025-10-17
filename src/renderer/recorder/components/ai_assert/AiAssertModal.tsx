@@ -158,7 +158,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
 
             {elements.map((el, idx) => (
               <div key={el.id} className="aiam-element-item">
-                <div className="aiam-row">
+                <div className="aiam-row aiam-row-header">
                   <div className="aiam-col aiam-col-type">
                     <label className="aiam-sub">Type</label>
                     <input className="aiam-input aiam-disabled" value={el.type} disabled />

@@ -143,13 +143,19 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
       case ActionType.upload:
         return { ...base, showSelectors: true, showValue: true, valueLabel: 'File Path' };
       case ActionType.scroll:
-        return { ...base, showSelectors: true };
+        return { ...base, showSelectors: true, showValue: true, valueLabel: 'Position' };
       case ActionType.connect_db:
         return { ...base, showSelectors: false };
       case ActionType.assert:
         return { ...base, showAssertType: true };
       case ActionType.wait:
         return { ...base, showValue: true, valueLabel: 'Milliseconds' ,showSelectors: false};
+      case ActionType.reload:
+        return { ...base, showSelectors: false, showValue: false };
+      case ActionType.back:
+        return { ...base, showSelectors: false, showValue: false };
+      case ActionType.forward:
+        return { ...base, showSelectors: false, showValue: false };
       default:
         return base;
     }

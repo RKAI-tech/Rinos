@@ -14,6 +14,8 @@ import { handleKeyDownEvent} from '../actions/keyboard_handle.js';
 import { handleSelectChangeEvent } from '../actions/select_handle.js';
 import { handleDragStartEvent, handleDragEndEvent, handleDropEvent } from '../actions/drag_and_drop.js';
 import { handleUploadChangeEvent } from '../actions/upload_handle.js';
+import { handleScrollEvent } from '../actions/scroll_handle.js';
+import { handleWindowResizeEvent, setExecutingActionsState } from '../actions/window_resize.js';
 // import { attachBrowserHandlers } from './actions/browser_handle.js';
 let globalAssertMode = false;
 let browserControls = null;
@@ -172,6 +174,12 @@ export function initializeEventListeners() {
   document.addEventListener('dragstart', handleDragStartEvent);
   document.addEventListener('drop', handleDropEvent);
   document.addEventListener('contextmenu', handleRightClickEvent);
+  // Scroll tracking (passive)
+  window.addEventListener('scroll', handleScrollEvent, { passive: true });
+  // Capture internal container scrolls as well
+  document.addEventListener('scroll', handleScrollEvent, { passive: true, capture: true });
+  // Window resize tracking (passive)
+  window.addEventListener('resize', handleWindowResizeEvent, { passive: true });
   
   // Add capture phase event blocker for assert mode - blocks specific events only
   document.addEventListener('click', handleAssertCaptureBlocking, true);
@@ -278,6 +286,9 @@ export function initializeTracking() {
   //     browserHandlersDisposer = null;
   //   }
   // };
+  
+  // Expose function to control execution state for resize events
+  window.setExecutingActionsState = setExecutingActionsState;
 }
 
 // Check if DOM is ready

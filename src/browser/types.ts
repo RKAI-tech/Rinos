@@ -36,8 +36,9 @@ export enum ActionType {
     wait = 'wait',
     database_execution = 'database_execution',
     reload = 'reload',
-    back_forward = 'back_forward',
-    search_enter = 'search_enter'
+    back = 'back',
+    forward = 'forward',
+    window_resize = 'window_resize',
 }
 
 export enum AssertType {
