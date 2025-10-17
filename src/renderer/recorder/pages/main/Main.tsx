@@ -174,9 +174,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       setIsAssertDropdownOpen(false);
       setAssertSearch('');
       setIsAssertMode(false);
-      // Reset vị trí record khi tắt trình duyệt
-      setSelectedInsertPosition(0);
-      setDisplayInsertPosition(0);
+      // Keep recording position when closing browser (don't reset to 0)
+      // setSelectedInsertPosition(0);
+      // setDisplayInsertPosition(0);
       setRecordingFromActionIndex(null);
       // Reset execution effects
       setExecutingActionIndex(null);
@@ -339,8 +339,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setAssertSearch('');
     setIsAssertMode(false);
     await (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
-    // Reset vị trí record khi dừng trình duyệt thủ công
-    setSelectedInsertPosition(0);
+    // Keep recording position when stopping browser manually (don't reset to 0)
+    // setSelectedInsertPosition(0);
     setRecordingFromActionIndex(null);
     // Reset execution effects
     setExecutingActionIndex(null);

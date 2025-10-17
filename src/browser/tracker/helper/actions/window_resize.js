@@ -7,6 +7,7 @@ import {
 
 let _resizeRafId = null;
 let _pendingEvent = null;
+let _isExecutingActions = false;
 
 function dispatchResize(e) {
   const target = window; // window resize
@@ -20,6 +21,14 @@ function dispatchResize(e) {
 
 export function handleWindowResizeEvent(e) {
   if (getPauseMode && getPauseMode()) return;
+  // Don't record resize events when executing actions to prevent infinite loop
+  if (_isExecutingActions) {
+    console.log('[WindowResize] Skipping resize event recording - actions are executing');
+    return;
+  }
+  
+  console.log('[WindowResize] Recording resize event:', window.innerWidth, 'x', window.innerHeight);
+  
   _pendingEvent = e;
   if (_resizeRafId != null) return;
   _resizeRafId = window.requestAnimationFrame(() => {
@@ -36,5 +45,11 @@ export function disposeWindowResizeHandler() {
     _resizeRafId = null;
   }
   _pendingEvent = null;
+}
+
+// Functions to control execution state
+export function setExecutingActionsState(isExecuting) {
+  _isExecutingActions = isExecuting;
+  console.log('[WindowResize] Execution state changed:', isExecuting);
 }
 

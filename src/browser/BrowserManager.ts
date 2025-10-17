@@ -45,6 +45,9 @@ export class BrowserManager extends EventEmitter {
         super();
         this.controller = new Controller();
         
+        // Set browser manager reference in controller
+        this.controller.browserManager = this;
+        
         // Set execution callbacks
         this.controller.setExecutionCallbacks(
             (index: number) => {
@@ -95,10 +98,10 @@ export class BrowserManager extends EventEmitter {
                 ],
             });
 
-            // Create context
-            this.context = await this.browser.newContext(
-                { viewport: null }
-            );
+            // Create context with null viewport to match browser window size
+            this.context = await this.browser.newContext({
+                viewport: null // Let viewport match browser window size
+            });
 
             // Create page
             this.page = await this.context.newPage();
@@ -157,14 +160,46 @@ export class BrowserManager extends EventEmitter {
         }
     }
 
-    private async resizeWindow(width: number, height: number): Promise<void> {
+
+
+    public async resizeWindow(width: number, height: number): Promise<void> {
         try {
             if (!this.page) return;
-            // Use CDP to resize top-level browser window since context viewport is null
+            
+            console.log(`[BrowserManager] Resizing window to ${width}x${height}`);
+            
+            // Use CDP to resize the actual browser window
             const session = await (this.page.context() as any).newCDPSession(this.page);
             const { windowId } = await session.send('Browser.getWindowForTarget');
-            await session.send('Browser.setWindowBounds', { windowId, bounds: { width, height } });
+            
+            // Set window bounds with the exact requested size
+            await session.send('Browser.setWindowBounds', { 
+                windowId, 
+                bounds: { 
+                    width, 
+                    height
+                    // Don't force windowState to avoid sudden resizing
+                } 
+            });
+            
+            // Wait for the resize to take effect
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Verify the resize worked
+            try {
+                const bounds = await session.send('Browser.getWindowBounds', { windowId });
+                console.log(`[BrowserManager] Window resized successfully. Current bounds:`, bounds);
+                
+                // With viewport: null, viewport should automatically match window size
+                const viewportSize = await this.page.viewportSize();
+                console.log(`[BrowserManager] Viewport size (should match window):`, viewportSize);
+                
+            } catch (e) {
+                console.log(`[BrowserManager] Could not verify window bounds:`, e);
+            }
+            
         } catch (e) {
+            console.error(`[BrowserManager] Failed to resize window:`, e);
             // Fallback: no-op
         }
     }

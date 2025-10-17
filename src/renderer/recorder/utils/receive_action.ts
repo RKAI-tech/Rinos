@@ -61,7 +61,7 @@ export function createDescription(action_received: any): string {
         case ActionType.reload:
             return `Reload page`;
         case ActionType.scroll:
-            return `Scroll ${value}`;
+            return `Scroll viewport`;
         case ActionType.assert:
             switch (action_received.assertType) {
                 case AssertType.toHaveText:

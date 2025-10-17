@@ -15,7 +15,7 @@ import { handleSelectChangeEvent } from '../actions/select_handle.js';
 import { handleDragStartEvent, handleDragEndEvent, handleDropEvent } from '../actions/drag_and_drop.js';
 import { handleUploadChangeEvent } from '../actions/upload_handle.js';
 import { handleScrollEvent } from '../actions/scroll_handle.js';
-import { handleWindowResizeEvent } from '../actions/window_resize.js';
+import { handleWindowResizeEvent, setExecutingActionsState } from '../actions/window_resize.js';
 // import { attachBrowserHandlers } from './actions/browser_handle.js';
 let globalAssertMode = false;
 let browserControls = null;
@@ -286,6 +286,9 @@ export function initializeTracking() {
   //     browserHandlersDisposer = null;
   //   }
   // };
+  
+  // Expose function to control execution state for resize events
+  window.setExecutingActionsState = setExecutingActionsState;
 }
 
 // Check if DOM is ready

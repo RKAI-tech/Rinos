@@ -13,6 +13,7 @@ export class Controller {
     private fileService: FileService;
     private onActionExecuting?: (index: number) => void;
     private onActionFailed?: (index: number) => void;
+    public browserManager?: any; // Reference to BrowserManager for window operations
 
     constructor() {
         this.pendingRequests = 0;
@@ -324,8 +325,16 @@ export class Controller {
                         if (match_window_resize) {
                             width = Number(match_window_resize[1]);
                             height = Number(match_window_resize[2]);
-                        } 
-                        await page.setViewportSize({ width: width || 1920, height: height || 1080 });
+                        }
+                        // Apply sensible defaults and bounds
+                        const targetWidth = Math.max(width || 1366, 800);
+                        const targetHeight = Math.max(height || 768, 600);
+                        
+                        // Resize browser window via BrowserManager (handles both window and viewport)
+                        if (this.browserManager) {
+                            await this.browserManager.resizeWindow(targetWidth, targetHeight);
+                        }
+                        
                         await page.waitForLoadState('networkidle', { timeout: 10000 });
                         break;
                     default:

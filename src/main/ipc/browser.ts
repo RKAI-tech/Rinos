@@ -87,10 +87,42 @@ export function registerBrowserIpc() {
             return;
         }
         (manager as any).isExecuting = true;
+        
+        // Set executing state in tracking script to prevent resize event recording
+        try {
+            if (manager.page) {
+                await manager.page.evaluate(() => {
+                    const global: any = globalThis as any;
+                    if (global.setExecutingActionsState) {
+                        global.setExecutingActionsState(true);
+                    }
+                });
+            }
+        } catch (e) {
+            // Ignore if function doesn't exist
+        }
+        
         try {
             await manager.controller?.executeMultipleActions(manager.page as Page, actions);
         } finally {
             (manager as any).isExecuting = false;
+            
+            // Reset executing state in tracking script
+            try {
+                if (manager.page) {
+                    await manager.page.evaluate(() => {
+                        const global: any = globalThis as any;
+                        if (global.setExecutingActionsState) {
+                            global.setExecutingActionsState(false);
+                        }
+                    });
+                    
+                    // Add a small delay to ensure resize events can be recorded again
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            } catch (e) {
+                // Ignore if function doesn't exist
+            }
         }
     });
 
