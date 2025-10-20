@@ -189,10 +189,10 @@ const ActionTab: React.FC<ActionTabProps> = ({
   
   };
 
-  const handleSelectAddAction = (actionType: string) => {
+  const handleSelectAddAction = async (actionType: string) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
 
-    console.log("handleSelectAddAction called with type:", actionType);
+    // console.log("handleSelectAddAction called with type:", actionType);
     
     // For database_execution, it's handled by modal, so don't add to list here
     if (actionType === 'database_execution') {
@@ -210,16 +210,16 @@ const ActionTab: React.FC<ActionTabProps> = ({
       return;
     }
 
-    const newAction = createActionByType(actionType);
-    console.log("Created action:", newAction);
+    const newAction = await createActionByType(actionType);
+    // console.log("Created action:", newAction);
     
     if (newAction) {
       onActionsChange(prev => {
-        console.log(`=== BEFORE ADDING ${actionType.toUpperCase()} ACTION ===`);
-        console.log("Previous actions count:", prev.length);
-        console.log("Previous actions:", prev.map(a => ({ id: a.action_id, type: a.action_type, desc: a.description })));
-        console.log("Insert position:", selectedInsertPosition);
-        console.log("New action to add:", { id: newAction.action_id, type: newAction.action_type, desc: newAction.description });
+        // console.log(`=== BEFORE ADDING ${actionType.toUpperCase()} ACTION ===`);
+        // console.log("Previous actions count:", prev.length);
+        // console.log("Previous actions:", prev.map(a => ({ id: a.action_id, type: a.action_type, desc: a.description })));
+        // console.log("Insert position:", selectedInsertPosition);
+        // console.log("New action to add:", { id: newAction.action_id, type: newAction.action_type, desc: newAction.description });
         
         const next = receiveActionWithInsert(
           testcaseId,
@@ -228,10 +228,10 @@ const ActionTab: React.FC<ActionTabProps> = ({
           selectedInsertPosition || 0
         );
         
-        console.log(`=== AFTER ADDING ${actionType.toUpperCase()} ACTION ===`);
-        console.log("Next actions count:", next.length);
-        console.log("Next actions:", next.map(a => ({ id: a.action_id, type: a.action_type, desc: a.description })));
-        console.log("Action added successfully:", next.length > prev.length);
+        // console.log(`=== AFTER ADDING ${actionType.toUpperCase()} ACTION ===`);
+        // console.log("Next actions count:", next.length);
+        // console.log("Next actions:", next.map(a => ({ id: a.action_id, type: a.action_type, desc: a.description })));
+        // console.log("Action added successfully:", next.length > prev.length);
         
         const added = next.length > prev.length;
         if (added) {
@@ -248,7 +248,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
     }
   };
 
-  const createActionByType = (actionType: string): any => {
+  const createActionByType = async (actionType: string): Promise<any> => {
     if (!testcaseId) return null;
 
     const baseAction = {
@@ -256,8 +256,8 @@ const ActionTab: React.FC<ActionTabProps> = ({
       action_id: Math.random().toString(36),
     };
 
-    console.log("Creating action for type:", actionType);
-    console.log("Base action:", baseAction);
+    // console.log("Creating action for type:", actionType);
+    // console.log("Base action:", baseAction);
 
     switch (actionType) {
       case 'wait':
@@ -267,7 +267,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
           value: '1000', 
           description: 'Wait for 1 second',
         };
-        console.log("Created wait action:", waitAction);
+        // console.log("Created wait action:", waitAction);
         return waitAction;
       
       case 'reload':
@@ -276,7 +276,8 @@ const ActionTab: React.FC<ActionTabProps> = ({
           action_type: ActionType.reload,
           description: 'Reload current page',
         } as any;
-        console.log("Created reload action:", reloadAction);
+        // console.log("Created reload action:", reloadAction);
+        await (window as any).browserAPI?.browser?.reload();
         return reloadAction;
 
       case 'back':
@@ -285,7 +286,8 @@ const ActionTab: React.FC<ActionTabProps> = ({
           action_type: ActionType.back,
           description: 'Go back to previous page',
         } as any;
-        console.log("Created back action:", backAction);
+        // console.log("Created back action:", backAction);
+        await (window as any).browserAPI?.browser?.goBack();
         return backAction;
 
       case 'forward':
@@ -294,7 +296,8 @@ const ActionTab: React.FC<ActionTabProps> = ({
           action_type: ActionType.forward,
           description: 'Go forward to next page',
         } as any;
-        console.log("Created forward action:", forwardAction);
+        // console.log("Created forward action:", forwardAction);
+        await (window as any).browserAPI?.browser?.goForward();
         return forwardAction;
       
       case 'database_execution':
@@ -313,6 +316,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
           description: 'Navigate to URL',
         };
         console.log("Created visit_url action:", visitAction);
+        await (window as any).browserAPI?.browser?.navigate(visitAction.value as string);
         return visitAction;
       
       default:
@@ -424,7 +428,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
             <NavigateModal
               isOpen={isNavigateOpen}
               onClose={() => setIsNavigateOpen(false)}
-              onConfirm={(url) => {
+              onConfirm={async (url) => {
                 if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
                 const newAction = {
                   testcase_id: testcaseId,
@@ -449,6 +453,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
                   return next;
                 });
                 setIsNavigateOpen(false);
+                await (window as any).browserAPI?.browser.navigate(url);
                 toast.success('Added navigate action');
               }}
             />
