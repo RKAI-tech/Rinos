@@ -158,7 +158,9 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
             query: action_received.query,
             value: action_received.value,
             variable_name: action_received.variable_name,
-        } as Element] : [],
+        } as Element] : action_received.elements ? action_received.elements.map((element: Element) => ({
+            query: element.query,
+        } as Element)) : [],
         assert_type: action_received.assertType,
         value: action_received.value || action_received.files?.[0]?.name || action_received.url || undefined,
         connection_id: action_received.connection_id,

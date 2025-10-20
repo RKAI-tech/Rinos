@@ -156,8 +156,13 @@ const ActionTab: React.FC<ActionTabProps> = ({
       action_type: ActionType.database_execution,
       connection_id: connectionId,
       connection: connection,
-      query: query,
-      statement: { query },
+      // query: query,
+      // statement: { query },
+      elements: [
+        {
+          query: query,
+        }
+      ],
       playwright_code: 'Database execution will be handled by backend',
       description: `Execute database query: ${query.substring(0, 50)}${query.length > 50 ? '...' : ''}`,
     };
