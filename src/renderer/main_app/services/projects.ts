@@ -8,7 +8,8 @@ import {
     ProjectDeleteRequest, 
     Project, 
     AddUserToProjectRequest,
-    UserInProject
+    UserInProject,
+    RemoveUserFromProjectRequest
 } from '../types/projects';
 
 export class ProjectService {
@@ -115,6 +116,13 @@ export class ProjectService {
     async getUsersInProject(projectId: string): Promise<ApiResponse<UserInProject[]>> {
         return await apiRouter.request<UserInProject[]>(`/projects/${projectId}/users`, {
             method: 'GET',
+        });
+    }
+
+    async removeUserFromProject(payload: RemoveUserFromProjectRequest): Promise<ApiResponse<DefaultResponse>> {
+        return await apiRouter.request<DefaultResponse>(`/projects/${payload.project_id}/users/${payload.user_id}`, {
+            method: 'DELETE',
+            body: JSON.stringify(payload)
         });
     }
 }

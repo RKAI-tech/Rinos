@@ -25,6 +25,9 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
   const [members, setMembers] = useState<UserInProject[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [membersError, setMembersError] = useState<string | null>(null);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [userToRemove, setUserToRemove] = useState<UserInProject | null>(null);
+  const [removingUser, setRemovingUser] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -99,6 +102,47 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
 
   const handleChangeUserPermission = (userId: string, perm: Permission) => {
     setSelectedUsers(prev => ({ ...prev, [userId]: perm }));
+  };
+
+  const handleRemoveUser = (user: UserInProject) => {
+    setUserToRemove(user);
+    setShowRemoveConfirm(true);
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!userToRemove || !projectId) return;
+    
+    try {
+      setRemovingUser(true);
+      const svc = new ProjectService();
+      const resp = await svc.removeUserFromProject({
+        user_id: userToRemove.user_id,
+        project_id: projectId,
+      });
+      
+      if (resp.success) {
+        toast.success('User removed successfully');
+        // Refresh the members list
+        const membersResp = await svc.getUsersInProject(projectId);
+        if (membersResp.success && membersResp.data) {
+          setMembers(membersResp.data);
+        }
+        if (onSuccess) await onSuccess();
+      } else {
+        toast.error(resp.error || 'Failed to remove user');
+      }
+    } catch (error) {
+      toast.error('Failed to remove user');
+    } finally {
+      setRemovingUser(false);
+      setShowRemoveConfirm(false);
+      setUserToRemove(null);
+    }
+  };
+
+  const handleCancelRemove = () => {
+    setShowRemoveConfirm(false);
+    setUserToRemove(null);
   };
 
   const handleSubmit = async () => {
@@ -307,6 +351,34 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
                       <div style={{ width: 220, fontSize: 12, color: '#374151' }}>
                         Permission: {m.permissions || '-'}
                       </div>
+                      {m.role !== 'owner' && (
+                        <button
+                          onClick={() => handleRemoveUser(m)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#ef4444',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#fef2f2';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                          title="Remove user from project"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -318,6 +390,73 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
           )}
         </div>
       </div>
+
+      {/* Remove User Confirmation Dialog */}
+      {showRemoveConfirm && userToRemove && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '90%',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600', color: '#111827' }}>
+              Remove User
+            </h3>
+            <p style={{ margin: '0 0 24px 0', color: '#6b7280', lineHeight: '1.5' }}>
+              Are you sure you want to remove <strong>{userToRemove.email || userToRemove.user_id}</strong> from this project? 
+              This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={handleCancelRemove}
+                disabled={removingUser}
+                style={{
+                  padding: '8px 16px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  backgroundColor: 'white',
+                  color: '#374151',
+                  cursor: removingUser ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmRemove}
+                disabled={removingUser}
+                style={{
+                  padding: '8px 16px',
+                  border: 'none',
+                  borderRadius: '6px',
+                  backgroundColor: removingUser ? '#9ca3af' : '#ef4444',
+                  color: 'white',
+                  cursor: removingUser ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                {removingUser ? 'Removing...' : 'Remove User'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

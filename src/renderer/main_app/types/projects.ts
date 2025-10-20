@@ -49,3 +49,8 @@ export interface UserInProject {
     role?: string;
     permissions?: string;
 }
+
+export interface RemoveUserFromProjectRequest {
+    user_id: string;
+    project_id: string;
+}
