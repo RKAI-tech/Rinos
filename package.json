@@ -65,8 +65,8 @@
     "wait-on": "^9.0.1"
   },
   "build": {
-    "appId": "com.rikkei.automation-test-execution",
-    "productName": "Rikkei Automation Test Execution",
+    "appId": "com.rikkei.automation",
+    "productName": "Rikkei_Automation_Test_Execution",
     "directories": {
       "output": "release"
     },
