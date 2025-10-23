@@ -1,4 +1,4 @@
-import { Action, ConnectionType } from "../types/actions";
+import { Action, ConnectionType, ApiRequestData } from "../types/actions";
 import { ActionType, AssertType, Element } from "../types/actions";
 function escapeSelector(selector: string): string {
     let escaped = selector;
@@ -383,6 +383,11 @@ export function generateActionCode(action: Action, index: number): string {
             } 
             return `    await page.setViewportSize({ width: ${width || '1920'}, height: ${height || '1080'} });\n` +
                 `    await page.waitForLoadState('networkidle');\n`;
+        case ActionType.api_request:
+            if (action.api_request) {
+                return generateApiRequestCode(action.api_request);
+            }
+            return `    // API Request action without data\n`;
         default:
             return "";
     }
@@ -477,5 +482,156 @@ export function actionToCode(actions: Action[]): string {
         code += generateActionCode(action, i + 1);
     }
     code += `});\n`;
+    return code;
+}
+
+/**
+ * Create API Request action
+ */
+export function createApiRequestAction(
+    testcaseId: string,
+    apiData: ApiRequestData,
+    description?: string
+): Action {
+    return {
+        testcase_id: testcaseId,
+        action_type: ActionType.api_request,
+        description: description || `API Request: ${apiData.method} ${apiData.url}`,
+        api_request: apiData,
+        timestamp: Date.now()
+    };
+}
+
+/**
+ * Generate Playwright code for API request action
+ */
+export function generateApiRequestCode(apiData: ApiRequestData): string {
+    let code = `  // API Request: ${apiData.method} ${apiData.url}\n`;
+    
+    // Build URL with params
+    let url = apiData.url;
+    if (apiData.params && apiData.params.length > 0) {
+        const validParams = apiData.params.filter(p => p.key.trim() && p.value.trim());
+        if (validParams.length > 0) {
+            const urlParams = new URLSearchParams();
+            validParams.forEach(param => {
+                urlParams.append(param.key.trim(), param.value.trim());
+            });
+            const separator = url.includes('?') ? '&' : '?';
+            url = `${url}${separator}${urlParams.toString()}`;
+        }
+    }
+    
+    code += `  const response = await page.request.${apiData.method.toLowerCase()}('${url}'`;
+    
+    // Add options if needed
+    const hasHeaders = apiData.headers && apiData.headers.some(h => h.key.trim() && h.value.trim());
+    const hasAuth = apiData.auth && apiData.auth.type !== 'none';
+    const hasBody = apiData.body && apiData.body.type !== 'none';
+    
+    if (hasHeaders || hasAuth || hasBody) {
+        code += `, {\n`;
+        
+        // Headers
+        if (hasHeaders) {
+            code += `    headers: {\n`;
+            apiData.headers.forEach(header => {
+                if (header.key.trim() && header.value.trim()) {
+                    code += `      '${header.key.trim()}': '${header.value.trim()}',\n`;
+                }
+            });
+            code += `    },\n`;
+        }
+        
+        // Auth
+        if (hasAuth) {
+            if (apiData.auth.type === 'basic' && apiData.auth.username && apiData.auth.password) {
+                const credentials = btoa(`${apiData.auth.username}:${apiData.auth.password}`);
+                code += `    headers: {\n`;
+                code += `      'Authorization': 'Basic ${credentials}',\n`;
+                code += `    },\n`;
+            } else if (apiData.auth.type === 'bearer' && apiData.auth.token) {
+                code += `    headers: {\n`;
+                code += `      'Authorization': 'Bearer ${apiData.auth.token}',\n`;
+                code += `    },\n`;
+            }
+        }
+        
+        // Body
+        if (hasBody) {
+            if (apiData.body.type === 'json') {
+                code += `    data: ${apiData.body.content},\n`;
+            } else if (apiData.body.type === 'form' && apiData.body.formData) {
+                const formData = apiData.body.formData
+                    .filter(p => p.key.trim() && p.value.trim())
+                    .map(p => `'${p.key.trim()}': '${p.value.trim()}'`)
+                    .join(', ');
+                code += `    data: { ${formData} },\n`;
+            }
+        }
+        
+        code += `  }`;
+    }
+    
+    code += `);\n`;
+    code += `  console.log('Response status:', response.status());\n`;
+    code += `  console.log('Response data:', await response.json());\n`;
+    
+    // Add token storage code if enabled
+    if (apiData.tokenStorage?.enabled) {
+      code += `\n  // Store token for future use\n`;
+      
+      if (apiData.tokenStorage.type === 'localStorage') {
+        code += `  const token = await response.json().then(data => data.token || data.access_token || data.accessToken);\n`;
+        code += `  if (token) {\n`;
+        code += `    localStorage.setItem('${apiData.tokenStorage.key || 'auth_token'}', token);\n`;
+        code += `    console.log('Token stored in localStorage with key: ${apiData.tokenStorage.key || 'auth_token'}');\n`;
+        code += `  }\n`;
+      } else if (apiData.tokenStorage.type === 'sessionStorage') {
+        code += `  const token = await response.json().then(data => data.token || data.access_token || data.accessToken);\n`;
+        code += `  if (token) {\n`;
+        code += `    sessionStorage.setItem('${apiData.tokenStorage.key || 'auth_token'}', token);\n`;
+        code += `    console.log('Token stored in sessionStorage with key: ${apiData.tokenStorage.key || 'auth_token'}');\n`;
+        code += `  }\n`;
+      } else if (apiData.tokenStorage.type === 'cookie') {
+        code += `  const token = await response.json().then(data => data.token || data.access_token || data.accessToken);\n`;
+        code += `  if (token) {\n`;
+        code += `    document.cookie = '${apiData.tokenStorage.key || 'auth_token'}=' + token + '; path=/; max-age=3600';\n`;
+        code += `    console.log('Token stored as cookie: ${apiData.tokenStorage.key || 'auth_token'}');\n`;
+        code += `  }\n`;
+      }
+    }
+
+    // Add Basic Auth storage code if enabled
+    if (apiData.basicAuthStorage?.enabled) {
+      code += `\n  // Store Basic Auth credentials for future use\n`;
+      
+      if (apiData.basicAuthStorage.type === 'localStorage') {
+        code += `  localStorage.setItem('${apiData.basicAuthStorage.usernameKey || 'basic_username'}', '${apiData.auth?.username || ''}');\n`;
+        code += `  localStorage.setItem('${apiData.basicAuthStorage.passwordKey || 'basic_password'}', '${apiData.auth?.password || ''}');\n`;
+        code += `  console.log('Basic Auth credentials stored in localStorage');\n`;
+      } else if (apiData.basicAuthStorage.type === 'sessionStorage') {
+        code += `  sessionStorage.setItem('${apiData.basicAuthStorage.usernameKey || 'basic_username'}', '${apiData.auth?.username || ''}');\n`;
+        code += `  sessionStorage.setItem('${apiData.basicAuthStorage.passwordKey || 'basic_password'}', '${apiData.auth?.password || ''}');\n`;
+        code += `  console.log('Basic Auth credentials stored in sessionStorage');\n`;
+      } else if (apiData.basicAuthStorage.type === 'cookie') {
+        code += `  document.cookie = '${apiData.basicAuthStorage.usernameKey || 'basic_username'}=${apiData.auth?.username || ''}; path=/; max-age=3600';\n`;
+        code += `  document.cookie = '${apiData.basicAuthStorage.passwordKey || 'basic_password'}=${apiData.auth?.password || ''}; path=/; max-age=3600';\n`;
+        code += `  console.log('Basic Auth credentials stored as cookies');\n`;
+      } else if (apiData.basicAuthStorage.type === 'custom') {
+        code += `  const usernameElement = document.querySelector('${apiData.basicAuthStorage.selector}');\n`;
+        code += `  const passwordElement = document.querySelector('${apiData.basicAuthStorage.selector}');\n`;
+        code += `  if (usernameElement) {\n`;
+        code += `    usernameElement.${apiData.basicAuthStorage.usernameAttribute || 'textContent'} = '${apiData.auth?.username || ''}';\n`;
+        code += `  }\n`;
+        code += `  if (passwordElement) {\n`;
+        code += `    passwordElement.${apiData.basicAuthStorage.passwordAttribute || 'textContent'} = '${apiData.auth?.password || ''}';\n`;
+        code += `  }\n`;
+        code += `  console.log('Basic Auth credentials stored in elements');\n`;
+      }
+    }
+    
+    code += `\n`;
+    
     return code;
 }

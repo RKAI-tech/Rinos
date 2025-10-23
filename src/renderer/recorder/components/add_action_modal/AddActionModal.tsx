@@ -11,9 +11,10 @@ interface AddActionModalProps {
   onClose: () => void;
   onSelectAction: (actionType: string) => void;
   onSelectDatabaseExecution?: () => void;
+  onSelectApiRequest?: () => void;
 }
 
-const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSelectAction, onSelectDatabaseExecution }) => {
+const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSelectAction, onSelectDatabaseExecution, onSelectApiRequest }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -64,8 +65,13 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
       value: 'reload',
       label: 'Reload',
       description: 'Reload the current page'
+    },
+    {
+      value: 'api_request',
+      label: 'API Request',
+      description: 'Make an HTTP(S) API request'
     }
-  ];
+    ];
 
   const filteredOptions = actionOptions.filter(option =>
     option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -75,6 +81,10 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
   const handleSelectAction = (actionType: string) => {
     if (actionType === 'database_execution' && onSelectDatabaseExecution) {
       onSelectDatabaseExecution();
+      setSearchTerm('');
+      onClose();
+    } else if (actionType === 'api_request' && onSelectApiRequest) {
+      onSelectApiRequest();
       setSearchTerm('');
       onClose();
     } else {
@@ -88,6 +98,7 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
     setSearchTerm('');
     onClose();
   };
+
 
   const getActionIcon = (actionType: string) => {
     switch (actionType) {
@@ -134,6 +145,14 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
             <path d="M14 12H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         );
+      case 'api_request':
+        return (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
+            <line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" strokeWidth="2"/>
+            <line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        );
       default:
         return null;
     }
@@ -147,6 +166,8 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
         return '#3b82f6'; // Blue color
       case 'visit_url':
         return '#10b981'; // Green color
+      case 'api_request':
+        return '#8b5cf6'; // Purple color
       default:
         return '#6b7280'; // Gray color
     }

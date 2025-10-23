@@ -29,6 +29,7 @@ export enum ActionType {
   back = "back",
   forward = "forward",
   window_resize = "window_resize",
+  api_request = "api_request",
 }
 
 export enum AssertType {
@@ -94,6 +95,66 @@ export interface FileUpload {
   file_content?: string;
 }
 
+// API Request interfaces
+export interface ApiRequestParam {
+  key: string;
+  value: string;
+}
+
+export interface ApiRequestHeader {
+  key: string;
+  value: string;
+}
+
+export interface ApiRequestBody {
+  type: 'none' | 'json' | 'form';
+  content: string;
+  formData?: ApiRequestParam[];
+}
+
+export interface ApiRequestAuth {
+  type: 'none' | 'basic' | 'bearer';
+  username?: string;
+  password?: string;
+  token?: string;
+}
+
+export interface ApiRequestTokenStorage {
+  enabled: boolean;
+  type?: 'localStorage' | 'sessionStorage' | 'cookie';
+  key?: string;
+}
+
+export interface ApiRequestBasicAuthStorage {
+  enabled: boolean;
+  type?: 'localStorage' | 'sessionStorage' | 'cookie' | 'custom';
+  usernameKey?: string;
+  passwordKey?: string;
+  selector?: string;
+  usernameAttribute?: string;
+  passwordAttribute?: string;
+}
+
+export interface ApiRequestData {
+  method: string;
+  url: string;
+  params: ApiRequestParam[];
+  headers: ApiRequestHeader[];
+  auth: ApiRequestAuth;
+  body: ApiRequestBody;
+  tokenStorage?: ApiRequestTokenStorage;
+  basicAuthStorage?: ApiRequestBasicAuthStorage;
+}
+
+export interface ApiResponse {
+  status: number;
+  data: any;
+  headers: Record<string, string>;
+  success: boolean;
+  error?: string;
+  timestamp?: number;
+}
+
 export interface Action {
     action_id?: string;                                                                                                                                                                                                               
     testcase_id: string;
@@ -118,6 +179,8 @@ export interface Action {
     // Browser events
     url?: string;
     timestamp?: number;
+    // API Request fields
+    api_request?: ApiRequestData;
 }
 
 export interface ActionBatch {

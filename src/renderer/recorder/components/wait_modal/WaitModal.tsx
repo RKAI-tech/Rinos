@@ -54,7 +54,9 @@ const WaitModal: React.FC<WaitModalProps> = ({ isOpen, onClose, onConfirm }) => 
           borderRadius: 12,
           width: 380,
           maxWidth: '90vw',
+          minWidth: 320,
           overflow: 'hidden',
+          boxSizing: 'border-box',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -67,7 +69,7 @@ const WaitModal: React.FC<WaitModalProps> = ({ isOpen, onClose, onConfirm }) => 
             </svg>
           </button>
         </div>
-        <div style={{ padding: '16px 20px' }}>
+        <div style={{ padding: '16px 20px', boxSizing: 'border-box' }}>
           <label style={{ display: 'block', fontSize: 14, color: '#374151', marginBottom: 8 }}>Milliseconds</label>
           <input
             type="text"
@@ -75,7 +77,14 @@ const WaitModal: React.FC<WaitModalProps> = ({ isOpen, onClose, onConfirm }) => 
             onChange={(e) => setMs(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="e.g. 1000"
-            style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14 }}
+            style={{ 
+              width: '100%', 
+              padding: '10px 12px', 
+              border: '1px solid #d1d5db', 
+              borderRadius: 8, 
+              fontSize: 14,
+              boxSizing: 'border-box'
+            }}
           />
         </div>
         <div style={{ padding: '12px 20px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: 8, background: '#f9fafb' }}>

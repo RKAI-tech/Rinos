@@ -42,7 +42,15 @@ const NavigateModal: React.FC<NavigateModalProps> = ({ isOpen, onClose, onConfir
       onClick={onClose}
     >
       <div
-        style={{ background: '#fff', borderRadius: 12, width: 420, maxWidth: '92vw', overflow: 'hidden' }}
+        style={{ 
+          background: '#fff', 
+          borderRadius: 12, 
+          width: 420, 
+          maxWidth: '92vw', 
+          minWidth: 320,
+          overflow: 'hidden',
+          boxSizing: 'border-box'
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -54,7 +62,7 @@ const NavigateModal: React.FC<NavigateModalProps> = ({ isOpen, onClose, onConfir
             </svg>
           </button>
         </div>
-        <div style={{ padding: '16px 20px' }}>
+        <div style={{ padding: '16px 20px', boxSizing: 'border-box' }}>
           <label style={{ display: 'block', fontSize: 14, color: '#374151', marginBottom: 8 }}>URL</label>
           <input
             type="text"
@@ -62,7 +70,14 @@ const NavigateModal: React.FC<NavigateModalProps> = ({ isOpen, onClose, onConfir
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }}
             placeholder="https://example.com or example.com"
-            style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14 }}
+            style={{ 
+              width: '100%', 
+              padding: '10px 12px', 
+              border: '1px solid #d1d5db', 
+              borderRadius: 8, 
+              fontSize: 14,
+              boxSizing: 'border-box'
+            }}
           />
         </div>
         <div style={{ padding: '12px 20px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: 8, background: '#f9fafb' }}>

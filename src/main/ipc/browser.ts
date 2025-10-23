@@ -130,29 +130,45 @@ export function registerBrowserIpc() {
         const win = getWindowFromEvent(event);
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
+        if (!manager.page) {
+            console.error('[Browser] Cannot navigate: page is null');
+            return;
+        }
         console.log('[Browser] Navigating to:', url);
-        await manager.controller?.navigate(manager.page as Page, url);
+        await manager.controller?.navigate(manager.page, url);
     });
 
     ipcMain.handle("browser:reload", async (event) => {
         const win = getWindowFromEvent(event);
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
-        await manager.controller?.reload(manager.page as Page);
+        if (!manager.page) {
+            console.error('[Browser] Cannot reload: page is null');
+            return;
+        }
+        await manager.controller?.reload(manager.page);
     });
 
     ipcMain.handle("browser:goBack", async (event) => {
         const win = getWindowFromEvent(event);
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
-        await manager.controller?.goBack(manager.page as Page);
+        if (!manager.page) {
+            console.error('[Browser] Cannot go back: page is null');
+            return;
+        }
+        await manager.controller?.goBack(manager.page);
     });
 
     ipcMain.handle("browser:goForward", async (event) => {
         const win = getWindowFromEvent(event);
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
-        await manager.controller?.goForward(manager.page as Page);
+        if (!manager.page) {
+            console.error('[Browser] Cannot go forward: page is null');
+            return;
+        }
+        await manager.controller?.goForward(manager.page);
     });
 
     ipcMain.handle("browser:setAssertMode", async (event, enabled: boolean, assertType: AssertType) => {

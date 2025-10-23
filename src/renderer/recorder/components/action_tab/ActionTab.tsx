@@ -5,7 +5,8 @@ import AddActionModal from '../add_action_modal/AddActionModal';
 import DatabaseExecutionModal from '../database_execution_modal/DatabaseExecutionModal';
 import WaitModal from '../wait_modal/WaitModal';
 import NavigateModal from '../navigate_modal/NavigateModal';
-import { Action, ActionType, AssertType, Connection } from '../../types/actions';
+import ApiRequestModal from '../api_request_modal/ApiRequestModal';
+import { Action, ActionType, AssertType, Connection, ApiRequestData } from '../../types/actions';
 import { receiveActionWithInsert } from '../../utils/receive_action';
 import { toast } from 'react-toastify';
 
@@ -67,6 +68,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
   const [isDatabaseExecutionOpen, setIsDatabaseExecutionOpen] = useState(false);
   const [isWaitOpen, setIsWaitOpen] = useState(false);
   const [isNavigateOpen, setIsNavigateOpen] = useState(false);
+  const [isApiRequestOpen, setIsApiRequestOpen] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
 
@@ -139,6 +141,10 @@ const ActionTab: React.FC<ActionTabProps> = ({
     setIsDatabaseExecutionOpen(true);
   };
 
+  const handleSelectApiRequest = () => {
+    setIsApiRequestOpen(true);
+  };
+
   const handleSelectWait = () => {
     setIsWaitOpen(true);
   };
@@ -188,6 +194,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
     toast.success('Added database execution action');
   
   };
+
 
   const handleSelectAddAction = async (actionType: string) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
@@ -306,6 +313,12 @@ const ActionTab: React.FC<ActionTabProps> = ({
         handleSelectDatabaseExecution();
         return null;
       
+      case 'api_request':
+        // This will be handled by the modal
+        console.log("API request will be handled by modal");
+        handleSelectApiRequest();
+        return null;
+      
       case 'visit_url':
         const visitAction = {
           ...baseAction,
@@ -388,6 +401,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
               onClose={() => onCloseAddAction && onCloseAddAction()}
               onSelectAction={handleSelectAddAction}
               onSelectDatabaseExecution={handleSelectDatabaseExecution}
+              onSelectApiRequest={handleSelectApiRequest}
             />
             <DatabaseExecutionModal
               isOpen={isDatabaseExecutionOpen}
@@ -455,6 +469,37 @@ const ActionTab: React.FC<ActionTabProps> = ({
                 setIsNavigateOpen(false);
                 await (window as any).browserAPI?.browser.navigate(url);
                 toast.success('Added navigate action');
+              }}
+            />
+            <ApiRequestModal
+              isOpen={isApiRequestOpen}
+              onClose={() => setIsApiRequestOpen(false)}
+              onConfirm={(data) => {
+                if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+                const newAction = {
+                  testcase_id: testcaseId,
+                  action_id: Math.random().toString(36),
+                  action_type: ActionType.api_request,
+                  api_request: data,
+                  description: `${data.method} ${data.url}`,
+                };
+                onActionsChange(prev => {
+                  const next = receiveActionWithInsert(
+                    testcaseId,
+                    prev,
+                    newAction,
+                    selectedInsertPosition || 0
+                  );
+                  const added = next.length > prev.length;
+                  if (added) {
+                    const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
+                    onInsertPositionChange(newPos);
+                    onDisplayPositionChange(newPos);
+                  }
+                  return next;
+                });
+                setIsApiRequestOpen(false);
+                toast.success('Added API request action');
               }}
             />
           </div>

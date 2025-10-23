@@ -120,6 +120,8 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
       case ActionType.connect_db:
         // Not supported in this modal yet
         return { ...base, showSelectors: false };
+      case ActionType.api_request:
+        return { ...base, showSelectors: false };
       case ActionType.assert:
         // Assert-specific visibility handled below by assert config
         return { ...base, showAssertType: true };

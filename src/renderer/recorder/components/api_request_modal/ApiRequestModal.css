@@ -1,0 +1,804 @@
+/* API Request Modal - Tương thích với NavigateModal và responsive */
+
+.arm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.arm-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 600px;
+  max-width: 95vw;
+  min-width: 400px;
+  max-height: 90vh;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header - Tương tự NavigateModal */
+.arm-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.arm-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.arm-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.arm-close:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* Body - Scrollable content */
+.arm-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* Method and URL Section - Single container */
+.arm-method-url {
+  display: flex;
+  margin-bottom: 20px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.arm-method-select {
+  padding: 10px 8px;
+  border: none;
+  border-right: 1px solid #d1d5db;
+  font-size: 14px;
+  background: #fff;
+  
+  min-width: 80px;
+  width: 80px;
+  cursor: pointer;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.arm-url-input {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  font-size: 14px;
+  background: #fff;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.arm-send-btn {
+  padding: 10px 16px;
+  background: #8b5cf6;
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+  white-space: nowrap;
+}
+
+.arm-send-btn:hover:not(:disabled) {
+  background: #7c3aed;
+}
+
+.arm-send-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Section Styles */
+.arm-section {
+  margin-bottom: 20px;
+}
+
+.arm-section-header {
+  margin-bottom: 8px;
+}
+
+.arm-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Params Section */
+.arm-params {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.arm-param-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 10px;
+  border-bottom: 1px solid #f3f4f6;
+  align-items: center;
+  min-height: 48px;
+}
+
+.arm-param-row:last-child {
+  border-bottom: none;
+}
+
+.arm-param-key {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.arm-param-value {
+  flex: 2;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.arm-add-param {
+  padding: 8px;
+  border-top: 1px dashed #d1d5db;
+  text-align: center;
+}
+
+/* Headers Section */
+.arm-headers {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.arm-header-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 10px; /* increased height */
+  border-bottom: 1px solid #f3f4f6;
+  align-items: center;
+  min-height: 48px; /* ensure consistent height */
+}
+
+.arm-header-row:last-child {
+  border-bottom: none;
+}
+
+.arm-header-key {
+  flex: 1; /* 1 part */
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.arm-header-value {
+  flex: 2; /* 2 parts - tỉ lệ 1:2 */
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.arm-remove-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: #fef2f2;
+  color: #dc2626;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.arm-remove-btn:hover {
+  background: #fee2e2;
+}
+
+.arm-add-header {
+  padding: 8px;
+  border-top: 1px dashed #d1d5db;
+  text-align: center;
+}
+
+.arm-add-btn {
+  background: none;
+  border: none;
+  color: #8b5cf6;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.arm-add-btn:hover {
+  background: #f3f4f6;
+}
+
+/* Authorization Section */
+.arm-auth-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  cursor: pointer;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.arm-auth-fields {
+  display: flex;
+  gap: 8px;
+  flex-direction: row; /* đảm bảo nằm cùng hàng */
+}
+
+.arm-auth-input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+/* Body Section */
+.arm-body-type-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  cursor: pointer;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.arm-body-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  background: #fff;
+  resize: vertical;
+  min-height: 120px;
+  box-sizing: border-box;
+}
+
+/* Footer - Tương tự NavigateModal */
+.arm-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  background: #f9fafb;
+  flex-shrink: 0;
+}
+
+.arm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.arm-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.arm-btn-cancel {
+  background: none;
+  border: 1px solid #d1d5db;
+  color: #6b7280;
+}
+
+.arm-btn-cancel:hover {
+  background: #f3f4f6;
+}
+
+.arm-btn-save {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.arm-btn-save:hover {
+  background: #2563eb;
+}
+
+/* Token Storage Section */
+.arm-checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+}
+
+.arm-checkbox-container input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.arm-checkbox-label {
+  font-weight: 500;
+  user-select: none;
+}
+
+.arm-token-storage {
+  margin-top: 12px;
+  padding: 16px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.arm-storage-type,
+.arm-storage-key,
+.arm-storage-selector,
+.arm-storage-attribute {
+  margin-bottom: 16px;
+}
+
+.arm-storage-type:last-child,
+.arm-storage-key:last-child,
+.arm-storage-selector:last-child,
+.arm-storage-attribute:last-child {
+  margin-bottom: 0;
+}
+
+.arm-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.arm-storage-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+}
+
+.arm-storage-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.arm-storage-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+  color: #374151;
+  box-sizing: border-box;
+}
+
+.arm-storage-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.arm-custom-storage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.arm-storage-info {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+}
+
+.arm-info-text {
+  font-size: 13px;
+  color: #0369a1;
+  line-height: 1.5;
+}
+
+.arm-info-text strong {
+  font-weight: 600;
+}
+
+.arm-info-text ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.arm-info-text li {
+  margin-bottom: 4px;
+}
+
+/* Basic Auth Storage */
+.arm-basic-auth-keys {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.arm-basic-auth-keys .arm-storage-key {
+  margin-bottom: 0;
+}
+
+/* Response Section */
+.arm-response {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.arm-response-status {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+  font-weight: 600;
+  background: #f9fafb;
+}
+
+.arm-status-code {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.arm-status-code.arm-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.arm-status-code.arm-error {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.arm-status-code.arm-warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.arm-response-content {
+  background: #fff;
+}
+
+.arm-response-data {
+  margin: 0;
+  padding: 16px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #374151;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 300px;
+  overflow: auto;
+  background: #f9fafb;
+}
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .arm-modal {
+    width: 95vw;
+    max-height: 95vh;
+    min-width: 320px;
+  }
+  
+  .arm-method-url {
+    /* Luôn giữ flex-direction: row để nằm cùng hàng */
+    flex-direction: row;
+  }
+  
+  .arm-method-select {
+    min-width: 70px;
+    width: 70px;
+    font-size: 13px;
+    padding: 10px 6px;
+  }
+  
+  .arm-send-btn {
+    min-width: 60px;
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+  
+  .arm-auth-fields {
+    flex-direction: row; /* giữ cùng hàng trên tablet */
+  }
+  
+  /* Shrink param key/value on tablet */
+  .arm-param-key {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  
+  .arm-param-value {
+    flex: 2;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  /* Shrink header key/value on tablet to avoid clipping close button */
+  .arm-header-key {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  
+  .arm-header-value {
+    flex: 2;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .arm-remove-btn {
+    width: 26px;
+    height: 26px;
+  }
+  
+  .arm-footer {
+    justify-content: flex-end;
+  }
+  
+  .arm-actions {
+    justify-content: flex-end;
+  }
+  
+  .arm-header {
+    padding: 12px 16px;
+  }
+  
+  .arm-body {
+    padding: 12px 16px;
+  }
+  
+  .arm-footer {
+    padding: 12px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .arm-modal {
+    width: 98vw;
+    height: 98vh;
+    min-width: 280px;
+  }
+  
+  .arm-header {
+    padding: 10px 12px;
+  }
+  
+  .arm-body {
+    padding: 10px 12px;
+  }
+  
+  .arm-footer {
+    padding: 10px 12px;
+  }
+  
+  .arm-section {
+    margin-bottom: 16px;
+  }
+  
+  .arm-method-url {
+    /* Vẫn giữ cùng hàng trên mobile */
+    flex-direction: row;
+  }
+  
+  .arm-method-select {
+    min-width: 60px;
+    width: 60px;
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+  
+  .arm-url-input {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  
+  .arm-send-btn {
+    min-width: 50px;
+    padding: 8px 8px;
+    font-size: 12px;
+  }
+  
+  .arm-auth-select,
+  .arm-body-type-select,
+  .arm-auth-input {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  
+  .arm-auth-fields {
+    flex-direction: row; /* giữ cùng hàng trên mobile */
+  }
+  
+  .arm-body-textarea {
+    padding: 10px;
+    font-size: 13px;
+    min-height: 100px;
+  }
+  
+  .arm-btn {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  
+  .arm-response-data {
+    padding: 12px;
+    font-size: 12px;
+    max-height: 200px;
+  }
+  
+  /* Further shrink param key/value on mobile */
+  .arm-param-key {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  
+  .arm-param-value {
+    flex: 2;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  /* Further shrink header key/value on mobile */
+  .arm-header-key {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  
+  .arm-header-value {
+    flex: 2;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .arm-remove-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+}
+
+/* Focus states for accessibility */
+.arm-method-url:focus-within {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.arm-method-select:focus,
+.arm-url-input:focus {
+  outline: none;
+}
+
+.arm-header-key:focus,
+.arm-header-value:focus,
+.arm-auth-select:focus,
+.arm-auth-input:focus,
+.arm-body-type-select:focus,
+.arm-body-textarea:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+/* Smooth transitions */
+.arm-modal {
+  animation: arm-fadeIn 0.2s ease-out;
+}
+
+@keyframes arm-fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Scrollbar styling */
+.arm-body::-webkit-scrollbar,
+.arm-response-data::-webkit-scrollbar {
+  width: 6px;
+}
+
+.arm-body::-webkit-scrollbar-track,
+.arm-response-data::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.arm-body::-webkit-scrollbar-thumb,
+.arm-response-data::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.arm-body::-webkit-scrollbar-thumb:hover,
+.arm-response-data::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

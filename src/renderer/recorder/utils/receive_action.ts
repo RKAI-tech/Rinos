@@ -105,6 +105,8 @@ export function createDescription(action_received: any): string {
                 case AssertType.ai:
                     return `${action_received.description}`;
             }
+        case ActionType.api_request:
+            return `API Request: ${action_received.method || 'GET'} ${action_received.url || ''}`;
         default:
             return `Unknown action`;
     }
