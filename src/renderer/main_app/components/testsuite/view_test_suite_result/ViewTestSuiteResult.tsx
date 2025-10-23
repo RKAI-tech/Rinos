@@ -4,6 +4,8 @@ import { TestSuiteService } from '../../../services/testsuites';
 import { TestCaseService } from '../../../services/testcases';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { canEdit } from '../../../hooks/useProjectPermissions';
+import { useParams } from 'react-router-dom';
 
 interface Props {
   isOpen: boolean;
@@ -14,6 +16,7 @@ interface Props {
 interface CaseItem {
   id: string;
   name: string;
+  tag?: string;
   status?: string;
   output?: string; // placeholder for terminal-like logs
   url?: string;
@@ -69,6 +72,7 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, testcaseName, logs
 };
 
 const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) => {
+  const { projectId } = useParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cases, setCases] = useState<CaseItem[]>([]);
@@ -82,6 +86,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
   const svc = useMemo(() => new TestSuiteService(), []);
   const tcs = useMemo(() => new TestCaseService(), []);
   const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
+  const canEditPermission = canEdit(projectId);
 
   const fetchResults = useCallback(async (silent: boolean = false) => {
     if (!isOpen || !testSuiteId) return;
@@ -93,6 +98,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
         const mapped: CaseItem[] = (resp.data.testcases || []).map((tc) => ({
           id: tc.testcase_id,
           name: tc.name,
+          tag: (tc as any).tag,
           status: (tc as any).status,
           output: tc.logs || '',
           url: (tc as any).url
@@ -126,6 +132,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
   }, [isOpen, testSuiteId, fetchResults]);
 
   const handleRetry = async (testcaseId: string) => {
+    if (!canEditPermission) return;
     setRetryingIds(prev => {
       const next = new Set(prev);
       next.add(testcaseId);
@@ -247,6 +254,72 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
     setCurrentPage(1);
   };
 
+  const handleExport = async () => {
+    try {
+      if (!projectId) {
+        toast.error('Missing project ID');
+        return;
+      }
+      // Fetch all testcases in project to obtain actions and tags fully
+      const tcResp = await tcs.getTestCases(projectId, 10000, 0);
+      if (!tcResp.success || !tcResp.data) {
+        toast.error(tcResp.error || 'Failed to load testcases for export');
+        return;
+      }
+      const idToTc = new Map(tcResp.data.testcases.map(tc => [tc.testcase_id, tc]));
+
+      const now = new Date().toLocaleString();
+      const rows = cases.map(c => {
+        const full = idToTc.get(c.id);
+        const actions = full?.actions || [];
+        const steps = actions
+          .map((a, idx) => `${idx + 1}. ${a.description || ''}`)
+          .filter(line => line.trim() !== '1. ' ? true : true)
+          .join('\n');
+        const expected = actions
+          .filter(a => String(a.action_type).toLowerCase() === 'assert')
+          .map((a, idx) => `${idx + 1}. ${a.description || ''}`)
+          .join('\n');
+        return {
+          Name: c.name || '',
+          Description: c.tag || full?.tag || '',
+          Step: steps,
+          Expected: expected,
+          Result: c.status || '',
+          Date: now,
+          Tester: '',
+          Evidence: c.url || full?.url || ''
+        };
+      });
+
+      const headers = ['Name','Description','Step','Expected','Result','Date','Tester','Evidence'];
+      const escapeCsv = (val: unknown) => {
+        const s = String(val ?? '');
+        if (/[",\n,]/.test(s)) {
+          return '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+      };
+      const csvLines: string[] = [];
+      csvLines.push(headers.join(','));
+      for (const row of rows) {
+        csvLines.push(headers.map(h => escapeCsv((row as any)[h])).join(','));
+      }
+      const blob = new Blob(["\uFEFF" + csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'test-suite-results.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Exported results to CSV');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Export failed');
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -268,7 +341,17 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
           />
           <div className="vtsr-header">
             <h2 className="vtsr-title">Test Suite Results</h2>
-            <button className="vtsr-close" onClick={onClose} aria-label="Close">✕</button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button 
+                className="vtsr-btn" 
+                onClick={(e) => { e.stopPropagation(); handleExport(); }}
+                disabled={isLoading || cases.length === 0}
+                aria-label="Export to Excel"
+              >
+                Export
+              </button>
+              <button className="vtsr-close" onClick={onClose} aria-label="Close">✕</button>
+            </div>
           </div>
 
           <div className="vtsr-body">
@@ -377,7 +460,8 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
                             <button 
                               className="vtsr-btn" 
                               onClick={(e) => { e.stopPropagation(); handleRetry(c.id); }}
-                              disabled={retryingIds.has(c.id) || isLoading}
+                              disabled={retryingIds.has(c.id) || isLoading || !canEditPermission}                             
+                              style={{ cursor: (retryingIds.has(c.id) || isLoading || !canEditPermission) ? 'not-allowed' : 'pointer' }}
                               aria-label="Retry Testcase"
                             >
                               {retryingIds.has(c.id) ? 'Retrying...' : 'Retry'}

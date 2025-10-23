@@ -10,6 +10,7 @@ import DeleteConnection from '../../components/database/delete_connection/Delete
 import { DatabaseService } from '../../services/database';
 import { ProjectService } from '../../services/projects';
 import { toast } from 'react-toastify';
+import { canEdit } from '../../hooks/useProjectPermissions';
 
 interface DatabaseItem {
   id: string;
@@ -25,6 +26,7 @@ const Databases: React.FC = () => {
   const { projectId } = useParams();
   const projectData = { projectId, projectName: (location.state as { projectName?: string } | null)?.projectName };
   const [resolvedProjectName, setResolvedProjectName] = useState<string>(projectData.projectName || 'Project');
+  const canEditPermission = canEdit(projectId);
 
   const [databases, setDatabases] = useState<DatabaseItem[]>([]);
   const [searchText, setSearchText] = useState('');
@@ -152,8 +154,9 @@ const Databases: React.FC = () => {
   const handleBreadcrumbNavigate = (path: string) => navigate(path);
   const handleSidebarNavigate = (path: string) => navigate(path);
 
-  const handleCreateDatabase = () => setIsCreateOpen(true);
+  const handleCreateDatabase = () => { if (!canEditPermission) return; setIsCreateOpen(true); };
   const handleOpenDelete = (item: DatabaseItem) => {
+    if (!canEditPermission) return;
     setSelectedConnection({ id: item.id, name: item.name });
     setIsDeleteOpen(true);
     setOpenDropdownId(null);
@@ -197,7 +200,7 @@ const Databases: React.FC = () => {
                   <option value="20 rows/page">20 rows/page</option>
                   <option value="50 rows/page">50 rows/page</option>
                 </select>
-              <button className="create-database-btn" onClick={handleCreateDatabase}>
+              <button className="create-database-btn" onClick={handleCreateDatabase} disabled={!canEditPermission}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -272,14 +275,14 @@ const Databases: React.FC = () => {
 
                           {openDropdownId === db.id && (
                             <div className="actions-dropdown">
-                              <button className="dropdown-item">
+                              <button className="dropdown-item" disabled={!canEditPermission}>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
                                 Edit
                               </button>
-                              <button className="dropdown-item delete" onClick={() => handleOpenDelete(db)}>
+                              <button className="dropdown-item delete" onClick={() => handleOpenDelete(db)} disabled={!canEditPermission}>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                   <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                   <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

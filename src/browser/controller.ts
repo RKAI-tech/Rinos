@@ -33,6 +33,18 @@ export class Controller {
         await page.goto(url);
     }
 
+    async reload(page: Page): Promise<void> {
+        await page.reload();
+    }
+
+    async goBack(page: Page): Promise<void> {
+        await page.goBack();
+    }
+
+    async goForward(page: Page): Promise<void> {
+        await page.goForward();
+    }
+
     trackRequests(page: Page): void {
         page.on('request', (request: Request) => {
             if (['xhr', 'fetch'].includes(request.resourceType())) {

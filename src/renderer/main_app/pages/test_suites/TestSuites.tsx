@@ -17,6 +17,7 @@ import AddTestcasesToSuite from '../../components/testsuite/add_testcase_to_suit
 // New modal for deleting testcases from suite
 import DeleteTestcasesFromSuite from '../../components/testsuite/delete_testcase_to_suite/DeleteTestcasesFromSuite';
 import ViewTestSuiteResult from '../../components/testsuite/view_test_suite_result/ViewTestSuiteResult';
+import { canEdit } from '../../hooks/useProjectPermissions';
 
 interface TestSuite {
   id: string;
@@ -36,6 +37,7 @@ const TestSuites: React.FC = () => {
   const { projectId } = useParams();
   const projectData = { projectId, projectName: (location.state as { projectName?: string } | null)?.projectName };
   const [resolvedProjectName, setResolvedProjectName] = useState<string>(projectData.projectName || 'Project');
+  const canEditPermission = canEdit(projectId);
 
   const [testSuites, setTestSuites] = useState<TestSuite[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,6 +59,7 @@ const TestSuites: React.FC = () => {
   const [runningSuiteIds, setRunningSuiteIds] = useState<Set<string>>(new Set());
 
   const handleCreateSuite = () => {
+    if (!canEditPermission) return;
     setIsCreateOpen(true);
   };
 
@@ -207,6 +210,7 @@ const TestSuites: React.FC = () => {
   const handleSidebarNavigate = (path: string) => navigate(path);
 
   const handleOpenEditSuite = (id: string) => {
+    if (!canEditPermission) return;
     const suite = testSuites.find(s => s.id === id) || null;
     setSelectedSuite(suite);
     setIsEditOpen(true);
@@ -214,6 +218,7 @@ const TestSuites: React.FC = () => {
   };
 
   const handleOpenDeleteSuite = (id: string) => {
+    if (!canEditPermission) return;
     const suite = testSuites.find(s => s.id === id) || null;
     setSelectedSuite(suite);
     setIsDeleteOpen(true);
@@ -225,6 +230,7 @@ const TestSuites: React.FC = () => {
   const handleCloseDeleteSuite = () => { setIsDeleteOpen(false); setSelectedSuite(null); };
 
   const handleRunSuite = async (id: string) => {
+    if (!canEditPermission) return;
     try {
       setRunningSuiteIds(prev => {
         const next = new Set(prev);
@@ -316,6 +322,7 @@ const TestSuites: React.FC = () => {
   };
 
   const handleAddTestcasesToSuite = (id: string) => {
+    if (!canEditPermission) return;
     const suite = testSuites.find(s => s.id === id) || null;
     setSelectedSuite(suite);
     setIsAddOpen(true);
@@ -323,6 +330,7 @@ const TestSuites: React.FC = () => {
   };
 
   const handleRemoveTestcasesFromSuite = (id: string) => {
+    if (!canEditPermission) return;
     const suite = testSuites.find(s => s.id === id) || null;
     setSelectedSuite(suite);
     setIsRemoveOpen(true);
@@ -371,6 +379,7 @@ const TestSuites: React.FC = () => {
                 <button 
                   className="create-testsuite-btn" 
                   onClick={handleCreateSuite}
+                  disabled={!canEditPermission}
                   title="Create a new test suite to organize and run multiple testcases"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -446,7 +455,7 @@ const TestSuites: React.FC = () => {
                               <button 
                                 className="dropdown-item" 
                                 onClick={(e) => { e.stopPropagation(); handleRunSuite(suite.id); }} 
-                                disabled={runningSuiteIds.has(suite.id)}
+                                disabled={runningSuiteIds.has(suite.id) || !canEditPermission}
                                 title="Execute this test suite and view results"
                               >
                                 {runningSuiteIds.has(suite.id) ? (
@@ -469,6 +478,7 @@ const TestSuites: React.FC = () => {
                               <button 
                                 className="dropdown-item" 
                                 onClick={(e) => { e.stopPropagation(); handleAddTestcasesToSuite(suite.id); }}
+                                disabled={!canEditPermission}
                                 title="Add testcases to this test suite"
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -481,6 +491,7 @@ const TestSuites: React.FC = () => {
                               <button 
                                 className="dropdown-item" 
                                 onClick={(e) => { e.stopPropagation(); handleOpenEditSuite(suite.id); }}
+                                disabled={!canEditPermission}
                                 title="Edit test suite name and description"
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -492,6 +503,7 @@ const TestSuites: React.FC = () => {
                               <button 
                                 className="dropdown-item delete" 
                                 onClick={(e) => { e.stopPropagation(); handleRemoveTestcasesFromSuite(suite.id); }}
+                                disabled={!canEditPermission}
                                 title="Remove testcases from this test suite"
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -503,6 +515,7 @@ const TestSuites: React.FC = () => {
                               <button 
                                 className="dropdown-item delete" 
                                 onClick={(e) => { e.stopPropagation(); handleOpenDeleteSuite(suite.id); }}
+                                disabled={!canEditPermission}
                                 title="Permanently delete this test suite"
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

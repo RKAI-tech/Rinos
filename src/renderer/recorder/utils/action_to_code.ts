@@ -51,6 +51,25 @@ export function generateConnectDBCode(action: Action): string {
     }
 }
 
+/**
+ * Prepares a string to be safely embedded inside a single-quoted JS string literal.
+ * - Removes newlines (\r, \n) by replacing with a single space
+ * - Escapes backslashes and both single and double quote types
+ */
+export function sanitizeJsString(raw: string | null | undefined): string {
+    if (raw == null) {
+        return "";
+    }
+    // Convert to string, remove all carriage returns/newlines, replace with a single space
+    let noNewlines = String(raw).replace(/[\r\n]+/g, " ");
+    // Escape backslashes, single quotes, and double quotes
+    let escaped = noNewlines
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"');
+    return escaped;
+}
+
 export function processSelector(elements: Element[]): string {
     const selectors: string[][] = [];
     for (const element of elements) {
@@ -324,8 +343,9 @@ export function generateActionCode(action: Action, index: number): string {
                 `    await page.setInputFiles(sel, '${action.value || ''}');\n` +
                 `    await page.waitForLoadState('networkidle');\n`;
         case ActionType.database_execution:
+            let query = sanitizeJsString(action.elements?.[0]?.query || '');
             return connect_db_code +    
-            `    const result = await ${dbVar}.query('${(action.statement?.query ||action.query || '').replace(/\\/g, "\\\\").replace(/'/g, "\\'")}');\n` +
+            `    const result = await ${dbVar}.query('${query}');\n` +
                 `    console.log(result);\n` +
                 `    await ${dbVar}.end();\n` +
                 `    await page.waitForLoadState('networkidle');\n`;

@@ -411,7 +411,7 @@
 }
 
 .project-name {
-  font-weight: 600;
+  font-weight: 400;
   color: #1a1a1a;
   font-size: 14px;
   white-space: nowrap;
@@ -431,7 +431,7 @@
   color: #333;
   text-align: center;
   white-space: nowrap;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .project-role {

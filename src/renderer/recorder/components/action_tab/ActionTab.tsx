@@ -12,6 +12,8 @@ import { toast } from 'react-toastify';
 interface ActionTabProps {
   actions: Action[];
   isLoading: boolean;
+  isReloading?: boolean;
+  isSaving?: boolean;
   onDeleteAction?: (actionId: string) => void;
   onDeleteAll?: () => void;
   onReorderActions?: (reorderedActions: Action[]) => void;
@@ -35,7 +37,31 @@ interface ActionTabProps {
   failedActionIndex?: number | null;
 }
 
-const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteAction, onDeleteAll, onReorderActions, onReload, onSaveActions, selectedInsertPosition, displayInsertPosition, onSelectInsertPosition, onSelectAction, onStartRecording, isBrowserOpen, recordingFromActionIndex, onAddAction, isAddActionOpen, onCloseAddAction, testcaseId, onActionsChange, onInsertPositionChange, onDisplayPositionChange, executingActionIndex, failedActionIndex }) => {
+const ActionTab: React.FC<ActionTabProps> = ({ 
+  actions, 
+  isLoading, 
+  isReloading, 
+  isSaving, 
+  onDeleteAction, 
+  onDeleteAll, 
+  onReorderActions, 
+  onReload, 
+  onSaveActions, 
+  selectedInsertPosition, 
+  displayInsertPosition, 
+  onSelectInsertPosition, 
+  onSelectAction, 
+  onStartRecording, 
+  isBrowserOpen, 
+  recordingFromActionIndex, 
+  onAddAction, 
+  isAddActionOpen, 
+  onCloseAddAction, 
+  testcaseId, 
+  onActionsChange, 
+  onInsertPositionChange, 
+  onDisplayPositionChange, executingActionIndex, failedActionIndex 
+}) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isDatabaseExecutionOpen, setIsDatabaseExecutionOpen] = useState(false);
@@ -130,8 +156,13 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
       action_type: ActionType.database_execution,
       connection_id: connectionId,
       connection: connection,
-      query: query,
-      statement: { query },
+      // query: query,
+      // statement: { query },
+      elements: [
+        {
+          query: query,
+        }
+      ],
       playwright_code: 'Database execution will be handled by backend',
       description: `Execute database query: ${query.substring(0, 50)}${query.length > 50 ? '...' : ''}`,
     };
@@ -158,10 +189,10 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
   
   };
 
-  const handleSelectAddAction = (actionType: string) => {
+  const handleSelectAddAction = async (actionType: string) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
 
-    console.log("handleSelectAddAction called with type:", actionType);
+    // console.log("handleSelectAddAction called with type:", actionType);
     
     // For database_execution, it's handled by modal, so don't add to list here
     if (actionType === 'database_execution') {
@@ -179,16 +210,16 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
       return;
     }
 
-    const newAction = createActionByType(actionType);
-    console.log("Created action:", newAction);
+    const newAction = await createActionByType(actionType);
+    // console.log("Created action:", newAction);
     
     if (newAction) {
       onActionsChange(prev => {
-        console.log(`=== BEFORE ADDING ${actionType.toUpperCase()} ACTION ===`);
-        console.log("Previous actions count:", prev.length);
-        console.log("Previous actions:", prev.map(a => ({ id: a.action_id, type: a.action_type, desc: a.description })));
-        console.log("Insert position:", selectedInsertPosition);
-        console.log("New action to add:", { id: newAction.action_id, type: newAction.action_type, desc: newAction.description });
+        // console.log(`=== BEFORE ADDING ${actionType.toUpperCase()} ACTION ===`);
+        // console.log("Previous actions count:", prev.length);
+        // console.log("Previous actions:", prev.map(a => ({ id: a.action_id, type: a.action_type, desc: a.description })));
+        // console.log("Insert position:", selectedInsertPosition);
+        // console.log("New action to add:", { id: newAction.action_id, type: newAction.action_type, desc: newAction.description });
         
         const next = receiveActionWithInsert(
           testcaseId,
@@ -197,10 +228,10 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
           selectedInsertPosition || 0
         );
         
-        console.log(`=== AFTER ADDING ${actionType.toUpperCase()} ACTION ===`);
-        console.log("Next actions count:", next.length);
-        console.log("Next actions:", next.map(a => ({ id: a.action_id, type: a.action_type, desc: a.description })));
-        console.log("Action added successfully:", next.length > prev.length);
+        // console.log(`=== AFTER ADDING ${actionType.toUpperCase()} ACTION ===`);
+        // console.log("Next actions count:", next.length);
+        // console.log("Next actions:", next.map(a => ({ id: a.action_id, type: a.action_type, desc: a.description })));
+        // console.log("Action added successfully:", next.length > prev.length);
         
         const added = next.length > prev.length;
         if (added) {
@@ -217,7 +248,7 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
     }
   };
 
-  const createActionByType = (actionType: string): any => {
+  const createActionByType = async (actionType: string): Promise<any> => {
     if (!testcaseId) return null;
 
     const baseAction = {
@@ -225,8 +256,8 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
       action_id: Math.random().toString(36),
     };
 
-    console.log("Creating action for type:", actionType);
-    console.log("Base action:", baseAction);
+    // console.log("Creating action for type:", actionType);
+    // console.log("Base action:", baseAction);
 
     switch (actionType) {
       case 'wait':
@@ -236,7 +267,7 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
           value: '1000', 
           description: 'Wait for 1 second',
         };
-        console.log("Created wait action:", waitAction);
+        // console.log("Created wait action:", waitAction);
         return waitAction;
       
       case 'reload':
@@ -245,7 +276,8 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
           action_type: ActionType.reload,
           description: 'Reload current page',
         } as any;
-        console.log("Created reload action:", reloadAction);
+        // console.log("Created reload action:", reloadAction);
+        await (window as any).browserAPI?.browser?.reload();
         return reloadAction;
 
       case 'back':
@@ -254,7 +286,8 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
           action_type: ActionType.back,
           description: 'Go back to previous page',
         } as any;
-        console.log("Created back action:", backAction);
+        // console.log("Created back action:", backAction);
+        await (window as any).browserAPI?.browser?.goBack();
         return backAction;
 
       case 'forward':
@@ -263,7 +296,8 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
           action_type: ActionType.forward,
           description: 'Go forward to next page',
         } as any;
-        console.log("Created forward action:", forwardAction);
+        // console.log("Created forward action:", forwardAction);
+        await (window as any).browserAPI?.browser?.goForward();
         return forwardAction;
       
       case 'database_execution':
@@ -282,6 +316,7 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
           description: 'Navigate to URL',
         };
         console.log("Created visit_url action:", visitAction);
+        await (window as any).browserAPI?.browser?.navigate(visitAction.value as string);
         return visitAction;
       
       default:
@@ -393,7 +428,7 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
             <NavigateModal
               isOpen={isNavigateOpen}
               onClose={() => setIsNavigateOpen(false)}
-              onConfirm={(url) => {
+              onConfirm={async (url) => {
                 if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
                 const newAction = {
                   testcase_id: testcaseId,
@@ -418,6 +453,7 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
                   return next;
                 });
                 setIsNavigateOpen(false);
+                await (window as any).browserAPI?.browser.navigate(url);
                 toast.success('Added navigate action');
               }}
             />
@@ -428,12 +464,16 @@ const ActionTab: React.FC<ActionTabProps> = ({ actions, isLoading, onDeleteActio
               <polyline points="21,3 21,9 15,9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <button className="rcd-action-btn save" title="Save actions" onClick={() => onSaveActions && onSaveActions()}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <polyline points="17,21 17,13 7,13 7,21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <polyline points="7,3 7,8 15,8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+          <button className="rcd-action-btn save" title="Save actions" onClick={() => onSaveActions && onSaveActions()} disabled={!!isSaving || !!isReloading}>
+            {isSaving ? (
+              <span className="rcd-spinner" aria-label="saving" />
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <polyline points="17,21 17,13 7,13 7,21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <polyline points="7,3 7,8 15,8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
           </button>
           <button className="rcd-action-btn delete" title="Delete all actions" onClick={() => onDeleteAll && onDeleteAll()}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -13,27 +13,19 @@ export class BasicAuthService {
     }
 
     // TODO: Get basic authentication list by testcase
-    async getBasicAuthenticationByTestcaseId(testcaseId: string): Promise<ApiResponse<BasicAuthentication[]>> {
-        const response = await apiRouter.request<BasicAuthentication[]>(`/basic-auth/${testcaseId}`, {
+    async getBasicAuthenticationByTestcaseId(testcaseId: string): Promise<ApiResponse<BasicAuthentication>> {
+        const response = await apiRouter.request<BasicAuthentication>(`/basic-auth/${testcaseId}`, {
             method: 'GET',
         });
         return response;
     }
 
-    // TODO: Upsert multiple basic authentication
-    async upsertMultipleBasicAuthentication(payload: BasicAuthentication[]): Promise<ApiResponse<BasicAuthentication[]>> {
-        const response = await apiRouter.request<BasicAuthentication[]>(`/basic-auth/upsert-multiple`, {
-            method: 'POST',
-            body: JSON.stringify(payload),
-        });
-        return response;
-    }
     
     // TODO: Delete basic authentication
-    async deleteBasicAuthentication(payload: BasicAuthentication): Promise<ApiResponse<BasicAuthentication>> {
-        const response = await apiRouter.request<BasicAuthentication>(`/basic-auth/${payload.testcase_id}`, {
+    async deleteBasicAuthentication(testcase_id: string): Promise<ApiResponse<BasicAuthentication>> {
+        const response = await apiRouter.request<BasicAuthentication>(`/basic-auth/${testcase_id}`, {
             method: 'DELETE',
-            body: JSON.stringify(payload),
+            body: JSON.stringify({ testcase_id }),
         });
         return response;
     }

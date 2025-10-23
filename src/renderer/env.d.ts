@@ -47,3 +47,5 @@ declare global {
 }
 
 export {};
+
+declare module 'xlsx';
