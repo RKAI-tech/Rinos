@@ -377,17 +377,19 @@
   z-index: 2147483647;
   min-width: 120px;
   overflow: hidden;
-  animation: dropdownSlideIn 0.2s ease-out;
+  animation: dropdownSlideIn 0.15s ease-out;
+  will-change: transform, opacity;
+  transform: translateX(50%) translateZ(0); /* Force GPU acceleration */
 }
 
 @keyframes dropdownSlideIn {
   from {
     opacity: 0;
-    transform: translateX(50%) translateY(-8px);
+    transform: translateX(50%) translate3d(0, -8px, 0);
   }
   to {
     opacity: 1;
-    transform: translateX(50%) translateY(0);
+    transform: translateX(50%) translate3d(0, 0, 0);
   }
 }
 

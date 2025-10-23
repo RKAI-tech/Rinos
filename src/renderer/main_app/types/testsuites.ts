@@ -49,7 +49,7 @@ export interface TestCaseInSuite {
     logs: string;
     created_at: string;
     updated_at: string;
-    url: string;
+    url_video: string;
 }
 
 export interface GetTestCasesBySuiteResponse {
@@ -60,4 +60,14 @@ export interface GetTestCasesBySuiteResponse {
 // Execute Test Suite
 export interface ExecuteTestSuiteRequest {
     test_suite_id: string;
+}
+
+// Export Test Suite
+export interface ExportTestSuiteRequest {
+    test_suite_id: string;
+}
+
+export interface ExportTestSuiteResponse {
+    blob: Blob;
+    filename: string;
 }

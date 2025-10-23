@@ -22,6 +22,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
   const [isLoading, setIsLoading] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<TestCaseGetResponse | null>(null);
+  const [activeTab, setActiveTab] = useState<'logs' | 'video'>('logs');
   const svc = useMemo(() => new TestCaseService(), []);
   const canEditPermission = canEdit(projectId);
 
@@ -147,9 +148,24 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
 
 
           {result && !isLoading && !isRunning && (
-            <div className="ravt-combined">
-              <div className="ravt-combined-row">
-                <div className="ravt-pane">
+            <div className="ravt-tabbed">
+              <div className="ravt-tab-nav">
+                <button 
+                  className={`ravt-tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('logs')}
+                >
+                  📋 Logs
+                </button>
+                <button 
+                  className={`ravt-tab-btn ${activeTab === 'video' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('video')}
+                >
+                  🎥 Video
+                </button>
+              </div>
+              
+              <div className="ravt-tab-content">
+                {activeTab === 'logs' && (
                   <div className="ravt-terminal">
                     <div className="ravt-term-bar">
                       <span className="dot red" />
@@ -163,14 +179,20 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                       </ReactMarkdown>
                     </div>
                   </div>
-                </div>
-                <div className="ravt-pane">
-                  {result.url ? (
-                    <video style={{ width: '100%', height: '100%' }} controls src={result.url} />
-                  ) : (
-                    <div style={{ padding: 16 }}>No video available.</div>
-                  )}
-                </div>
+                )}
+                
+                {activeTab === 'video' && (
+                  <div className="ravt-video-container">
+                    {result.url_video ? (
+                      <video style={{ width: '100%', height: '100%' }} controls src={result.url_video} />
+                    ) : (
+                      <div className="ravt-no-video">
+                        <div className="ravt-no-video-icon">🎥</div>
+                        <div className="ravt-no-video-text">No video available for this testcase.</div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -52,7 +52,7 @@ export interface TestCaseGetResponse {
     actions: Action[];
     status: string;
     script: string | null;
-    url: string | null;
+    url_video: string | null;
     logs?: string;
     created_at: string;
     updated_at: string;

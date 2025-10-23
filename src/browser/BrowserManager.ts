@@ -23,8 +23,8 @@ process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
 // Skip host requirement validation on end-user machines to avoid missing lib errors
 process.env.PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = '1';
 
-console.log('[BrowserManager] Playwright browsers path:', browsersPath);
-console.log('[BrowserManager] Platform:', process.platform);
+// console.log('[BrowserManager] Playwright browsers path:', browsersPath);
+// console.log('[BrowserManager] Platform:', process.platform);
 
 const variableService = new VariableService();
 const databaseService = new DatabaseService();

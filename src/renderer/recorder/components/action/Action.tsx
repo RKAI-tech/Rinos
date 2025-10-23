@@ -30,14 +30,6 @@ export default function RenderedAction({ action, onDelete, onClick, onStartRecor
     return 'No elements';
   };
 
-  // Format value for display
-  const formatValue = () => {
-    if (action.value) {
-      return action.value.length > 50 ? action.value.substring(0, 50) + '...' : action.value;
-    }
-    return '';
-  };
-
   // Render icon based on action type
   const renderIcon = (type: string) => {
     const common = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' } as any;
@@ -142,13 +134,20 @@ export default function RenderedAction({ action, onDelete, onClick, onStartRecor
     }
   };
 
+  const renderValue = (value: string | undefined) => {
+    if (value) {
+      return value.length > 50 ? value.substring(0, 50) + '...' : value;
+    }
+    return '';
+  };
+
   return (
     <div className="rcd-action">
       <div className="rcd-action-icon">{(index ?? 0) + 1}</div>
       <div className="rcd-action-body">
-        <div className="rcd-action-title">{action.description || formatActionType(action.action_type)}</div>
+        <div className="rcd-action-title">{renderValue(action.description) || formatActionType(action.action_type)}</div>
         {/* <div className="rcd-action-meta">{getSelector()}</div> */}
-        {formatValue() && <div className="rcd-action-value">{formatValue()}</div>}
+        {renderValue(action.value) && <div className="rcd-action-value">{renderValue(action.value)}</div>}
         {/* <div className="rcd-action-time">Order: {action.order_index}</div> */}
       </div>
       <div className="rcd-action-actions">
