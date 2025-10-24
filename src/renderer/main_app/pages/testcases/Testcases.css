@@ -163,6 +163,22 @@
   background: #4338ca;
 }
 
+/* Disabled state for create button */
+.create-testcase-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 4px 12px rgba(85, 73, 245, 0.2);
+  pointer-events: none;
+}
+
+.create-testcase-btn:disabled:hover,
+.create-testcase-btn:disabled:active {
+  background: #5549f5; /* keep base color */
+  transform: none;
+  box-shadow: 0 4px 12px rgba(85, 73, 245, 0.2);
+}
+
 /* Testcases Table */
 .testcases-table-container {
   overflow-x: visible;
@@ -361,17 +377,19 @@
   z-index: 2147483647;
   min-width: 120px;
   overflow: hidden;
-  animation: dropdownSlideIn 0.2s ease-out;
+  animation: dropdownSlideIn 0.15s ease-out;
+  will-change: transform, opacity;
+  transform: translateX(50%) translateZ(0); /* Force GPU acceleration */
 }
 
 @keyframes dropdownSlideIn {
   from {
     opacity: 0;
-    transform: translateX(50%) translateY(-8px);
+    transform: translateX(50%) translate3d(0, -8px, 0);
   }
   to {
     opacity: 1;
-    transform: translateX(50%) translateY(0);
+    transform: translateX(50%) translate3d(0, 0, 0);
   }
 }
 

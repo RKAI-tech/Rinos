@@ -23,8 +23,8 @@ process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
 // Skip host requirement validation on end-user machines to avoid missing lib errors
 process.env.PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = '1';
 
-console.log('[BrowserManager] Playwright browsers path:', browsersPath);
-console.log('[BrowserManager] Platform:', process.platform);
+// console.log('[BrowserManager] Playwright browsers path:', browsersPath);
+// console.log('[BrowserManager] Platform:', process.platform);
 
 const variableService = new VariableService();
 const databaseService = new DatabaseService();
@@ -77,7 +77,9 @@ export class BrowserManager extends EventEmitter {
         apiRouter.setAuthToken(token);
     }
 
-    async start(): Promise<void> {
+    async start(
+        basicAuthentication: { username: string, password: string }
+    ): Promise<void> {
         try {
             if (this.browser) {
                 // console.log('Browser already started');
@@ -98,9 +100,10 @@ export class BrowserManager extends EventEmitter {
                 ],
             });
 
-            // Create context with null viewport to match browser window size
+            // Create context
             this.context = await this.browser.newContext({
-                viewport: null // Let viewport match browser window size
+                viewport: null,
+                httpCredentials: basicAuthentication,
             });
 
             // Create page

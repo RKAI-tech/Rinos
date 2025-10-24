@@ -30,6 +30,12 @@ export function registerScreenHandlersIpc() {
       win.on("closed", () => {
         if (key) testcaseIdToWindow.delete(key);
         // Không gọi stopBrowser ở đây; mỗi BrowserManager đã tự gắn theo BrowserWindow trong module browser IPC
+
+        BrowserWindow.getAllWindows().forEach((window: BrowserWindow) => {
+          if (!window.isDestroyed()) {
+            window.webContents.send('recorder:closed');
+          }
+        });
       });
       return { success: true, created: true, alreadyOpen: false, testcaseId };
     } catch (e) {

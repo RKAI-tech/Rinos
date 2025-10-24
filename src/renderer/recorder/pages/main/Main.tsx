@@ -5,7 +5,7 @@ import ActionDetailModal from '../../components/action_detail/ActionDetailModal'
 import TestScriptTab from '../../components/code_convert/TestScriptTab';
 import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab';
 import AiAssertModal from '../../components/ai_assert/AiAssertModal';
-// import BasicAuthModal from '../../components/basic_auth/BasicAuthModal'; // temporarily hidden
+import BasicAuthModal from '../../components/basic_auth/BasicAuthModal';
 import DeleteAllActions from '../../components/delete_all_action/DeleteAllActions';
 import ConfirmCloseModal from '../../components/confirm_close/ConfirmCloseModal';
 import URLInputModal from '../../components/url_input_modal/URLInputModal';
@@ -19,7 +19,8 @@ import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
 import { receiveAction, createDescription, receiveActionWithInsert } from '../../utils/receive_action';
 import { Connection } from '../../types/actions';
-// import { BasicAuthentication } from '../../types/basic_auth'; // temporarily hidden
+import { BasicAuthentication } from '../../types/basic_auth';
+import { BasicAuthService } from '../../services/basic_auth';
 
 
 interface MainProps {
@@ -35,6 +36,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [isAssertMode, setIsAssertMode] = useState(false);
   const [actions, setActions] = useState<Action[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'actions' | 'script'>('actions');
   const [customScript, setCustomScript] = useState<string>('');
   const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
@@ -64,8 +66,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         queryResultData?: any[]; 
   }[]>([]);
   const [recordingFromActionIndex, setRecordingFromActionIndex] = useState<number | null>(null);
-  // const [isBasicAuthOpen, setIsBasicAuthOpen] = useState(false); // temporarily hidden
-  // const [basicAuthItems, setBasicAuthItems] = useState<BasicAuthentication[]>([]); // temporarily hidden
+  const [isBasicAuthOpen, setIsBasicAuthOpen] = useState(false);
+  const [basicAuth, setBasicAuth] = useState<BasicAuthentication>();
   const [isConfirmCloseOpen, setIsConfirmCloseOpen] = useState(false);
   const [isUrlInputOpen, setIsUrlInputOpen] = useState(false);
   const [isTitleInputOpen, setIsTitleInputOpen] = useState(false);
@@ -98,7 +100,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             const loaded = response.data.actions || [];
             setActions(loaded);
             setSelectedInsertPosition(loaded.length);
-            console.log('[Main] Loaded actions:', loaded);
+            // console.log('[Main] Loaded actions:', loaded);
           } else {
             // console.error('[Main] Failed to load actions:', response.error);
             setActions([]);
@@ -119,6 +121,31 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
 
     loadActions();
   }, [testcaseId, actionService]);
+
+  // Load basic authentication khi có testcase ID
+  useEffect(() => {
+    const loadBasicAuth = async () => {
+      if (testcaseId) {
+        try {
+          const { BasicAuthService } = await import('../../services/basic_auth');
+          const basicAuthService = new BasicAuthService();
+          const response = await basicAuthService.getBasicAuthenticationByTestcaseId(testcaseId);
+          if (response.success && response.data) {
+            setBasicAuth(response.data);
+          } else {
+            setBasicAuth(undefined);
+          }
+        } catch (error) {
+          console.error('[Main] Error loading basic auth:', error);
+          setBasicAuth(undefined);
+        }
+      } else {
+        setBasicAuth(undefined);
+      }
+    };
+
+    loadBasicAuth();
+  }, [testcaseId]);
 
   // Single onAction listener: handles AI and normal actions, with optional insert position
   useEffect(() => {
@@ -291,7 +318,11 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     try {
       setIsBrowserOpen(true);
       setIsPaused(true);
-      await (window as any).browserAPI?.browser?.start();
+      let basicAuthentication = {
+        username: basicAuth?.username || '',
+        password: basicAuth?.password || '',
+      }
+      await (window as any).browserAPI?.browser?.start(basicAuthentication);
       
       if (actions.length > 0) {
         const limit = (typeof executeUntilIndex === 'number' && executeUntilIndex >= 0)
@@ -701,7 +732,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     try {
       const response = await actionService.batchCreateActions(actions);
       if (response.success) {
-        toast.success('All actions saved successfully');
+        toast.success('Saved successfully');
       } else {
         toast.error(response.error || 'Failed to save actions');
       }
@@ -715,6 +746,27 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setIsAddActionOpen(true);
   };
 
+
+  const handleSaveBasicAuth = async () => {
+    try {
+      const basicAuthService = new BasicAuthService();
+      if (!basicAuth) {
+        await basicAuthService.deleteBasicAuthentication(testcaseId || '');
+      } else {
+        await basicAuthService.upsertBasicAuthentication(basicAuth);
+      }
+    } catch (error) {
+      toast.error('Failed to save basic authentication');
+    }
+  };
+
+  const reloadBasicAuth = async () => {
+    const basicAuthService = new BasicAuthService();
+    const response = await basicAuthService.getBasicAuthenticationByTestcaseId(testcaseId || '');
+    if (response.success && response.data) {
+      setBasicAuth(response.data);
+    }
+  };
 
   const handleRunScript = async () => {
     try {
@@ -732,6 +784,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           }
           return action;
         }),
+        testcase_id: testcaseId || '',
       };
       console.log('[Main] Run script payload:', payload);
       const resp = await service.executeActions(payload);
@@ -783,6 +836,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     try {
       // Lưu actions trước khi đóng
       await handleSaveActions();
+      await handleSaveBasicAuth();
       // Đợi một chút để đảm bảo lưu thành công
       setTimeout(async () => {
         await (window as any).electronAPI?.window?.confirmCloseRecorder?.(true);
@@ -793,6 +847,23 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       toast.error('Failed to save actions. Please try again.');
     }
   };
+
+  const reloadAll = () => {
+    reloadActions();
+    reloadBasicAuth();
+  }
+
+  const saveAll = () => {
+    setIsSaving(true);
+    (async () => {
+      try {
+        await handleSaveActions();
+        await handleSaveBasicAuth();
+      } finally {
+        setIsSaving(false);
+      }
+    })();
+  }
 
   // Kiểm tra xem có actions chưa được lưu không
   // Actions được coi là chưa lưu nếu:
@@ -828,19 +899,16 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           }}
         />
         <div className="rcd-topbar-actions">
-        {/**
-         * HTTP Authentication temporarily hidden
-         * <button
-         *   className={`rcd-btn`}
-         *   title="HTTP Authentication"
-         *   onClick={() => setIsBasicAuthOpen(true)}
-         * >
-         *   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-         *     <path d="M12 1C9.79086 1 8 2.79086 8 5V7H7C5.34315 7 4 8.34315 4 10V18C4 19.6569 5.34315 21 7 21H17C18.6569 21 20 19.6569 20 18V10C20 8.34315 18.6569 7 17 7H16V5C16 2.79086 14.2091 1 12 1ZM14 7V5C14 3.89543 13.1046 3 12 3C10.8954 3 10 3.89543 10 5V7H14Z" fill="currentColor"/>
-         *   </svg>
-         *   HTTP Authentication
-         * </button>
-         */}
+        <button
+          className={`rcd-btn`}
+          title="HTTP Authentication"
+          onClick={() => setIsBasicAuthOpen(true)}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1C9.79086 1 8 2.79086 8 5V7H7C5.34315 7 4 8.34315 4 10V18C4 19.6569 5.34315 21 7 21H17C18.6569 21 20 19.6569 20 18V10C20 8.34315 18.6569 7 17 7H16V5C16 2.79086 14.2091 1 12 1ZM14 7V5C14 3.89543 13.1046 3 12 3C10.8954 3 10 3.89543 10 5V7H14Z" fill="currentColor"/>
+          </svg>
+          HTTP Authentication
+        </button>
         <button
             className={`rcd-ctrl ${isBrowserOpen ? 'rcd-stop' : 'rcd-record'}`}
             title={isBrowserOpen ? "Stop recording" : "Start recording"}
@@ -951,11 +1019,13 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           <ActionTab 
             actions={actions} 
             isLoading={isLoading} 
+            isReloading={isLoading}
+            isSaving={isSaving}
             onDeleteAction={handleDeleteAction} 
             onDeleteAll={handleDeleteAllActions} 
             onReorderActions={handleReorderActions} 
-            onReload={reloadActions}
-            onSaveActions={handleSaveActions}
+            onReload={reloadAll}
+            onSaveActions={saveAll}
             selectedInsertPosition={selectedInsertPosition}
             displayInsertPosition={displayInsertPosition}
             onSelectInsertPosition={handleSelectInsertPosition}
@@ -1006,16 +1076,15 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         onSubmit={handleAiSubmit}
         onAddElement={handleAiAddElement}
       />
-      {/** BasicAuthModal temporarily hidden */}
-      {/**
-       * <BasicAuthModal
-       *   isOpen={isBasicAuthOpen}
-       *   testcaseId={testcaseId}
-       *   onClose={() => setIsBasicAuthOpen(false)}
-       *   items={basicAuthItems}
-       *   onSaved={setBasicAuthItems}
-       * />
-       */}
+      <BasicAuthModal
+        isOpen={isBasicAuthOpen}
+        testcaseId={testcaseId}
+        onClose={() => setIsBasicAuthOpen(false)}
+        basicAuth={basicAuth}
+        onSaved={(auth) => {
+          setBasicAuth(auth);
+        }}
+      />
       <ConfirmCloseModal
         isOpen={isConfirmCloseOpen}
         onConfirm={handleConfirmClose}

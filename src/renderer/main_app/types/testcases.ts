@@ -15,7 +15,7 @@ export interface TestCase {
     script: string;
     status: string;
     createdAt: string;
-    basic_authentication?: BasicAuthentication[];
+    basic_authentication?: BasicAuthentication;
 }
 
 export interface TestCaseCreateRequest {
@@ -23,14 +23,14 @@ export interface TestCaseCreateRequest {
     name: string;
     tag?: string;
     actions?: Action[];
-    basic_authentication?: BasicAuthentication[];
+    basic_authentication?: BasicAuthentication;
 }
 
 export interface TestCaseUpdateRequest {
     testcase_id?: string;
     name?: string;
     tag?: string;
-    basic_authentication?: BasicAuthentication[];
+    basic_authentication?: BasicAuthentication;
 }
 
 export interface TestCaseDeleteRequest {
@@ -52,11 +52,11 @@ export interface TestCaseGetResponse {
     actions: Action[];
     status: string;
     script: string | null;
-    url: string | null;
+    url_video: string | null;
     logs?: string;
     created_at: string;
     updated_at: string;
-    basic_authentication?: BasicAuthentication[];
+    basic_authentication?: BasicAuthentication;
 }
 
 export interface TestCaseGetAllResponse {

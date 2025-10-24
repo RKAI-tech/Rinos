@@ -9,6 +9,7 @@ import { VariableService } from '../../services/variables';
 import { ProjectService } from '../../services/projects';
 import DeleteVariable from '../../components/variable/delete_variable/DeleteVariable';
 import { toast } from 'react-toastify';
+import { canEdit } from '../../hooks/useProjectPermissions';
 
 interface VariableItem {
   id: string;
@@ -26,6 +27,7 @@ const Variables: React.FC = () => {
   const { projectId } = useParams();
   const projectData = { projectId, projectName: (location.state as { projectName?: string } | null)?.projectName };
   const [resolvedProjectName, setResolvedProjectName] = useState<string>(projectData.projectName || 'Project');
+  const canEditPermission = canEdit(projectId);
 
   const [variables, setVariables] = useState<VariableItem[]>([]);
   const [searchText, setSearchText] = useState('');
@@ -219,7 +221,7 @@ const Variables: React.FC = () => {
                       <td className="vars-query-name">{v.queryName}</td>
                       <td className="vars-actions">
                         <div className="actions-container">
-                          <button className="actions-btn" onClick={() => { setSelectedVar({ id: v.id, name: v.customName }); setIsDeleteOpen(true); }}>
+                          <button className="actions-btn" onClick={() => { if (!canEditPermission) return; setSelectedVar({ id: v.id, name: v.customName }); setIsDeleteOpen(true); }} disabled={!canEditPermission}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <circle cx="12" cy="12" r="1" fill="currentColor"/>
                               <circle cx="19" cy="12" r="1" fill="currentColor"/>

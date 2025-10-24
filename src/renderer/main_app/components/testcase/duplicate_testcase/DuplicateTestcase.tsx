@@ -12,23 +12,25 @@ interface MinimalTestcase {
   testcase_id: string;
   name: string;
   tag: string;
-  basic_authentication?: { username: string; password: string }[];
+  basic_authentication?: { username: string; password: string };
 }
 
 interface DuplicateTestcaseProps {
   isOpen: boolean;
   onClose: () => void;
   // Return desired name/tag and prepared actions (without testcase_id)
-  onSave: (data: { name: string; tag: string; actions: Action[]; basic_authentication?: { username: string; password: string }[] }) => void;
+  onSave: (data: { name: string; tag: string; actions: Action[]; basic_authentication?: { username: string; password: string } }) => void;
   // Function provided by parent page to create testcase with actions
-  createTestcaseWithActions: (name: string, tag?: string, actions?: Action[], basic_authentication?: { username: string; password: string }[]) => Promise<boolean>;
+  createTestcaseWithActions: (name: string, tag?: string, actions?: Action[], basic_authentication?: { username: string; password: string }) => Promise<boolean>;
   testcase: MinimalTestcase | null;
 }
 
 const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, onSave, createTestcaseWithActions, testcase }) => {
   const [testcaseName, setTestcaseName] = useState('');
   const [testcaseTag, setTestcaseTag] = useState('');
-  const [errors, setErrors] = useState<{ name?: string; tag?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; tag?: string; username?: string; password?: string }>({});
+  const [basicAuth, setBasicAuth] = useState<{ username: string; password: string } | null>(null);
+  const [hasInitialBasicAuth, setHasInitialBasicAuth] = useState(false);
   const [actions, setActions] = useState<Action[]>([]);
   const [isLoadingActions, setIsLoadingActions] = useState(false);
   const actionService = useMemo(() => new ActionService(), []);
@@ -44,8 +46,10 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
     if (testcase) {
       setTestcaseName(`${testcase.name || ''} Copy`);
       setTestcaseTag(testcase.tag || '');
+      const initialBasicAuth = testcase.basic_authentication || null;
+      setBasicAuth(initialBasicAuth);
+      setHasInitialBasicAuth(!!initialBasicAuth);
       setErrors({});
-      // Basic Auth temporarily hidden
       const loadActions = async () => {
         try {
           setIsLoadingActions(true);
@@ -68,7 +72,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
     e.preventDefault();
     if (!testcase) return;
 
-    const newErrors: { name?: string; tag?: string } = {};
+    const newErrors: { name?: string; tag?: string; username?: string; password?: string } = {};
     if (!testcaseName.trim()) {
       newErrors.name = 'Testcase name is required';
     }
@@ -107,16 +111,16 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
     const result = await createTestcaseWithActions(
       testcaseName.trim(),
       testcaseTag.trim() || undefined,
-      preparedActions
-      // , (basicAuthList || []).filter(x => x.username || x.password) // temporarily hidden
+      preparedActions,
+      basicAuth && (basicAuth.username || basicAuth.password) ? basicAuth : undefined
     );
 
     if (result) {
       onSave({
         name: testcaseName.trim(),
         tag: testcaseTag.trim(),
-        actions: preparedActions
-        // , basic_authentication: (basicAuthList || []).filter(x => x.username || x.password) // temporarily hidden
+        actions: preparedActions,
+        basic_authentication: basicAuth && (basicAuth.username || basicAuth.password) ? basicAuth : undefined
       });
     }
   };
@@ -124,7 +128,8 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
   const handleClose = () => {
     setTestcaseName('');
     setTestcaseTag('');
-    // setBasicAuthList([]); // temporarily hidden
+    setBasicAuth(null);
+    setHasInitialBasicAuth(false);
     setErrors({});
     onClose();
   };
@@ -177,7 +182,116 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
             {errors.tag && <span className="tcase-dup-error-message">{errors.tag}</span>}
           </div>
 
-          {/** Basic Authentication temporarily hidden */}
+          {/* Basic Authentication */}
+          <div className="tcase-dup-form-group">
+            <label className="tcase-dup-form-label">
+              Basic Authentication
+            </label>
+            {!basicAuth ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setBasicAuth({ username: '', password: '' });
+                  setHasInitialBasicAuth(true);
+                }}
+                className="tcase-dup-btn-add-auth"
+                style={{
+                  padding: '8px 16px',
+                  border: '1px dashed #d1d5db',
+                  borderRadius: '6px',
+                  background: '#f9fafb',
+                  color: '#6b7280',
+                  cursor: 'pointer',
+                  width: '100%',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Add Basic HTTP Authentication
+              </button>
+            ) : basicAuth ? (
+              <div>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                  <input
+                    type="text"
+                    value={basicAuth?.username || ''}
+                    onChange={(e) => setBasicAuth(prev => ({ username: e.target.value, password: prev?.password || '' }))}
+                    placeholder="Username"
+                    className={`tcase-dup-form-input ${errors.username ? 'tcase-dup-error' : ''}`}
+                    style={{ flex: 1 }}
+                  />
+                  <input
+                    type="password"
+                    value={basicAuth?.password || ''}
+                    onChange={(e) => setBasicAuth(prev => ({ username: prev?.username || '', password: e.target.value }))}
+                    placeholder="Password"
+                    className={`tcase-dup-form-input ${errors.password ? 'tcase-dup-error' : ''}`}
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBasicAuth(null);
+                      setHasInitialBasicAuth(false);
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      border: '1px solid #dc2626',
+                      borderRadius: '6px',
+                      background: '#fef2f2',
+                      color: '#dc2626',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Remove Basic Authentication"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+                {errors.username && <span className="tcase-dup-error-message">{errors.username}</span>}
+                {errors.password && <span className="tcase-dup-error-message">{errors.password}</span>}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setBasicAuth({ username: '', password: '' });
+                  setHasInitialBasicAuth(true);
+                }}
+                className="tcase-dup-btn-add-auth"
+                style={{
+                  padding: '8px 16px',
+                  border: '1px dashed #d1d5db',
+                  borderRadius: '6px',
+                  background: '#f9fafb',
+                  color: '#6b7280',
+                  cursor: 'pointer',
+                  width: '100%',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Add Basic HTTP Authentication
+              </button>
+            )}
+          </div>
 
           <div style={{ borderTop: '1px solid #e5e7eb', margin: '12px 0' }} />
 

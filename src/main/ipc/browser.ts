@@ -64,11 +64,11 @@ function getOrCreateManagerForWindow(win: BrowserWindow): BrowserManager {
 }
 
 export function registerBrowserIpc() {
-    ipcMain.handle("browser:start", async (event) => {
+    ipcMain.handle("browser:start", async (event, basicAuthentication: { username: string, password: string }) => {
         const win = getWindowFromEvent(event);
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
-        await manager.start();
+        await manager.start(basicAuthentication);
     });
 
     ipcMain.handle("browser:stop", async (event) => {
@@ -130,7 +130,29 @@ export function registerBrowserIpc() {
         const win = getWindowFromEvent(event);
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
+        console.log('[Browser] Navigating to:', url);
         await manager.controller?.navigate(manager.page as Page, url);
+    });
+
+    ipcMain.handle("browser:reload", async (event) => {
+        const win = getWindowFromEvent(event);
+        if (!win) return;
+        const manager = getOrCreateManagerForWindow(win);
+        await manager.controller?.reload(manager.page as Page);
+    });
+
+    ipcMain.handle("browser:goBack", async (event) => {
+        const win = getWindowFromEvent(event);
+        if (!win) return;
+        const manager = getOrCreateManagerForWindow(win);
+        await manager.controller?.goBack(manager.page as Page);
+    });
+
+    ipcMain.handle("browser:goForward", async (event) => {
+        const win = getWindowFromEvent(event);
+        if (!win) return;
+        const manager = getOrCreateManagerForWindow(win);
+        await manager.controller?.goForward(manager.page as Page);
     });
 
     ipcMain.handle("browser:setAssertMode", async (event, enabled: boolean, assertType: AssertType) => {

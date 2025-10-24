@@ -79,6 +79,17 @@
   padding: 0 10px;
 }
 
+.rcd-ba-input.error {
+  border-color: #dc2626;
+  background: #fff7f7;
+}
+
+.rcd-ba-error {
+  margin-top: 6px;
+  color: #dc2626;
+  font-size: 12px;
+}
+
 .rcd-ba-remove {
   height: 32px;
   width: 36px;
@@ -114,6 +125,23 @@
   background: #2563eb;
   color: white;
   border-color: #2563eb;
+}
+
+.rcd-ba-btn.danger {
+  background: #dc2626;
+  color: white;
+  border-color: #dc2626;
+}
+
+.rcd-ba-btn.danger:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.rcd-ba-btn.danger:disabled {
+  background: #fca5a5;
+  border-color: #fca5a5;
+  cursor: not-allowed;
 }
 
 

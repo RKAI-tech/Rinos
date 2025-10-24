@@ -4,6 +4,8 @@ import Header from '../../components/header/Header';
 import Footer from '../../components/footer/Footer';
 import CreateProject from '../../components/project/create_project/CreateProject';
 import EditProject from '../../components/project/edit_project/EditProject';
+import { UserService } from '../../services/user';
+import AddUser from '../../components/project/add_user/add_user/AddUser';
 import DeleteProject from '../../components/project/delete_project/DeleteProject';
 import { ProjectService } from '../../services/projects';
 import { Project } from '../../types/projects';
@@ -21,18 +23,20 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [filterText, setFilterText] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'created_at' | 'number_testcase' | 'number_testsuite' | 'number_database_connection' | 'number_variable' | 'number_member'>('created_at');
+  const [sortBy, setSortBy] = useState<'name' | 'created_at' | 'number_testcase' | 'number_testsuite' | 'user_role' | 'user_permissions' | 'number_member'>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [itemsPerPage, setItemsPerPage] = useState('5 per page');
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
-
+  
   // Initialize ProjectService
   const projectService = new ProjectService();
+  const userService = new UserService();
 
   // Helper function to reload projects
   const reloadProjects = async () => {
@@ -56,7 +60,7 @@ const Dashboard: React.FC = () => {
         const response = await projectService.getProjects();
         
         if (response.success && response.data) {
-          // console.log('Loaded projects from API:', response.data.projects);
+          console.log('Loaded projects from API:', response.data.projects);
           setProjects(response.data.projects);
         } else {
           setError(response.error || 'Failed to load projects');
@@ -74,6 +78,8 @@ const Dashboard: React.FC = () => {
 
     loadProjects();
   }, []);
+
+  // Share modal handles its own user loading
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -169,6 +175,16 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleShareProjectClick = (projectId: string, event?: React.MouseEvent) => {
+    if (event) event.stopPropagation();
+    const project = projects.find(p => p.project_id === projectId);
+    if (project) {
+      setSelectedProject(project);
+      setIsShareModalOpen(true);
+      setOpenDropdownId(null);
+    }
+  };
+
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
     setSelectedProject(null);
@@ -225,6 +241,11 @@ const Dashboard: React.FC = () => {
     setSelectedProject(null);
   };
 
+  const handleCloseShareModal = () => {
+    setIsShareModalOpen(false);
+    setSelectedProject(null);
+  };
+
   const handleOpenDeleteModal = (projectId: string) => {
     const project = projects.find(p => p.project_id === projectId);
     if (project) {
@@ -249,10 +270,10 @@ const Dashboard: React.FC = () => {
           return project.number_testcase ?? 0;
         case 'number_testsuite':
           return project.number_testsuite ?? 0;
-        case 'number_database_connection':
-          return project.number_database_connection ?? 0;
-        case 'number_variable':
-          return project.number_variable ?? 0;
+        case 'user_role':
+          return project.user_role || '';
+        case 'user_permissions':
+          return project.user_permissions || '';
         case 'number_member':
           return project.number_member ?? 0;
         default:
@@ -280,7 +301,7 @@ const Dashboard: React.FC = () => {
   }, [projects, sortBy, sortOrder]);
 
   const handleSort = (
-    column: 'name' | 'created_at' | 'number_testcase' | 'number_testsuite' | 'number_database_connection' | 'number_variable' | 'number_member'
+    column: 'name' | 'created_at' | 'number_testcase' | 'number_testsuite' | 'user_role' | 'user_permissions' | 'number_member'
   ) => {
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -590,26 +611,26 @@ const Dashboard: React.FC = () => {
                       </span>
                     </th>
                     <th
-                      className={`sortable ${sortBy === 'number_database_connection' ? 'sorted' : ''}`}
-                      onClick={() => handleSort('number_database_connection')}
+                      className={`sortable ${sortBy === 'user_role' ? 'sorted' : ''}`}
+                      onClick={() => handleSort('user_role')}
                     >
                       <span className="th-content">
-                        <span className="th-text">Databases</span>
+                        <span className="th-text">Role</span>
                         <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'number_database_connection' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'number_database_connection' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          <span className={`arrow up ${sortBy === 'user_role' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'user_role' && sortOrder === 'desc' ? 'active' : ''}`}></span>
                         </span>
                       </span>
                     </th>
                     <th
-                      className={`sortable ${sortBy === 'number_variable' ? 'sorted' : ''}`}
-                      onClick={() => handleSort('number_variable')}
+                      className={`sortable ${sortBy === 'user_permissions' ? 'sorted' : ''}`}
+                      onClick={() => handleSort('user_permissions')}
                     >
                       <span className="th-content">
-                        <span className="th-text">Variables</span>
+                        <span className="th-text">Permissions</span>
                         <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'number_variable' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'number_variable' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          <span className={`arrow up ${sortBy === 'user_permissions' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'user_permissions' && sortOrder === 'desc' ? 'active' : ''}`}></span>
                         </span>
                       </span>
                     </th>
@@ -642,8 +663,8 @@ const Dashboard: React.FC = () => {
                       <td className="project-created-at">{project.created_at}</td>
                       <td className="project-test-cases">{project.number_testcase}</td>
                       <td className="project-test-suites">{project.number_testsuite}</td>
-                      <td className="project-databases">{project.number_database_connection}</td>
-                      <td className="project-variables">{project.number_variable}</td>
+                      <td className="project-databases">{project.user_role}</td>
+                      <td className="project-variables">{project.user_permissions}</td>
                       <td className="project-members">{project.number_member}</td>
                       <td className="project-actions">
                         <div className="actions-container">
@@ -662,7 +683,21 @@ const Dashboard: React.FC = () => {
                             <div className="actions-dropdown">
                               <button 
                                 className="dropdown-item"
+                                onClick={(e) => handleShareProjectClick(project.project_id, e)}
+                                disabled={!project.user_permissions.includes('CAN_MANAGE')}
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M18 8a3 3 0 1 0-2.83-4H15a3 3 0 0 0 0 6h.17A3 3 0 0 0 18 8Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M6 14a3 3 0 1 0-2.83 4H3a3 3 0 0 0 0-6h.17A3 3 0 0 0 6 14Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M8 13l8-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M8 19l8-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Share
+                              </button>
+                              <button 
+                                className="dropdown-item"
                                 onClick={(e) => handleEditProject(project.project_id, e)}
+                                disabled={!project.user_permissions.includes('CAN_EDIT') && !project.user_permissions.includes('CAN_MANAGE')}
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -673,6 +708,7 @@ const Dashboard: React.FC = () => {
                               <button 
                                 className="dropdown-item delete"
                                 onClick={(e) => handleDeleteProjectClick(project.project_id, e)}
+                                disabled={!project.user_permissions.includes('CAN_MANAGE')}
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                   <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -759,6 +795,13 @@ const Dashboard: React.FC = () => {
         onClose={handleCloseDeleteModal}
         onDelete={handleDeleteProject}
         project={selectedProject}
+      />
+
+      <AddUser
+        isOpen={isShareModalOpen}
+        projectId={selectedProject?.project_id || null}
+        onClose={handleCloseShareModal}
+        onSuccess={reloadProjects}
       />
     </div>
   );

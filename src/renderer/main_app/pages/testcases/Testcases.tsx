@@ -17,6 +17,8 @@ import { ExecuteScriptsService } from '../../services/executeScripts';
 import { ActionService } from '../../services/actions';
 import { Action } from '../../types/actions';
 import { actionToCode } from '../../../recorder/utils/action_to_code';
+import { canEdit } from '../../hooks/useProjectPermissions';
+
 
 interface Testcase {
   id: string;
@@ -27,13 +29,16 @@ interface Testcase {
   updated?: string;
   status: string;
   actionsCount: number;
-  basic_authentication?: { username: string; password: string }[];
+  basic_authentication?: { username: string; password: string };
 }
 
 const Testcases: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { projectId } = useParams();
+
+  const canEditPermission = canEdit(projectId);
+  
   const projectData = { projectId, projectName: (location.state as { projectName?: string } | null)?.projectName };
   const [resolvedProjectName, setResolvedProjectName] = useState<string>(projectData.projectName || 'Project');
   // console.log('projectData', projectData);
@@ -108,6 +113,17 @@ const Testcases: React.FC = () => {
   // Initial load
   useEffect(() => {
     reloadTestcases();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectData?.projectId]);
+
+  // Reload testcases when recorder window is closed
+  useEffect(() => {
+    const unsubscribe = (window as any)?.screenHandleAPI?.onRecorderClosed?.(async () => {
+      await reloadTestcases();
+    });
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectData?.projectId]);
 
@@ -407,7 +423,7 @@ const Testcases: React.FC = () => {
   };
 
   // Create testcase with actions in one call
-  const createTestcaseWithActions = async (name: string, tag?: string, actions?: any[], basic_authentication?: { username: string; password: string }[]) => {
+  const createTestcaseWithActions = async (name: string, tag?: string, actions?: any[], basic_authentication?: { username: string; password: string }) => {
     const effectiveProjectId = projectData?.projectId;
     if (!effectiveProjectId) {
       toast.error('Missing project ID');
@@ -418,7 +434,7 @@ const Testcases: React.FC = () => {
       name, 
       tag: tag || undefined,
       actions: actions || [],
-      basic_authentication: basic_authentication || []
+      basic_authentication: basic_authentication || undefined
     } as any;
     const resp = await testCaseService.createTestCaseWithActions(payload);
     if (!resp.success) {
@@ -444,13 +460,13 @@ const Testcases: React.FC = () => {
     }
   };
 
-  const handleSaveEditTestcase = async ({ id, name, tag, basic_authentication }: { id: string; name: string; tag: string; basic_authentication?: { username: string; password: string }[] }) => {
+  const handleSaveEditTestcase = async ({ id, name, tag, basic_authentication }: { id: string; name: string; tag: string; basic_authentication?: { username: string; password: string } }) => {
     try {
       const payload = {
         testcase_id: id,
         name,
         tag: tag || undefined,
-        basic_authentication: basic_authentication || []
+        basic_authentication: basic_authentication || undefined
       } as any;
       console.log('[MAIN_APP] payload', payload);
       const resp = await testCaseService.updateTestCase(payload);
@@ -559,6 +575,7 @@ const Testcases: React.FC = () => {
               <button 
                 className="create-testcase-btn" 
                 onClick={handleCreateTestcase}
+                disabled={!canEditPermission}
                 title="Create a new testcase with actions and steps"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -597,7 +614,7 @@ const Testcases: React.FC = () => {
                 {currentTestcases.map((testcase) => (
                   <tr
                     key={testcase.id}
-                    onClick={() => handleOpenRecorder(testcase.id)}
+                    onClick={() => canEditPermission && handleOpenRecorder(testcase.id)}
                     style={{ cursor: 'pointer' }}
                     className={runningTestcaseId === testcase.id ? 'is-running' : ''}
                     aria-busy={runningTestcaseId === testcase.id}
@@ -629,7 +646,7 @@ const Testcases: React.FC = () => {
                             <button
                               className="dropdown-item"
                               onClick={(e) => handleRunTestcase(testcase.id, e)}
-                              disabled={runningTestcaseId === testcase.id}
+                              disabled={runningTestcaseId === testcase.id || !canEditPermission}
                               title="Execute this testcase and view results"
                             >
                               {runningTestcaseId === testcase.id ? (
@@ -663,6 +680,7 @@ const Testcases: React.FC = () => {
                               className="dropdown-item" 
                               onClick={(e) => handleOpenEdit(testcase.id, e)}
                               title="Edit testcase name and tag"
+                              disabled={!canEditPermission}
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -674,6 +692,7 @@ const Testcases: React.FC = () => {
                               className="dropdown-item" 
                               onClick={(e) => handleOpenDuplicate(testcase.id, e)}
                               title="Create a copy of this testcase with all its actions"
+                              disabled={!canEditPermission}
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M16 1H4a2 2 0 0 0-2 2v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -685,6 +704,7 @@ const Testcases: React.FC = () => {
                               className="dropdown-item delete" 
                               onClick={(e) => handleOpenDelete(testcase.id, e)}
                               title="Permanently delete this testcase and all its actions"
+                              disabled={!canEditPermission}
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

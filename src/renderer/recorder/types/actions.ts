@@ -122,6 +122,7 @@ export interface Action {
 
 export interface ActionBatch {
   actions: Action[];
+  testcase_id: string;
 }
 
 // AI Assert Request types

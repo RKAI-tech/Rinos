@@ -12,6 +12,7 @@ import AddQuery from '../../components/query/add_query/AddQuery';
 import { toast } from 'react-toastify';
 import DeleteQuery from '../../components/query/delete_query/DeleteQuery';
 import RunQuery from '../../components/query/run_query/RunQuery';
+import { canEdit } from '../../hooks/useProjectPermissions';
 
 interface QueryItem {
   id: string;
@@ -26,6 +27,7 @@ const Queries: React.FC = () => {
   const { projectId } = useParams();
   const projectData = { projectId, projectName: (location.state as { projectName?: string } | null)?.projectName };
   const [resolvedProjectName, setResolvedProjectName] = useState<string>(projectData.projectName || 'Project');
+  const canEditPermission = canEdit(projectId);
 
   const [queries, setQueries] = useState<QueryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -196,6 +198,7 @@ const Queries: React.FC = () => {
   const handleSidebarNavigate = (path: string) => navigate(path);
 
   const handleRunQuery = async () => {
+    if (!canEditPermission) return;
     if (!sqlQuery.trim() || !selectedConnectionId) {
       toast.error('Please enter SQL query and select connection');
       return;
@@ -300,7 +303,7 @@ const Queries: React.FC = () => {
                   <button 
                     className="qry-run-btn" 
                     onClick={handleRunQuery}
-                    disabled={isRunningQuery || !sqlQuery.trim() || !selectedConnectionId}
+                    disabled={isRunningQuery || !sqlQuery.trim() || !selectedConnectionId || !canEditPermission}
                   >
                     {isRunningQuery ? 'Running...' : 'Run Query'}
                   </button>
@@ -363,7 +366,7 @@ const Queries: React.FC = () => {
                   <option value="20 rows/page">20 rows/page</option>
                   <option value="50 rows/page">50 rows/page</option>
                 </select>
-                <button className="qry-create-query-btn" onClick={() => setIsAddOpen(true)}>
+                <button className="qry-create-query-btn" onClick={() => { if (!canEditPermission) return; setIsAddOpen(true); }} disabled={!canEditPermission}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -438,6 +441,7 @@ const Queries: React.FC = () => {
                             {openDropdownId === q.id && (
                               <div className="actions-dropdown">
                                 <button className="dropdown-item" onClick={async () => {
+                                  if (!canEditPermission) { setOpenDropdownId(null); return; }
                                   try {
                                     const svc = new StatementService();
                                     setSelectedQuery({ id: q.id, name: q.name });
@@ -457,13 +461,13 @@ const Queries: React.FC = () => {
                                   } finally {
                                     setOpenDropdownId(null);
                                   }
-                                }}>
+                                }} disabled={!canEditPermission}>
                                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <polygon points="8,5 19,12 8,19" fill="currentColor" />
                                   </svg>
                                   Run
                                 </button>
-                                <button className="dropdown-item delete" onClick={() => { setSelectedQuery({ id: q.id, name: q.name }); setIsDeleteOpen(true); setOpenDropdownId(null); }}>
+                                <button className="dropdown-item delete" onClick={() => { if (!canEditPermission) { setOpenDropdownId(null); return; } setSelectedQuery({ id: q.id, name: q.name }); setIsDeleteOpen(true); setOpenDropdownId(null); }} disabled={!canEditPermission}>
                                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                     <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

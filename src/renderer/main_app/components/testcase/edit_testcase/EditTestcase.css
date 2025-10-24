@@ -6,12 +6,13 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  /* Removed backdrop-filter for better performance */
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 20px;
+  will-change: opacity;
 }
 
 /* Modal Container */
@@ -23,17 +24,19 @@
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
-  animation: tcaseEditModalSlideIn 0.3s ease-out;
+  animation: tcaseEditModalSlideIn 0.2s ease-out;
+  will-change: transform, opacity;
+  transform: translateZ(0); /* Force GPU acceleration */
 }
 
 @keyframes tcaseEditModalSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-20px) scale(0.95);
+    transform: translate3d(0, -20px, 0) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
@@ -252,6 +255,10 @@
 @media (prefers-reduced-motion: reduce) {
   .tcase-edit-modal-container {
     animation: none;
+  }
+  
+  .tcase-edit-modal-overlay {
+    will-change: auto;
   }
 }
 

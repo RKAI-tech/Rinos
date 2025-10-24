@@ -4,6 +4,8 @@ import { TestSuiteService } from '../../../services/testsuites';
 import { TestCaseService } from '../../../services/testcases';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { canEdit } from '../../../hooks/useProjectPermissions';
+import { useParams } from 'react-router-dom';
 
 interface Props {
   isOpen: boolean;
@@ -14,6 +16,7 @@ interface Props {
 interface CaseItem {
   id: string;
   name: string;
+  tag?: string;
   status?: string;
   output?: string; // placeholder for terminal-like logs
   url?: string;
@@ -29,37 +32,64 @@ interface LogModalProps {
 
 // Log Modal Component
 const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, testcaseName, logs, videoUrl }) => {
+  const [activeTab, setActiveTab] = useState<'logs' | 'video'>('logs');
+
   if (!isOpen) return null;
 
   return (
     <div className="vtsr-log-overlay" onClick={(e) => e.stopPropagation()}>
-      <div className="vtsr-log-combined" onClick={(e) => e.stopPropagation()}>
+      <div className="vtsr-log-tabbed" onClick={(e) => e.stopPropagation()}>
         <div className="vtsr-log-header">
           <h3 className="vtsr-log-title">{testcaseName}</h3>
           <button className="vtsr-log-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
-        <div className="vtsr-log-content-row">
-          <div className="vtsr-log-pane">
-            <div className="vtsr-terminal">
-              <div className="vtsr-term-bar">
-                <span className="dot red" />
-                <span className="dot yellow" />
-                <span className="dot green" />
-                <span className="vtsr-term-title">Execution Logs</span>
-              </div>
-              <pre className="vtsr-term-content">
-                {logs || 'No logs available for this testcase.'}
-              </pre>
-            </div>
+        
+        <div className="vtsr-log-tabbed-content">
+          <div className="vtsr-log-tab-nav">
+            <button 
+              className={`vtsr-log-tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
+              onClick={() => setActiveTab('logs')}
+            >
+              📋 Logs
+            </button>
+            <button 
+              className={`vtsr-log-tab-btn ${activeTab === 'video' ? 'active' : ''}`}
+              onClick={() => setActiveTab('video')}
+            >
+              🎥 Video
+            </button>
           </div>
-          <div className="vtsr-log-pane">
-            {videoUrl ? (
-              <video style={{ width: '100%', height: '100%' }} controls src={videoUrl} />
-            ) : (
-              <div style={{ padding: 16 }}>No video available.</div>
+          
+          <div className="vtsr-log-tab-content">
+            {activeTab === 'logs' && (
+              <div className="vtsr-terminal">
+                <div className="vtsr-term-bar">
+                  <span className="dot red" />
+                  <span className="dot yellow" />
+                  <span className="dot green" />
+                  <span className="vtsr-term-title">Execution Logs</span>
+                </div>
+                <pre className="vtsr-term-content">
+                  {logs || 'No logs available for this testcase.'}
+                </pre>
+              </div>
+            )}
+            
+            {activeTab === 'video' && (
+              <div className="vtsr-log-video-container">
+                {videoUrl ? (
+                  <video style={{ width: '100%', height: '100%' }} controls src={videoUrl} />
+                ) : (
+                  <div className="vtsr-log-no-video">
+                    <div className="vtsr-log-no-video-icon">🎥</div>
+                    <div className="vtsr-log-no-video-text">No video available for this testcase.</div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
+        
         <div className="vtsr-log-footer">
           <button className="vtsr-btn" onClick={onClose}>Close</button>
         </div>
@@ -69,6 +99,7 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, testcaseName, logs
 };
 
 const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) => {
+  const { projectId } = useParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cases, setCases] = useState<CaseItem[]>([]);
@@ -81,7 +112,8 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const svc = useMemo(() => new TestSuiteService(), []);
   const tcs = useMemo(() => new TestCaseService(), []);
-  const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
+  const [isRetryingAll, setIsRetryingAll] = useState(false);
+  const canEditPermission = canEdit(projectId);
 
   const fetchResults = useCallback(async (silent: boolean = false) => {
     if (!isOpen || !testSuiteId) return;
@@ -93,9 +125,10 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
         const mapped: CaseItem[] = (resp.data.testcases || []).map((tc) => ({
           id: tc.testcase_id,
           name: tc.name,
+          tag: (tc as any).tag,
           status: (tc as any).status,
           output: tc.logs || '',
-          url: (tc as any).url
+          url: (tc as any).url_video
         }));
         setCases(mapped);
       } else {
@@ -125,27 +158,20 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
     };
   }, [isOpen, testSuiteId, fetchResults]);
 
-  const handleRetry = async (testcaseId: string) => {
-    setRetryingIds(prev => {
-      const next = new Set(prev);
-      next.add(testcaseId);
-      return next;
-    });
+  const handleRetryAll = async () => {
+    if (!canEditPermission || !testSuiteId) return;
+    setIsRetryingAll(true);
     try {
-      const resp = await tcs.executeTestCase({ testcase_id: testcaseId });
+      const resp = await svc.executeTestSuite({ test_suite_id: testSuiteId });
       if (resp.success) {
-        toast.success('Test case execution started');
+        toast.success('Test suite execution started');
       } else {
-        toast.error(resp.error || 'Failed to execute test case');
+        toast.error(resp.error || 'Failed to execute test suite');
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to execute test case');
+      toast.error(e instanceof Error ? e.message : 'Failed to execute test suite');
     } finally {
-      setRetryingIds(prev => {
-        const next = new Set(prev);
-        next.delete(testcaseId);
-        return next;
-      });
+      setIsRetryingAll(false);
       await fetchResults();
     }
   };
@@ -247,6 +273,38 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
     setCurrentPage(1);
   };
 
+  const handleExport = async () => {
+    try {
+      if (!testSuiteId) {
+        toast.error('Missing test suite ID');
+        return;
+      }
+
+      const response = await svc.exportTestSuite({ test_suite_id: testSuiteId });
+      
+      if (!response.success) {
+        toast.error(response.error || 'Failed to export test suite');
+        return;
+      }
+
+      if (response.blob && response.filename) {
+        const url = URL.createObjectURL(response.blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = response.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('Exported test suite to Excel');
+      } else {
+        toast.error('No file received from server');
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Export failed');
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -268,7 +326,25 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
           />
           <div className="vtsr-header">
             <h2 className="vtsr-title">Test Suite Results</h2>
-            <button className="vtsr-close" onClick={onClose} aria-label="Close">✕</button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button 
+                className="vtsr-btn vtsr-btn-rerun" 
+                onClick={(e) => { e.stopPropagation(); handleRetryAll(); }}
+                disabled={isRetryingAll || isLoading || !canEditPermission || cases.length === 0}
+                aria-label="Retry All Test Cases"
+              >
+                {isRetryingAll ? 'Running...' : 'Rerun'}
+              </button>
+              <button
+                className="vtsr-btn vtsr-btn-export" 
+                onClick={(e) => { e.stopPropagation(); handleExport(); }}
+                disabled={isLoading || cases.length === 0}
+                aria-label="Export"
+              >
+                Export
+              </button>
+              <button className="vtsr-close" onClick={onClose} aria-label="Close">✕</button>
+            </div>
           </div>
 
           <div className="vtsr-body">
@@ -350,7 +426,6 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
                             </span>
                           </span>
                         </th>
-                        <th aria-label="Actions"></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -372,16 +447,6 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
                                 c.status || 'DRAFT'
                               )}
                             </span>
-                          </td>
-                          <td className="vtsr-table-actions">
-                            <button 
-                              className="vtsr-btn" 
-                              onClick={(e) => { e.stopPropagation(); handleRetry(c.id); }}
-                              disabled={retryingIds.has(c.id) || isLoading}
-                              aria-label="Retry Testcase"
-                            >
-                              {retryingIds.has(c.id) ? 'Retrying...' : 'Retry'}
-                            </button>
                           </td>
                         </tr>
                       ))}

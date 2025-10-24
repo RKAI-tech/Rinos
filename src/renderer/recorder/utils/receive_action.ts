@@ -5,17 +5,17 @@ export function createDescription(action_received: any): string {
     const type = action_received.type;
     let value = action_received.value;
     // Truncate value if it's too long
-    if (typeof value === 'string' && value.length > 15) {
-        value = value.substring(0, 15) + '...';
-    }
+    // if (typeof value === 'string' && value.length > 15) {
+    //     value = value.substring(0, 15) + '...';
+    // }
     let url = action_received.url;
-    if (typeof url === 'string' && url.length > 15) {
-        url = url.substring(0, 15) + '...';
-    }
+    // if (typeof url === 'string' && url.length > 15) {
+    //     url = url.substring(0, 15) + '...';
+    // }
     let element = action_received.elementText;
-    if (typeof element === 'string' && element.length > 15) {
-        element = element.substring(0, 15) + '...';
-    }
+    // if (typeof element === 'string' && element.length > 15) {
+    //     element = element.substring(0, 15) + '...';
+    // }
     let files = action_received.files?.map((f: any) => f.name).join(', ') || '';
     switch (type) {
         case ActionType.navigate:
@@ -143,7 +143,7 @@ export function createScriptForAiAssert(receivedAction: any, action_received: an
 }
 
 export function receiveAction(testcaseId: string, action_recorded: Action[], action_received: any): Action[] {
-    console.log('[rawAction]', action_received);
+    // console.log('[rawAction]', action_received);
     const normalizedType = (action_received?.action_type ?? action_received?.type) as ActionType | undefined;
     const normalizedDescription = (action_received?.description ?? createDescription(action_received)) as string | undefined;
 
@@ -158,7 +158,9 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
             query: action_received.query,
             value: action_received.value,
             variable_name: action_received.variable_name,
-        } as Element] : [],
+        } as Element] : action_received.elements ? action_received.elements.map((element: Element) => ({
+            query: element.query,
+        } as Element)) : [],
         assert_type: action_received.assertType,
         value: action_received.value || action_received.files?.[0]?.name || action_received.url || undefined,
         connection_id: action_received.connection_id,
@@ -186,7 +188,7 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         timestamp: action_received.timeStamp || action_received.timestamp,
     } as Action;
 
-    console.log('[receiveAction]', receivedAction);
+    // console.log('[receiveAction]', receivedAction);
 
     const last_action = action_recorded[action_recorded.length - 1];
 

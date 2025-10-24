@@ -9,11 +9,11 @@ interface BasicAuthModalProps {
   testcaseId?: string | null;
   onClose: () => void;
   onSaved?: (
-    items:
-      | BasicAuthentication[]
-      | ((prev: BasicAuthentication[]) => BasicAuthentication[])
+    basicAuth:
+      | BasicAuthentication
+      | undefined
   ) => void;
-  items?: BasicAuthentication[];
+  basicAuth?: BasicAuthentication;
 }
 
 const emptyItem = (testcaseId?: string | null): BasicAuthentication => ({
@@ -22,78 +22,128 @@ const emptyItem = (testcaseId?: string | null): BasicAuthentication => ({
   password: '',
 });
 
-const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onClose, onSaved, items = [] }) => {
+const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onClose, onSaved, basicAuth }) => {
   const service = useMemo(() => new BasicAuthService(), []);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [currentAuth, setCurrentAuth] = useState<BasicAuthentication>(emptyItem(testcaseId));
+  const [hasAuthData, setHasAuthData] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
 
+  // useEffect(() => {
+  //   if (!isOpen) return;
+  //   if (!testcaseId) {
+  //     setCurrentAuth(emptyItem(testcaseId));
+  //     setHasAuthData(false);
+  //     setShowForm(false);
+  //     setErrors({});
+  //     return;
+  //   }
+  //   const load = async () => {
+  //     setIsLoading(true);
+  //     try {
+  //       const resp = await service.getBasicAuthenticationByTestcaseId(testcaseId);
+  //       console.log('resp', resp);
+  //       if (resp.success && resp.data && resp.data.username) {
+  //         setCurrentAuth({
+  //           username: resp.data.username,
+  //           password: resp.data.password,
+  //         });
+  //         setHasAuthData(true);
+  //         setShowForm(true);
+  //         setErrors({});
+  //       } else {
+  //         setCurrentAuth(emptyItem(testcaseId));
+  //         setHasAuthData(false);
+  //         setShowForm(false);
+  //         setErrors({});
+  //         if (resp.error) toast.error(resp.error);
+  //       }
+  //     } catch (e) {
+  //       setCurrentAuth(emptyItem(testcaseId));
+  //       setHasAuthData(false);
+  //       setShowForm(false);
+  //       setErrors({});
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+  //   load();
+  // }, [isOpen, testcaseId, service]);
   useEffect(() => {
     if (!isOpen) return;
-    if (!testcaseId) {
-      onSaved?.([]);
-      return;
+    if (basicAuth && (basicAuth.username || basicAuth.password)) {
+      setCurrentAuth({
+        username: basicAuth.username || '',
+        password: basicAuth.password || '',
+      });
+      setHasAuthData(true);
+      setShowForm(true);
+      setErrors({});
+    } else if (!testcaseId) {
+      setCurrentAuth(emptyItem(testcaseId));
+      setHasAuthData(false);
+      setShowForm(false);
+      setErrors({});
     }
-    const load = async () => {
-      setIsLoading(true);
-      try {
-        const resp = await service.getBasicAuthenticationByTestcaseId(testcaseId);
-        if (resp.success) {
-          const auths = (resp.data || []).map(x => ({ ...x }));
-          onSaved?.(auths);
-        } else {
-          onSaved?.([]);
-          if (resp.error) toast.error(resp.error);
-        }
-      } catch (e) {
-        onSaved?.([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
-  }, [isOpen, testcaseId, service]);
+  }, [isOpen, basicAuth, testcaseId]);
 
   if (!isOpen) return null;
 
-  const updateItem = (index: number, field: keyof BasicAuthentication, value: string) => {
-    onSaved?.((prev) => prev.map((it, i) => i === index ? { ...it, [field]: value } as BasicAuthentication : it));
+  const updateField = (field: keyof BasicAuthentication, value: string) => {
+    setCurrentAuth(prev => ({ ...prev, [field]: value }));
+    if (field === 'username' || field === 'password') {
+      if (value && value.trim().length > 0) {
+        setErrors(prev => ({ ...prev, [field]: undefined }));
+      }
+    }
   };
 
-  const addItem = () => {
-    onSaved?.((prev) => [...prev, emptyItem(testcaseId)]);
+  const handleAddAuth = () => {
+    setCurrentAuth(emptyItem(testcaseId));
+    setShowForm(true);
+    setErrors({});
   };
 
-  const removeItem = (index: number) => {
-    onSaved?.((prev) => prev.filter((_, i) => i !== index));
+  const validate = (): boolean => {
+    const newErrors: { username?: string; password?: string } = {};
+    if (!currentAuth.username || currentAuth.username.trim().length === 0) {
+      newErrors.username = 'Username is required';
+    }
+    if (!currentAuth.password || currentAuth.password.trim().length === 0) {
+      newErrors.password = 'Password is required';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!testcaseId) {
       toast.error('Missing testcase ID');
       return;
     }
-    const cleaned = items
-      .map(x => ({ ...x, testcase_id: testcaseId }))
-      .filter(x => (x.username || '').trim().length > 0);
-    if (cleaned.length === 0) {
-      toast.warning('Please add at least one username');
+    
+    const authToSave = { ...currentAuth, testcase_id: testcaseId };
+    if (!validate()) return;
+    
+    // Chỉ lưu trên UI, không gọi API
+    setHasAuthData(true);
+    toast.success('HTTP Authentication saved');
+    if (onSaved) onSaved(authToSave);
+    onClose();
+  };
+
+  const handleDelete = () => {
+    if (!hasAuthData) {
+      toast.warning('No authentication data to delete');
       return;
-    }
-    setIsSaving(true);
-    try {
-      const resp = await service.upsertMultipleBasicAuthentication(cleaned);
-      if (resp.success) {
-        toast.success('Saved HTTP Authentication');
-        if (onSaved) onSaved(resp.data || cleaned);
-        onClose();
-      } else {
-        toast.error(resp.error || 'Failed to save');
-      }
-    } catch (e) {
-      toast.error('Failed to save');
-    } finally {
-      setIsSaving(false);
-    }
+    }   
+    // Chỉ xóa trên UI, không gọi API
+    setCurrentAuth(emptyItem(testcaseId));
+    setHasAuthData(false);
+    setShowForm(false);
+    setErrors({});
+    if (onSaved) onSaved(undefined);
   };
 
   return (
@@ -112,61 +162,64 @@ const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onC
         <div className="rcd-ba-content">
           {isLoading ? (
             <div className="rcd-ba-empty">Loading...</div>
+          ) : !showForm ? (
+            <div className="rcd-ba-empty">
+              <div className="rcd-ba-empty-text">No HTTP authentication configured</div>
+              <button className="rcd-ba-btn" onClick={handleAddAuth}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 6 }}>
+                  <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Add Basic Authentication
+              </button>
+            </div>
           ) : (
-            <>
-              <div className="rcd-ba-list">
-                {items.length === 0 ? (
-                  <div className="rcd-ba-empty">No HTTP authentication entries</div>
-                ) : (
-                  items.map((it, idx) => (
-                    <div key={idx} className="rcd-ba-row">
-                      <div className="rcd-ba-field">
-                        <label className="rcd-ba-label">Username</label>
-                        <input
-                          className="rcd-ba-input"
-                          value={it.username || ''}
-                          onChange={(e) => updateItem(idx, 'username', e.target.value)}
-                          placeholder="Enter username"
-                        />
-                      </div>
-                      <div className="rcd-ba-field">
-                        <label className="rcd-ba-label">Password</label>
-                        <input
-                          className="rcd-ba-input"
-                          type="password"
-                          value={it.password || ''}
-                          onChange={(e) => updateItem(idx, 'password', e.target.value)}
-                          placeholder="Enter password"
-                        />
-                      </div>
-                      <button className="rcd-ba-remove" title="Remove" onClick={() => removeItem(idx)}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </button>
-                    </div>
-                  ))
+            <div className="rcd-ba-form">
+              <div className="rcd-ba-field">
+                <label className="rcd-ba-label">Username</label>
+                <input
+                  className={`rcd-ba-input${errors.username ? ' error' : ''}`}
+                  value={currentAuth.username || ''}
+                  onChange={(e) => updateField('username', e.target.value)}
+                  placeholder="Enter username"
+                />
+                {errors.username && (
+                  <div className="rcd-ba-error">{errors.username}</div>
                 )}
               </div>
-              <div className="rcd-ba-actions">
-                {items.length === 0 && (
-                  <button className="rcd-ba-btn" onClick={addItem}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 6 }}>
-                      <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    Add authentication
-                  </button>
+              <div className="rcd-ba-field">
+                <label className="rcd-ba-label">Password</label>
+                <input
+                  className={`rcd-ba-input${errors.password ? ' error' : ''}`}
+                  type="password"
+                  value={currentAuth.password || ''}
+                  onChange={(e) => updateField('password', e.target.value)}
+                  placeholder="Enter password"
+                />
+                {errors.password && (
+                  <div className="rcd-ba-error">{errors.password}</div>
                 )}
               </div>
-            </>
+            </div>
           )}
         </div>
 
         <div className="rcd-ba-footer">
           <button className="rcd-ba-btn" onClick={onClose}>Cancel</button>
-          <button className="rcd-ba-btn primary" onClick={handleSave} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save'}</button>
+          {hasAuthData && (
+            <button className="rcd-ba-btn danger" onClick={handleDelete}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 6 }}>
+                <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 11V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M14 11V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Delete
+            </button>
+          )}
+          {showForm && (
+            <button className="rcd-ba-btn primary" onClick={handleSave}>Save</button>
+          )}
         </div>
       </div>
     </div>
