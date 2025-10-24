@@ -119,6 +119,58 @@ export class ApiRouter {
   clearAuth(): void {
     this.token = null;
   }
+
+  async downloadFile(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<{ success: boolean; blob?: Blob; filename?: string; error?: string }> {
+    const url = `${this.baseUrl}${endpoint}`;
+    
+    const headers: Record<string, string> = {
+      ...(options.headers as Record<string, string> || {}),
+    };
+
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return {
+          success: false,
+          error: `HTTP ${response.status}: ${response.statusText} - ${errorText}`
+        };
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'export.xlsx';
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, '');
+        }
+      }
+
+      return {
+        success: true,
+        blob,
+        filename
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Download failed'
+      };
+    }
+  }
 }
 
 // Export singleton instance

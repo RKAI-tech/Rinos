@@ -1,9 +1,9 @@
 /* Modal Overlay */
-.tsuite-edit-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.tsuite-edit-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); /* Removed backdrop-filter for better performance */ display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; will-change: opacity; }
 
 /* Container */
-.tsuite-edit-modal-container { background: #fff; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; animation: tsuiteEditModalSlideIn 0.3s ease-out; }
-@keyframes tsuiteEditModalSlideIn { from { opacity: 0; transform: translateY(-20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.tsuite-edit-modal-container { background: #fff; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; animation: tsuiteEditModalSlideIn 0.2s ease-out; will-change: transform, opacity; transform: translateZ(0); }
+@keyframes tsuiteEditModalSlideIn { from { opacity: 0; transform: translate3d(0, -20px, 0) scale(0.95); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
 
 /* Header */
 .tsuite-edit-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 24px 24px 0 24px; margin-bottom: 8px; }
@@ -43,6 +43,17 @@
   .tsuite-edit-modal-title { font-size: 18px; }
   .tsuite-edit-modal-actions { flex-direction: column; gap: 8px; }
   .tsuite-edit-btn-cancel, .tsuite-edit-btn-save { width: 100%; justify-content: center; }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .tsuite-edit-modal-container {
+    animation: none;
+  }
+  
+  .tsuite-edit-modal-overlay {
+    will-change: auto;
+  }
 }
 
 

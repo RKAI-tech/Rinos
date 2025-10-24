@@ -9,7 +9,9 @@ import {
     GetTestCasesBySuiteRequest,
     TestCaseInSuite,
     ExecuteTestSuiteRequest,
-    GetTestCasesBySuiteResponse
+    GetTestCasesBySuiteResponse,
+    ExportTestSuiteRequest,
+    ExportTestSuiteResponse
 } from '../types/testsuites';
 import { DefaultResponse } from '../types/api_responses';
 
@@ -142,6 +144,21 @@ export class TestSuiteService {
         return await apiRouter.request<GetTestCasesBySuiteResponse>(`/test-suites/${request.test_suite_id}/testcases`, {
             method: 'POST',
             body: JSON.stringify(request),
+        });
+    }
+
+    // Export test suite to Excel
+    async exportTestSuite(request: ExportTestSuiteRequest): Promise<{ success: boolean; blob?: Blob; filename?: string; error?: string }> {
+        // Input validation
+        if (!request.test_suite_id) {
+            return {
+                success: false,
+                error: 'Test suite ID is required'
+            };
+        }
+
+        return await apiRouter.downloadFile(`/test-suites/${request.test_suite_id}/export`, {
+            method: 'GET'
         });
     }
 }
