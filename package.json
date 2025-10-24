@@ -82,7 +82,7 @@
         "to": ".env"
       },
       {
-        "from": "/home/hunghd/.cache/ms-playwright",
+        "from": "C:\\Users\\ASUS\\AppData\\Local\\ms-playwright",
         "to": "playwright-browsers",
         "filter": [
           "**/*"
