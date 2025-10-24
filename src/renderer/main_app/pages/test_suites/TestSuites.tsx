@@ -46,7 +46,7 @@ const TestSuites: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [sortBy, setSortBy] = useState<'name' | 'description' | 'passRate' | 'testcases' | 'passed' | 'failed' | 'createdAt'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [itemsPerPage, setItemsPerPage] = useState('5 rows/page');
+  const [itemsPerPage, setItemsPerPage] = useState('10 rows/page');
   const [currentPage, setCurrentPage] = useState(1);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -370,10 +370,9 @@ const TestSuites: React.FC = () => {
                   onChange={(e) => { setItemsPerPage(e.target.value); setCurrentPage(1); }}
                   className="pagination-dropdown"
                 >
-                  <option value="5 rows/page">5 rows/page</option>
                   <option value="10 rows/page">10 rows/page</option>
                   <option value="20 rows/page">20 rows/page</option>
-                  <option value="50 rows/page">50 rows/page</option>
+                  <option value="30 rows/page">30 rows/page</option>
                 </select>
 
                 <button 

@@ -32,7 +32,7 @@ const Databases: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'type' | 'host' | 'port'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [itemsPerPage, setItemsPerPage] = useState('5 rows/page');
+  const [itemsPerPage, setItemsPerPage] = useState('10 rows/page');
   const [currentPage, setCurrentPage] = useState(1);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -195,10 +195,9 @@ const Databases: React.FC = () => {
                   onChange={(e) => { setItemsPerPage(e.target.value); setCurrentPage(1); }}
                   className="pagination-dropdown"
                 >
-                  <option value="5 rows/page">5 rows/page</option>
                   <option value="10 rows/page">10 rows/page</option>
                   <option value="20 rows/page">20 rows/page</option>
-                  <option value="50 rows/page">50 rows/page</option>
+                  <option value="30 rows/page">30 rows/page</option>
                 </select>
               <button className="create-database-btn" onClick={handleCreateDatabase} disabled={!canEditPermission}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

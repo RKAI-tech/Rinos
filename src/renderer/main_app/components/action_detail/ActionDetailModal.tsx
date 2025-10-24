@@ -272,6 +272,23 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
     onClose();
   };
 
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   return (
     <div className="ma-action-detail-overlay" onClick={onClose}>
       <div className="ma-action-detail-container" onClick={(e) => e.stopPropagation()}>

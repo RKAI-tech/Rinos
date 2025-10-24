@@ -51,6 +51,23 @@ const EditTestSuite: React.FC<EditTestSuiteProps> = ({ isOpen, onClose, onSave, 
     onClose();
   };
 
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
   if (!isOpen || !testsuite) return null;
 
   return (

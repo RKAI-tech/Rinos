@@ -33,7 +33,7 @@ const Variables: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [sortBy, setSortBy] = useState<'customName' | 'originalName' | 'value' | 'databaseName' | 'databaseType' | 'queryName'>('customName');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [itemsPerPage, setItemsPerPage] = useState('5 rows/page');
+  const [itemsPerPage, setItemsPerPage] = useState('10 rows/page');
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedVar, setSelectedVar] = useState<{ id: string; name?: string } | null>(null);
@@ -189,10 +189,9 @@ const Variables: React.FC = () => {
                   onChange={(e) => { setItemsPerPage(e.target.value); setCurrentPage(1); }}
                   className="vars-pagination-dropdown"
                 >
-                  <option value="5 rows/page">5 rows/page</option>
                   <option value="10 rows/page">10 rows/page</option>
                   <option value="20 rows/page">20 rows/page</option>
-                  <option value="50 rows/page">50 rows/page</option>
+                  <option value="30 rows/page">30 rows/page</option>
                 </select>
               </div>
             </div>

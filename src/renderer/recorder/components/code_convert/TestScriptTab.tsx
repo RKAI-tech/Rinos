@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import './TestScriptTab.css';
 import Editor from '@monaco-editor/react';
 import { toast } from 'react-toastify';
@@ -118,7 +120,11 @@ const TestScriptTab: React.FC<TestScriptTabProps> = ({ script, runResult, onScri
         <div className="test-terminal-content">
           <div className="terminal-output">
             {terminalOutput ? (
-              <pre className="terminal-text">{terminalOutput}</pre>
+              <div className="terminal-text">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {terminalOutput}
+                </ReactMarkdown>
+              </div>
             ) : (
               <div className="terminal-placeholder">
                 Terminal output will appear here when you run the script...
