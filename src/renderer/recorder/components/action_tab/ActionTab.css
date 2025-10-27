@@ -79,6 +79,10 @@
   color: #ef4444;
 }
 
+.rcd-action-btn.auth {
+  color: #8b5cf6;
+}
+
 .rcd-add-action-container {
   position: relative;
 }

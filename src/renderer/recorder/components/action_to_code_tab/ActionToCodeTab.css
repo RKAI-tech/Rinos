@@ -46,3 +46,13 @@
 .rcd-run-test:hover {
   background: #16a34a;
 }
+
+.rcd-run-test.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #9ca3af;
+}
+
+.rcd-run-test.disabled:hover {
+  background: #9ca3af;
+}

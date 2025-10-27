@@ -1,50 +1,23 @@
-# Release Notes - Rikkei Automation Test App
+### Chia sẻ dự án cho nhiều người tham gia
 
-## Version 1.1.0 - Major Feature Update
+Chủ dự án hoặc thành viên có quyền MANAGE có thể chia sẻ dự án cho nhiều người tham gia.
 
-### 🚀 New Features
+Người tham gia có quyền VIEW/EDIT có thể xem và chỉnh sửa dự án dựa trên quyền của mình.
 
-#### 1. **Project Collaboration & Sharing**
-- **Multi-user Project Access**: Chia sẻ quyền sử dụng dự án cho nhiều người tham gia
-- Enhanced team collaboration capabilities
-- Improved project management workflow
+### Lưu trữ và xuất kết quả kiểm thử
 
-#### 2. **Comprehensive Test Results Management**
-- **Suite Execution Storage**: Lưu trữ kết quả chạy suite với đầy đủ thông tin chi tiết
-- **Export Functionality**: Xuất kết quả dưới dạng folder ZIP bao gồm:
-  - 📊 Excel file chứa kết quả chạy suite
-  - 📝 JavaScript script files
-  - 📋 Log files chi tiết từng testcase
-  - 🎥 Video recording quá trình thực thi
-  - 📸 Screenshot capture cho mỗi step
+Kết quả kiểm thử được lưu trữ trong cơ sở dữ liệu và có thể xuất ra file Excel dưới dạng các Test cases.
 
-#### 3. **Database Management Enhancement**
-- **Database Execution**: Cập nhật và chỉnh sửa trạng thái database
-- Real-time database state management
-- Improved data integrity controls
+Cung cấp Video, ảnh chụp màn hình kiểm thử, mã nguồn js script, log kiểm thử.
 
-#### 4. **Advanced Navigation Features**
-- **Enhanced Browser Controls**:
-  - 🔄 Navigate functionality
-  - 🔃 Reload capabilities
-  - ⏭️ Forward navigation
-  - ⏮️ Backward navigation
-- Improved user experience with comprehensive browser control
+### Cập nhật trạng thái cơ sở dữ liệu sau khi kiểm thử
 
-### 📈 Improvements
-- Enhanced user interface for better workflow management
-- Optimized performance for large-scale test execution
-- Improved error handling and reporting mechanisms
+Tính năng này cho phép người dùng thực hiện câu truy vấn để cập nhật trạng thái cơ sở dữ liệu sau khi kiểm thử.
 
-### 🔧 Technical Enhancements
-- Better integration between test execution and result management
-- Enhanced file management system for test artifacts
-- Improved data synchronization across team members
+### Cung cấp tính năng Basic HTTP Authentication
 
----
+Tính năng này cho phép người dùng thực hiện Basic HTTP Authentication để xác thực người dùng khi truy cập vào trang web.
 
-**Release Date**: [Current Date]  
-**Compatibility**: Windows 10/11  
-**Installation**: Run the latest installer from the release folder
+Hỗ trợ trang web sử dụng một cửa số Basic HTTP Authentication.
 
-For technical support or feature requests, please contact the development team.
+Không hỗ trợ trang web sử dụng nhiều cửa số Basic HTTP Authentication.

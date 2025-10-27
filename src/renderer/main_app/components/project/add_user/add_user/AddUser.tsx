@@ -190,7 +190,7 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
       const resp = await svc.addUserToProject(payload);
       if (resp.success) {
         toast.success('Shared project successfully');
-        onClose();
+        setActiveTab('manage');
         if (onSuccess) await onSuccess();
       } else {
         toast.error(resp.error || 'Failed to share project');
@@ -358,40 +358,39 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
                           <div style={{ fontSize: 12, color: '#6b7280' }}>{m.role || ''}</div>
                         </div>
                       </div>
-                      <div style={{ width: 220, fontSize: 12, color: '#111827' }}>
-                        Role: {m.role || '-'}
+                      <div style={{ width: '20%', fontSize: 12, color: '#374151', textAlign: 'right' }}>
+                        {m.permissions || '-'}
                       </div>
-                      <div style={{ width: 220, fontSize: 12, color: '#374151' }}>
-                        Permission: {m.permissions || '-'}
+                      <div style={{ width: '60px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        {m.role !== 'owner' && (
+                          <button
+                            onClick={() => handleRemoveUser(m)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              borderRadius: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#ef4444',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#fef2f2';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
+                            title="Remove user from project"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </button>
+                        )}
                       </div>
-                      {m.role !== 'owner' && (
-                        <button
-                          onClick={() => handleRemoveUser(m)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            padding: '4px',
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#ef4444',
-                            transition: 'background-color 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#fef2f2';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                          }}
-                          title="Remove user from project"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </button>
-                      )}
                     </div>
                   ))}
                 </div>

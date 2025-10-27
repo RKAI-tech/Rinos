@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import './ActionToCodeTab.css';
+import { Action } from '../../types/actions';
 
 interface ActionToCodeTabProps {
   onConvert?: () => void;
   onRun?: () => void;
+  activeTab?: 'actions' | 'script';
+  actions?: Action[];
 }
 
-const ActionToCodeTab: React.FC<ActionToCodeTabProps> = ({ onConvert, onRun }) => {
+const ActionToCodeTab: React.FC<ActionToCodeTabProps> = ({ onConvert, onRun, activeTab = 'actions', actions = [] }) => {
   const [isConverting, setIsConverting] = useState(false);
 
   const handleConvert = () => {
@@ -32,16 +35,35 @@ describe('Admin Login Test', () => {
   return (
     <div className="rcd-action-to-code-tab">
       <div className="rcd-tab-footer">
-        <button 
-          className="rcd-convert-btn" 
-          title="Convert Actions to Code"
+        <button
+          className="rcd-convert-btn"
+          title={activeTab === 'actions' ? "Scripts tab" : "Actions tab"}
           onClick={handleConvert}
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M6 7h12m0 0l-4-4m4 4l-4 4m0 6H2m0 0l4 4m-4-4l4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          {activeTab === 'actions' ? (
+            // Script icon when on actions tab
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <polyline points="16,18 22,12 16,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <polyline points="8,6 2,12 8,18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          ) : (
+            // Code icon when on script tab
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <polyline points="14,2 14,8 20,8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <polyline points="10,9 9,9 8,9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
         </button>
-        <button className="rcd-run-test" onClick={() => onRun && onRun()}>Run Test</button>
+        <button 
+          className={`rcd-run-test ${actions.length === 0 ? 'disabled' : ''}`}
+          onClick={() => onRun && onRun()}
+          disabled={actions.length === 0}
+        >
+          Run Test
+        </button>
       </div>
     </div>
   );

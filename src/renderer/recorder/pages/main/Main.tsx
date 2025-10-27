@@ -87,6 +87,14 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     }
   }, [projectId]);
 
+  // Auto-focus URL input when component mounts
+  useEffect(() => {
+    const urlInput = document.querySelector('.rcd-url') as HTMLInputElement;
+    if (urlInput) {
+      urlInput.focus();
+    }
+  }, []);
+
   // Load actions khi có testcase ID
   useEffect(() => {
     const loadActions = async () => {
@@ -900,16 +908,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         />
         <div className="rcd-topbar-actions">
         <button
-          className={`rcd-btn`}
-          title="HTTP Authentication"
-          onClick={() => setIsBasicAuthOpen(true)}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 1C9.79086 1 8 2.79086 8 5V7H7C5.34315 7 4 8.34315 4 10V18C4 19.6569 5.34315 21 7 21H17C18.6569 21 20 19.6569 20 18V10C20 8.34315 18.6569 7 17 7H16V5C16 2.79086 14.2091 1 12 1ZM14 7V5C14 3.89543 13.1046 3 12 3C10.8954 3 10 3.89543 10 5V7H14Z" fill="currentColor"/>
-          </svg>
-          HTTP Authentication
-        </button>
-        <button
             className={`rcd-ctrl ${isBrowserOpen ? 'rcd-stop' : 'rcd-record'}`}
             title={isBrowserOpen ? "Stop recording" : "Start recording"}
             onClick={() => {
@@ -1042,12 +1040,13 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             onDisplayPositionChange={setDisplayInsertPosition}
             executingActionIndex={executingActionIndex}
             failedActionIndex={failedActionIndex}
+            onOpenBasicAuth={() => setIsBasicAuthOpen(true)}
           />
         ) : (
-          <TestScriptTab script={customScript || actionToCode(actions)} runResult={runResult} onScriptChange={setCustomScript} />
+          <TestScriptTab script={customScript || actionToCode(actions)} runResult={runResult} onScriptChange={setCustomScript} hasActions={actions.length > 0} />
         )}
       </div>
-      <ActionToCodeTab onConvert={handleTabSwitch} onRun={handleRunScript} />
+      <ActionToCodeTab onConvert={handleTabSwitch} onRun={handleRunScript} activeTab={activeTab} actions={actions} />
       
       <DeleteAllActions
         isOpen={isDeleteAllOpen}

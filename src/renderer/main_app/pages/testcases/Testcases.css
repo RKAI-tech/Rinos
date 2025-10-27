@@ -313,13 +313,16 @@
 
 /* Status Badges */
 .status-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 12px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  transition: all 0.2s ease;
 }
 
 .status-badge.success,
@@ -341,6 +344,11 @@
 .status-badge.draft {
   background: #f3f4f6;
   color: #6b7280;
+}
+
+.status-badge.running {
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 /* Actions */

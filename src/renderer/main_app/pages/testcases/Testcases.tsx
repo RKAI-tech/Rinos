@@ -27,7 +27,7 @@ interface Testcase {
   createdBy: string;
   createdAt: string;
   updated?: string;
-  status: string;
+  status: 'success' | 'failed' | 'draft' | 'running';
   actionsCount: number;
   basic_authentication?: { username: string; password: string };
 }
@@ -63,6 +63,7 @@ const Testcases: React.FC = () => {
   const [selectedTestcase, setSelectedTestcase] = useState<Testcase | null>(null);
   const [selectedTestcaseData, setSelectedTestcaseData] = useState<any>(null);
   const [runningTestcaseId, setRunningTestcaseId] = useState<string | null>(null);
+  const [autoReloadInterval, setAutoReloadInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Service
   const testCaseService = new TestCaseService();
@@ -79,10 +80,15 @@ const Testcases: React.FC = () => {
         setTestcasesData(response.data.testcases);
         
         const mapped: Testcase[] = response.data.testcases.map(tc => {
-          const rawStatus = (tc as unknown as { status?: string })?.status || '';
-          const normalized = rawStatus.toUpperCase();
-          const allowed = ['success', 'failed', 'draft'];
+          // Try multiple ways to get status
+          const rawStatus = tc.status || (tc as any).testcase_status || '';
+          const normalized = rawStatus.toLowerCase().trim();
+          const allowed = ['passed', 'failed', 'draft', 'running'];
           const safeStatus = allowed.includes(normalized) ? (normalized as Testcase['status']) : 'draft';
+          
+          // Debug log to see what status we're getting from API
+          console.log('[DEBUG] Testcase:', tc.name, 'Raw status:', rawStatus, 'Normalized:', normalized, 'Safe status:', safeStatus);
+          
           return {
             id: tc.testcase_id,
             name: tc.name,
@@ -90,7 +96,7 @@ const Testcases: React.FC = () => {
             createdBy: projectData.projectName || 'Unknown',
             createdAt: tc.created_at,
             updated: tc.updated_at,
-            status: tc.status, //safeStatus,
+            status: safeStatus,
             actionsCount: Array.isArray(tc.actions) ? tc.actions.length : 0,
             basic_authentication: tc.basic_authentication,
           };
@@ -114,6 +120,21 @@ const Testcases: React.FC = () => {
   useEffect(() => {
     reloadTestcases();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectData?.projectId]);
+
+  // Auto reload every 2 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      reloadTestcases();
+    }, 2000);
+    
+    setAutoReloadInterval(interval);
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [projectData?.projectId]);
 
   // Reload testcases when recorder window is closed
@@ -355,12 +376,24 @@ const Testcases: React.FC = () => {
     // Execute testcase and reload list only (no auto popup)
     try {
       setRunningTestcaseId(id);
+      
+      // Update testcase status to 'running' immediately
+      setTestcases(prevTestcases => 
+        prevTestcases.map(tc => 
+          tc.id === id ? { ...tc, status: 'running' as const } : tc
+        )
+      );
+      
       const resp = await testCaseService.executeTestCase({ testcase_id: id });
-      if (resp.success) {
-        toast.success('Testcase executed successfully!');
-      } else {
-        toast.error('Failed to execute testcase');
-      }
+      // if (resp.success) {
+      //   if (resp.data?.data?.success) {
+      //     toast.success('Passed!');
+      //   } else {
+      //     toast.error('Failed!');
+      //   }
+      // } else {
+      //   toast.error('Failed to execute testcase');
+      // }
 
     } catch (err) {
       toast.error('Failed to execute testcase');
@@ -569,6 +602,7 @@ const Testcases: React.FC = () => {
                 <option value="success">SUCCESS</option>
                 <option value="failed">FAILED</option>
                 <option value="draft">DRAFT</option>
+                <option value="running">RUNNING</option>
               </select>
             </div>
 
@@ -635,7 +669,17 @@ const Testcases: React.FC = () => {
                     <td className="testcase-actions-count">{testcase.actionsCount}</td>
                     <td className="testcase-status">
                       <span className={`status-badge ${testcase.status || 'draft'}`}>
-                        {testcase.status}
+                        {testcase.status === 'running' ? (
+                          <>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="spinner">
+                              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/>
+                              <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
+                            </svg>
+                            RUNNING
+                          </>
+                        ) : (
+                          testcase.status
+                        )}
                       </span>
                     </td>
                     <td className="testcase-created">{testcase.createdAt}</td>
