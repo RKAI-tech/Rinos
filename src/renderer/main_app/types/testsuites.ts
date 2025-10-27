@@ -8,6 +8,7 @@ export interface TestSuite {
     test_passed: string;
     test_failed: string;
     created_at: string;
+    updated_at?: string;
 }
 
 export interface TestSuiteGetAllResponse {

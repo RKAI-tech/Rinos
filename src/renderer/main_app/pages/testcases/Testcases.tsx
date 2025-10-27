@@ -62,7 +62,7 @@ const Testcases: React.FC = () => {
   const [isRunAndViewModalOpen, setIsRunAndViewModalOpen] = useState(false);
   const [selectedTestcase, setSelectedTestcase] = useState<Testcase | null>(null);
   const [selectedTestcaseData, setSelectedTestcaseData] = useState<any>(null);
-  const [runningTestcaseId, setRunningTestcaseId] = useState<string | null>(null);
+  const [runningTestcases, setRunningTestcases] = useState<string[]>([]);
   const [autoReloadInterval, setAutoReloadInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Service
@@ -101,6 +101,12 @@ const Testcases: React.FC = () => {
             basic_authentication: tc.basic_authentication,
           };
         });
+        
+        // Auto-detect running testcases from API response
+        const runningIds = mapped
+          .filter(tc => tc.status === 'running')
+          .map(tc => tc.id);
+        setRunningTestcases(runningIds);
         // console.log('[MAIN_APP] mapped', mapped.find(x => x.name === 'FXON'));
         setTestcases(mapped);
       } else {
@@ -122,10 +128,13 @@ const Testcases: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectData?.projectId]);
 
-  // Auto reload every 2 seconds
+  // Auto reload every 2 seconds (only when no modals are open)
   useEffect(() => {
     const interval = setInterval(() => {
-      reloadTestcases();
+      // Don't auto-reload if any modal is open to prevent data conflicts
+      if (!isCreateModalOpen && !isEditModalOpen && !isDeleteModalOpen && !isDuplicateModalOpen && !isRunAndViewModalOpen) {
+        reloadTestcases();
+      }
     }, 2000);
     
     setAutoReloadInterval(interval);
@@ -135,7 +144,7 @@ const Testcases: React.FC = () => {
         clearInterval(interval);
       }
     };
-  }, [projectData?.projectId]);
+  }, [projectData?.projectId, isCreateModalOpen, isEditModalOpen, isDeleteModalOpen, isDuplicateModalOpen, isRunAndViewModalOpen]);
 
   // Reload testcases when recorder window is closed
   useEffect(() => {
@@ -311,6 +320,8 @@ const Testcases: React.FC = () => {
 
   const handleCloseCreateModal = () => {
     setIsCreateModalOpen(false);
+    // Reload data when closing create modal to get latest information
+    reloadTestcases();
   };
 
   const handleSaveTestcase = async ({ projectId, name, tag }: { projectId: string; name: string; tag: string }) => {
@@ -375,7 +386,7 @@ const Testcases: React.FC = () => {
     if (event) event.stopPropagation();
     // Execute testcase and reload list only (no auto popup)
     try {
-      setRunningTestcaseId(id);
+      setRunningTestcases(prev => [...prev, id]);
       
       // Update testcase status to 'running' immediately
       setTestcases(prevTestcases => 
@@ -399,7 +410,7 @@ const Testcases: React.FC = () => {
       toast.error('Failed to execute testcase');
     }
     finally {
-      setRunningTestcaseId(null);
+      setRunningTestcases(prev => prev.filter(testcaseId => testcaseId !== id));
       await reloadTestcases();
       // Không tự động mở popup kết quả
     }
@@ -419,22 +430,30 @@ const Testcases: React.FC = () => {
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
     setSelectedTestcase(null);
+    // Reload data when closing edit modal to get latest information
+    reloadTestcases();
   };
 
   const handleCloseDeleteModal = () => {
     setIsDeleteModalOpen(false);
     setSelectedTestcase(null);
+    // Reload data when closing delete modal to get latest information
+    reloadTestcases();
   };
 
   const handleCloseDuplicateModal = () => {
     setIsDuplicateModalOpen(false);
     setSelectedTestcase(null);
+    // Reload data when closing duplicate modal to get latest information
+    reloadTestcases();
   };
 
   const handleCloseRunAndViewModal = () => {
     setIsRunAndViewModalOpen(false);
     setSelectedTestcase(null);
     setSelectedTestcaseData(null);
+    // Reload data when closing run and view modal to get latest information
+    reloadTestcases();
   };
 
   // Create a testcase and try to return newly created testcase_id (if API provides it)
@@ -650,7 +669,7 @@ const Testcases: React.FC = () => {
                     <span className="th-content"><span className="th-text">Status</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'status' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'status' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                   </th>
                   <th className={`sortable ${sortBy === 'createdAt' ? 'sorted' : ''}`} onClick={() => handleSort('createdAt')}>
-                    <span className="th-content"><span className="th-text">Created At</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'createdAt' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'createdAt' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    <span className="th-content"><span className="th-text">Updated</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'createdAt' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'createdAt' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                   </th>
                   <th>Options</th>
                 </tr>
@@ -661,8 +680,8 @@ const Testcases: React.FC = () => {
                     key={testcase.id}
                     onClick={() => canEditPermission && handleOpenRecorder(testcase.id)}
                     style={{ cursor: 'pointer' }}
-                    className={runningTestcaseId === testcase.id ? 'is-running' : ''}
-                    aria-busy={runningTestcaseId === testcase.id}
+                    className={runningTestcases.includes(testcase.id) ? 'is-running' : ''}
+                    aria-busy={runningTestcases.includes(testcase.id)}
                   >
                     <td className="testcase-name">{testcase.name}</td>
                     <td className="testcase-tag">{formatValue(testcase.tag)}</td>
@@ -682,7 +701,7 @@ const Testcases: React.FC = () => {
                         )}
                       </span>
                     </td>
-                    <td className="testcase-created">{testcase.createdAt}</td>
+                    <td className="testcase-created">{testcase.updated}</td>
                     <td className="testcase-actions">
                       <div className="actions-container">
                         <button 
@@ -701,10 +720,10 @@ const Testcases: React.FC = () => {
                             <button
                               className="dropdown-item"
                               onClick={(e) => handleRunTestcase(testcase.id, e)}
-                              disabled={runningTestcaseId === testcase.id || !canEditPermission}
-                              title="Execute this testcase and view results"
+                              disabled={runningTestcases.includes(testcase.id) || !canEditPermission || testcase.actionsCount === 0}
+                              title={testcase.actionsCount === 0 ? "Cannot run testcase without actions" : "Execute this testcase and view results"}
                             >
-                              {runningTestcaseId === testcase.id ? (
+                              {runningTestcases.includes(testcase.id) ? (
                                 <>
                                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="spinner">
                                     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/>

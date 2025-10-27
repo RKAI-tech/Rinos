@@ -537,6 +537,21 @@
   color: #1e3a8a; /* blue-900 */
 }
 
+/* Disabled button styling */
+.vtsr-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f3f4f6 !important; /* gray-100 */
+  border-color: #d1d5db !important; /* gray-300 */
+  color: #9ca3af !important; /* gray-400 */
+}
+
+.vtsr-btn:disabled:hover {
+  background: #f3f4f6 !important; /* gray-100 */
+  border-color: #d1d5db !important; /* gray-300 */
+  color: #9ca3af !important; /* gray-400 */
+}
+
 /* Log Modal */
 .vtsr-log-overlay { 
   position: fixed; 
