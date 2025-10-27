@@ -44,7 +44,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
 
   useEffect(() => {
     if (testcase) {
-      setTestcaseName(`${testcase.name || ''} Copy`);
+      setTestcaseName(`Copy of ${testcase.name || ''}`);
       setTestcaseTag(testcase.tag || '');
       const initialBasicAuth = testcase.basic_authentication || null;
       setBasicAuth(initialBasicAuth);
