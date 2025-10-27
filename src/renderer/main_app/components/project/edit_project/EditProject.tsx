@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Project } from '../../../types/projects';
 import './EditProject.css';
 
@@ -23,7 +23,7 @@ const EditProject: React.FC<EditProjectProps> = ({ isOpen, onClose, onSave, proj
     }
   }, [project]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     
     if (!project) return;
@@ -51,14 +51,30 @@ const EditProject: React.FC<EditProjectProps> = ({ isOpen, onClose, onSave, proj
     setProjectDescription('');
     setErrors({});
     onClose();
-  };
+  }, [project, projectName, projectDescription, onSave, onClose]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setProjectName('');
     setProjectDescription('');
     setErrors({});
     onClose();
-  };
+  }, [onClose]);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        handleClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, handleClose]);
 
   if (!isOpen || !project) return null;
 

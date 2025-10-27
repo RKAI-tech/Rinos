@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './DeleteTestSuite.css';
 
 interface MinimalTestSuite {
@@ -20,6 +20,23 @@ const DeleteTestSuite: React.FC<DeleteTestSuiteProps> = ({ isOpen, onClose, onDe
       onClose();
     }
   };
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen || !testsuite) return null;
 

@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import './ViewTestSuiteResult.css';
 import { TestSuiteService } from '../../../services/testsuites';
 import { TestCaseService } from '../../../services/testcases';
@@ -69,9 +71,11 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, testcaseName, logs
                   <span className="dot green" />
                   <span className="vtsr-term-title">Execution Logs</span>
                 </div>
-                <pre className="vtsr-term-content">
-                  {logs || 'No logs available for this testcase.'}
-                </pre>
+                <div className="vtsr-term-content">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {logs || 'No logs available for this testcase.'}
+                  </ReactMarkdown>
+                </div>
               </div>
             )}
             
@@ -185,6 +189,23 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
     setIsLogModalOpen(false);
     setSelectedLog(null);
   };
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   // Calculate summary statistics
   const summaryStats = useMemo(() => {
@@ -347,6 +368,10 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
             </div>
           </div>
 
+          <div className="vtsr-footer">
+            <button className="vtsr-btn" onClick={onClose}>Close</button>
+          </div>
+
           <div className="vtsr-body">
             {isLoading && <div className="vtsr-loading">Loading results...</div>}
             {!isLoading && cases.length === 0 && (
@@ -444,7 +469,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
                                   Running
                                 </span>
                               ) : (
-                                c.status || 'DRAFT'
+                                 ((c.status && c.status.toLowerCase() !== 'draft') ? c.status : 'N/A')
                               )}
                             </span>
                           </td>
@@ -466,10 +491,9 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
                         onChange={(e) => handleItemsPerPageChange(e.target.value)}
                         className="vtsr-pagination-dropdown"
                       >
-                        <option value="5">5 rows/page</option>
                         <option value="10">10 rows/page</option>
                         <option value="20">20 rows/page</option>
-                        <option value="50">50 rows/page</option>
+                        <option value="30">30 rows/page</option>
                       </select>
                       
                       <button 

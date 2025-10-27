@@ -19,6 +19,22 @@ export function registerTokenIpc() {
     store.delete(MainEnv.ACCESS_TOKEN_KEY);
     return true;
   });
+
+  // Email storage handlers
+  ipcMain.handle("email:get", () => {
+    return (store.get(MainEnv.USER_EMAIL_KEY) as string | undefined) || null;
+  });
+
+  ipcMain.handle("email:set", (_evt, email: string | null) => {
+    if (email) store.set(MainEnv.USER_EMAIL_KEY, email);
+    else store.delete(MainEnv.USER_EMAIL_KEY);
+    return true;
+  });
+
+  ipcMain.handle("email:remove", () => {
+    store.delete(MainEnv.USER_EMAIL_KEY);
+    return true;
+  });
 }
 
 

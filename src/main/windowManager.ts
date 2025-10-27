@@ -57,8 +57,16 @@ export function createMainAppWindow() {
   return win;
 }
 
-export function createRecorderWindow(testcaseId?: string, projectId?: string) {
+export function createRecorderWindow(testcaseId?: string, projectId?: string, testcaseName?: string) {
   const win = createWindow({ width: 500, height: 800 }, "recorder");
+  
+  // Set title ngay khi tạo window
+  if (testcaseId) {
+    const displayName = testcaseName || testcaseId || "";
+    win.setTitle(`Record actions on a website - ${displayName}`);
+  } else {
+    win.setTitle('Record actions on a website');
+  }
   
   // Thêm event listener cho window close event
   win.on('close', (event) => {

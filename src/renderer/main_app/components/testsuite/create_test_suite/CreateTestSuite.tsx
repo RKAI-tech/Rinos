@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './CreateTestSuite.css';
 
 interface CreateTestSuiteProps {
@@ -43,6 +43,23 @@ const CreateTestSuite: React.FC<CreateTestSuiteProps> = ({ isOpen, onClose, onSa
     setErrors({});
     onClose();
   };
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

@@ -8,7 +8,7 @@ const Footer: React.FC = () => {
     <footer className="footer">
       <div className="footer-content">
         <span className="footer-text">
-          Made by <span className="rikkeai-text">RikkeAI</span> • © {currentYear}
+        Copyright © {currentYear} <span className="rikkeai-text">Rikkeisoft Corporation</span>. All rights reserved. 
         </span>
       </div>
     </footer>

@@ -23,6 +23,9 @@
 .databases-table th .arrow.down { border-top: 6px solid #6b7280; }
 .databases-table th .arrow.active { opacity: 1; border-bottom-color: #111827; border-top-color: #111827; }
 .databases-table td { padding: 16px 12px; border-bottom: 1px solid #e1e5e9; font-size: 14px; color: #374151; vertical-align: middle; text-align: center; }
+.databases-table tbody tr:hover {
+  background: #e2e8f0;
+}
 .databases-table th:first-child { text-align: left; }
 .database-name { font-weight: 600; color: #1a1a1a; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .database-description { font-size: 14px; color: #333; }

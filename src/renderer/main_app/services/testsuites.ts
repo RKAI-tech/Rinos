@@ -76,12 +76,12 @@ export class TestSuiteService {
             };
         }
 
-        if (!testSuite.description || testSuite.description.trim().length === 0) {
-            return {
-                success: false,
-                error: 'Test suite description is required'
-            };
-        }
+        // if (!testSuite.description || testSuite.description.trim().length === 0) {
+        //     return {
+        //         success: false,
+        //         error: 'Test suite description is required'
+        //     };
+        // }
 
         return await apiRouter.request<DefaultResponse>('/test-suites/create', {
             method: 'POST',

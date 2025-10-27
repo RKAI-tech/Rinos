@@ -29,6 +29,14 @@
 .app-logo {
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+.rikkei-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .logo-text {
@@ -181,6 +189,11 @@
     font-size: 18px;
   }
   
+  .rikkei-logo {
+    width: 28px;
+    height: 28px;
+  }
+  
   .user-profile {
     padding: 6px 10px;
     gap: 8px;
@@ -211,6 +224,11 @@
   
   .logo-text {
     font-size: 16px;
+  }
+  
+  .rikkei-logo {
+    width: 24px;
+    height: 24px;
   }
   
   .user-info {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { Project } from '../../../types/projects';
 import './DeleteProject.css';
 
@@ -10,12 +10,28 @@ interface DeleteProjectProps {
 }
 
 const DeleteProject: React.FC<DeleteProjectProps> = ({ isOpen, onClose, onDelete, project }) => {
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     if (project) {
       onDelete(project.project_id);
       onClose();
     }
-  };
+  }, [project, onDelete, onClose]);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen || !project) return null;
 

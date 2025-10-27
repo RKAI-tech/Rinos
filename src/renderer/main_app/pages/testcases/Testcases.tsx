@@ -27,7 +27,7 @@ interface Testcase {
   createdBy: string;
   createdAt: string;
   updated?: string;
-  status: string;
+  status: 'success' | 'failed' | 'draft' | 'running';
   actionsCount: number;
   basic_authentication?: { username: string; password: string };
 }
@@ -50,9 +50,9 @@ const Testcases: React.FC = () => {
 
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
-  const [sortBy, setSortBy] = useState<'name' | 'tag' | 'actionsCount' | 'status' | 'updated'>('updated');
+  const [sortBy, setSortBy] = useState<'name' | 'tag' | 'actionsCount' | 'status' | 'createdAt'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [itemsPerPage, setItemsPerPage] = useState('5 rows/page');
+  const [itemsPerPage, setItemsPerPage] = useState('10 rows/page');
   const [currentPage, setCurrentPage] = useState(1);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -63,6 +63,7 @@ const Testcases: React.FC = () => {
   const [selectedTestcase, setSelectedTestcase] = useState<Testcase | null>(null);
   const [selectedTestcaseData, setSelectedTestcaseData] = useState<any>(null);
   const [runningTestcaseId, setRunningTestcaseId] = useState<string | null>(null);
+  const [autoReloadInterval, setAutoReloadInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Service
   const testCaseService = new TestCaseService();
@@ -79,10 +80,15 @@ const Testcases: React.FC = () => {
         setTestcasesData(response.data.testcases);
         
         const mapped: Testcase[] = response.data.testcases.map(tc => {
-          const rawStatus = (tc as unknown as { status?: string })?.status || '';
-          const normalized = rawStatus.toUpperCase();
-          const allowed = ['success', 'failed', 'draft'];
+          // Try multiple ways to get status
+          const rawStatus = tc.status || (tc as any).testcase_status || '';
+          const normalized = rawStatus.toLowerCase().trim();
+          const allowed = ['passed', 'failed', 'draft', 'running'];
           const safeStatus = allowed.includes(normalized) ? (normalized as Testcase['status']) : 'draft';
+          
+          // Debug log to see what status we're getting from API
+          console.log('[DEBUG] Testcase:', tc.name, 'Raw status:', rawStatus, 'Normalized:', normalized, 'Safe status:', safeStatus);
+          
           return {
             id: tc.testcase_id,
             name: tc.name,
@@ -90,7 +96,7 @@ const Testcases: React.FC = () => {
             createdBy: projectData.projectName || 'Unknown',
             createdAt: tc.created_at,
             updated: tc.updated_at,
-            status: tc.status, //safeStatus,
+            status: safeStatus,
             actionsCount: Array.isArray(tc.actions) ? tc.actions.length : 0,
             basic_authentication: tc.basic_authentication,
           };
@@ -114,6 +120,21 @@ const Testcases: React.FC = () => {
   useEffect(() => {
     reloadTestcases();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectData?.projectId]);
+
+  // Auto reload every 2 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      reloadTestcases();
+    }, 2000);
+    
+    setAutoReloadInterval(interval);
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [projectData?.projectId]);
 
   // Reload testcases when recorder window is closed
@@ -208,8 +229,8 @@ const Testcases: React.FC = () => {
         case 'tag': return it.tag || '';
         case 'actionsCount': return it.actionsCount ?? 0;
         case 'status': return it.status || '';
-        case 'updated': {
-          const t = it.updated || it.createdAt || '';
+        case 'createdAt': {
+          const t = it.createdAt || '';
           const ms = t ? new Date(t).getTime() : 0;
           return isNaN(ms) ? 0 : ms;
         }
@@ -231,7 +252,7 @@ const Testcases: React.FC = () => {
     return copy;
   }, [filteredTestcases, sortBy, sortOrder]);
 
-  const handleSort = (col: 'name' | 'tag' | 'actionsCount' | 'status' | 'updated') => {
+  const handleSort = (col: 'name' | 'tag' | 'actionsCount' | 'status' | 'createdAt') => {
     if (sortBy === col) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     else { setSortBy(col); setSortOrder('asc'); }
     setCurrentPage(1);
@@ -352,15 +373,27 @@ const Testcases: React.FC = () => {
 
   const handleRunTestcase = async (id: string, event?: React.MouseEvent) => {
     if (event) event.stopPropagation();
-    // Execute testcase, reload list, then open view modal
+    // Execute testcase and reload list only (no auto popup)
     try {
       setRunningTestcaseId(id);
+      
+      // Update testcase status to 'running' immediately
+      setTestcases(prevTestcases => 
+        prevTestcases.map(tc => 
+          tc.id === id ? { ...tc, status: 'running' as const } : tc
+        )
+      );
+      
       const resp = await testCaseService.executeTestCase({ testcase_id: id });
-      if (resp.success) {
-        toast.success('Testcase executed successfully!');
-      } else {
-        toast.error('Failed to execute testcase');
-      }
+      // if (resp.success) {
+      //   if (resp.data?.data?.success) {
+      //     toast.success('Passed!');
+      //   } else {
+      //     toast.error('Failed!');
+      //   }
+      // } else {
+      //   toast.error('Failed to execute testcase');
+      // }
 
     } catch (err) {
       toast.error('Failed to execute testcase');
@@ -368,7 +401,7 @@ const Testcases: React.FC = () => {
     finally {
       setRunningTestcaseId(null);
       await reloadTestcases();
-      handleViewResult(id);
+      // Không tự động mở popup kết quả
     }
     setOpenDropdownId(null);
   };
@@ -450,7 +483,12 @@ const Testcases: React.FC = () => {
       // TODO: Get token from apiRouter
       const token = await (window as any).tokenStore?.get?.();
       (window as any).browserAPI?.browser?.setAuthToken?.(token);
-      const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectData?.projectId);
+      
+      // Lấy tên test case để hiển thị trong title
+      const testcase = testcases.find(tc => tc.id === id);
+      const testcaseName = testcase?.name || id;
+      
+      const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectData?.projectId, testcaseName);
       if (result?.alreadyOpen) {
         toast.warning('Recorder for this testcase is already open.');
       } else if (result?.created) {
@@ -519,6 +557,13 @@ const Testcases: React.FC = () => {
     };
   }, []);
 
+  const formatValue = (value: string) => {
+    if (value.length > 10) {
+      return value.substring(0, 20) + '...';
+    }
+    return value;
+  };
+  
   return (
     <div className="testcases-page">
       <Header />
@@ -557,6 +602,7 @@ const Testcases: React.FC = () => {
                 <option value="success">SUCCESS</option>
                 <option value="failed">FAILED</option>
                 <option value="draft">DRAFT</option>
+                <option value="running">RUNNING</option>
               </select>
             </div>
 
@@ -566,10 +612,9 @@ const Testcases: React.FC = () => {
                 onChange={(e) => { setItemsPerPage(e.target.value); setCurrentPage(1); }}
                 className="pagination-dropdown"
               >
-                <option value="5 rows/page">5 rows/page</option>
                 <option value="10 rows/page">10 rows/page</option>
                 <option value="20 rows/page">20 rows/page</option>
-                <option value="50 rows/page">50 rows/page</option>
+                <option value="30 rows/page">30 rows/page</option>
               </select>
 
               <button 
@@ -604,8 +649,8 @@ const Testcases: React.FC = () => {
                   <th className={`sortable ${sortBy === 'status' ? 'sorted' : ''}`} onClick={() => handleSort('status')}>
                     <span className="th-content"><span className="th-text">Status</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'status' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'status' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                   </th>
-                  <th className={`sortable ${sortBy === 'updated' ? 'sorted' : ''}`} onClick={() => handleSort('updated')}>
-                    <span className="th-content"><span className="th-text">Updated</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'updated' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'updated' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                  <th className={`sortable ${sortBy === 'createdAt' ? 'sorted' : ''}`} onClick={() => handleSort('createdAt')}>
+                    <span className="th-content"><span className="th-text">Created At</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'createdAt' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'createdAt' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                   </th>
                   <th>Options</th>
                 </tr>
@@ -620,14 +665,24 @@ const Testcases: React.FC = () => {
                     aria-busy={runningTestcaseId === testcase.id}
                   >
                     <td className="testcase-name">{testcase.name}</td>
-                    <td className="testcase-tag">{testcase.tag}</td>
+                    <td className="testcase-tag">{formatValue(testcase.tag)}</td>
                     <td className="testcase-actions-count">{testcase.actionsCount}</td>
                     <td className="testcase-status">
                       <span className={`status-badge ${testcase.status || 'draft'}`}>
-                        {testcase.status}
+                        {testcase.status === 'running' ? (
+                          <>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="spinner">
+                              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/>
+                              <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
+                            </svg>
+                            RUNNING
+                          </>
+                        ) : (
+                          testcase.status
+                        )}
                       </span>
                     </td>
-                    <td className="testcase-updated">{testcase.updated || testcase.createdAt}</td>
+                    <td className="testcase-created">{testcase.createdAt}</td>
                     <td className="testcase-actions">
                       <div className="actions-container">
                         <button 
