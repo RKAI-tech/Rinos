@@ -50,7 +50,7 @@ const Testcases: React.FC = () => {
 
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
-  const [sortBy, setSortBy] = useState<'name' | 'tag' | 'actionsCount' | 'status' | 'updated'>('updated');
+  const [sortBy, setSortBy] = useState<'name' | 'tag' | 'actionsCount' | 'status' | 'createdAt'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [itemsPerPage, setItemsPerPage] = useState('10 rows/page');
   const [currentPage, setCurrentPage] = useState(1);
@@ -208,8 +208,8 @@ const Testcases: React.FC = () => {
         case 'tag': return it.tag || '';
         case 'actionsCount': return it.actionsCount ?? 0;
         case 'status': return it.status || '';
-        case 'updated': {
-          const t = it.updated || it.createdAt || '';
+        case 'createdAt': {
+          const t = it.createdAt || '';
           const ms = t ? new Date(t).getTime() : 0;
           return isNaN(ms) ? 0 : ms;
         }
@@ -231,7 +231,7 @@ const Testcases: React.FC = () => {
     return copy;
   }, [filteredTestcases, sortBy, sortOrder]);
 
-  const handleSort = (col: 'name' | 'tag' | 'actionsCount' | 'status' | 'updated') => {
+  const handleSort = (col: 'name' | 'tag' | 'actionsCount' | 'status' | 'createdAt') => {
     if (sortBy === col) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     else { setSortBy(col); setSortOrder('asc'); }
     setCurrentPage(1);
@@ -352,7 +352,7 @@ const Testcases: React.FC = () => {
 
   const handleRunTestcase = async (id: string, event?: React.MouseEvent) => {
     if (event) event.stopPropagation();
-    // Execute testcase, reload list, then open view modal
+    // Execute testcase and reload list only (no auto popup)
     try {
       setRunningTestcaseId(id);
       const resp = await testCaseService.executeTestCase({ testcase_id: id });
@@ -368,7 +368,7 @@ const Testcases: React.FC = () => {
     finally {
       setRunningTestcaseId(null);
       await reloadTestcases();
-      handleViewResult(id);
+      // Không tự động mở popup kết quả
     }
     setOpenDropdownId(null);
   };
@@ -450,7 +450,12 @@ const Testcases: React.FC = () => {
       // TODO: Get token from apiRouter
       const token = await (window as any).tokenStore?.get?.();
       (window as any).browserAPI?.browser?.setAuthToken?.(token);
-      const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectData?.projectId);
+      
+      // Lấy tên test case để hiển thị trong title
+      const testcase = testcases.find(tc => tc.id === id);
+      const testcaseName = testcase?.name || id;
+      
+      const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectData?.projectId, testcaseName);
       if (result?.alreadyOpen) {
         toast.warning('Recorder for this testcase is already open.');
       } else if (result?.created) {
@@ -610,8 +615,8 @@ const Testcases: React.FC = () => {
                   <th className={`sortable ${sortBy === 'status' ? 'sorted' : ''}`} onClick={() => handleSort('status')}>
                     <span className="th-content"><span className="th-text">Status</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'status' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'status' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                   </th>
-                  <th className={`sortable ${sortBy === 'updated' ? 'sorted' : ''}`} onClick={() => handleSort('updated')}>
-                    <span className="th-content"><span className="th-text">Updated</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'updated' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'updated' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                  <th className={`sortable ${sortBy === 'createdAt' ? 'sorted' : ''}`} onClick={() => handleSort('createdAt')}>
+                    <span className="th-content"><span className="th-text">Created At</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'createdAt' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'createdAt' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                   </th>
                   <th>Options</th>
                 </tr>
@@ -633,7 +638,7 @@ const Testcases: React.FC = () => {
                         {testcase.status}
                       </span>
                     </td>
-                    <td className="testcase-updated">{testcase.updated || testcase.createdAt}</td>
+                    <td className="testcase-created">{testcase.createdAt}</td>
                     <td className="testcase-actions">
                       <div className="actions-container">
                         <button 

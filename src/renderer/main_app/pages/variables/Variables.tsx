@@ -35,6 +35,7 @@ const Variables: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [itemsPerPage, setItemsPerPage] = useState('10 rows/page');
   const [currentPage, setCurrentPage] = useState(1);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedVar, setSelectedVar] = useState<{ id: string; name?: string } | null>(null);
 
@@ -80,6 +81,27 @@ const Variables: React.FC = () => {
     };
     loadProjectName();
   }, [projectId]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openDropdownId) {
+        const target = event.target as Element;
+        const actionsContainer = target.closest('.actions-container');
+        if (!actionsContainer) {
+          setOpenDropdownId(null);
+        }
+      }
+    };
+
+    if (openDropdownId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openDropdownId]);
 
   const sidebarItems = [
     { id: 'testcases', label: 'Testcases', path: `/testcases/${projectId}`, isActive: false },
@@ -220,13 +242,41 @@ const Variables: React.FC = () => {
                       <td className="vars-query-name">{v.queryName}</td>
                       <td className="vars-actions">
                         <div className="actions-container">
-                          <button className="actions-btn" onClick={() => { if (!canEditPermission) return; setSelectedVar({ id: v.id, name: v.customName }); setIsDeleteOpen(true); }} disabled={!canEditPermission}>
+                          <button 
+                            className="actions-btn" 
+                            onClick={() => setOpenDropdownId(openDropdownId === v.id ? null : v.id)}
+                            disabled={!canEditPermission}
+                          >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <circle cx="12" cy="12" r="1" fill="currentColor"/>
                               <circle cx="19" cy="12" r="1" fill="currentColor"/>
                               <circle cx="5" cy="12" r="1" fill="currentColor"/>
                             </svg>
                           </button>
+
+                          {openDropdownId === v.id && (
+                            <div className="actions-dropdown">
+                              <button 
+                                className="dropdown-item delete" 
+                                onClick={() => { 
+                                  if (!canEditPermission) { 
+                                    setOpenDropdownId(null); 
+                                    return; 
+                                  } 
+                                  setSelectedVar({ id: v.id, name: v.customName }); 
+                                  setIsDeleteOpen(true); 
+                                  setOpenDropdownId(null); 
+                                }} 
+                                disabled={!canEditPermission}
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Delete
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>

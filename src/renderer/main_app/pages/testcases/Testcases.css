@@ -269,7 +269,7 @@
 }
 
 .testcases-table tbody tr:hover {
-  background: #f8fafc;
+  background: #e2e8f0;
 }
 
 .testcases-table tbody tr:last-child td {
@@ -322,7 +322,8 @@
   letter-spacing: 0.5px;
 }
 
-.status-badge.success {
+.status-badge.success,
+.status-badge.passed {
   background: #dcfce7;
   color: #166534;
 }
@@ -335,6 +336,11 @@
 .status-badge.pending {
   background: #fef3c7;
   color: #92400e;
+}
+
+.status-badge.draft {
+  background: #f3f4f6;
+  color: #6b7280;
 }
 
 /* Actions */

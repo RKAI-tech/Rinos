@@ -24,6 +24,9 @@
 .qry-table th .arrow.down { border-top: 6px solid #6b7280; }
 .qry-table th .arrow.active { opacity: 1; border-bottom-color: #111827; border-top-color: #111827; }
 .qry-table td { padding: 16px 12px; border-bottom: 1px solid #e1e5e9; font-size: 14px; color: #374151; vertical-align: middle; text-align: center; }
+.qry-table tbody tr:hover {
+  background: #e2e8f0;
+}
 .qry-table th:first-child { text-align: left; }
 .qry-table td:first-child { text-align: left; }
 .qry-name { font-weight: 600; color: #1a1a1a; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
@@ -129,7 +132,7 @@
   white-space: nowrap;
   min-width: 120px;
 }
-.qry-results-table tr:hover { background: #f8fafc; }
+.qry-results-table tr:hover { background: #e2e8f0; }
 .qry-results-table tr:last-child td { border-bottom: none; }
 .qry-no-results { padding: 40px; text-align: center; color: #666; font-size: 14px; }
 

@@ -115,6 +115,27 @@ const TestSuites: React.FC = () => {
     loadProjectName();
   }, [projectId]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openDropdownId) {
+        const target = event.target as Element;
+        const actionsContainer = target.closest('.actions-container');
+        if (!actionsContainer) {
+          setOpenDropdownId(null);
+        }
+      }
+    };
+
+    if (openDropdownId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openDropdownId]);
+
   const sidebarItems = [
     { id: 'testcases', label: 'Testcases', path: `/testcases/${projectId}`, isActive: false },
     { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: true },
@@ -413,7 +434,7 @@ const TestSuites: React.FC = () => {
                       <span className="th-content"><span className="th-text">Failed</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'failed' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'failed' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                     </th>
                     <th className={`sortable ${sortBy === 'createdAt' ? 'sorted' : ''}`} onClick={() => handleSort('createdAt')}>
-                      <span className="th-content"><span className="th-text">Created</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'createdAt' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'createdAt' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                      <span className="th-content"><span className="th-text">Created At</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'createdAt' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'createdAt' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                     </th>
                     <th>Options</th>
                   </tr>
@@ -484,7 +505,7 @@ const TestSuites: React.FC = () => {
                                   <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                   <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
-                                Add Cases
+                                Add Test Cases
                               </button>
                               
                               <button 
@@ -509,7 +530,7 @@ const TestSuites: React.FC = () => {
                                   <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                   <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
-                                Remove Cases
+                                Remove Test Cases
                               </button>
                               <button 
                                 className="dropdown-item delete" 

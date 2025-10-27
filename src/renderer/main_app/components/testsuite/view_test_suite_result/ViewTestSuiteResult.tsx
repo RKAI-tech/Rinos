@@ -469,7 +469,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
                                   Running
                                 </span>
                               ) : (
-                                c.status || 'DRAFT'
+                                 ((c.status && c.status.toLowerCase() !== 'draft') ? c.status : 'N/A')
                               )}
                             </span>
                           </td>

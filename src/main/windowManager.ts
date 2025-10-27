@@ -2,7 +2,7 @@ import { BrowserWindow, app, screen } from "electron";
 import { MainEnv } from "./env.js";
 import path from "path";
 
-const isDev = false; //app.isPackaged;
+const isDev = true; //app.isPackaged;
 // Build target is CJS, so __dirname is available; avoid import.meta to silence warnings
 const __dirnameResolved = __dirname;
 // console.log(__dirnameResolved)
@@ -57,8 +57,16 @@ export function createMainAppWindow() {
   return win;
 }
 
-export function createRecorderWindow(testcaseId?: string, projectId?: string) {
+export function createRecorderWindow(testcaseId?: string, projectId?: string, testcaseName?: string) {
   const win = createWindow({ width: 500, height: 800 }, "recorder");
+  
+  // Set title ngay khi tạo window
+  if (testcaseId) {
+    const displayName = testcaseName || testcaseId || "";
+    win.setTitle(`Record actions on a website - ${displayName}`);
+  } else {
+    win.setTitle('Record actions on a website');
+  }
   
   // Thêm event listener cho window close event
   win.on('close', (event) => {
