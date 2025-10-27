@@ -25,7 +25,7 @@ const Dashboard: React.FC = () => {
   const [filterText, setFilterText] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'created_at' | 'number_testcase' | 'number_testsuite' | 'user_role' | 'user_permissions' | 'number_member'>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [itemsPerPage, setItemsPerPage] = useState('5 per page');
+  const [itemsPerPage, setItemsPerPage] = useState('10 per page');
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -542,10 +542,9 @@ const Dashboard: React.FC = () => {
                   onChange={(e) => setItemsPerPage(e.target.value)}
                   className="pagination-dropdown"
                 >
-                  <option value="5 per page">5 per page</option>
                   <option value="10 per page">10 per page</option>
                   <option value="20 per page">20 per page</option>
-                  <option value="50 per page">50 per page</option>
+                  <option value="30 per page">30 per page</option>
                 </select>
 
                 <button className="create-project-btn" onClick={handleCreateProject}>

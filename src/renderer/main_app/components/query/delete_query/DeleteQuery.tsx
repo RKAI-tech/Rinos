@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './DeleteQuery.css';
 
 interface QueryRef { id: string; name?: string }
@@ -17,6 +17,23 @@ const DeleteQuery: React.FC<DeleteQueryProps> = ({ isOpen, onClose, onDelete, qu
     onDelete(query.id);
     onClose();
   };
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   return (
     <div className="dq-modal-overlay" onClick={onClose}>

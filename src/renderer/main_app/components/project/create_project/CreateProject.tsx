@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './CreateProject.css';
 
 interface CreateProjectProps {
@@ -12,7 +12,7 @@ const CreateProject: React.FC<CreateProjectProps> = ({ isOpen, onClose, onSave }
   const [projectDescription, setProjectDescription] = useState('');
   const [errors, setErrors] = useState<{ name?: string }>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
@@ -37,14 +37,30 @@ const CreateProject: React.FC<CreateProjectProps> = ({ isOpen, onClose, onSave }
     setProjectDescription('');
     setErrors({});
     onClose();
-  };
+  }, [projectName, projectDescription, onSave, onClose]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setProjectName('');
     setProjectDescription('');
     setErrors({});
     onClose();
-  };
+  }, [onClose]);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        handleClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, handleClose]);
 
   if (!isOpen) return null;
 

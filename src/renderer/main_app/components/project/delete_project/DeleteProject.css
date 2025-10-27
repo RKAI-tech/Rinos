@@ -6,12 +6,13 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(2px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
     padding: 20px;
+    will-change: transform;
   }
   
   /* Delete Modal Container */
@@ -23,13 +24,14 @@
     max-width: 400px;
     max-height: 90vh;
     overflow-y: auto;
-    animation: deleteModalSlideIn 0.3s ease-out;
+    animation: deleteModalSlideIn 0.2s ease-out;
+    will-change: transform, opacity;
   }
   
   @keyframes deleteModalSlideIn {
     from {
       opacity: 0;
-      transform: translateY(-20px) scale(0.95);
+      transform: translateY(-10px) scale(0.98);
     }
     to {
       opacity: 1;

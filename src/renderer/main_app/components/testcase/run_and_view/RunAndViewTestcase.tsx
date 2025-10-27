@@ -22,7 +22,11 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
   const [isLoading, setIsLoading] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<TestCaseGetResponse | null>(null);
-  const [activeTab, setActiveTab] = useState<'logs' | 'video'>('logs');
+  const [activeTab, setActiveTab] = useState<'logs' | 'video' | 'screenshots'>('logs');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [showControls, setShowControls] = useState<boolean>(false);
   const svc = useMemo(() => new TestCaseService(), []);
   const canEditPermission = canEdit(projectId);
 
@@ -106,6 +110,25 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
     onClose();
   };
 
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+
   if (!isOpen) return null;
 
   return (
@@ -125,7 +148,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
           style={{ zIndex: 2147483648 }}
         />
         <div className="ravt-header">
-          <h2 className="ravt-title">View Testcase Results</h2>
+          <h2 className="ravt-title">{testcaseName || 'View Testcase Results'}</h2>
           <button className="ravt-close" onClick={handleClose} aria-label="Close">✕</button>
         </div>
 
@@ -154,13 +177,19 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                   className={`ravt-tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
                   onClick={() => setActiveTab('logs')}
                 >
-                  📋 Logs
+                  📋 Execution Logs
                 </button>
                 <button 
                   className={`ravt-tab-btn ${activeTab === 'video' ? 'active' : ''}`}
                   onClick={() => setActiveTab('video')}
                 >
-                  🎥 Video
+                  🎥 Recorded video
+                </button>
+                <button 
+                  className={`ravt-tab-btn ${activeTab === 'screenshots' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('screenshots')}
+                >
+                  📸 Verification Screenshots
                 </button>
               </div>
               
@@ -171,7 +200,6 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                       <span className="dot red" />
                       <span className="dot yellow" />
                       <span className="dot green" />
-                      <span className="ravt-term-title">Execution Logs</span>
                     </div>
                     <div className="ravt-term-content">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -189,6 +217,131 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                       <div className="ravt-no-video">
                         <div className="ravt-no-video-icon">🎥</div>
                         <div className="ravt-no-video-text">No video available for this testcase.</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {activeTab === 'screenshots' && (
+                  <div className="ravt-screenshots-container">
+                    {result.url_screenshot && result.url_screenshot.length > 0 ? (
+                      <div className="ravt-screenshots-list">
+                        {result.url_screenshot.map((screenshotUrl, index) => {
+                          // Extract image name from URL pattern: after code and _ prefix, before .png
+                          const urlParts = screenshotUrl.split('/');
+                          const fileName = urlParts[urlParts.length - 1];
+                          let imageName = fileName;
+                          
+                          // Try to extract name from pattern: code_name.png
+                          if (fileName.includes('_')) {
+                            const parts = fileName.split('_');
+                            if (parts.length > 1) {
+                              // Remove the code part (first part) and .png extension
+                              // Lấy phần tử (1) và (2) trong mảng parts (sau dấu _ đầu tiên và sau đó)
+                              // Nếu phần (2) có đoạn sau '.png', xóa nó đi
+                              let part1 = parts[1] || '';
+                              let part2 = parts[2] || '';
+                              if (part2.includes('.png')) {
+                                part2 = part2.split('.png')[0];
+                              }
+                              imageName = [part1, part2].filter(Boolean).join('_');
+                            }
+                          } else {
+                            // Fallback: remove extension
+                            imageName = `screenshot_${index + 1}`;
+                          }
+                          
+                          return (
+                            <div key={index} className="ravt-screenshot-item">
+                              <button 
+                                className="ravt-screenshot-btn"
+                                onClick={() => {
+                                  setSelectedImage(screenshotUrl);
+                                  setCurrentImageIndex(index);
+                                }}
+                              >
+                                📸 {imageName}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="ravt-no-screenshots">
+                        <div className="ravt-no-screenshots-icon">📸</div>
+                        <div className="ravt-no-screenshots-text">No verification screenshots available for this testcase.</div>
+                      </div>
+                    )}
+                    
+                    {/* Image display modal */}
+                    {selectedImage && result.url_screenshot && (
+                      <div className="ravt-image-modal-overlay" onClick={() => {
+                        setSelectedImage(null);
+                        setIsFullscreen(false);
+                      }}>
+                        <div 
+                          className={`ravt-image-modal ${isFullscreen ? 'ravt-image-modal-fullscreen' : ''}`} 
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="ravt-image-modal-content">
+                            <img 
+                              src={selectedImage} 
+                              alt="Screenshot"
+                              className="ravt-image-display"
+                            />
+                          </div>
+                          
+                          {/* Navigation controls - positioned below image */}
+                          <div 
+                            className={`ravt-image-controls ${isFullscreen ? 'ravt-image-controls-fullscreen' : ''} ${isFullscreen || showControls || !isFullscreen ? 'ravt-image-controls-visible' : 'ravt-image-controls-hidden'}`}
+                          >
+                            <button 
+                              className="ravt-image-nav-btn"
+                              onClick={() => {
+                                const prevIndex = currentImageIndex > 0 ? currentImageIndex - 1 : result.url_screenshot!.length - 1;
+                                setCurrentImageIndex(prevIndex);
+                                setSelectedImage(result.url_screenshot![prevIndex]);
+                              }}
+                              disabled={result.url_screenshot!.length <= 1}
+                              title="Previous image"
+                            >
+                              ◀
+                            </button>
+                            
+                            <button 
+                              className="ravt-image-nav-btn"
+                              onClick={() => {
+                                const nextIndex = currentImageIndex < result.url_screenshot!.length - 1 ? currentImageIndex + 1 : 0;
+                                setCurrentImageIndex(nextIndex);
+                                setSelectedImage(result.url_screenshot![nextIndex]);
+                              }}
+                              disabled={result.url_screenshot!.length <= 1}
+                              title="Next image"
+                            >
+                              ▶
+                            </button>
+                            
+                            <button 
+                              className="ravt-image-nav-btn"
+                              onClick={() => setIsFullscreen(!isFullscreen)}
+                              title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                            >
+                              {isFullscreen ? '⤡' : '⤢'}
+                            </button>
+                            
+                            <button 
+                              className="ravt-image-close"
+                              onClick={() => {
+                                setSelectedImage(null);
+                                setIsFullscreen(false);
+                                setShowControls(false);
+                              }}
+                              title="Close"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import '../../../project/create_project/CreateProject.css';
 import { UserService } from '../../../../services/user';
 import { ProjectService } from '../../../../services/projects';
@@ -82,13 +82,29 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
     }
   }, [isOpen]);
 
+  // Handle ESC key to close modal
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   const filteredUsers = useMemo(() => {
     const q = userSearchTerm.trim().toLowerCase();
     if (!q) return [];
     return allUsers.filter(u => u.email.toLowerCase().includes(q));
   }, [allUsers, userSearchTerm]);
 
-  const handleToggleSelectUser = (userId: string) => {
+  const handleToggleSelectUser = useCallback((userId: string) => {
     setSelectedUsers(prev => {
       const next = { ...prev } as typeof prev;
       if (next[userId]) {
@@ -98,16 +114,16 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
       }
       return next;
     });
-  };
+  }, []);
 
-  const handleChangeUserPermission = (userId: string, perm: Permission) => {
+  const handleChangeUserPermission = useCallback((userId: string, perm: Permission) => {
     setSelectedUsers(prev => ({ ...prev, [userId]: perm }));
-  };
+  }, []);
 
-  const handleRemoveUser = (user: UserInProject) => {
+  const handleRemoveUser = useCallback((user: UserInProject) => {
     setUserToRemove(user);
     setShowRemoveConfirm(true);
-  };
+  }, []);
 
   const handleConfirmRemove = async () => {
     if (!userToRemove || !projectId) return;
@@ -140,10 +156,10 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
     }
   };
 
-  const handleCancelRemove = () => {
+  const handleCancelRemove = useCallback(() => {
     setShowRemoveConfirm(false);
     setUserToRemove(null);
-  };
+  }, []);
 
   const handleSubmit = async () => {
     if (!projectId) return;
@@ -188,11 +204,10 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-container"
-        onClick={(e) => e.stopPropagation()}
-        style={{ width: 840, maxWidth: 840, height: 600, maxHeight: 600, overflowY: 'auto' }}
-      >
+        <div
+          className="modal-container add-user-modal-container"
+          onClick={(e) => e.stopPropagation()}
+        >
         <div className="modal-header">
           <h2 className="modal-title">Share Project</h2>
           <button className="modal-close-btn" onClick={onClose}>
@@ -205,19 +220,17 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
 
         <div className="modal-form">
           {/* Tabs header */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <div className="tab-header">
             <button
               type="button"
-              className="btn-save"
-              style={{ opacity: activeTab === 'add' ? 1 : 0.6 }}
+              className={`tab-button ${activeTab === 'add' ? 'active' : ''}`}
               onClick={() => setActiveTab('add')}
             >
               Add member
             </button>
             <button
               type="button"
-              className="btn-cancel"
-              style={{ opacity: activeTab === 'manage' ? 1 : 0.6 }}
+              className={`tab-button ${activeTab === 'manage' ? 'active' : ''}`}
               onClick={() => setActiveTab('manage')}
             >
               Manage

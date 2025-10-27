@@ -33,7 +33,7 @@ const Queries: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
-  const [itemsPerPage, setItemsPerPage] = useState('5 rows/page');
+  const [itemsPerPage, setItemsPerPage] = useState('10 rows/page');
   const [sortBy, setSortBy] = useState<'name' | 'description' | 'status'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -361,10 +361,9 @@ const Queries: React.FC = () => {
                   onChange={(e) => { setItemsPerPage(e.target.value); setCurrentPage(1); }}
                   className="qry-pagination-dropdown"
                 >
-                  <option value="5 rows/page">5 rows/page</option>
                   <option value="10 rows/page">10 rows/page</option>
                   <option value="20 rows/page">20 rows/page</option>
-                  <option value="50 rows/page">50 rows/page</option>
+                  <option value="30 rows/page">30 rows/page</option>
                 </select>
                 <button className="qry-create-query-btn" onClick={() => { if (!canEditPermission) return; setIsAddOpen(true); }} disabled={!canEditPermission}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

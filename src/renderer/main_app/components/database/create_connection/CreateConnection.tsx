@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './CreateConnection.css';
 
 type DbTypeOption = 'postgres' | 'mysql' | 'mssql';
@@ -61,6 +61,23 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
     setErrors({});
     onClose();
   };
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   return (
     <div className="cc-modal-overlay" onClick={handleClose}>
