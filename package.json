@@ -115,7 +115,7 @@
           ]
         }
       ],
-      "icon": "src/renderer/main_app/assets/logo_user_icon.png",
+      "icon": "src/renderer/main_app/assets/app_logo.png",
       "category": "Development",
       "synopsis": "Rikkei Automation Test Execution Tool",
       "maintainer": "Rikkei <contact@rikkei.com>"
@@ -135,7 +135,7 @@
           ]
         }
       ],
-      "icon": "src/renderer/main_app/assets/logo_user_icon.png",
+      "icon": "src/renderer/main_app/assets/app_logo.png",
       "requestedExecutionLevel": "asInvoker",
       "signAndEditExecutable": false
     },
