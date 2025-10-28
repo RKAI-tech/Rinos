@@ -114,6 +114,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [testSuiteName, setTestSuiteName] = useState<string>('');
   const svc = useMemo(() => new TestSuiteService(), []);
   const tcs = useMemo(() => new TestCaseService(), []);
   const [isRetryingAll, setIsRetryingAll] = useState(false);
@@ -125,6 +126,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       if (!silent) setIsLoading(true);
       setError(null);
       const resp = await svc.getTestCasesBySuite({ test_suite_id: testSuiteId });
+      console.log('response:', resp);
       if (resp.success && resp.data) {
         const mapped: CaseItem[] = (resp.data.testcases || []).map((tc) => ({
           id: tc.testcase_id,
@@ -147,9 +149,25 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
     }
   }, [isOpen, testSuiteId, svc]);
 
+  const fetchTestSuiteName = useCallback(async () => {
+    if (!isOpen || !testSuiteId || !projectId) return;
+    try {
+      const resp = await svc.getTestSuites(projectId);
+      if (resp.success && resp.data) {
+        const testSuite = resp.data.test_suites.find(ts => ts.test_suite_id === testSuiteId);
+        if (testSuite) {
+          setTestSuiteName(testSuite.name);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch test suite name:', e);
+    }
+  }, [isOpen, testSuiteId, projectId, svc]);
+
   useEffect(() => {
     fetchResults();
-  }, [fetchResults]);
+    fetchTestSuiteName();
+  }, [fetchResults, fetchTestSuiteName]);
 
   // Auto-refresh every 2 seconds while modal is open
   useEffect(() => {
@@ -346,7 +364,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
             style={{ zIndex: 2147483648 }}
           />
           <div className="vtsr-header">
-            <h2 className="vtsr-title">Test Suite Results</h2>
+            <h2 className="vtsr-title">{testSuiteName || 'Test Suite Results'}</h2>
             <div style={{ display: 'flex', gap: 8 }}>
               <button 
                 className="vtsr-btn vtsr-btn-rerun" 
@@ -366,10 +384,6 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
               </button>
               <button className="vtsr-close" onClick={onClose} aria-label="Close">✕</button>
             </div>
-          </div>
-
-          <div className="vtsr-footer">
-            <button className="vtsr-btn" onClick={onClose}>Close</button>
           </div>
 
           <div className="vtsr-body">
@@ -541,6 +555,10 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
                 )}
               </>
             )}
+          </div>
+
+          <div className="vtsr-footer">
+            <button className="vtsr-btn" onClick={onClose}>Close</button>
           </div>
 
         </div>
