@@ -7,12 +7,31 @@ import {
 } from './baseAction.js';
 import { previewNode } from '../dom/domUtils.js';
 export function shouldSkipElementForClick(element) {
+  const textInputTypes = [
+    'text', 'password', 'email', 'number',
+    'search', 'tel', 'url',
+    'date', 'datetime-local', 'month', 'time', 'week'
+  ];
   try {
+    if(!element) return false;
     const tagName = element?.tagName?.toLowerCase?.();
     if (!tagName) return false;
     if (tagName === 'select') return true;
-    if (tagName === 'input' || tagName === 'textarea' || (element.type === 'checkbox' || element.type === 'radio')) return true;
-    if (tagName === "select") return true;
+    if (tagName=== "input" && textInputTypes.includes(element.type)){
+      return true
+    }
+    const isTextInput = (el) =>
+      el?.tagName?.toLowerCase() === 'textarea' ||
+      el?.tagName?.toLowerCase() === 'select' ||
+      (el?.tagName?.toLowerCase() === 'input' && textInputTypes.includes(el.type));
+    if (tagName === 'textarea') return true;
+
+    if (tagName === 'select') return true;
+    if (element.type === 'checkbox' || element.type === 'radio') return true;
+    if (tagName==="label" || tagName==="button"){
+      const inputInside = element.querySelector('input, textarea, select');
+      if (isTextInput(inputInside)) return true;
+    }
     if (tagName === "label" && element.querySelector("input, textarea, select")) return true;
     if (tagName === "button" && element.querySelector("input, textarea, select")) return true;
   } catch {}
