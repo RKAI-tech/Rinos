@@ -9,7 +9,7 @@ import { previewNode, extractElementText } from '../dom/domUtils.js';
 import { showAssertInputModal } from '../components/modals/assertInputModal.js';
 import { handleTextInputEvent } from '../actions/text_input_handle.js';
 import { initializeElementFreezer, freezeEntireScreen, unfreezeEntireScreen, unfreezeAllElements } from '../dom/elementFreezer.js';
-import { handleCheckboxRadioChangeEvent } from '../actions/change_handle.js';
+// import { handleCheckboxRadioChangeEvent } from '../actions/change_handle.js';
 import { handleKeyDownEvent} from '../actions/keyboard_handle.js';
 import { handleSelectChangeEvent } from '../actions/select_handle.js';
 import { handleDragStartEvent, handleDragEndEvent, handleDropEvent } from '../actions/drag_and_drop.js';
@@ -165,7 +165,7 @@ export function initBrowserControls() {
 export function initializeEventListeners() {
   // Enhanced input tracking
   document.addEventListener('input', handleTextInputEvent);
-  document.addEventListener('change', handleCheckboxRadioChangeEvent);
+  // document.addEventListener('change', handleCheckboxRadioChangeEvent);
   document.addEventListener('change', handleSelectChangeEvent);
   document.addEventListener('click', handleClickEvent, true);
   document.addEventListener('dblclick', handleDoubleClickEvent);
