@@ -1,7 +1,7 @@
 import { ipcMain, BrowserWindow } from "electron";
 import { BrowserManager } from "../../browser/BrowserManager";
 import { Action, AssertType } from "../../browser/types";
-import { Page } from "playwright";
+import { BrowserContext, Page } from "playwright";
 import { setBrowserManager } from "./screen_handle";
 
 // Map mỗi cửa sổ recorder -> instance BrowserManager riêng
@@ -103,7 +103,7 @@ export function registerBrowserIpc() {
         }
         
         try {
-            await manager.controller?.executeMultipleActions(manager.page as Page, actions);
+            await manager.controller?.executeMultipleActions(manager.page as Page, manager.context as BrowserContext, actions);
         } finally {
             (manager as any).isExecuting = false;
             
@@ -124,6 +124,13 @@ export function registerBrowserIpc() {
                 // Ignore if function doesn't exist
             }
         }
+    });
+
+    ipcMain.handle("browser:addCookies", async (event, cookies: any) => {
+        const win = getWindowFromEvent(event);
+        if (!win) return;
+        const manager = getOrCreateManagerForWindow(win);
+        await manager.controller?.addCookies(manager.context as BrowserContext, manager.page as Page, cookies);
     });
 
     ipcMain.handle("browser:navigate", async (event, url: string) => {

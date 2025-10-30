@@ -160,7 +160,64 @@ const ActionTab: React.FC<ActionTabProps> = ({
     setIsAddCookiesOpen(true);
   };
 
-  const handleAddCookiesConfirm = (selectedCookie: CookiesListItem) => {
+  const handleNavigateConfirm = async (url: string) => {
+    if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+    const newAction = {
+      testcase_id: testcaseId,
+      action_id: Math.random().toString(36),
+      action_type: ActionType.navigate,
+      value: url,
+      description: `Navigate to ${url}`,
+    } as any;
+    onActionsChange(prev => {
+      const next = receiveActionWithInsert(
+        testcaseId,
+        prev,
+        newAction,
+        selectedInsertPosition || 0
+      );
+      const added = next.length > prev.length;
+      if (added) {
+        const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
+        onInsertPositionChange(newPos);
+        onDisplayPositionChange(newPos);
+      }
+      return next;
+    });
+    setIsNavigateOpen(false);
+    await(window as any).browserAPI?.browser.navigate(url);
+    toast.success('Added navigate action');
+  }
+
+  const handleWaitConfirm = async (ms: any) => {
+    if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+    const newAction = {
+      testcase_id: testcaseId,
+      action_id: Math.random().toString(36),
+      action_type: ActionType.wait,
+      value: String(ms),
+      description: `Wait for ${ms} ms`,
+    };
+    onActionsChange(prev => {
+      const next = receiveActionWithInsert(
+        testcaseId,
+        prev,
+        newAction,
+        selectedInsertPosition || 0
+      );
+      const added = next.length > prev.length;
+      if (added) {
+        const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
+        onInsertPositionChange(newPos);
+        onDisplayPositionChange(newPos);
+      }
+      return next;
+    });
+    setIsWaitOpen(false);
+    toast.success('Added wait action');
+  }
+
+  const handleAddCookiesConfirm = async (selectedCookie: CookiesListItem) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
     const newAction = {
       testcase_id: testcaseId,
@@ -187,6 +244,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
       return next;
     });
     setIsAddCookiesOpen(false);
+    await (window as any).browserAPI?.browser?.addCookies(JSON.stringify(selectedCookie.value));
     toast.success('Added cookies action');
   }
 
@@ -304,27 +362,14 @@ const ActionTab: React.FC<ActionTabProps> = ({
       action_id: Math.random().toString(36),
     };
 
-    // console.log("Creating action for type:", actionType);
-    // console.log("Base action:", baseAction);
-
     switch (actionType) {
-      case 'wait':
-        const waitAction = {
-          ...baseAction,
-          action_type: ActionType.wait,
-          value: '1000',
-          description: 'Wait for 1 second',
-        };
-        // console.log("Created wait action:", waitAction);
-        return waitAction;
-
       case 'reload':
         const reloadAction = {
           ...baseAction,
           action_type: ActionType.reload,
           description: 'Reload current page',
         } as any;
-        // console.log("Created reload action:", reloadAction);
+        console.log("Created reload action:", reloadAction);
         await (window as any).browserAPI?.browser?.reload();
         return reloadAction;
 
@@ -334,7 +379,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
           action_type: ActionType.back,
           description: 'Go back to previous page',
         } as any;
-        // console.log("Created back action:", backAction);
+        console.log("Created back action:", backAction);
         await (window as any).browserAPI?.browser?.goBack();
         return backAction;
 
@@ -344,28 +389,9 @@ const ActionTab: React.FC<ActionTabProps> = ({
           action_type: ActionType.forward,
           description: 'Go forward to next page',
         } as any;
-        // console.log("Created forward action:", forwardAction);
+        console.log("Created forward action:", forwardAction);
         await (window as any).browserAPI?.browser?.goForward();
         return forwardAction;
-
-      case 'database_execution':
-        // This will be handled by the modal
-        console.log("Database execution will be handled by modal");
-        handleSelectDatabaseExecution();
-        return null;
-
-      case 'visit_url':
-        const visitAction = {
-          ...baseAction,
-          action_type: ActionType.navigate,
-          url: 'https://example.com',
-          value: 'https://example.com',
-          playwright_code: 'await page.goto("https://example.com");',
-          description: 'Navigate to URL',
-        };
-        console.log("Created visit_url action:", visitAction);
-        await (window as any).browserAPI?.browser?.navigate(visitAction.value as string);
-        return visitAction;
 
       default:
         console.error('Unknown action type:', actionType);
@@ -451,65 +477,12 @@ const ActionTab: React.FC<ActionTabProps> = ({
             <WaitModal
               isOpen={isWaitOpen}
               onClose={() => setIsWaitOpen(false)}
-              onConfirm={(ms) => {
-                if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
-                const newAction = {
-                  testcase_id: testcaseId,
-                  action_id: Math.random().toString(36),
-                  action_type: ActionType.wait,
-                  value: String(ms),
-                  description: `Wait for ${ms} ms`,
-                };
-                onActionsChange(prev => {
-                  const next = receiveActionWithInsert(
-                    testcaseId,
-                    prev,
-                    newAction,
-                    selectedInsertPosition || 0
-                  );
-                  const added = next.length > prev.length;
-                  if (added) {
-                    const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
-                    onInsertPositionChange(newPos);
-                    onDisplayPositionChange(newPos);
-                  }
-                  return next;
-                });
-                setIsWaitOpen(false);
-                toast.success('Added wait action');
-              }}
+              onConfirm={handleWaitConfirm}
             />
             <NavigateModal
               isOpen={isNavigateOpen}
               onClose={() => setIsNavigateOpen(false)}
-              onConfirm={async (url) => {
-                if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
-                const newAction = {
-                  testcase_id: testcaseId,
-                  action_id: Math.random().toString(36),
-                  action_type: ActionType.navigate,
-                  value: url,
-                  description: `Navigate to ${url}`,
-                } as any;
-                onActionsChange(prev => {
-                  const next = receiveActionWithInsert(
-                    testcaseId,
-                    prev,
-                    newAction,
-                    selectedInsertPosition || 0
-                  );
-                  const added = next.length > prev.length;
-                  if (added) {
-                    const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
-                    onInsertPositionChange(newPos);
-                    onDisplayPositionChange(newPos);
-                  }
-                  return next;
-                });
-                setIsNavigateOpen(false);
-                await (window as any).browserAPI?.browser.navigate(url);
-                toast.success('Added navigate action');
-              }}
+              onConfirm={handleNavigateConfirm}
             />
             <AddCookiesModal
               isOpen={isAddCookiesOpen}

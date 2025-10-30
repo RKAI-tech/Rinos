@@ -39,6 +39,7 @@ export enum ActionType {
     back = 'back',
     forward = 'forward',
     window_resize = 'window_resize',
+    add_cookies = 'add_cookies',
 }
 
 export enum AssertType {
@@ -79,4 +80,5 @@ export interface Action {
     query?: string;
     connection?: Connection;
     files?: FileUpload[];
+    cookies?: any;
 }

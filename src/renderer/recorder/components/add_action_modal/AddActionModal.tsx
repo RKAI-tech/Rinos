@@ -133,9 +133,13 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
       case 'add_cookies':
         return (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-            <path d="M8 12h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M12 8v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            {/* Cookie outline with a bite taken out */}
+            <path d="M21 12.8A9 9 0 1 1 11.2 3c0 2.2 1.8 4 4 4 0 2.2 1.8 4 4 4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            {/* Chocolate chips */}
+            <circle cx="12" cy="8" r="1" fill="currentColor"/>
+            <circle cx="15" cy="12" r="1" fill="currentColor"/>
+            <circle cx="9" cy="12.5" r="1" fill="currentColor"/>
+            <circle cx="12" cy="16.5" r="1" fill="currentColor"/>
           </svg>
         );
       case 'back':

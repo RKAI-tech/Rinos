@@ -369,7 +369,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   };
 
   const stopBrowser = async () => {
-    await (window as any).browserAPI?.browser?.stop();
     setIsBrowserOpen(false);
     setIsPaused(false); // Reset pause state when stopping browser
     // TODO: Tắt assert menu và selected assert
@@ -384,6 +383,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     // Reset execution effects
     setExecutingActionIndex(null);
     setFailedActionIndex(null);
+    await (window as any).browserAPI?.browser?.stop();
   };
 
   const handleAssertSelect = async (assertType: string) => {

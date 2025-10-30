@@ -32,7 +32,7 @@ const statementService = new StatementService();
 
 export class BrowserManager extends EventEmitter {
     private browser: Browser | null = null;
-    private context: BrowserContext | null = null;
+    context: BrowserContext | null = null;
     page: Page | null = null;
     controller: Controller | null = null;
     private isAssertMode: boolean = false;
