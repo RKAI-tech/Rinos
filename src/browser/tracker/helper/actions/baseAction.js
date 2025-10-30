@@ -56,7 +56,6 @@ export function buildSelectors(target, options = {}) {
   try {
     return generateAndValidateSelectors(target, { maxSelectors, minScore, validate });
   } catch (e) {
-    // console.warn('buildSelectors failed:', e);
     return [];
   }
 }
