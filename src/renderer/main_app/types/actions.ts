@@ -1,3 +1,5 @@
+import { CookiesResponse } from "./cookies";
+
 export enum ActionType {
     input = "input",
     click = "click",
@@ -28,6 +30,7 @@ export enum ActionType {
     back = "back",
     forward = "forward",
     window_resize = "window_resize",
+    add_cookies = "add_cookies",
   }
   
   export enum AssertType {
@@ -115,6 +118,8 @@ export enum ActionType {
       variable_name?: string;
       order_index?: number;
       file_upload?: FileUpload[];
+      cookies_id?: string;
+      cookies?: CookiesResponse;
   }
   
   export interface ActionBatch {

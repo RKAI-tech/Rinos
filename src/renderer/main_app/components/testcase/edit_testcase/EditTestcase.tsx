@@ -18,7 +18,7 @@ interface MinimalTestcase {
 interface EditTestcaseProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { id: string; name: string; tag: string; basic_authentication?: { username: string; password: string } }) => void;
+  onSave: (data: { id: string; name: string; tag: string; basic_authentication?: { username: string; password: string }; actions?: any[] }) => void;
   testcase: MinimalTestcase | null;
 }
 
@@ -86,8 +86,9 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
 
     try {
       // 1) Batch create/update actions first
+      let actionRequests: Action[] = [];
       if (actions && actions.length > 0) {
-        const requests: Action[] = actions.map(a => ({
+        actionRequests = actions.map(a => ({
           action_id: a.action_id,
           testcase_id: a.testcase_id,
           action_type: a.action_type,
@@ -116,11 +117,6 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
           order_index: a.order_index,
           file_upload: a.file_upload,
         }));
-        const resp = await actionService.batchCreateActions(requests);
-        if (!resp.success) {
-          // If batch create fails, stop and surface the error
-          throw new Error(resp.error || 'Failed to create actions');
-        }
       }
 
       // 2) Then update testcase info (including Basic Auth if provided)
@@ -128,7 +124,8 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
         id: testcase.testcase_id,
         name: testcaseName.trim(),
         tag: testcaseTag.trim(),
-        basic_authentication: basicAuth && (basicAuth.username || basicAuth.password) ? basicAuth : undefined
+        basic_authentication: basicAuth && (basicAuth.username || basicAuth.password) ? basicAuth : undefined,
+        actions: actionRequests || []
       });
 
       setTestcaseName('');

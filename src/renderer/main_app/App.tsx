@@ -12,6 +12,8 @@ import Variables from './pages/variables/Variables';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Databases from './pages/databases/Databases';
+import Cookies from './pages/cookies/Cookies';
+import ChangeLog from './pages/change_log/ChangeLog';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -101,6 +103,11 @@ function App() {
               <TestSuites />
             </ProtectedRoute>
           } />
+          <Route path="/cookies/:projectId" element={
+            <ProtectedRoute>
+              <Cookies />
+            </ProtectedRoute>
+          } />
           <Route path="/databases/:projectId" element={
             <ProtectedRoute>
               <Databases />
@@ -114,6 +121,11 @@ function App() {
           <Route path="/variables/:projectId" element={
             <ProtectedRoute>
               <Variables />
+            </ProtectedRoute>
+          } />
+          <Route path="/change-log/:projectId" element={
+            <ProtectedRoute>
+              <ChangeLog />
             </ProtectedRoute>
           } />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

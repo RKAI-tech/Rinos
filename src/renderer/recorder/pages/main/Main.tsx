@@ -579,6 +579,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       if (response.success && response.data) {
         const newActions = response.data.actions || [];
         setActions(newActions);
+        console.log('[Main] Reloaded actions:', newActions);
         // Sau reload, luôn đặt vị trí chèn = độ dài actions (rỗng → 0)
         const len = newActions.length;
         setSelectedInsertPosition(len);
@@ -1041,6 +1042,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             executingActionIndex={executingActionIndex}
             failedActionIndex={failedActionIndex}
             onOpenBasicAuth={() => setIsBasicAuthOpen(true)}
+            projectId={projectId}
           />
         ) : (
           <TestScriptTab script={customScript || actionToCode(actions)} runResult={runResult} onScriptChange={setCustomScript} hasActions={actions.length > 0} />
