@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import './CreateConnection.css';
 
+// Tooltip for inline hints like in Cookies.tsx
+const Tooltip = ({ text }: { text: string }) => (
+  <div className="tooltip-container">
+    <span className="tooltip-icon">?</span>
+    <div className="tooltip-content">{text}</div>
+  </div>
+);
+
 type DbTypeOption = 'postgres' | 'mysql' | 'mssql';
 
 interface CreateConnectionProps {
@@ -97,7 +105,10 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
         <form onSubmit={handleSubmit} className="cc-modal-form">
           <div className="cc-form-row">
             <div className="cc-form-group">
-              <label htmlFor="dbType" className="cc-form-label">Database Type</label>
+              <label htmlFor="dbType" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                Database Type <span className="cc-required">*</span>
+                <Tooltip text="Select the type of database you want to connect to (PostgreSQL, MySQL, or Microsoft SQL Server)." />
+              </label>
               <select id="dbType" className="cc-form-select" value={dbType} onChange={(e) => setDbType(e.target.value as DbTypeOption)}>
                 <option value="postgres">PostgreSQL</option>
                 <option value="mysql">MySQL</option>
@@ -105,7 +116,10 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
               </select>
             </div>
             <div className="cc-form-group">
-              <label htmlFor="dbName" className="cc-form-label">Database Name <span className="cc-required">*</span></label>
+              <label htmlFor="dbName" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                Database Name <span className="cc-required">*</span>
+                <Tooltip text="The name of the database you want to connect to. This field is required." />
+              </label>
               <input id="dbName" type="text" className={`cc-form-input ${errors.db_name ? 'cc-error' : ''}`} value={dbName} onChange={(e) => setDbName(e.target.value)} placeholder="e.g. app_db" />
               {errors.db_name && <span className="cc-error-message">{errors.db_name}</span>}
             </div>
@@ -113,12 +127,18 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
 
           <div className="cc-form-row">
             <div className="cc-form-group">
-              <label htmlFor="host" className="cc-form-label">Host <span className="cc-required">*</span></label>
+              <label htmlFor="host" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                Host <span className="cc-required">*</span>
+                <Tooltip text="The IP address or domain name where your database server is hosted (e.g., 127.0.0.1)." />
+              </label>
               <input id="host" type="text" className={`cc-form-input ${errors.host ? 'cc-error' : ''}`} value={host} onChange={(e) => setHost(e.target.value)} placeholder="e.g. 127.0.0.1" />
               {errors.host && <span className="cc-error-message">{errors.host}</span>}
             </div>
             <div className="cc-form-group">
-              <label htmlFor="port" className="cc-form-label">Port <span className="cc-required">*</span></label>
+              <label htmlFor="port" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                Port <span className="cc-required">*</span>
+                <Tooltip text="The network port number to connect to your database (default: 5432 for PostgreSQL, 3306 for MySQL)." />
+              </label>
               <input id="port" type="text" className={`cc-form-input ${errors.port ? 'cc-error' : ''}`} value={port} onChange={(e) => setPort(e.target.value)} placeholder={dbType === 'postgres' ? '5432' : '3306'} />
               {errors.port && <span className="cc-error-message">{errors.port}</span>}
             </div>
@@ -126,12 +146,18 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
 
           <div className="cc-form-row">
             <div className="cc-form-group">
-              <label htmlFor="username" className="cc-form-label">Username <span className="cc-required">*</span></label>
+              <label htmlFor="username" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                Username <span className="cc-required">*</span>
+                <Tooltip text="The username for your database connection. This is usually provided by your DBA or set during database setup." />
+              </label>
               <input id="username" type="text" className={`cc-form-input ${errors.username ? 'cc-error' : ''}`} value={username} onChange={(e) => setUsername(e.target.value)} placeholder="e.g. dbuser" />
               {errors.username && <span className="cc-error-message">{errors.username}</span>}
             </div>
             <div className="cc-form-group">
-              <label htmlFor="password" className="cc-form-label">Password <span className="cc-required">*</span></label>
+              <label htmlFor="password" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                Password <span className="cc-required">*</span>
+                <Tooltip text="The password for your database connection. This is required to authenticate." />
+              </label>
               <input id="password" type="password" className={`cc-form-input ${errors.password ? 'cc-error' : ''}`} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
               {errors.password && <span className="cc-error-message">{errors.password}</span>}
             </div>

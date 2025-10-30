@@ -8,6 +8,9 @@ import './Cookies.css';
 import { ProjectService } from '../../services/projects';
 import { CookiesService } from '../../services/cookies';
 import { toast } from 'react-toastify';
+import CreateCookieModal from '../../components/cookies/modals/CreateCookieModal';
+import EditCookieModal from '../../components/cookies/modals/EditCookieModal';
+import DeleteCookieModal from '../../components/cookies/modals/DeleteCookieModal';
 
 interface CookieItem {
   id: string;
@@ -45,6 +48,7 @@ const Cookies: React.FC = () => {
   const [editDescription, setEditDescription] = useState('');
   const [editValue, setEditValue] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [selectedCookie, setSelectedCookie] = useState<CookieItem | null>(null);
 
   useEffect(() => {
     const loadCookies = async () => {
@@ -86,6 +90,15 @@ const Cookies: React.FC = () => {
     };
     loadProjectName();
   }, [projectId]);
+
+  useEffect(() => {
+    if (!isCreateOpen) return;
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleCloseCreate();
+    };
+    window.addEventListener('keydown', onEsc);
+    return () => window.removeEventListener('keydown', onEsc);
+  }, [isCreateOpen]);
 
   const sidebarItems = [
     { id: 'testcases', label: 'Testcases', path: `/testcases/${projectId}`, isActive: false },
@@ -387,87 +400,126 @@ const Cookies: React.FC = () => {
                 </select>
                 <button className="create-cookie-btn" onClick={handleOpenCreate}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   Create Cookie
                 </button>
               </div>
             </div>
 
-            <div className="cookies-table-container">
-              <table className="cookies-table">
-                <thead>
-                  <tr>
-                    <th className={`sortable ${sortBy === 'name' ? 'sorted' : ''}`} onClick={() => handleSort('name')}>
-                      <span className="th-content">
-                        <span className="th-text">Name</span>
-                        <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'name' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'name' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+            <div className="cookies-split">
+              <div className="cookies-table-container cookies-list">
+                <table className="cookies-table">
+                  <thead>
+                    <tr>
+                      <th className={`sortable ${sortBy === 'name' ? 'sorted' : ''}`} onClick={() => handleSort('name')}>
+                        <span className="th-content">
+                          <span className="th-text">Name</span>
+                          <span className="sort-arrows">
+                            <span className={`arrow up ${sortBy === 'name' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                            <span className={`arrow down ${sortBy === 'name' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          </span>
                         </span>
-                      </span>
-                    </th>
-                    <th className={`sortable ${sortBy === 'description' ? 'sorted' : ''}`} onClick={() => handleSort('description')}>
-                      <span className="th-content">
-                        <span className="th-text">Description</span>
-                        <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'description' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'description' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                      </th>
+                      <th className={`sortable ${sortBy === 'description' ? 'sorted' : ''}`} onClick={() => handleSort('description')}>
+                        <span className="th-content">
+                          <span className="th-text">Description</span>
+                          <span className="sort-arrows">
+                            <span className={`arrow up ${sortBy === 'description' && sortOrder === 'asc' ? 'active' : ''}`}></span>
+                            <span className={`arrow down ${sortBy === 'description' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          </span>
                         </span>
-                      </span>
-                    </th>
-                    <th>
-                      <span className="th-content">
-                        <span className="th-text">Updated</span>
-                      </span>
-                    </th>
-                    <th>Options</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentItems.map((c) => (
-                    <tr key={c.id}>
-                      <td className="cookie-name">{c.name}</td>
-                      <td className="cookie-description">{c.description || '-'}</td>
-                      <td className="cookie-updated">{c.updated || '-'}</td>
-                      <td className="cookie-actions">
-                        <div className="actions-container">
-                          <button 
-                            className="actions-btn"
-                            onClick={() => handleCookieActions(c.id)}
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <circle cx="12" cy="12" r="1" fill="currentColor"/>
-                              <circle cx="19" cy="12" r="1" fill="currentColor"/>
-                              <circle cx="5" cy="12" r="1" fill="currentColor"/>
-                            </svg>
-                          </button>
-
-                          {openDropdownId === c.id && (
-                            <div className="actions-dropdown">
-                              <button className="dropdown-item" onClick={() => openEditModal(c.id)}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                                Edit
-                              </button>
-                              <button className="dropdown-item delete" onClick={() => openDeleteModal(c.id, c.name)}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </td>
+                      </th>
+                      <th>
+                        <span className="th-content">
+                          <span className="th-text">Updated</span>
+                        </span>
+                      </th>
+                      <th>Options</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {currentItems.map((c) => (
+                      <tr
+                        key={c.id}
+                        className={`${selectedCookie?.id === c.id ? 'row-selected' : ''}`}
+                        onClick={() => setSelectedCookie(selectedCookie?.id === c.id ? null : c)}
+                      >
+                        <td className="cookie-name">{c.name}</td>
+                        <td className="cookie-description">{c.description || '-'}</td>
+                        <td className="cookie-updated">{c.updated || '-'}</td>
+                        <td className="cookie-actions">
+                          <div className="actions-container">
+                            <button
+                              className="actions-btn"
+                              onClick={(e) => { e.stopPropagation(); handleCookieActions(c.id); }}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="12" r="1" fill="currentColor" />
+                                <circle cx="19" cy="12" r="1" fill="currentColor" />
+                                <circle cx="5" cy="12" r="1" fill="currentColor" />
+                              </svg>
+                            </button>
+
+                            {openDropdownId === c.id && (
+                              <div className="actions-dropdown">
+                                <button className="dropdown-item" onClick={(e) => { e.stopPropagation(); openEditModal(c.id); }}>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                  Edit
+                                </button>
+                                <button className="dropdown-item delete" onClick={(e) => { e.stopPropagation(); openDeleteModal(c.id, c.name); }}>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <aside className="cookies-detail">
+                {!selectedCookie ? (
+                  <div className="cookies-detail-empty">
+                    <div className="empty-title">No cookie selected</div>
+                    <div className="empty-subtitle">Select a cookie to preview its value</div>
+                  </div>
+                ) : (
+                  <div className="cookies-detail-card">
+                    <div className="detail-header">
+                      <div className="detail-title">{selectedCookie.name}</div>
+                      <div className="detail-meta">{selectedCookie.updated || ''}</div>
+                    </div>
+                    <div className="detail-section-title">Value</div>
+                    <pre className="detail-value value-fixed-scrollable" aria-readonly>
+                      {(() => {
+                        const raw = selectedCookie.value;
+                        try {
+                          if (raw == null) return '';
+                          if (typeof raw === 'string') {
+                            const t = raw.trim();
+                            if ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'))) {
+                              try { return JSON.stringify(JSON.parse(t), null, 2); } catch { return raw; }
+                            }
+                            return raw;
+                          }
+                          return JSON.stringify(raw, null, 2);
+                        } catch { return String(raw); }
+                      })()}
+                    </pre>
+                  </div>
+                )}
+              </aside>
             </div>
 
             {Math.ceil(filtered.length / getItemsPerPageNumber()) > 1 && (
@@ -500,69 +552,38 @@ const Cookies: React.FC = () => {
 
       <Footer />
 
-      {isCreateOpen && (
-        <div className="cookies-modal-overlay" onClick={handleCloseCreate}>
-          <div className="cookies-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="cookies-modal-header">Create Cookie</div>
-            <div className="cookies-modal-body">
-              <label className="cookies-modal-label">Name</label>
-              <input className="cookies-modal-input" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Cookie name"/>
-
-              <label className="cookies-modal-label">Description</label>
-              <input className="cookies-modal-input" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Optional description"/>
-
-              <label className="cookies-modal-label">Value</label>
-              <textarea className="cookies-modal-textarea" rows={6} value={newValue} onChange={(e) => setNewValue(e.target.value)} placeholder='Enter value (JSON or text)'></textarea>
-            </div>
-            <div className="cookies-modal-footer">
-              <button className="cookies-btn-secondary" onClick={handleCloseCreate} disabled={isSaving}>Cancel</button>
-              <button className="cookies-btn-primary" onClick={handleSaveCreate} disabled={isSaving || !newName.trim()}>{isSaving ? 'Saving...' : 'Create'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isEditOpen && (
-        <div className="cookies-modal-overlay" onClick={handleCloseEdit}>
-          <div className="cookies-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="cookies-modal-header">Edit Cookie</div>
-            <div className="cookies-modal-body">
-              <label className="cookies-modal-label">Name</label>
-              <input className="cookies-modal-input" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Cookie name"/>
-
-              <label className="cookies-modal-label">Description</label>
-              <input className="cookies-modal-input" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Optional description"/>
-
-              <label className="cookies-modal-label">Value</label>
-              <textarea className="cookies-modal-textarea" rows={6} value={editValue} onChange={(e) => setEditValue(e.target.value)} placeholder='Enter value (JSON or text)'></textarea>
-            </div>
-            <div className="cookies-modal-footer">
-              <button className="cookies-btn-secondary" onClick={handleCloseEdit} disabled={isUpdating}>Cancel</button>
-              <button className="cookies-btn-primary" onClick={handleSaveEdit} disabled={isUpdating || !editName.trim()}>{isUpdating ? 'Saving...' : 'Save'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isDeleteOpen && (
-        <div className="cookies-modal-overlay" onClick={closeDeleteModal}>
-          <div className="cookies-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="cookies-modal-header">Delete Cookie</div>
-            <div className="cookies-modal-body">
-              <div className="cookies-modal-warning">
-                Are you sure you want to delete
-                {deletingCookie?.name ? ` "${deletingCookie.name}"` : ''}? This action cannot be undone.
-              </div>
-            </div>
-            <div className="cookies-modal-footer">
-              <button className="cookies-btn-secondary" onClick={closeDeleteModal} disabled={isDeleting}>Cancel</button>
-              <button className="cookies-btn-danger" onClick={confirmDelete} disabled={isDeleting}>
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modals */}
+      <CreateCookieModal
+        isOpen={isCreateOpen}
+        onClose={handleCloseCreate}
+        onSave={handleSaveCreate}
+        isSaving={isSaving}
+        name={newName}
+        description={newDescription}
+        value={newValue}
+        setName={setNewName}
+        setDescription={setNewDescription}
+        setValue={setNewValue}
+      />
+      <EditCookieModal
+        isOpen={isEditOpen}
+        onClose={handleCloseEdit}
+        onSave={handleSaveEdit}
+        isSaving={isUpdating}
+        name={editName}
+        description={editDescription}
+        value={editValue}
+        setName={setEditName}
+        setDescription={setEditDescription}
+        setValue={setEditValue}
+      />
+      <DeleteCookieModal
+        isOpen={isDeleteOpen}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDelete}
+        isDeleting={isDeleting}
+        cookieName={deletingCookie?.name}
+      />
     </div>
   );
 };

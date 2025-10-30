@@ -6,7 +6,7 @@ import { setPauseMode } from '../actions/baseAction.js';
 import { handleDoubleClickEvent, handleRightClickEvent, handleShiftClickEvent } from '../actions/click_handle.js';
 import { generateSelector, validateAndImproveSelector } from '../selector_generator/selectorGenerator.js';
 import { previewNode, extractElementText } from '../dom/domUtils.js';
-import { showAssertInputModal } from '../components/modals/assertInputModal.js';
+import { showAssertInputModal, closeAssertInputModal } from '../components/modals/assertInputModal.js';
 import { handleTextInputEvent } from '../actions/text_input_handle.js';
 import { initializeElementFreezer, freezeEntireScreen, unfreezeEntireScreen, unfreezeAllElements } from '../dom/elementFreezer.js';
 import { handleCheckboxRadioChangeEvent } from '../actions/change_handle.js';
@@ -258,6 +258,7 @@ export function initializeTracking() {
       freezeEntireScreen();
     } else {
       unfreezeEntireScreen();
+      closeAssertInputModal();
     }
   };
 
