@@ -32,7 +32,7 @@ const statementService = new StatementService();
 
 export class BrowserManager extends EventEmitter {
     private browser: Browser | null = null;
-    private context: BrowserContext | null = null;
+    context: BrowserContext | null = null;
     page: Page | null = null;
     controller: Controller | null = null;
     private isAssertMode: boolean = false;
@@ -138,7 +138,7 @@ export class BrowserManager extends EventEmitter {
 
     async stop(): Promise<void> {
         try {
-            if (this.page) {
+            if (this.page && !this.page.isClosed()) {
                 await this.page.close();
                 this.page = null;
             }
@@ -169,7 +169,7 @@ export class BrowserManager extends EventEmitter {
         try {
             if (!this.page) return;
             
-            console.log(`[BrowserManager] Resizing window to ${width}x${height}`);
+            // console.log(`[BrowserManager] Resizing window to ${width}x${height}`);
             
             // Use CDP to resize the actual browser window
             const session = await (this.page.context() as any).newCDPSession(this.page);
@@ -191,18 +191,18 @@ export class BrowserManager extends EventEmitter {
             // Verify the resize worked
             try {
                 const bounds = await session.send('Browser.getWindowBounds', { windowId });
-                console.log(`[BrowserManager] Window resized successfully. Current bounds:`, bounds);
+                // console.log(`[BrowserManager] Window resized successfully. Current bounds:`, bounds);
                 
                 // With viewport: null, viewport should automatically match window size
                 const viewportSize = await this.page.viewportSize();
-                console.log(`[BrowserManager] Viewport size (should match window):`, viewportSize);
+                // console.log(`[BrowserManager] Viewport size (should match window):`, viewportSize);
                 
             } catch (e) {
-                console.log(`[BrowserManager] Could not verify window bounds:`, e);
+                // console.log(`[BrowserManager] Could not verify window bounds:`, e);
             }
             
         } catch (e) {
-            console.error(`[BrowserManager] Failed to resize window:`, e);
+            // console.error(`[BrowserManager] Failed to resize window:`, e);
             // Fallback: no-op
         }
     }
@@ -215,7 +215,7 @@ export class BrowserManager extends EventEmitter {
 
         try {
             await this.context.exposeFunction('sendActionToMain', (action: Action) => {
-                console.log('[BrowserManager] Received action from page:', action);
+                // console.log('[BrowserManager] Received action from page:', action);
                 this.emit('action', action);
             });
             
@@ -263,14 +263,14 @@ export class BrowserManager extends EventEmitter {
             try {
                 const projectId = this.projectId;
                 if (!projectId) {
-                    console.log('[BrowserManager] getConnection failed: No project context');
+                    // console.log('[BrowserManager] getConnection failed: No project context');
                     return { success: false, error: 'No project context' };
                 }
                 const resp = await databaseService.getDatabaseConnections({ project_id: projectId });
-                console.log('[BrowserManager] getConnection response:', resp);
+                // console.log('[BrowserManager] getConnection response:', resp);
                 return resp;
             } catch (e) {
-                console.log('[BrowserManager] getConnection failed:', e);
+                // console.log('[BrowserManager] getConnection failed:', e);
                 return { success: false, error: String(e) };
             }
         });

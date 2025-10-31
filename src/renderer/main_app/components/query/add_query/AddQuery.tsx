@@ -2,6 +2,14 @@ import React, { useEffect, useState } from 'react';
 import './AddQuery.css';
 import { DatabaseService } from '../../../services/database';
 
+// Tooltip giống pattern tạo trong CreateConnection
+const Tooltip = ({ text }: { text: string }) => (
+  <div className="tooltip-container">
+    <span className="tooltip-icon">?</span>
+    <div className="tooltip-content">{text}</div>
+  </div>
+);
+
 interface AddQueryProps {
   isOpen: boolean;
   projectId?: string;
@@ -39,6 +47,23 @@ const AddQuery: React.FC<AddQueryProps> = ({ isOpen, projectId, onClose, onSave 
     if (isOpen) loadConnections();
   }, [isOpen, projectId]);
 
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -61,23 +86,6 @@ const AddQuery: React.FC<AddQueryProps> = ({ isOpen, projectId, onClose, onSave 
     onClose();
   };
 
-  // Handle ESC key to close modal
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen) {
-        handleClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen]);
-
   return (
     <div className="aq-modal-overlay" onClick={handleClose}>
       <div className="aq-modal-container" onClick={(e) => e.stopPropagation()}>
@@ -95,25 +103,37 @@ const AddQuery: React.FC<AddQueryProps> = ({ isOpen, projectId, onClose, onSave 
 
         <form onSubmit={handleSubmit} className="aq-modal-form">
           <div className="aq-form-group">
-            <label className="aq-form-label" htmlFor="aqName">Query Name <span className="aq-required">*</span></label>
+            <label className="aq-form-label" htmlFor="aqName" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              Query Name <span className="aq-required">*</span>
+              <Tooltip text="The name of this query. Must be unique within your project." />
+            </label>
             <input id="aqName" className={`aq-form-input ${errors.name ? 'aq-error' : ''}`} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Get users"
             />
             {errors.name && <span className="aq-error-message">{errors.name}</span>}
           </div>
 
           <div className="aq-form-group">
-            <label className="aq-form-label" htmlFor="aqDesc">Description</label>
+            <label className="aq-form-label" htmlFor="aqDesc" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              Description
+              <Tooltip text="Optional. Describe the purpose of this query." />
+            </label>
             <textarea id="aqDesc" className="aq-form-textarea" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe this query"></textarea>
           </div>
 
           <div className="aq-form-group">
-            <label className="aq-form-label" htmlFor="aqStmt">SQL Statement <span className="aq-required">*</span></label>
+            <label className="aq-form-label" htmlFor="aqStmt" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              SQL Statement <span className="aq-required">*</span>
+              <Tooltip text="The SQL command to execute. Please ensure correct syntax." />
+            </label>
             <textarea id="aqStmt" className={`aq-form-textarea ${errors.statement ? 'aq-error' : ''}`} rows={6} value={statement} onChange={(e) => setStatement(e.target.value)} placeholder="SELECT * FROM table WHERE ..."></textarea>
             {errors.statement && <span className="aq-error-message">{errors.statement}</span>}
           </div>
 
           <div className="aq-form-group">
-            <label className="aq-form-label" htmlFor="aqConn">Database <span className="aq-required">*</span></label>
+            <label className="aq-form-label" htmlFor="aqConn" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              Database <span className="aq-required">*</span>
+              <Tooltip text="Select which database connection to execute this query on." />
+            </label>
             <select id="aqConn" className={`aq-form-select ${errors.connection ? 'aq-error' : ''}`} value={connectionId} onChange={(e) => setConnectionId(e.target.value)}>
               {connections.map(c => (
                 <option key={c.id} value={c.id}>{c.label}</option>

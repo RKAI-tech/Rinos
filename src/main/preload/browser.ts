@@ -39,6 +39,7 @@ const browserMethods = {
     getProjectId: async () => ipcRenderer.invoke("browser:getProjectId"),
     setAuthToken: async (token: string | null) => ipcRenderer.invoke("browser:setAuthToken", token),
 
+    addCookies: async (cookies: any) => ipcRenderer.invoke("browser:addCookies", cookies),
     reload: async () => ipcRenderer.invoke("browser:reload"),
     goBack: async () => ipcRenderer.invoke("browser:goBack"),
     goForward: async () => ipcRenderer.invoke("browser:goForward"),

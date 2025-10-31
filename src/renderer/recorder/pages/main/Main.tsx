@@ -267,7 +267,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     };
 
     // Listen for window close request event from main process
-    const removeListener = (window as any).electronAPI?.window?.onCloseRequested?.(handleCloseRequest);
+    const removeListener = (window as any).electronAPI?.window?.onRecorderCloseRequested?.(handleCloseRequest);
     
     return () => {
       if (removeListener) {
@@ -369,7 +369,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   };
 
   const stopBrowser = async () => {
-    await (window as any).browserAPI?.browser?.stop();
     setIsBrowserOpen(false);
     setIsPaused(false); // Reset pause state when stopping browser
     // TODO: Tắt assert menu và selected assert
@@ -384,6 +383,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     // Reset execution effects
     setExecutingActionIndex(null);
     setFailedActionIndex(null);
+    await (window as any).browserAPI?.browser?.stop();
   };
 
   const handleAssertSelect = async (assertType: string) => {
@@ -474,7 +474,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           connection: databaseElements[0]?.connection,
         };
 
-        console.log('[Main] AI action:', aiAction);
+        // console.log('[Main] AI action:', aiAction);
 
         setActions(prev => {
           const next = receiveActionWithInsert(
@@ -579,6 +579,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       if (response.success && response.data) {
         const newActions = response.data.actions || [];
         setActions(newActions);
+        // console.log('[Main] Reloaded actions:', newActions);
         // Sau reload, luôn đặt vị trí chèn = độ dài actions (rỗng → 0)
         const len = newActions.length;
         setSelectedInsertPosition(len);
@@ -740,7 +741,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     try {
       const response = await actionService.batchCreateActions(actions);
       if (response.success) {
-        toast.success('Saved successfully');
+        // toast.success('Saved successfully');
       } else {
         toast.error(response.error || 'Failed to save actions');
       }
@@ -794,9 +795,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         }),
         testcase_id: testcaseId || '',
       };
-      console.log('[Main] Run script payload:', payload);
+      // console.log('[Main] Run script payload:', payload);
       const resp = await service.executeActions(payload);
-      console.log('[Main] Run script response:', resp);
+      // console.log('[Main] Run script response:', resp);
       if (resp.success) {
         setRunResult((resp as any).logs || 'Executed successfully');
         toast.update(toastId, { render: 'Run succeeded', type: 'success', isLoading: false, autoClose: 2000 });
@@ -855,6 +856,19 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       toast.error('Failed to save actions. Please try again.');
     }
   };
+
+  // Listen for child window force save and close event from main process
+  useEffect(() => {
+    const handleForceSaveAndClose = () => {
+      handleSaveAndClose();
+    };
+    const removeListener = (window as any).electronAPI?.window?.onChildWindowForceSaveAndClose?.(handleForceSaveAndClose);
+    return () => {
+      if (removeListener) {
+        removeListener();
+      }
+    };
+  }, [handleSaveAndClose]);
 
   const reloadAll = () => {
     reloadActions();
@@ -1041,6 +1055,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             executingActionIndex={executingActionIndex}
             failedActionIndex={failedActionIndex}
             onOpenBasicAuth={() => setIsBasicAuthOpen(true)}
+            projectId={projectId}
           />
         ) : (
           <TestScriptTab script={customScript || actionToCode(actions)} runResult={runResult} onScriptChange={setCustomScript} hasActions={actions.length > 0} />

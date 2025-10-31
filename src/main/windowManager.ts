@@ -1,4 +1,4 @@
-import { BrowserWindow, app, screen } from "electron";
+import { BrowserWindow, app, ipcMain, screen } from "electron";
 import { MainEnv } from "./env.js";
 import path from "path";
 
@@ -51,49 +51,82 @@ function createWindow(options: Electron.BrowserWindowConstructorOptions, page: s
   return win;
 }
 
+let mainAppWindow: BrowserWindow | null = null;
+let childWindows: BrowserWindow[] = [];
+
 export function createMainAppWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-  const win = createWindow({ width, height }, "main_app");
-  return win;
+  mainAppWindow = createWindow({ width, height }, "main_app");
+
+  mainAppWindow.on('close', (event) => {
+    event.preventDefault();
+    mainAppWindow?.webContents.send('mainapp:close-requested');
+    // childWindows.forEach((win) => {
+    //   if (win && !win.isDestroyed()) {
+    //     win.destroy();
+    //   }
+    // });
+    // childWindows.length = 0;
+    // setTimeout(() => { mainAppWindow?.destroy(); }, 300);
+    // mainAppWindow = null;
+  });
+
+  ipcMain.on('mainapp:close-result', (event: any, data: { confirm: boolean, save: boolean }) => {
+    // console.log('mainapp:close-result', data);
+    if (!mainAppWindow) return;
+    if (!data.confirm) return;
+    try {
+      if (data.save) {
+        childWindows.forEach((win) => {
+          if (win && !win.isDestroyed()) { win.webContents.send('window:force-save-and-close'); }
+        });
+      } else {
+        childWindows.forEach((win) => {
+          if (win && !win.isDestroyed()) { win.destroy(); }
+        });
+      }
+    } catch (error) {
+      console.error('mainapp:close-result error', error);
+    } finally {
+      childWindows.length = 0;
+      const win = mainAppWindow;
+      setTimeout(() => { win?.destroy(); }, 300);
+      mainAppWindow = null;
+    }
+  });
+
+  return mainAppWindow;
 }
 
 export function createRecorderWindow(testcaseId?: string, projectId?: string, testcaseName?: string) {
-  const win = createWindow({ width: 500, height: 800 }, "recorder");
-  
-  // Set title ngay khi tạo window
+  const recorderWindow = createWindow({ width: 500, height: 800 }, "recorder");
+  childWindows.push(recorderWindow);
   if (testcaseId) {
     const displayName = testcaseName || testcaseId || "";
-    win.setTitle(`Record actions on a website - ${displayName}`);
+    recorderWindow.setTitle(`Record actions on a website - ${displayName}`);
   } else {
-    win.setTitle('Record actions on a website');
+    recorderWindow.setTitle('Record actions on a website');
   }
-  
-  // Thêm event listener cho window close event
-  win.on('close', (event) => {
-    // Ngăn chặn việc đóng cửa sổ ngay lập tức
+
+  recorderWindow.on('close', (event) => {
     event.preventDefault();
-    
-    // Gửi sự kiện đến renderer để hiển thị modal xác nhận
-    win.webContents.send('window:close-requested');
+    recorderWindow.webContents.send('recorder:close-requested');
+
+    const index = childWindows.indexOf(recorderWindow);
+    if (index !== -1) {
+      childWindows.splice(index, 1);
+    }
   });
-  
-  // Nếu có testcaseId, thêm vào URL sau khi window được tạo
+
   if (testcaseId) {
-    // Đợi một chút để đảm bảo window đã load xong
     setTimeout(() => {
-      const currentUrl = win.webContents.getURL();
+      const currentUrl = recorderWindow.webContents.getURL();
       const separator = currentUrl.includes('?') ? '&' : '?';
       const newUrl = `${currentUrl}${separator}testcaseId=${encodeURIComponent(testcaseId)}&projectId=${encodeURIComponent(projectId || '')}`;
-      // console.log('[WindowManager] Setting project ID:', projectId);
-      // console.log('[WindowManager] Loading recorder with testcaseId:', testcaseId);
-      // console.log('[WindowManager] Current URL:', currentUrl);
-      // console.log('[WindowManager] New URL:', newUrl);
-      win.loadURL(newUrl);
-    }, 1000); // Đợi 1 giây để đảm bảo window đã load xong
-  } else {
-    // console.log('[WindowManager] Creating recorder window without testcaseId and projectId');
-  }
-  
-  return win;
+      recorderWindow.loadURL(newUrl);
+    }, 1000);
+  } else { }
+
+  return recorderWindow;
 }
 
