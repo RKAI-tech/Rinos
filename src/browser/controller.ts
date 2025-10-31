@@ -337,7 +337,7 @@ export class Controller {
                             const target = (el === document.body || el === document.documentElement)
                                 ? window
                                 : el;
-
+                            console.log('target', target)
                             if (target.scrollTo) {
                                 target.scrollTo({ left: x, top: y, behavior: 'instant' });
                             }
