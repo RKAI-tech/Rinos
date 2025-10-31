@@ -1,4 +1,4 @@
-import { Action, ActionType } from "./types";
+import { Action, ActionType, ApiRequestData } from "./types";
 import { Page, Request } from "playwright";
 import { BasicAuthentication } from "../renderer/recorder/types/basic_auth";
 import { FileService } from "./services/files";
@@ -44,6 +44,117 @@ export class Controller {
     async goForward(page: Page): Promise<void> {
         await page.goForward();
     }
+
+  private async executeApiRequest(page: Page, apiData: ApiRequestData): Promise<void> {
+    // Build URL with params
+    let url = apiData.url;
+    try {
+      if (apiData.params && apiData.params.length > 0) {
+        const valid = apiData.params.filter(p => p.key && p.key.trim() && p.value && p.value.trim());
+        if (valid.length > 0) {
+          const search = new URLSearchParams();
+          valid.forEach(p => search.append(p.key.trim(), p.value.trim()));
+          const sep = url.includes('?') ? '&' : '?';
+          url = `${url}${sep}${search.toString()}`;
+        }
+      }
+    } catch {}
+
+    // Prepare headers
+    const headers: Record<string, string> = {};
+    try {
+      if (apiData.headers && apiData.headers.length > 0) {
+        apiData.headers.forEach(h => {
+          if (h.key && h.key.trim() && h.value && h.value.trim()) {
+            headers[h.key.trim()] = h.value.trim();
+          }
+        });
+      }
+    } catch {}
+
+    // Authorization from explicit values or storage
+    try {
+      if (apiData.auth && apiData.auth.type === 'bearer') {
+        if (apiData.auth.token && apiData.auth.token.trim()) {
+          headers['Authorization'] = `Bearer ${apiData.auth.token.trim()}`;
+        } else if (apiData.tokenStorage?.enabled && apiData.tokenStorage.key && apiData.tokenStorage.type) {
+          let bearer = '';
+          if (apiData.tokenStorage.type === 'localStorage') {
+            bearer = await page.evaluate(({ k }) => localStorage.getItem(k) || '', { k: apiData.tokenStorage.key });
+          } else if (apiData.tokenStorage.type === 'sessionStorage') {
+            bearer = await page.evaluate(({ k }) => sessionStorage.getItem(k) || '', { k: apiData.tokenStorage.key });
+          } else if (apiData.tokenStorage.type === 'cookie') {
+            bearer = await page.evaluate(({ name }) => { const m = document.cookie.split('; ').find(r => r.startsWith(name + '=')); return m ? decodeURIComponent(m.split('=')[1]) : ''; }, { name: apiData.tokenStorage.key });
+          }
+          if (bearer) headers['Authorization'] = `Bearer ${bearer}`;
+        }
+      } else if (apiData.auth && apiData.auth.type === 'basic') {
+        if (apiData.auth.username && apiData.auth.password) {
+          headers['Authorization'] = 'Basic ' + Buffer.from(`${apiData.auth.username}:${apiData.auth.password}`).toString('base64');
+        } else if (apiData.basicAuthStorage?.enabled && apiData.basicAuthStorage.type && apiData.basicAuthStorage.usernameKey && apiData.basicAuthStorage.passwordKey) {
+          let creds: { u: string; p: string } = { u: '', p: '' };
+          if (apiData.basicAuthStorage.type === 'localStorage') {
+            creds = await page.evaluate(({ uk, pk }) => ({ u: localStorage.getItem(uk) || '', p: localStorage.getItem(pk) || '' }), { uk: apiData.basicAuthStorage.usernameKey, pk: apiData.basicAuthStorage.passwordKey });
+          } else if (apiData.basicAuthStorage.type === 'sessionStorage') {
+            creds = await page.evaluate(({ uk, pk }) => ({ u: sessionStorage.getItem(uk) || '', p: sessionStorage.getItem(pk) || '' }), { uk: apiData.basicAuthStorage.usernameKey, pk: apiData.basicAuthStorage.passwordKey });
+          } else if (apiData.basicAuthStorage.type === 'cookie') {
+            creds = await page.evaluate(({ uk, pk }) => { const getC = (n: string) => { const m = document.cookie.split('; ').find(r => r.startsWith(n + '=')); return m ? decodeURIComponent(m.split('=')[1]) : ''; }; return { u: getC(uk), p: getC(pk) }; }, { uk: apiData.basicAuthStorage.usernameKey, pk: apiData.basicAuthStorage.passwordKey });
+          }
+          if (creds.u && creds.p) headers['Authorization'] = 'Basic ' + Buffer.from(`${creds.u}:${creds.p}`).toString('base64');
+        }
+      }
+    } catch { try { console.log('[Controller][API] Resolve auth error'); } catch {} }
+
+    // Prepare request options
+    const options: any = { headers };
+    try {
+      if (apiData.body && apiData.body.type !== 'none') {
+        if (apiData.body.type === 'json') {
+          options.data = apiData.body.content;
+        } else if (apiData.body.type === 'form' && apiData.body.formData) {
+          const body: Record<string, string> = {};
+          apiData.body.formData.filter(p => p.key && p.key.trim() && p.value != null)
+            .forEach(p => { body[p.key.trim()] = String(p.value); });
+          options.data = body;
+        }
+      }
+    } catch { try { console.log('[Controller][API] Build options error'); } catch {} }
+
+    // Execute
+    const method = (apiData.method || 'GET').toLowerCase();
+    try { console.log('[Controller][API] Sending request', { method, url, hasHeaders: Object.keys(headers).length > 0 }); } catch {}
+    const resp = await (page.request as any)[method](url, options);
+    try { console.log('[Controller][API] Response status:', await resp.status()); } catch {}
+    // Optionally store tokens/basic credentials
+    try {
+      if (apiData.tokenStorage?.enabled && apiData.tokenStorage.type && apiData.tokenStorage.key) {
+        const token = await resp.json().then((d: any) => d?.token || d?.access_token || d?.accessToken).catch(() => null);
+        if (token) {
+          if (apiData.tokenStorage.type === 'localStorage') {
+            await page.evaluate(({ k, v }) => localStorage.setItem(k, v), { k: apiData.tokenStorage.key, v: token });
+          } else if (apiData.tokenStorage.type === 'sessionStorage') {
+            await page.evaluate(({ k, v }) => sessionStorage.setItem(k, v), { k: apiData.tokenStorage.key, v: token });
+          } else if (apiData.tokenStorage.type === 'cookie') {
+            await page.evaluate(({ name, v }) => { document.cookie = name + '=' + encodeURIComponent(v) + '; path=/; max-age=3600'; }, { name: apiData.tokenStorage.key, v: token });
+          }
+        }
+      }
+      if (apiData.basicAuthStorage?.enabled && apiData.basicAuthStorage.type && apiData.basicAuthStorage.usernameKey && apiData.basicAuthStorage.passwordKey) {
+        const u = apiData.auth?.username || '';
+        const p = apiData.auth?.password || '';
+        if (u || p) {
+          if (apiData.basicAuthStorage.type === 'localStorage') {
+            await page.evaluate(({ uk, uVal, pk, pVal }) => { localStorage.setItem(uk, uVal); localStorage.setItem(pk, pVal); }, { uk: apiData.basicAuthStorage.usernameKey, uVal: u, pk: apiData.basicAuthStorage.passwordKey, pVal: p });
+          } else if (apiData.basicAuthStorage.type === 'sessionStorage') {
+            await page.evaluate(({ uk, uVal, pk, pVal }) => { sessionStorage.setItem(uk, uVal); sessionStorage.setItem(pk, pVal); }, { uk: apiData.basicAuthStorage.usernameKey, uVal: u, pk: apiData.basicAuthStorage.passwordKey, pVal: p });
+          } else if (apiData.basicAuthStorage.type === 'cookie') {
+            await page.evaluate(({ uk, uVal, pk, pVal }) => { document.cookie = uk + '=' + encodeURIComponent(uVal) + '; path=/; max-age=3600'; document.cookie = pk + '=' + encodeURIComponent(pVal) + '; path=/; max-age=3600'; }, { uk: apiData.basicAuthStorage.usernameKey, uVal: u, pk: apiData.basicAuthStorage.passwordKey, pVal: p });
+          }
+        }
+      }
+    } catch { try { console.log('[Controller][API] Store to storage error'); } catch {} }
+    try { console.log('[Controller][API] Done'); } catch {}
+  }
 
     trackRequests(page: Page): void {
         page.on('request', (request: Request) => {
@@ -161,8 +272,7 @@ export class Controller {
             throw new Error('Actions array is required and cannot be empty');
         }
         
-        // console.log(`[Controller] Executing ${actions.length} actions`);
-        
+       
         for (let i = 0; i < actions.length; i++) {
             const action = actions[i];
             // console.log(`[Controller] Executing action ${i + 1}/${actions.length}: ${action.action_type}`);
@@ -354,6 +464,12 @@ export class Controller {
                         }
                         
                         await page.waitForLoadState('networkidle', { timeout: 10000 });
+                        break;
+                    case ActionType.api_request:
+                        if (action.api_request) {
+                            console.log('[Controller] Executing API request:', action.api_request);
+                            await this.executeApiRequest(page, action.api_request as any);
+                        }
                         break;
                     default:
                         continue;

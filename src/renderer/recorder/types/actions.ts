@@ -127,12 +127,9 @@ export interface ApiRequestTokenStorage {
 
 export interface ApiRequestBasicAuthStorage {
   enabled: boolean;
-  type?: 'localStorage' | 'sessionStorage' | 'cookie' | 'custom';
+  type?: 'localStorage' | 'sessionStorage' | 'cookie';
   usernameKey?: string;
   passwordKey?: string;
-  selector?: string;
-  usernameAttribute?: string;
-  passwordAttribute?: string;
 }
 
 export interface ApiRequestData {

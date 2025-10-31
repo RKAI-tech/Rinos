@@ -39,6 +39,22 @@ const browserMethods = {
     getProjectId: async () => ipcRenderer.invoke("browser:getProjectId"),
     setAuthToken: async (token: string | null) => ipcRenderer.invoke("browser:setAuthToken", token),
 
+  // Lấy 1 giá trị theo nguồn và key
+  getAuthValue: async (
+    source: 'local' | 'session' | 'cookie',
+    key: string,
+    options?: { cookieDomainMatch?: string; cookieDomainRegex?: string }
+  ) => ipcRenderer.invoke("browser:getAuthValue", source, key, options),
+
+  // Lấy Basic Auth từ storage/cookie/custom
+  getBasicAuthFromStorage: async (payload: {
+    type: 'localStorage' | 'sessionStorage' | 'cookie',
+    usernameKey?: string,
+    passwordKey?: string,
+    cookieDomainMatch?: string,
+    cookieDomainRegex?: string,
+  }) => ipcRenderer.invoke("browser:getBasicAuthFromStorage", payload),
+
     reload: async () => ipcRenderer.invoke("browser:reload"),
     goBack: async () => ipcRenderer.invoke("browser:goBack"),
     goForward: async () => ipcRenderer.invoke("browser:goForward"),

@@ -522,62 +522,80 @@ export function generateApiRequestCode(apiData: ApiRequestData): string {
         }
     }
     
-    code += `  const response = await page.request.${apiData.method.toLowerCase()}('${url}'`;
-    
-    // Add options if needed
+    // Prepare headers and (optionally) read from storage if needed
     const hasHeaders = apiData.headers && apiData.headers.some(h => h.key.trim() && h.value.trim());
     const hasAuth = apiData.auth && apiData.auth.type !== 'none';
     const hasBody = apiData.body && apiData.body.type !== 'none';
-    
-    if (hasHeaders || hasAuth || hasBody) {
-        code += `, {\n`;
-        
-        // Headers
-        if (hasHeaders) {
-            code += `    headers: {\n`;
-            apiData.headers.forEach(header => {
-                if (header.key.trim() && header.value.trim()) {
-                    code += `      '${header.key.trim()}': '${header.value.trim()}',\n`;
-                }
-            });
-            code += `    },\n`;
+
+    if (hasHeaders) {
+      code += `  const headers: any = {\n`;
+      apiData.headers.forEach(header => {
+        if (header.key.trim() && header.value.trim()) {
+          code += `    '${header.key.trim()}': '${header.value.trim()}',\n`;
         }
-        
-        // Auth
-        if (hasAuth) {
-            if (apiData.auth.type === 'basic' && apiData.auth.username && apiData.auth.password) {
-                const credentials = btoa(`${apiData.auth.username}:${apiData.auth.password}`);
-                code += `    headers: {\n`;
-                code += `      'Authorization': 'Basic ${credentials}',\n`;
-                code += `    },\n`;
-            } else if (apiData.auth.type === 'bearer' && apiData.auth.token) {
-                code += `    headers: {\n`;
-                code += `      'Authorization': 'Bearer ${apiData.auth.token}',\n`;
-                code += `    },\n`;
-            }
-        }
-        
-        // Body
-        if (hasBody) {
-            if (apiData.body.type === 'json') {
-                code += `    data: ${apiData.body.content},\n`;
-            } else if (apiData.body.type === 'form' && apiData.body.formData) {
-                const formData = apiData.body.formData
-                    .filter(p => p.key.trim() && p.value.trim())
-                    .map(p => `'${p.key.trim()}': '${p.value.trim()}'`)
-                    .join(', ');
-                code += `    data: { ${formData} },\n`;
-            }
-        }
-        
-        code += `  }`;
+      });
+      code += `  };\n`;
+    } else {
+      code += `  const headers: any = {};\n`;
     }
-    
+
+    if (hasAuth) {
+      if (apiData.auth.type === 'bearer') {
+        // Prefer explicit token; otherwise read from configured storage
+        if (apiData.auth.token && apiData.auth.token.trim()) {
+          code += `  headers['Authorization'] = 'Bearer ${apiData.auth.token.trim()}';\n`;
+        } else if (apiData.tokenStorage?.enabled && apiData.tokenStorage.key && apiData.tokenStorage.type) {
+          if (apiData.tokenStorage.type === 'localStorage') {
+            code += `  const __bearer = await page.evaluate((k) => localStorage.getItem(k) || '', '${apiData.tokenStorage.key}');\n`;
+          } else if (apiData.tokenStorage.type === 'sessionStorage') {
+            code += `  const __bearer = await page.evaluate((k) => sessionStorage.getItem(k) || '', '${apiData.tokenStorage.key}');\n`;
+          } else if (apiData.tokenStorage.type === 'cookie') {
+            code += `  const __bearer = await page.evaluate((name) => { const m = document.cookie.split('; ').find(r => r.startsWith(name + '=')); return m ? decodeURIComponent(m.split('=')[1]) : ''; }, '${apiData.tokenStorage.key}');\n`;
+          }
+          code += `  if (__bearer) headers['Authorization'] = 'Bearer ' + __bearer;\n`;
+        }
+      } else if (apiData.auth.type === 'basic') {
+        // Prefer explicit username/password; otherwise read from configured storage
+        const hasExplicit = !!(apiData.auth.username && apiData.auth.password);
+        if (hasExplicit) {
+          code += `  headers['Authorization'] = 'Basic ' + Buffer.from('${apiData.auth.username}:${apiData.auth.password}').toString('base64');\n`;
+        } else if (apiData.basicAuthStorage?.enabled && apiData.basicAuthStorage.type && apiData.basicAuthStorage.usernameKey && apiData.basicAuthStorage.passwordKey) {
+          if (apiData.basicAuthStorage.type === 'localStorage') {
+            code += `  const __basic = await page.evaluate((uk, pk) => ({ u: localStorage.getItem(uk) || '', p: localStorage.getItem(pk) || '' }), '${apiData.basicAuthStorage.usernameKey}', '${apiData.basicAuthStorage.passwordKey}');\n`;
+          } else if (apiData.basicAuthStorage.type === 'sessionStorage') {
+            code += `  const __basic = await page.evaluate((uk, pk) => ({ u: sessionStorage.getItem(uk) || '', p: sessionStorage.getItem(pk) || '' }), '${apiData.basicAuthStorage.usernameKey}', '${apiData.basicAuthStorage.passwordKey}');\n`;
+          } else if (apiData.basicAuthStorage.type === 'cookie') {
+            code += `  const __basic = await page.evaluate((uk, pk) => { const getC = (n) => { const m = document.cookie.split('; ').find(r => r.startsWith(n + '=')); return m ? decodeURIComponent(m.split('=')[1]) : ''; }; return { u: getC(uk), p: getC(pk) }; }, '${apiData.basicAuthStorage.usernameKey}', '${apiData.basicAuthStorage.passwordKey}');\n`;
+          }
+          code += `  if (__basic?.u && __basic?.p) headers['Authorization'] = 'Basic ' + Buffer.from(__basic.u + ':' + __basic.p).toString('base64');\n`;
+        }
+      }
+    }
+
+    // Prepare request options
+    const hasAnyOptions = hasHeaders || hasAuth || hasBody;
+    code += `  const response = await page.request.${apiData.method.toLowerCase()}('${url}'`;
+    if (hasAnyOptions) {
+      code += `, {\n`;
+      code += `    headers,\n`;
+      if (hasBody) {
+        if (apiData.body.type === 'json') {
+          code += `    data: ${apiData.body.content},\n`;
+        } else if (apiData.body.type === 'form' && apiData.body.formData) {
+          const formData = apiData.body.formData
+            .filter(p => p.key.trim() && p.value.trim())
+            .map(p => `'${p.key.trim()}': '${p.value.trim()}'`)
+            .join(', ');
+          code += `    data: { ${formData} },\n`;
+        }
+      }
+      code += `  }`;
+    }
     code += `);\n`;
     code += `  console.log('Response status:', response.status());\n`;
     code += `  console.log('Response data:', await response.json());\n`;
     
-    // Add token storage code if enabled
+    // Add token storage code if enabled (store token from response)
     if (apiData.tokenStorage?.enabled) {
       code += `\n  // Store token for future use\n`;
       
@@ -602,7 +620,7 @@ export function generateApiRequestCode(apiData: ApiRequestData): string {
       }
     }
 
-    // Add Basic Auth storage code if enabled
+    // Add Basic Auth storage code if enabled (store from provided auth)
     if (apiData.basicAuthStorage?.enabled) {
       code += `\n  // Store Basic Auth credentials for future use\n`;
       
@@ -618,16 +636,6 @@ export function generateApiRequestCode(apiData: ApiRequestData): string {
         code += `  document.cookie = '${apiData.basicAuthStorage.usernameKey || 'basic_username'}=${apiData.auth?.username || ''}; path=/; max-age=3600';\n`;
         code += `  document.cookie = '${apiData.basicAuthStorage.passwordKey || 'basic_password'}=${apiData.auth?.password || ''}; path=/; max-age=3600';\n`;
         code += `  console.log('Basic Auth credentials stored as cookies');\n`;
-      } else if (apiData.basicAuthStorage.type === 'custom') {
-        code += `  const usernameElement = document.querySelector('${apiData.basicAuthStorage.selector}');\n`;
-        code += `  const passwordElement = document.querySelector('${apiData.basicAuthStorage.selector}');\n`;
-        code += `  if (usernameElement) {\n`;
-        code += `    usernameElement.${apiData.basicAuthStorage.usernameAttribute || 'textContent'} = '${apiData.auth?.username || ''}';\n`;
-        code += `  }\n`;
-        code += `  if (passwordElement) {\n`;
-        code += `    passwordElement.${apiData.basicAuthStorage.passwordAttribute || 'textContent'} = '${apiData.auth?.password || ''}';\n`;
-        code += `  }\n`;
-        code += `  console.log('Basic Auth credentials stored in elements');\n`;
       }
     }
     

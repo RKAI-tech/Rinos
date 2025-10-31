@@ -192,11 +192,46 @@ export function registerBrowserIpc() {
         const manager = getOrCreateManagerForWindow(win);
         return (manager as any).projectId ?? null;
     });
-
+    
     ipcMain.handle("browser:setAuthToken", async (event, token: string | null) => {
         const win = getWindowFromEvent(event);
+        console.log('[Browser] Setting auth token:', win);
         if (!win) return;
+        console.log('[Browser] Setting auth token:', token);
         const manager = getOrCreateManagerForWindow(win);
         manager.setAuthToken(token);
+    });
+
+    // Get a single value by source and key: 'local' | 'session' | 'cookie'
+    ipcMain.handle("browser:getAuthValue", async (event, source: 'local' | 'session' | 'cookie', key: string, options?: { cookieDomainMatch?: string, cookieDomainRegex?: string }) => {
+        const win = getWindowFromEvent(event);
+        if (!win) return null;
+        const manager = getOrCreateManagerForWindow(win);
+        const domainOpt = options?.cookieDomainMatch || undefined;
+        const regexOpt = options?.cookieDomainRegex ? new RegExp(options.cookieDomainRegex) : undefined;
+        const value = await manager.getAuthValue(source, key, { cookieDomainMatch: regexOpt || domainOpt });
+        return value;
+    });
+
+    ipcMain.handle("browser:getBasicAuthFromStorage", async (event, payload: {
+        type: 'localStorage' | 'sessionStorage' | 'cookie',
+        usernameKey?: string,
+        passwordKey?: string,
+        cookieDomainMatch?: string,
+        cookieDomainRegex?: string,
+    }) => {
+        const win = getWindowFromEvent(event);
+        if (!win) return { username: null, password: null };
+        const manager = getOrCreateManagerForWindow(win);
+        const cookieDomainMatch = payload.cookieDomainRegex
+            ? new RegExp(payload.cookieDomainRegex)
+            : (payload.cookieDomainMatch || undefined);
+        const result = await manager.getBasicAuthFromStorage({
+            type: payload.type,
+            usernameKey: payload.usernameKey,
+            passwordKey: payload.passwordKey,
+            cookieDomainMatch,
+        });
+        return result;
     });
 }

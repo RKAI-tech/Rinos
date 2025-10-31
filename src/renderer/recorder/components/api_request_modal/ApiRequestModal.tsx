@@ -38,6 +38,11 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
   const [bodyForm, setBodyForm] = useState<Array<{ key: string; value: string }>>([]);
   const [isSending, setIsSending] = useState(false);
   const [response, setResponse] = useState<{ status: number; data: any; headers: any } | null>(null);
+  const [isFetchingToken, setIsFetchingToken] = useState(false);
+  const [fetchedTokenValue, setFetchedTokenValue] = useState<string | null>(null);
+  const [fetchedBasicUsername, setFetchedBasicUsername] = useState<string | null>(null);
+  const [fetchedBasicPassword, setFetchedBasicPassword] = useState<string | null>(null);
+  const [isFetchingBasic, setIsFetchingBasic] = useState(false);
   
   // Token storage fields
   const [tokenStorageEnabled, setTokenStorageEnabled] = useState(false);
@@ -46,7 +51,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
   
   // Basic Auth storage fields
   const [basicAuthStorageEnabled, setBasicAuthStorageEnabled] = useState(false);
-  const [basicAuthStorageType, setBasicAuthStorageType] = useState<'localStorage' | 'sessionStorage' | 'cookie' | 'custom'>('localStorage');
+  const [basicAuthStorageType, setBasicAuthStorageType] = useState<'localStorage' | 'sessionStorage' | 'cookie'>('localStorage');
   const [basicAuthUsernameKey, setBasicAuthUsernameKey] = useState('');
   const [basicAuthPasswordKey, setBasicAuthPasswordKey] = useState('');
   const [basicAuthSelector, setBasicAuthSelector] = useState('');
@@ -184,6 +189,11 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
   };
 
   const handleSave = () => {
+    // Nếu dùng storage thì KHÔNG lưu giá trị thật của token/username/password
+    const effectiveAuthToken = (tokenStorageEnabled && authType === 'bearer') ? '' : authToken;
+    const effectiveAuthUsername = (tokenStorageEnabled && authType === 'basic') ? '' : authUsername;
+    const effectiveAuthPassword = (tokenStorageEnabled && authType === 'basic') ? '' : authPassword;
+
     const data: ApiRequestData = {
       method,
       url,
@@ -191,9 +201,9 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       headers: headers.filter(h => h.key.trim() && h.value.trim()),
       auth: {
         type: authType,
-        username: authUsername,
-        password: authPassword,
-        token: authToken
+        username: effectiveAuthUsername,
+        password: effectiveAuthPassword,
+        token: effectiveAuthToken
       },
       body: {
         type: bodyType,
@@ -208,7 +218,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
         formData: bodyType === 'form' ? bodyForm.filter(p => p.key.trim() && p.value.trim()) : undefined
       },
       // Token storage information
-      tokenStorage: tokenStorageEnabled ? {
+      tokenStorage: (tokenStorageEnabled && authType === 'bearer') ? {
         enabled: true,
         type: tokenStorageType,
         key: tokenStorageKey
@@ -216,14 +226,11 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
         enabled: false
       },
       // Basic Auth storage information
-      basicAuthStorage: basicAuthStorageEnabled ? {
+      basicAuthStorage: (tokenStorageEnabled && authType === 'basic') ? {
         enabled: true,
         type: basicAuthStorageType,
         usernameKey: basicAuthUsernameKey,
-        passwordKey: basicAuthPasswordKey,
-        selector: basicAuthSelector,
-        usernameAttribute: basicAuthUsernameAttribute,
-        passwordAttribute: basicAuthPasswordAttribute
+        passwordKey: basicAuthPasswordKey
       } : {
         enabled: false
       }
@@ -232,6 +239,69 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
     onConfirm(data);
     handleClose();
   };
+
+  const handleFetchToken = async () => {
+    try {
+      if (!tokenStorageEnabled) {
+        toast.error('Token storage is not enabled');
+        return;
+      }
+      if (!tokenStorageKey || !tokenStorageKey.trim()) {
+        toast.error('Please enter a token key');
+        return;
+      }
+      setIsFetchingToken(true);
+      setFetchedTokenValue(null);
+      const source = tokenStorageType === 'localStorage'
+        ? 'local'
+        : tokenStorageType === 'sessionStorage'
+        ? 'session'
+        : 'cookie';
+      const api = (window as any)?.browserAPI?.browser;
+      if (!api?.getAuthValue) {
+        toast.error('IPC getAuthValue is not available');
+        setIsFetchingToken(false);
+        return;
+      }
+      const val = await api.getAuthValue(source, tokenStorageKey);
+      if (typeof val === 'string') {
+        setAuthToken(val);
+        setFetchedTokenValue(val);
+        toast.success('Fetched token successfully');
+      } else {
+        toast.warn('Token not found');
+      }
+    } catch (e) {
+      console.error('Fetch token failed:', e);
+      toast.error('Fetch token failed');
+    } finally {
+      setIsFetchingToken(false);
+    }
+  };
+
+  const handleFetchBasicAuth = async () => {
+    try {
+      if (!tokenStorageEnabled) return;
+      if (authType !== 'basic') return;
+      // validate config: require both keys
+      if (!basicAuthUsernameKey.trim() || !basicAuthPasswordKey.trim()) return;
+      setIsFetchingBasic(true);
+      const api = (window as any)?.browserAPI?.browser;
+      if (!api?.getBasicAuthFromStorage) return;
+      const payload: any = {
+        type: basicAuthStorageType,
+        usernameKey: basicAuthUsernameKey,
+        passwordKey: basicAuthPasswordKey
+      };
+      const result = await api.getBasicAuthFromStorage(payload);
+      setFetchedBasicUsername(result?.username ?? '');
+      setFetchedBasicPassword(result?.password ?? '');
+    } catch (e) {
+    } finally {
+      setIsFetchingBasic(false);
+    }
+  };
+
 
   if (!isOpen) return null;
 
@@ -354,10 +424,18 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
             </div>
           </div>
 
-          {/* Authorization Section */}
+          {/* Authorization Section + Enable Token Storage toggle on the right */}
           <div className="arm-section">
-            <div className="arm-section-header">
+            <div className="arm-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span className="arm-section-title">Authorization</span>
+              <label className="arm-checkbox-container" style={{ marginLeft: 'auto' }}>
+                <input
+                  type="checkbox"
+                  checked={tokenStorageEnabled}
+                  onChange={(e) => setTokenStorageEnabled(e.target.checked)}
+                />
+                <span className="arm-checkbox-label">Enable storage</span>
+              </label>
             </div>
             <select 
               className="arm-auth-select" 
@@ -369,7 +447,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
               <option value="bearer">Bearer Token</option>
             </select>
             
-            {authType === 'basic' && (
+            {authType === 'basic' && !tokenStorageEnabled && (
               <div className="arm-auth-fields">
                 <input
                   className="arm-auth-input"
@@ -388,7 +466,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
               </div>
             )}
             
-            {authType === 'bearer' && (
+            {authType === 'bearer' && !tokenStorageEnabled && (
               <div className="arm-auth-fields">
                 <input
                   className="arm-auth-input"
@@ -401,21 +479,12 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
             )}
           </div>
 
-          {/* Token Storage Section */}
-          <div className="arm-section">
-            <div className="arm-section-header">
-              <span className="arm-section-title">Token Storage</span>
-              <label className="arm-checkbox-container">
-                <input
-                  type="checkbox"
-                  checked={tokenStorageEnabled}
-                  onChange={(e) => setTokenStorageEnabled(e.target.checked)}
-                />
-                <span className="arm-checkbox-label">Enable token storage</span>
-              </label>
-            </div>
-            
-            {tokenStorageEnabled && (
+          {/* Token Storage Section - show inline when enabled */}
+          {tokenStorageEnabled && authType === 'bearer' && (
+            <div className="arm-section">
+              <div className="arm-section-header">
+                <span className="arm-section-title">Token Storage</span>
+              </div>
               <div className="arm-token-storage">
                 <div className="arm-storage-type">
                   <label className="arm-label">Storage Type</label>
@@ -430,60 +499,59 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
                     </select>
                 </div>
 
-                {tokenStorageType === 'localStorage' || tokenStorageType === 'sessionStorage' ? (
-                  <div className="arm-storage-key">
-                    <label className="arm-label">Storage Key</label>
+                <div className="arm-storage-key">
+                  <label className="arm-label">{tokenStorageType === 'cookie' ? 'Cookie Name' : 'Storage Key'}</label>
+                  <input
+                    className="arm-storage-input"
+                    type="text"
+                    placeholder="e.g., auth_token, access_token"
+                    value={tokenStorageKey}
+                    onChange={(e) => setTokenStorageKey(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && tokenStorageKey.trim()) {
+                        e.preventDefault();
+                        handleFetchToken();
+                      }
+                    }}
+                  />
+                </div>
+
+                <div className="arm-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {tokenStorageKey.trim() && (
+                    <button 
+                      className="arm-add-btn"
+                      onClick={handleFetchToken}
+                      disabled={isFetchingToken}
+                    >
+                      {isFetchingToken ? 'Fetching...' : 'SEND'}
+                    </button>
+                  )}
+                </div>
+                {fetchedTokenValue !== null && (
+                  <div style={{ marginTop: 8 }}>
                     <input
                       className="arm-storage-input"
                       type="text"
-                      placeholder="e.g., auth_token, access_token"
-                      value={tokenStorageKey}
-                      onChange={(e) => setTokenStorageKey(e.target.value)}
-                    />
-                  </div>
-                ) : (
-                  <div className="arm-storage-key">
-                    <label className="arm-label">Cookie Name</label>
-                    <input
-                      className="arm-storage-input"
-                      type="text"
-                      placeholder="e.g., auth_token, access_token"
-                      value={tokenStorageKey}
-                      onChange={(e) => setTokenStorageKey(e.target.value)}
+                      placeholder="Stored value"
+                      value={fetchedTokenValue ?? ''}
+                      onChange={() => {}}
+                      readOnly
+                      tabIndex={-1}
+                      style={{ backgroundColor: '#f3f4f6', color: '#6b7280', cursor: 'not-allowed', width: '100%' }}
                     />
                   </div>
                 )}
-
-                <div className="arm-storage-info">
-                  <div className="arm-info-text">
-                    <strong>How it works:</strong>
-                    <ul>
-                      <li><strong>Local/Session Storage:</strong> Token will be stored in browser storage with the specified key</li>
-                      <li><strong>Cookie:</strong> Token will be stored as a cookie with the specified name</li>
-                    </ul>
-                  </div>
-                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Basic Auth Storage Section */}
-          {authType === 'basic' && (
+          {/* Basic Auth Storage Section - show when general storage enabled and basic selected */}
+          {tokenStorageEnabled && authType === 'basic' && (
             <div className="arm-section">
               <div className="arm-section-header">
                 <span className="arm-section-title">Basic Auth Storage</span>
-                <label className="arm-checkbox-container">
-                  <input
-                    type="checkbox"
-                    checked={basicAuthStorageEnabled}
-                    onChange={(e) => setBasicAuthStorageEnabled(e.target.checked)}
-                  />
-                  <span className="arm-checkbox-label">Enable Basic Auth storage</span>
-                </label>
               </div>
-              
-              {basicAuthStorageEnabled && (
-                <div className="arm-token-storage">
+              <div className="arm-token-storage">
                   <div className="arm-storage-type">
                     <label className="arm-label">Storage Type</label>
                     <select 
@@ -494,7 +562,6 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
                       <option value="localStorage">Local Storage</option>
                       <option value="sessionStorage">Session Storage</option>
                       <option value="cookie">Cookie</option>
-                      <option value="custom">Custom Element</option>
                     </select>
                   </div>
 
@@ -507,7 +574,13 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
                           type="text"
                           placeholder="e.g., basic_username, auth_username"
                           value={basicAuthUsernameKey}
-                          onChange={(e) => setBasicAuthUsernameKey(e.target.value)}
+                        onChange={(e) => setBasicAuthUsernameKey(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && basicAuthUsernameKey.trim() && basicAuthPasswordKey.trim()) {
+                            e.preventDefault();
+                            handleFetchBasicAuth();
+                          }
+                        }}
                         />
                       </div>
                       <div className="arm-storage-key">
@@ -517,7 +590,13 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
                           type="text"
                           placeholder="e.g., basic_password, auth_password"
                           value={basicAuthPasswordKey}
-                          onChange={(e) => setBasicAuthPasswordKey(e.target.value)}
+                        onChange={(e) => setBasicAuthPasswordKey(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && basicAuthUsernameKey.trim() && basicAuthPasswordKey.trim()) {
+                            e.preventDefault();
+                            handleFetchBasicAuth();
+                          }
+                        }}
                         />
                       </div>
                     </div>
@@ -544,63 +623,43 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
                         />
                       </div>
                     </div>
-                  ) : (
-                    <div className="arm-custom-storage">
-                      <div className="arm-storage-selector">
-                        <label className="arm-label">Username Element Selector</label>
-                        <input
-                          className="arm-storage-input"
-                          type="text"
-                          placeholder="e.g., #username-input, .auth-username"
-                          value={basicAuthSelector}
-                          onChange={(e) => setBasicAuthSelector(e.target.value)}
-                        />
-                      </div>
-                      <div className="arm-storage-attribute">
-                        <label className="arm-label">Username Attribute</label>
-                        <input
-                          className="arm-storage-input"
-                          type="text"
-                          placeholder="e.g., value, data-username"
-                          value={basicAuthUsernameAttribute}
-                          onChange={(e) => setBasicAuthUsernameAttribute(e.target.value)}
-                        />
-                      </div>
-                      <div className="arm-storage-selector">
-                        <label className="arm-label">Password Element Selector</label>
-                        <input
-                          className="arm-storage-input"
-                          type="text"
-                          placeholder="e.g., #password-input, .auth-password"
-                          value={basicAuthSelector}
-                          onChange={(e) => setBasicAuthSelector(e.target.value)}
-                        />
-                      </div>
-                      <div className="arm-storage-attribute">
-                        <label className="arm-label">Password Attribute</label>
-                        <input
-                          className="arm-storage-input"
-                          type="text"
-                          placeholder="e.g., value, data-password"
-                          value={basicAuthPasswordAttribute}
-                          onChange={(e) => setBasicAuthPasswordAttribute(e.target.value)}
-                        />
-                      </div>
-                    </div>
+                  ) : null}
+                <div className="arm-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {(basicAuthUsernameKey.trim() && basicAuthPasswordKey.trim()) && (
+                    <button 
+                      className="arm-add-btn"
+                      onClick={handleFetchBasicAuth}
+                      disabled={isFetchingBasic}
+                    >
+                      {isFetchingBasic ? 'Fetching...' : 'SEND'}
+                    </button>
                   )}
-
-                  <div className="arm-storage-info">
-                    <div className="arm-info-text">
-                      <strong>How it works:</strong>
-                      <ul>
-                        <li><strong>Local/Session Storage:</strong> Username and password will be stored separately in browser storage</li>
-                        <li><strong>Cookie:</strong> Username and password will be stored as separate cookies</li>
-                        <li><strong>Custom Element:</strong> Username and password will be stored in separate elements</li>
-                      </ul>
-                    </div>
-                  </div>
                 </div>
-              )}
+                {(fetchedBasicUsername !== null || fetchedBasicPassword !== null) && (
+                  <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <input
+                      className="arm-storage-input"
+                      type="text"
+                      placeholder="Username value"
+                      value={fetchedBasicUsername ?? ''}
+                      onChange={() => {}}
+                      readOnly
+                      tabIndex={-1}
+                      style={{ backgroundColor: '#f3f4f6', color: '#6b7280', cursor: 'not-allowed', width: '100%' }}
+                    />
+                    <input
+                      className="arm-storage-input"
+                      type="text"
+                      placeholder="Password value"
+                      value={fetchedBasicPassword ?? ''}
+                      onChange={() => {}}
+                      readOnly
+                      tabIndex={-1}
+                      style={{ backgroundColor: '#f3f4f6', color: '#6b7280', cursor: 'not-allowed', width: '100%' }}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

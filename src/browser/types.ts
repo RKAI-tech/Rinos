@@ -68,6 +68,54 @@ export interface FileUpload {
     file_path?: string;
 }
 
+// API Request types (aligned with recorder models)
+export interface ApiRequestParam {
+    key: string;
+    value: string;
+}
+
+export interface ApiRequestHeader {
+    key: string;
+    value: string;
+}
+
+export interface ApiRequestBody {
+    type: 'none' | 'json' | 'form';
+    content: string;
+    formData?: ApiRequestParam[];
+}
+
+export interface ApiRequestAuth {
+    type: 'none' | 'basic' | 'bearer';
+    username?: string;
+    password?: string;
+    token?: string;
+}
+
+export interface ApiRequestTokenStorage {
+    enabled: boolean;
+    type?: 'localStorage' | 'sessionStorage' | 'cookie';
+    key?: string;
+}
+
+export interface ApiRequestBasicAuthStorage {
+    enabled: boolean;
+    type?: 'localStorage' | 'sessionStorage' | 'cookie';
+    usernameKey?: string;
+    passwordKey?: string;
+}
+
+export interface ApiRequestData {
+    method: string;
+    url: string;
+    params: ApiRequestParam[];
+    headers: ApiRequestHeader[];
+    auth: ApiRequestAuth;
+    body: ApiRequestBody;
+    tokenStorage?: ApiRequestTokenStorage;
+    basicAuthStorage?: ApiRequestBasicAuthStorage;
+}
+
 export interface Action {
     action_type: ActionType;
     elements: Element[];
@@ -80,4 +128,6 @@ export interface Action {
     query?: string;
     connection?: Connection;
     files?: FileUpload[];
+    // API Request
+    api_request?: ApiRequestData;
 }

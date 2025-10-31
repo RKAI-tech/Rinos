@@ -188,6 +188,7 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         // Browser events
         url: action_received.url,
         timestamp: action_received.timeStamp || action_received.timestamp,
+        api_request: action_received.api_request,
     } as Action;
 
     // console.log('[receiveAction]', receivedAction);

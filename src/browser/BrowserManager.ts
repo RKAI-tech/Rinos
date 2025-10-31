@@ -206,6 +206,103 @@ export class BrowserManager extends EventEmitter {
             // Fallback: no-op
         }
     }
+ 
+    public async getAuthValue(
+        source: 'local' | 'session' | 'cookie',
+        key: string,
+        options?: { cookieDomainMatch?: string | RegExp }
+    ): Promise<string | null> {
+        if (!this.page) {
+            throw new Error('Page not found');
+        }
+
+        if (!key || typeof key !== 'string') return null;
+
+        if (source === 'local') {
+            return await this.page.evaluate((k) => {
+                try { return window.localStorage.getItem(k); } catch { return null; }
+            }, key);
+        }
+
+        if (source === 'session') {
+            return await this.page.evaluate((k) => {
+                try { return window.sessionStorage.getItem(k); } catch { return null; }
+            }, key);
+        }
+
+        // cookie
+        const context = this.page.context();
+        const allCookies = await context.cookies();
+        const domainMatch = options?.cookieDomainMatch;
+        for (const c of allCookies) {
+            if (c.name !== key) continue;
+            if (domainMatch) {
+                if (typeof domainMatch === 'string') {
+                    if (!c.domain || !c.domain.includes(domainMatch)) continue;
+                } else {
+                    if (!c.domain || !domainMatch.test(c.domain)) continue;
+                }
+            }
+            return c.value || '';
+        }
+        return null;
+    }
+
+    /**
+     * Truy vấn Basic Auth từ storage/cookie/custom element theo cấu hình UI
+     */
+    public async getBasicAuthFromStorage(options: {
+        type: 'localStorage' | 'sessionStorage' | 'cookie',
+        usernameKey?: string,
+        passwordKey?: string,
+        cookieDomainMatch?: string | RegExp
+    }): Promise<{ username: string | null; password: string | null }> {
+        if (!this.page) {
+            throw new Error('Page not found');
+        }
+
+        const type = options.type;
+        if (type === 'localStorage' || type === 'sessionStorage') {
+            const keys = { u: options.usernameKey || '', p: options.passwordKey || '' };
+            return await this.page.evaluate(({ type, keys }) => {
+                try {
+                    const storage = type === 'localStorage' ? window.localStorage : window.sessionStorage;
+                    const username = keys.u ? storage.getItem(keys.u) : null;
+                    const password = keys.p ? storage.getItem(keys.p) : null;
+                    return { username, password };
+                } catch {
+                    return { username: null, password: null };
+                }
+            }, { type, keys });
+        }
+
+        if (type === 'cookie') {
+            const context = this.page.context();
+            const allCookies = await context.cookies();
+            const domainMatch = options.cookieDomainMatch;
+            const pickCookie = (name?: string | null) => {
+                if (!name) return null;
+                for (const c of allCookies) {
+                    if (c.name !== name) continue;
+                    if (domainMatch) {
+                        if (typeof domainMatch === 'string') {
+                            if (!c.domain || !c.domain.includes(domainMatch)) continue;
+                        } else {
+                            if (!c.domain || !domainMatch.test(c.domain)) continue;
+                        }
+                    }
+                    return c.value || '';
+                }
+                return null;
+            };
+            return {
+                username: pickCookie(options.usernameKey || null),
+                password: pickCookie(options.passwordKey || null)
+            };
+        }
+
+        return { username: null, password: null };
+    }
 
     private async injectingScript(path: string): Promise<void> {
         if (!this.context) {
@@ -319,4 +416,6 @@ export class BrowserManager extends EventEmitter {
             global.setAssertMode(isAssertMode, type);
         }, { isAssertMode: enabled, type: assertType });
     }
+    // get token from browser page
+    
 }
