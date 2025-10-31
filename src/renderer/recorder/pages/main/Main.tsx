@@ -267,7 +267,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     };
 
     // Listen for window close request event from main process
-    const removeListener = (window as any).electronAPI?.window?.onCloseRequested?.(handleCloseRequest);
+    const removeListener = (window as any).electronAPI?.window?.onRecorderCloseRequested?.(handleCloseRequest);
     
     return () => {
       if (removeListener) {
@@ -741,7 +741,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     try {
       const response = await actionService.batchCreateActions(actions);
       if (response.success) {
-        toast.success('Saved successfully');
+        // toast.success('Saved successfully');
       } else {
         toast.error(response.error || 'Failed to save actions');
       }
@@ -856,6 +856,19 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       toast.error('Failed to save actions. Please try again.');
     }
   };
+
+  // Listen for child window force save and close event from main process
+  useEffect(() => {
+    const handleForceSaveAndClose = () => {
+      handleSaveAndClose();
+    };
+    const removeListener = (window as any).electronAPI?.window?.onChildWindowForceSaveAndClose?.(handleForceSaveAndClose);
+    return () => {
+      if (removeListener) {
+        removeListener();
+      }
+    };
+  }, [handleSaveAndClose]);
 
   const reloadAll = () => {
     reloadActions();

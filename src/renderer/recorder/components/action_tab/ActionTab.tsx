@@ -186,7 +186,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
     });
     setIsNavigateOpen(false);
     await(window as any).browserAPI?.browser.navigate(url);
-    toast.success('Added navigate action');
+    // toast.success('Added navigate action');
   }
 
   const handleWaitConfirm = async (ms: any) => {
@@ -214,7 +214,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
       return next;
     });
     setIsWaitOpen(false);
-    toast.success('Added wait action');
+    // toast.success('Added wait action');
   }
 
   const handleAddCookiesConfirm = async (selectedCookie: CookiesListItem) => {
@@ -245,7 +245,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
     });
     setIsAddCookiesOpen(false);
     await (window as any).browserAPI?.browser?.addCookies(JSON.stringify(selectedCookie.value));
-    toast.success('Added cookies action');
+    // toast.success('Added cookies action');
   }
 
   const handleDatabaseExecutionConfirm = (query: string, connectionId: string, connection: Connection) => {
@@ -286,7 +286,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
       }
       return next;
     });
-    toast.success('Added database execution action');
+    // toast.success('Added database execution action');
 
   };
 
@@ -348,7 +348,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
         }
         return next;
       });
-      toast.success(`Added ${actionType} action`);
+      // toast.success(`Added ${actionType} action`);
     } else {
       console.error("Failed to create action for type:", actionType);
     }

@@ -138,7 +138,7 @@ export class BrowserManager extends EventEmitter {
 
     async stop(): Promise<void> {
         try {
-            if (this.page) {
+            if (this.page && !this.page.isClosed()) {
                 await this.page.close();
                 this.page = null;
             }

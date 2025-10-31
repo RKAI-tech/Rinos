@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MemoryRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/login/Login';
@@ -14,6 +14,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import Databases from './pages/databases/Databases';
 import Cookies from './pages/cookies/Cookies';
 import ChangeLog from './pages/change_log/ChangeLog';
+import ConfirmCloseModal from '../recorder/components/confirm_close/ConfirmCloseModal';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -60,6 +61,9 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 function App() {
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const [hasUnsavedActions, setHasUnsavedActions] = useState(true);
+
   useEffect(() => {
     // console.log('App component mounted');
     // Sync token from electron store to apiRouter if available
@@ -73,6 +77,25 @@ function App() {
       } catch {}
     })();
   }, []);
+
+  useEffect(() => {
+    const handleCloseRequest = () => {
+      setShowConfirmClose(true);
+      // In this version, we assume there may be unsaved data in child windows
+      setHasUnsavedActions(true);
+    };
+    const removeListener = (window as any).electronAPI?.window?.onMainAppCloseRequested?.(handleCloseRequest);
+    return () => {
+      if (removeListener) {
+        removeListener();
+      }
+    };
+  }, []);
+
+  const handleConfirmClose = (confirm: boolean, save: boolean) => {
+    setShowConfirmClose(false);
+    (window as any).electronAPI?.window?.sendMainAppCloseResult?.({ confirm, save });
+  };
 
   return (
     <AuthProvider>
@@ -132,6 +155,19 @@ function App() {
         </Routes>
         <ToastContainer position="top-right" autoClose={3000} newestOnTop closeOnClick pauseOnHover theme="colored" />
       </Router>
+      <ConfirmCloseModal
+        isOpen={showConfirmClose}
+        hasUnsavedActions={hasUnsavedActions}
+        onCancel={() => {
+          handleConfirmClose(false, false);
+        }}
+        onSaveAndClose={() => {
+          handleConfirmClose(true, true);
+        }}
+        onConfirm={() => {
+          handleConfirmClose(true, false);
+        }}
+      />
     </AuthProvider>
   );
 }

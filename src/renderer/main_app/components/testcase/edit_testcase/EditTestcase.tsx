@@ -123,7 +123,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
       onSave({
         id: testcase.testcase_id,
         name: testcaseName.trim(),
-        tag: testcaseTag.trim(),
+        tag: testcaseTag.trim() || '',
         basic_authentication: basicAuth && (basicAuth.username || basicAuth.password) ? basicAuth : undefined,
         actions: actionRequests || []
       });

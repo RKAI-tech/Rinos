@@ -347,7 +347,7 @@ const TestSuites: React.FC = () => {
     try {
       const svc = new TestSuiteService();
       const desc = description ?? (selectedSuite?.description || '');
-      const resp = await svc.updateTestSuite({ test_suite_id: id, name, description: desc });
+      const resp = await svc.updateTestSuite({ test_suite_id: id, name: name.trim(), description: desc.trim() });
       if (resp.success) {
         toast.success('Test suite updated');
         handleCloseEditSuite();
