@@ -28,6 +28,7 @@ export enum ActionType {
     back = "back",
     forward = "forward",
     window_resize = "window_resize",
+    api_request = "api_request",
   }
   
   export enum AssertType {

@@ -28,7 +28,10 @@ export async function handleUploadChangeEvent(e) {
     // console.log('Skipping upload recording - recording is paused');
     return;
   }
-
+  if (!e.isTrusted) {
+    console.debug('Skipping upload — untrusted event');
+    return;
+  }
   const selectors = buildSelectors(el);
   const fileList = await Promise.all(
     Array.from(el.files || []).map(async f => ({

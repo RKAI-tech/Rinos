@@ -11,6 +11,10 @@ let _isExecutingActions = false;
 
 function dispatchResize(e) {
   const target = window; // window resize
+  if (e && e.isTrusted === false) {
+    try { console.log('Skipping window resize recording - event is not trusted'); } catch {}
+    return;
+  }
   const selectors = buildSelectors(document.documentElement || document.body);
   const width = Math.max(window.innerWidth || 0, 0);
   const height = Math.max(window.innerHeight || 0, 0);
