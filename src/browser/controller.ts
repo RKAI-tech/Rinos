@@ -228,6 +228,7 @@ export class Controller {
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
+                            console.log(uniqueSelector)
                             if (action.checked) {
                                 await page.check(uniqueSelector);
                             } else {
@@ -286,9 +287,14 @@ export class Controller {
                         break;
                     case ActionType.change:
                         if (action.elements && action.elements.length === 1) {
-                            const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
-                            const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
-                            await page.locator(uniqueSelector).click();
+                            try {
+                                const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
+                                const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
+                                console.log('uniqueSelector', uniqueSelector)
+                                await page.locator(uniqueSelector).evaluate((el: HTMLElement) => el.click());
+                            } catch (error) {
+                                console.error('Error changing', error)
+                            }
                         }
                         break;
                     case ActionType.wait:

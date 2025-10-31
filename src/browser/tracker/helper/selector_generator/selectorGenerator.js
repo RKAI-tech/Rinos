@@ -15,6 +15,13 @@ import {
 import { escapeSelector, isMeaningfulValue } from '../utils/stringUtils.js';
 import { getAccessibleName, getElementRole, retargetElement } from '../dom/domUtils.js';
 
+// Helper chung: chuyển chuỗi thành literal an toàn cho XPath
+function toXPathLiteral(s) {
+  if (s.indexOf("\"") === -1) return `"${s}"`;
+  if (s.indexOf("'") === -1) return `'${s}'`;
+  return 'concat(' + s.split("\"").map((part, i) => (i > 0 ? ',""",' : '') + `'${part}'`).join('') + ')';
+}
+
 /**
  * Generate CSS selectors for element following Playwright's sophisticated approach
  * Tạo danh sách CSS selector cho element theo cách tiếp cận phức tạp của Playwright
@@ -27,67 +34,58 @@ import { getAccessibleName, getElementRole, retargetElement } from '../dom/domUt
  * @returns {Array} Array of selector strings
  */
 export function generateSelector(element, options = {}) {
-  const { maxSelectors = 5, minScore = 100, parentDepth = 0, maxParentDepth = 3 } = options;
+  const { maxSelectors = 5, parentDepth = 0, maxParentDepth = 3 } = options;
   
   if (!element || element.nodeType !== Node.ELEMENT_NODE) return [];
   
-  // Retarget element following Playwright's approach for better selector generation
-  const originalElement = element;
-  element = retargetElement(element, 'follow-label') || element;
-
-  // If target is a label, try to retarget to its associated control
-  try {
-    if (element && element.tagName === 'LABEL') {
-      const control = element.control || element.querySelector('input,select,textarea,button');
-      if (control) {
-        element = control;
-      }
-    }
-  } catch {}
+ 
 
   const doc = element.ownerDocument || document;
   const tag = element.tagName.toLowerCase();
   
   // Scoring system for selectors (higher score = better selector)
   const selectorCandidates = [];
+  try {
+    console.log('[generateSelector] Bắt đầu sinh selector cho element:', {
+      tag,
+      id: element.getAttribute ? element.getAttribute('id') : undefined,
+      class: element.getAttribute ? element.getAttribute('class') : undefined
+    });
+  } catch {}
   
   // Helper function to build absolute XPath from root to element (always from root, no ID shortcuts)
   function buildAbsoluteXPath(el) {
     try {
       if (!el || el.nodeType !== Node.ELEMENT_NODE) return '';
-      const doc = el.ownerDocument || document;
-
-      // Helper: convert string to a safe XPath literal
-      const toXPathLiteral = (s) => {
-        if (s.indexOf('"') === -1) return `"${s}"`;
-        if (s.indexOf("'") === -1) return `'${s}'`;
-        return 'concat(' + s.split('"').map((part, i) => (i > 0 ? ',""",' : '') + `'${part}'`).join('') + ')';
-      };
-
-      // Always build absolute path from root using tag and :nth-of-type-like indexing
       const segments = [];
       let node = el;
-      while (node && node.nodeType === Node.ELEMENT_NODE && node !== doc.documentElement) {
-        const tag = node.tagName.toLowerCase();
-        const parent = node.parentElement;
+  
+      while (node && node.nodeType === Node.ELEMENT_NODE) {
+        const tag = node.localName;
+        const parent = node.parentElement || node.getRootNode().host;
         let index = 1;
+        let hasSiblings = false;
+  
         if (parent) {
-          const sameTagSiblings = Array.from(parent.children).filter(n => n.tagName === node.tagName);
-          if (sameTagSiblings.length > 1) {
-            index = sameTagSiblings.indexOf(node) + 1;
+          const siblings = Array.from(parent.children).filter(n => n.localName === node.localName);
+          if (siblings.length > 1) {
+            index = siblings.indexOf(node) + 1;
+            hasSiblings = true;
           }
         }
-        segments.unshift(index > 1 ? `${tag}[${index}]` : tag);
-        node = parent;
+  
+        segments.unshift(hasSiblings ? `${tag}[${index}]` : tag);
+        node = parent && parent.nodeType === Node.ELEMENT_NODE ? parent : null;
       }
-      // Always start from /html root
-      const path = ['/html', ...segments].join('/');
-      return path;
-    } catch {
+  
+      return '/' + segments.join('/');
+    } catch (e) {
+      console.warn('XPath generation failed:', e);
       return '';
     }
   }
   
+
   // Helper function to add selector candidates (generate all possible selectors)
   function addCandidate(selector, score, type) {
     try {
@@ -101,9 +99,21 @@ export function generateSelector(element, options = {}) {
           elementCount: matches.length,
           isUnique: matches.length === 1 && matches[0] === element
         });
+        try {
+          console.log('[generateSelector] Thêm candidate:', {
+            selector,
+            type,
+            score,
+            elementCount: matches.length,
+            isUnique: matches.length === 1 && matches[0] === element
+          });
+        } catch {}
       }
     } catch (e) {
       // Invalid selector, skip
+      try {
+        console.log('[generateSelector] Bỏ qua candidate không hợp lệ:', { selector, type, error: e?.message });
+      } catch {}
     }
   }
   
@@ -180,12 +190,6 @@ export function generateSelector(element, options = {}) {
       const esc = (window.CSS && CSS.escape) ? CSS.escape(element.id) : element.id;
       const q = doc.querySelectorAll(`#${esc}`);
       if (q.length === 1 && q[0] === element) {
-        // Helper: convert string to a safe XPath literal
-        const toXPathLiteral = (s) => {
-          if (s.indexOf('"') === -1) return `"${s}"`;
-          if (s.indexOf("'") === -1) return `'${s}'`;
-          return 'concat(' + s.split('"').map((part, i) => (i > 0 ? ',""",' : '') + `'${part}'`).join('') + ')';
-        };
         const idXPath = `//*[@id=${toXPathLiteral(element.id)}]`;
         selectorCandidates.push({ selector: `xpath=${idXPath}`, score: SELECTOR_SCORES.ID - 10, type: 'id-xpath' });
       }
@@ -296,12 +300,6 @@ export function generateSelector(element, options = {}) {
     const elementText = getElementText(element);
     // Use reasonable-length, meaningful text snippets
     if (isMeaningfulValue(elementText) && elementText.length <= 100) {
-      // Convert text to a safe XPath literal
-      const toXPathLiteral = (s) => {
-        if (s.indexOf('"') === -1) return `"${s}"`;
-        if (s.indexOf("'") === -1) return `'${s}'`;
-        return 'concat(' + s.split('"').map((part, i) => (i > 0 ? ',""",' : '') + `'${part}'`).join('') + ')';
-      };
       const textLiteral = toXPathLiteral(elementText);
       // Exact text match using normalize-space
       selectorCandidates.push({ selector: `xpath=//*[normalize-space(.)=${textLiteral}]`, score: 810, type: 'text-xpath' });
@@ -407,6 +405,10 @@ export function generateSelector(element, options = {}) {
   const absoluteXPath = buildAbsoluteXPath(element);
   if (absoluteXPath) {
     selectorCandidates.push({ selector: `xpath=${absoluteXPath}`, score: 200, type: 'absolute-xpath' });
+    console.log("absoluteXPath", absoluteXPath);
+    try {
+      console.log('[generateSelector] Thêm absolute XPath:', `xpath=${absoluteXPath}`);
+    } catch {}
   }
 
   selectorCandidates.sort((a, b) => b.score - a.score);
@@ -415,6 +417,9 @@ export function generateSelector(element, options = {}) {
   const selectors = selectorCandidates.map(candidate => candidate.selector);
 
   if (selectors.length > 0) {
+    try {
+      console.log('[generateSelector] Danh sách selector cuối cùng (chưa validate):', selectors);
+    } catch {}
     return selectors;
   }
 
@@ -444,9 +449,15 @@ export function generateSelector(element, options = {}) {
       }
       return parts.join(' > ') || element.tagName.toLowerCase();
     })();
+    try {
+      console.log('[generateSelector] Fallback: trả về CSS path tuyệt đối:', absolutePath);
+    } catch {}
     return [absolutePath];
   } catch {
     // 3) Final emergency fallback: the tag name
+    try {
+      console.log('[generateSelector] Fallback cuối: trả về tag name');
+    } catch {}
     return [element.tagName ? element.tagName.toLowerCase() : '*'];
   }
 }
@@ -584,20 +595,20 @@ export function validateAndImproveSelector(selectors, element, options = {}) {
  * Tạo và kiểm tra selector trong một lần gọi
  */
 export function generateAndValidateSelectors(element, options = {}) {
+  console.log('generateAndValidateSelectors', element, options);
+   
   const { 
     maxSelectors = 5, 
-    minScore = 100, // Lower threshold to get more selectors initially
     validate = true,
     // If true, convert final selectors to XPath form (prefixed with 'xpath=')
-    returnXPath = false
+    returnXPath = true
   } = options;
   
-  const allSelectors = generateSelector(element, { maxSelectors: 50, minScore: 0 }); // Generate all selectors
-  console.log('[generateAndValidateSelectors] All generated selectors:', allSelectors);
+  const allSelectors = generateSelector(element, { maxSelectors: 50 }); // Generate all selectors
   
   let finalSelectors = (!validate) ? allSelectors : validateAndImproveSelector(allSelectors, element);
   
-  // Apply minScore filter after validation (if validate is false, we need to filter by score)
+  // After validation, chỉ giới hạn theo maxSelectors nếu không validate
   if (!validate) {
     // For now, just limit to maxSelectors since we don't have score info after generateSelector
     finalSelectors = finalSelectors.slice(0, maxSelectors);
