@@ -106,8 +106,16 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
   itemQueries.setAttribute('onmouseout', 'this.style.background="#fff"');
   itemQueries.innerHTML = '<i class="fas fa-database"></i><span>Queries</span>';
 
+  // API Request menu item
+  const itemApiRequest = document.createElement('div');
+  itemApiRequest.style.cssText = menuItemStyle;
+  itemApiRequest.setAttribute('onmouseover', menuItemHover);
+  itemApiRequest.setAttribute('onmouseout', 'this.style.background="#fff"');
+  itemApiRequest.innerHTML = '<i class="fas fa-plug"></i><span>API Request</span>';
+
   insertMenu.appendChild(itemVariables);
   insertMenu.appendChild(itemQueries);
+  insertMenu.appendChild(itemApiRequest);
   insertDropdownWrap.appendChild(insertDropdownBtn);
   insertDropdownWrap.appendChild(insertMenu);
   
@@ -225,6 +233,16 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
     ev.stopPropagation();
     insertMenu.style.display = 'none';
     openQueryPanel();
+  });
+
+  // Open API Request flow (notify host app to open API Request modal)
+  itemApiRequest.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    insertMenu.style.display = 'none';
+    try {
+      const evt = new CustomEvent('rikkei-open-api-request-modal', { bubbles: true });
+      document.dispatchEvent(evt);
+    } catch {}
   });
 
   // run/use handled inside queryPanel component
