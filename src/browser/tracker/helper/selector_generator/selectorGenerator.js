@@ -46,11 +46,11 @@ export function generateSelector(element, options = {}) {
   // Scoring system for selectors (higher score = better selector)
   const selectorCandidates = [];
   try {
-    console.log('[generateSelector] Bắt đầu sinh selector cho element:', {
-      tag,
-      id: element.getAttribute ? element.getAttribute('id') : undefined,
-      class: element.getAttribute ? element.getAttribute('class') : undefined
-    });
+    // console.log('[generateSelector] Bắt đầu sinh selector cho element:', {
+    //   tag,
+    //   id: element.getAttribute ? element.getAttribute('id') : undefined,
+    //   class: element.getAttribute ? element.getAttribute('class') : undefined
+    // });
   } catch {}
   
   // Helper function to build absolute XPath from root to element (always from root, no ID shortcuts)
@@ -100,19 +100,19 @@ export function generateSelector(element, options = {}) {
           isUnique: matches.length === 1 && matches[0] === element
         });
         try {
-          console.log('[generateSelector] Thêm candidate:', {
-            selector,
-            type,
-            score,
-            elementCount: matches.length,
-            isUnique: matches.length === 1 && matches[0] === element
-          });
+          // console.log('[generateSelector] Thêm candidate:', {
+          //   selector,
+          //   type,
+          //   score,
+          //   elementCount: matches.length,
+          //   isUnique: matches.length === 1 && matches[0] === element
+          // });
         } catch {}
       }
     } catch (e) {
       // Invalid selector, skip
       try {
-        console.log('[generateSelector] Bỏ qua candidate không hợp lệ:', { selector, type, error: e?.message });
+        // console.log('[generateSelector] Bỏ qua candidate không hợp lệ:', { selector, type, error: e?.message });
       } catch {}
     }
   }
@@ -405,9 +405,9 @@ export function generateSelector(element, options = {}) {
   const absoluteXPath = buildAbsoluteXPath(element);
   if (absoluteXPath) {
     selectorCandidates.push({ selector: `xpath=${absoluteXPath}`, score: 200, type: 'absolute-xpath' });
-    console.log("absoluteXPath", absoluteXPath);
+    // console.log("absoluteXPath", absoluteXPath);
     try {
-      console.log('[generateSelector] Thêm absolute XPath:', `xpath=${absoluteXPath}`);
+      // console.log('[generateSelector] Thêm absolute XPath:', `xpath=${absoluteXPath}`);
     } catch {}
   }
 
@@ -418,7 +418,7 @@ export function generateSelector(element, options = {}) {
 
   if (selectors.length > 0) {
     try {
-      console.log('[generateSelector] Danh sách selector cuối cùng (chưa validate):', selectors);
+      // console.log('[generateSelector] Danh sách selector cuối cùng (chưa validate):', selectors);
     } catch {}
     return selectors;
   }
@@ -450,13 +450,13 @@ export function generateSelector(element, options = {}) {
       return parts.join(' > ') || element.tagName.toLowerCase();
     })();
     try {
-      console.log('[generateSelector] Fallback: trả về CSS path tuyệt đối:', absolutePath);
+      // console.log('[generateSelector] Fallback: trả về CSS path tuyệt đối:', absolutePath);
     } catch {}
     return [absolutePath];
   } catch {
     // 3) Final emergency fallback: the tag name
     try {
-      console.log('[generateSelector] Fallback cuối: trả về tag name');
+      // console.log('[generateSelector] Fallback cuối: trả về tag name');
     } catch {}
     return [element.tagName ? element.tagName.toLowerCase() : '*'];
   }
@@ -595,7 +595,7 @@ export function validateAndImproveSelector(selectors, element, options = {}) {
  * Tạo và kiểm tra selector trong một lần gọi
  */
 export function generateAndValidateSelectors(element, options = {}) {
-  console.log('generateAndValidateSelectors', element, options);
+  // console.log('generateAndValidateSelectors', element, options);
    
   const { 
     maxSelectors = 5, 

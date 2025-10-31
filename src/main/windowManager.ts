@@ -72,7 +72,7 @@ export function createMainAppWindow() {
   });
 
   ipcMain.on('mainapp:close-result', (event: any, data: { confirm: boolean, save: boolean }) => {
-    console.log('mainapp:close-result', data);
+    // console.log('mainapp:close-result', data);
     if (!mainAppWindow) return;
     if (!data.confirm) return;
     try {

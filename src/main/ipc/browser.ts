@@ -19,12 +19,12 @@ function getWindowFromEvent(event: Electron.IpcMainInvokeEvent): BrowserWindow |
 function getOrCreateManagerForWindow(win: BrowserWindow): BrowserManager {
     const id = win.id;
     let manager = windowIdToManager.get(id);
-    console.log('[Browser] Getting manager for window 1:', id, manager);
+    // console.log('[Browser] Getting manager for window 1:', id, manager);
     if (manager) return manager;
 
     manager = new BrowserManager();
     windowIdToManager.set(id, manager);
-    console.log('[Browser] Getting manager for window 2:', id, manager);
+    // console.log('[Browser] Getting manager for window 2:', id, manager);
     // Kết nối sự kiện để chỉ gửi về đúng cửa sổ tương ứng
     manager.on('action', (action: Action) => {
         if (!win.isDestroyed()) {
@@ -137,7 +137,7 @@ export function registerBrowserIpc() {
         const win = getWindowFromEvent(event);
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
-        console.log('[Browser] Navigating to:', url);
+        // console.log('[Browser] Navigating to:', url);
         await manager.controller?.navigate(manager.page as Page, url);
     });
 

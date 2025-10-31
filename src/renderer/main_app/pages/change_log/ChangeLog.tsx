@@ -194,7 +194,7 @@ const ChangeLog: React.FC = () => {
         project_id: projectId
       };
       const resp = await historyItemService.deleteHistory(payload);
-      console.log('resp', resp);
+      // console.log('resp', resp);
       if (resp.success) {
         setHistories(prev => prev.filter(h => h.history_id !== historyId));
         setShowDeleteConfirm(null);

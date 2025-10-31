@@ -14,7 +14,7 @@ let assertInputModal = null;
  */
 export function closeAssertInputModal() {
   if (assertInputModal && assertInputModal.parentNode) {
-    console.log('closeAssertInputModal', assertInputModal);
+    // console.log('closeAssertInputModal', assertInputModal);
     assertInputModal.parentNode.removeChild(assertInputModal);
   }
   assertInputModal = null;

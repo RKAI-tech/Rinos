@@ -474,7 +474,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           connection: databaseElements[0]?.connection,
         };
 
-        console.log('[Main] AI action:', aiAction);
+        // console.log('[Main] AI action:', aiAction);
 
         setActions(prev => {
           const next = receiveActionWithInsert(
@@ -579,7 +579,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       if (response.success && response.data) {
         const newActions = response.data.actions || [];
         setActions(newActions);
-        console.log('[Main] Reloaded actions:', newActions);
+        // console.log('[Main] Reloaded actions:', newActions);
         // Sau reload, luôn đặt vị trí chèn = độ dài actions (rỗng → 0)
         const len = newActions.length;
         setSelectedInsertPosition(len);
@@ -795,9 +795,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         }),
         testcase_id: testcaseId || '',
       };
-      console.log('[Main] Run script payload:', payload);
+      // console.log('[Main] Run script payload:', payload);
       const resp = await service.executeActions(payload);
-      console.log('[Main] Run script response:', resp);
+      // console.log('[Main] Run script response:', resp);
       if (resp.success) {
         setRunResult((resp as any).logs || 'Executed successfully');
         toast.update(toastId, { render: 'Run succeeded', type: 'success', isLoading: false, autoClose: 2000 });

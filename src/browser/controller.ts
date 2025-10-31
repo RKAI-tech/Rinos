@@ -94,23 +94,23 @@ export class Controller {
             throw new Error('No selector provided');
         }
 
-        console.log(`[Controller] executeAction with selectors:`, selectors);
+        // console.log(`[Controller] executeAction with selectors:`, selectors);
 
         let lastError: Error | null = null;
         for (const selector of selectors) {
             try {
-                console.log(`[Controller] Trying selector: ${selector}`);
+                // console.log(`[Controller] Trying selector: ${selector}`);
                 await action(selector);
-                console.log(`[Controller] Action succeeded with selector: ${selector}`);
+                // console.log(`[Controller] Action succeeded with selector: ${selector}`);
                 return;
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
-                console.log(`[Controller] Selector "${selector}" failed:`, errorMessage);
+                // console.log(`[Controller] Selector "${selector}" failed:`, errorMessage);
                 lastError = error as Error;
             }
         }
 
-        console.error(`[Controller] All selectors failed:`, selectors);
+        // console.error(`[Controller] All selectors failed:`, selectors);
         throw lastError || new Error('All selectors failed');
     }
 
@@ -119,7 +119,7 @@ export class Controller {
             throw new Error('[Controller] Invalid inputs for resolveUniqueSelector');
         }
 
-        console.log(`[Controller] Resolving unique selector from candidates:`, selectors);
+        // console.log(`[Controller] Resolving unique selector from candidates:`, selectors);
 
         for (const raw of selectors) {
             const s = String(raw).trim();
@@ -142,17 +142,17 @@ export class Controller {
 
                 // Check if selector is unique
                 const count = await locator.count();
-                console.log(`[Controller] Selector "${s}" found ${count} elements`);
+                // console.log(`[Controller] Selector "${s}" found ${count} elements`);
 
                 if (count === 1) {
                     // Normalize return: if original is raw XPath, prefix with 'xpath='
                     const normalized = (s.startsWith('/') || s.startsWith('(')) ? `xpath=${s}` : s;
-                    console.log(`[Controller] Using unique selector: ${normalized}`);
+                    // console.log(`[Controller] Using unique selector: ${normalized}`);
                     return normalized;
                 }
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
-                console.log(`[Controller] Selector "${s}" failed:`, errorMessage);
+                // console.log(`[Controller] Selector "${s}" failed:`, errorMessage);
                 // ignore and try next selector
             }
         }
@@ -228,7 +228,7 @@ export class Controller {
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
-                            console.log(uniqueSelector)
+                            // console.log(uniqueSelector)
                             if (action.checked) {
                                 await page.check(uniqueSelector);
                             } else {
@@ -257,9 +257,9 @@ export class Controller {
                                         const payload = {
                                             file_path: file.file_path || ''
                                         };
-                                        console.log('[Controller] payload:', payload);
+                                        // console.log('[Controller] payload:', payload);
                                         const response = await this.fileService.getFileContent(payload);
-                                        console.log('[Controller] response:', response);
+                                        // console.log('[Controller] response:', response);
                                         if (response.success) {
                                             content = response.data?.file_content;
                                         }
@@ -290,7 +290,7 @@ export class Controller {
                             try {
                                 const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                                 const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
-                                console.log('uniqueSelector', uniqueSelector)
+                                // console.log('uniqueSelector', uniqueSelector)
                                 await page.locator(uniqueSelector).evaluate((el: HTMLElement) => el.click());
                             } catch (error) {
                                 console.error('Error changing', error)
@@ -313,7 +313,7 @@ export class Controller {
                             const source = await this.resolveUniqueSelector(page, sourceCandidates);
                             const target = await this.resolveUniqueSelector(page, targetCandidates);
 
-                            console.log(`[Controller] Drag and drop - source: ${source}, target: ${target}`);
+                            // console.log(`[Controller] Drag and drop - source: ${source}, target: ${target}`);
 
                             // Use unique selectors for both source and target
                             await page.dragAndDrop(source, target, { timeout: 10000 });

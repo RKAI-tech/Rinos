@@ -23,11 +23,11 @@ export function handleWindowResizeEvent(e) {
   if (getPauseMode && getPauseMode()) return;
   // Don't record resize events when executing actions to prevent infinite loop
   if (_isExecutingActions) {
-    console.log('[WindowResize] Skipping resize event recording - actions are executing');
+    // console.log('[WindowResize] Skipping resize event recording - actions are executing');
     return;
   }
   
-  console.log('[WindowResize] Recording resize event:', window.innerWidth, 'x', window.innerHeight);
+  // console.log('[WindowResize] Recording resize event:', window.innerWidth, 'x', window.innerHeight);
   
   _pendingEvent = e;
   if (_resizeRafId != null) return;
@@ -50,6 +50,6 @@ export function disposeWindowResizeHandler() {
 // Functions to control execution state
 export function setExecutingActionsState(isExecuting) {
   _isExecutingActions = isExecuting;
-  console.log('[WindowResize] Execution state changed:', isExecuting);
+  // console.log('[WindowResize] Execution state changed:', isExecuting);
 }
 

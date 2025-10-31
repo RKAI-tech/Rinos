@@ -192,7 +192,7 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
         project_id: projectId,
       };
 
-      console.log(payload);
+      // console.log(payload);
 
       const resp = await svc.addUserToProject(payload);
       if (resp.success) {
