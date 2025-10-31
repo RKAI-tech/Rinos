@@ -88,7 +88,7 @@ export function buildCommonActionData(e, selectors, extra = {}, actionType = 'un
 
 // Helper: gửi action sang main
 export function sendAction(type, data) {
-  console.log('[BaseAction] Attempting to send action:', type, data);
+  // console.log('[BaseAction] Attempting to send action:', type, data);
   if (window.sendActionToMain) {
     const timestamp = Date.now();
     try {
@@ -100,7 +100,7 @@ export function sendAction(type, data) {
         title: document.title
       };
       window.sendActionToMain(action);
-      console.log('[BaseAction] Action sent successfully:', type, action, 'timestamp:', timestamp);
+      // console.log('[BaseAction] Action sent successfully:', type, action, 'timestamp:', timestamp);
     } catch (error) {
       console.error('[BaseAction] Error sending action:', error);
     }

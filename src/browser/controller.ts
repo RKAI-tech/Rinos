@@ -1,5 +1,5 @@
 import { Action, ActionType, ApiRequestData } from "./types";
-import { Page, Request } from "playwright";
+import { BrowserContext, Page, Request } from "playwright";
 import { BasicAuthentication } from "../renderer/recorder/types/basic_auth";
 import { FileService } from "./services/files";
 const os = require('os');
@@ -24,7 +24,12 @@ export class Controller {
         this.onActionExecuting = onExecuting;
         this.onActionFailed = onFailed;
     }
-    
+
+    async addCookies(context: BrowserContext, page: Page, cookies: any): Promise<void> {
+        await context.addCookies(JSON.parse(cookies));
+        await page.reload();
+    }
+
     async navigate(page: Page, url: string): Promise<void> {
         if (!page) {
             throw new Error('Browser page not found');
@@ -199,24 +204,24 @@ export class Controller {
         if (!selectors || selectors.length === 0) {
             throw new Error('No selector provided');
         }
-        
-        console.log(`[Controller] executeAction with selectors:`, selectors);
-        
+
+        // console.log(`[Controller] executeAction with selectors:`, selectors);
+
         let lastError: Error | null = null;
         for (const selector of selectors) {
             try {
-                console.log(`[Controller] Trying selector: ${selector}`);
+                // console.log(`[Controller] Trying selector: ${selector}`);
                 await action(selector);
-                console.log(`[Controller] Action succeeded with selector: ${selector}`);
+                // console.log(`[Controller] Action succeeded with selector: ${selector}`);
                 return;
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
-                console.log(`[Controller] Selector "${selector}" failed:`, errorMessage);
+                // console.log(`[Controller] Selector "${selector}" failed:`, errorMessage);
                 lastError = error as Error;
             }
         }
-        
-        console.error(`[Controller] All selectors failed:`, selectors);
+
+        // console.error(`[Controller] All selectors failed:`, selectors);
         throw lastError || new Error('All selectors failed');
     }
 
@@ -224,16 +229,16 @@ export class Controller {
         if (!page || !selectors || !Array.isArray(selectors) || selectors.length === 0) {
             throw new Error('[Controller] Invalid inputs for resolveUniqueSelector');
         }
-        
-        console.log(`[Controller] Resolving unique selector from candidates:`, selectors);
-        
+
+        // console.log(`[Controller] Resolving unique selector from candidates:`, selectors);
+
         for (const raw of selectors) {
             const s = String(raw).trim();
             if (!s) continue;
-            
+
             try {
                 let locator;
-                
+
                 // Handle XPath selectors
                 if (s.startsWith('xpath=') || s.startsWith('/')) {
                     const xpathExpr = s.startsWith('xpath=') ? s.substring(6) : s;
@@ -242,33 +247,33 @@ export class Controller {
                     // Handle CSS selectors
                     locator = page.locator(s);
                 }
-                
+
                 // Wait for element to be attached
-                await locator.first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => {});
-                
+                await locator.first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => { });
+
                 // Check if selector is unique
                 const count = await locator.count();
-                console.log(`[Controller] Selector "${s}" found ${count} elements`);
-                
+                // console.log(`[Controller] Selector "${s}" found ${count} elements`);
+
                 if (count === 1) {
                     // Normalize return: if original is raw XPath, prefix with 'xpath='
                     const normalized = (s.startsWith('/') || s.startsWith('(')) ? `xpath=${s}` : s;
-                    console.log(`[Controller] Using unique selector: ${normalized}`);
+                    // console.log(`[Controller] Using unique selector: ${normalized}`);
                     return normalized;
                 }
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
-                console.log(`[Controller] Selector "${s}" failed:`, errorMessage);
+                // console.log(`[Controller] Selector "${s}" failed:`, errorMessage);
                 // ignore and try next selector
             }
         }
-        
+
         console.error(`[Controller] No unique selector found from:`, selectors);
         throw new Error('[Controller] No matching selector found in ' + selectors.join(', '));
     }
 
-    async executeMultipleActions(page: Page, actions: Action[]): Promise<void> {
-        if(!Array.isArray(actions) || actions.length === 0) {
+    async executeMultipleActions(page: Page, context: BrowserContext, actions: Action[]): Promise<void> {
+        if (!Array.isArray(actions) || actions.length === 0) {
             throw new Error('Actions array is required and cannot be empty');
         }
         
@@ -276,10 +281,10 @@ export class Controller {
         for (let i = 0; i < actions.length; i++) {
             const action = actions[i];
             // console.log(`[Controller] Executing action ${i + 1}/${actions.length}: ${action.action_type}`);
-            
+
             // Emit executing event
             this.onActionExecuting?.(i);
-            
+
             try {
                 switch (action.action_type) {
                     case ActionType.navigate:
@@ -288,14 +293,17 @@ export class Controller {
                         }
                         await this.navigate(page, action.value);
                         break;
-                  case ActionType.reload:
+                    case ActionType.reload:
                         await page.reload();
                         break;
-                  case ActionType.back:
+                    case ActionType.back:
                         await page.goBack();
                         break;
-                  case ActionType.forward:
+                    case ActionType.forward:
                         await page.goForward();
+                        break;
+                    case ActionType.add_cookies:
+                        await this.addCookies(context, page, JSON.stringify(action.cookies.value));
                         break;
                     case ActionType.click:
                         if (action.elements && action.elements.length === 1) {
@@ -330,7 +338,7 @@ export class Controller {
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
-                            console.log(uniqueSelector)
+                            // console.log(uniqueSelector)
                             if (action.checked) {
                                 await page.check(uniqueSelector);
                             } else {
@@ -359,9 +367,9 @@ export class Controller {
                                         const payload = {
                                             file_path: file.file_path || ''
                                         };
-                                        console.log('[Controller] payload:', payload);
+                                        // console.log('[Controller] payload:', payload);
                                         const response = await this.fileService.getFileContent(payload);
-                                        console.log('[Controller] response:', response);
+                                        // console.log('[Controller] response:', response);
                                         if (response.success) {
                                             content = response.data?.file_content;
                                         }
@@ -392,7 +400,7 @@ export class Controller {
                             try {
                                 const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                                 const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
-                                console.log('uniqueSelector', uniqueSelector)
+                                // console.log('uniqueSelector', uniqueSelector)
                                 await page.locator(uniqueSelector).evaluate((el: HTMLElement) => el.click());
                             } catch (error) {
                                 console.error('Error changing', error)
@@ -406,17 +414,17 @@ export class Controller {
                         if (action.elements && action.elements.length === 2) {
                             const sourceCandidates = action.elements[0].selectors?.map(s => s.value) || [];
                             const targetCandidates = action.elements[1].selectors?.map(s => s.value) || [];
-                            
+
                             if (sourceCandidates.length === 0 || targetCandidates.length === 0) {
                                 throw new Error('Drag and drop requires valid source and target selectors');
                             }
-                            
+
                             // Resolve unique selectors for both source and target
                             const source = await this.resolveUniqueSelector(page, sourceCandidates);
                             const target = await this.resolveUniqueSelector(page, targetCandidates);
-                            
-                            console.log(`[Controller] Drag and drop - source: ${source}, target: ${target}`);
-                            
+
+                            // console.log(`[Controller] Drag and drop - source: ${source}, target: ${target}`);
+
                             // Use unique selectors for both source and target
                             await page.dragAndDrop(source, target, { timeout: 10000 });
                         } else {
@@ -431,19 +439,19 @@ export class Controller {
                         if (match) {
                             x = Number(match[1]);
                             y = Number(match[2]);
-                        } 
+                        }
                         const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                         const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
                         await page.locator(uniqueSelector).evaluate((el, pos) => {
                             const { x, y } = pos;
                             const target = (el === document.body || el === document.documentElement)
-                              ? window
-                              : el;
-                        
+                                ? window
+                                : el;
+                            console.log('target', target)
                             if (target.scrollTo) {
-                              target.scrollTo({ left: x, top: y, behavior: 'instant' });
+                                target.scrollTo({ left: x, top: y, behavior: 'instant' });
                             }
-                          }, { x, y });
+                        }, { x, y });
                         await page.waitForLoadState('networkidle', { timeout: 10000 });
                         break;
                     case ActionType.window_resize:
@@ -457,12 +465,12 @@ export class Controller {
                         // Apply sensible defaults and bounds
                         const targetWidth = Math.max(width || 1366, 800);
                         const targetHeight = Math.max(height || 768, 600);
-                        
+
                         // Resize browser window via BrowserManager (handles both window and viewport)
                         if (this.browserManager) {
                             await this.browserManager.resizeWindow(targetWidth, targetHeight);
                         }
-                        
+
                         await page.waitForLoadState('networkidle', { timeout: 10000 });
                         break;
                     case ActionType.api_request:
@@ -480,7 +488,7 @@ export class Controller {
                 if (i < actions.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, 100));
                 }
-                
+
             } catch (error) {
                 console.error(`[Controller] Error executing action ${i + 1} (${action.action_type}):`, error);
                 // Emit failed event
@@ -489,9 +497,9 @@ export class Controller {
                 // throw error;
             }
         }
-        
+
         // console.log(`[Controller] Finished executing ${actions.length} actions`);
-        
+
         // Emit execution completed event
         this.onActionExecuting?.(-1); // Use -1 to indicate all actions completed
     }

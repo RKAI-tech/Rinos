@@ -1,7 +1,7 @@
 import { ipcMain, BrowserWindow } from "electron";
 import { BrowserManager } from "../../browser/BrowserManager";
 import { Action, AssertType } from "../../browser/types";
-import { Page } from "playwright";
+import { BrowserContext, Page } from "playwright";
 import { setBrowserManager } from "./screen_handle";
 
 // Map mỗi cửa sổ recorder -> instance BrowserManager riêng
@@ -19,12 +19,12 @@ function getWindowFromEvent(event: Electron.IpcMainInvokeEvent): BrowserWindow |
 function getOrCreateManagerForWindow(win: BrowserWindow): BrowserManager {
     const id = win.id;
     let manager = windowIdToManager.get(id);
-    console.log('[Browser] Getting manager for window 1:', id, manager);
+    // console.log('[Browser] Getting manager for window 1:', id, manager);
     if (manager) return manager;
 
     manager = new BrowserManager();
     windowIdToManager.set(id, manager);
-    console.log('[Browser] Getting manager for window 2:', id, manager);
+    // console.log('[Browser] Getting manager for window 2:', id, manager);
     // Kết nối sự kiện để chỉ gửi về đúng cửa sổ tương ứng
     manager.on('action', (action: Action) => {
         if (!win.isDestroyed()) {
@@ -103,7 +103,7 @@ export function registerBrowserIpc() {
         }
         
         try {
-            await manager.controller?.executeMultipleActions(manager.page as Page, actions);
+            await manager.controller?.executeMultipleActions(manager.page as Page, manager.context as BrowserContext, actions);
         } finally {
             (manager as any).isExecuting = false;
             
@@ -126,16 +126,19 @@ export function registerBrowserIpc() {
         }
     });
 
+    ipcMain.handle("browser:addCookies", async (event, cookies: any) => {
+        const win = getWindowFromEvent(event);
+        if (!win) return;
+        const manager = getOrCreateManagerForWindow(win);
+        await manager.controller?.addCookies(manager.context as BrowserContext, manager.page as Page, cookies);
+    });
+
     ipcMain.handle("browser:navigate", async (event, url: string) => {
         const win = getWindowFromEvent(event);
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
-        if (!manager.page) {
-            console.error('[Browser] Cannot navigate: page is null');
-            return;
-        }
-        console.log('[Browser] Navigating to:', url);
-        await manager.controller?.navigate(manager.page, url);
+        // console.log('[Browser] Navigating to:', url);
+        await manager.controller?.navigate(manager.page as Page, url);
     });
 
     ipcMain.handle("browser:reload", async (event) => {

@@ -39,6 +39,7 @@ export enum ActionType {
     back = 'back',
     forward = 'forward',
     window_resize = 'window_resize',
+    add_cookies = 'add_cookies',
     api_request = 'api_request',
 }
 
@@ -128,6 +129,7 @@ export interface Action {
     query?: string;
     connection?: Connection;
     files?: FileUpload[];
+    cookies?: any;
     // API Request
     api_request?: ApiRequestData;
 }

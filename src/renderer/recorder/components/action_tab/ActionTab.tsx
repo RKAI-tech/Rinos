@@ -6,9 +6,11 @@ import DatabaseExecutionModal from '../database_execution_modal/DatabaseExecutio
 import WaitModal from '../wait_modal/WaitModal';
 import NavigateModal from '../navigate_modal/NavigateModal';
 import ApiRequestModal from '../api_request_modal/ApiRequestModal';
+import AddCookiesModal from '../add_cookies_modal/AddCookiesModal';
 import { Action, ActionType, AssertType, Connection, ApiRequestData } from '../../types/actions';
 import { receiveActionWithInsert } from '../../utils/receive_action';
 import { toast } from 'react-toastify';
+import { CookiesListItem } from '../../types/cookies';
 
 interface ActionTabProps {
   actions: Action[];
@@ -37,35 +39,37 @@ interface ActionTabProps {
   executingActionIndex?: number | null;
   failedActionIndex?: number | null;
   onOpenBasicAuth?: () => void;
+  projectId?: string | null;
 }
 
-const ActionTab: React.FC<ActionTabProps> = ({ 
-  actions, 
-  isLoading, 
-  isReloading, 
-  isSaving, 
-  onDeleteAction, 
-  onDeleteAll, 
-  onReorderActions, 
-  onReload, 
-  onSaveActions, 
-  selectedInsertPosition, 
-  displayInsertPosition, 
-  onSelectInsertPosition, 
-  onSelectAction, 
-  onStartRecording, 
-  isBrowserOpen, 
-  recordingFromActionIndex, 
-  onAddAction, 
-  isAddActionOpen, 
-  onCloseAddAction, 
-  testcaseId, 
-  onActionsChange, 
-  onInsertPositionChange, 
-  onDisplayPositionChange, 
-  executingActionIndex, 
+const ActionTab: React.FC<ActionTabProps> = ({
+  actions,
+  isLoading,
+  isReloading,
+  isSaving,
+  onDeleteAction,
+  onDeleteAll,
+  onReorderActions,
+  onReload,
+  onSaveActions,
+  selectedInsertPosition,
+  displayInsertPosition,
+  onSelectInsertPosition,
+  onSelectAction,
+  onStartRecording,
+  isBrowserOpen,
+  recordingFromActionIndex,
+  onAddAction,
+  isAddActionOpen,
+  onCloseAddAction,
+  testcaseId,
+  onActionsChange,
+  onInsertPositionChange,
+  onDisplayPositionChange,
+  executingActionIndex,
   failedActionIndex,
-  onOpenBasicAuth
+  onOpenBasicAuth,
+  projectId
 }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -73,6 +77,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
   const [isWaitOpen, setIsWaitOpen] = useState(false);
   const [isNavigateOpen, setIsNavigateOpen] = useState(false);
   const [isApiRequestOpen, setIsApiRequestOpen] = useState(false);
+  const [isAddCookiesOpen, setIsAddCookiesOpen] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
 
@@ -94,7 +99,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
 
   const handleDrop = (e: React.DragEvent, dropIndex: number) => {
     e.preventDefault();
-    
+
     if (draggedIndex === null || draggedIndex === dropIndex) {
       setDraggedIndex(null);
       setDragOverIndex(null);
@@ -104,13 +109,13 @@ const ActionTab: React.FC<ActionTabProps> = ({
     // Tạo mảng mới với thứ tự đã thay đổi
     const newActions = [...actions];
     const draggedAction = newActions[draggedIndex];
-    
+
     // Xóa action khỏi vị trí cũ
     newActions.splice(draggedIndex, 1);
-    
+
     // Điều chỉnh dropIndex nếu cần (khi drop vào vị trí cuối)
     const adjustedDropIndex = dropIndex > actions.length - 1 ? actions.length - 1 : dropIndex;
-    
+
     // Chèn action vào vị trí mới
     newActions.splice(adjustedDropIndex, 0, draggedAction);
 
@@ -157,6 +162,98 @@ const ActionTab: React.FC<ActionTabProps> = ({
     setIsNavigateOpen(true);
   };
 
+  const handleSelectAddCookies = () => {
+    setIsAddCookiesOpen(true);
+  };
+
+  const handleNavigateConfirm = async (url: string) => {
+    if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+    const newAction = {
+      testcase_id: testcaseId,
+      action_id: Math.random().toString(36),
+      action_type: ActionType.navigate,
+      value: url,
+      description: `Navigate to ${url}`,
+    } as any;
+    onActionsChange(prev => {
+      const next = receiveActionWithInsert(
+        testcaseId,
+        prev,
+        newAction,
+        selectedInsertPosition || 0
+      );
+      const added = next.length > prev.length;
+      if (added) {
+        const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
+        onInsertPositionChange(newPos);
+        onDisplayPositionChange(newPos);
+      }
+      return next;
+    });
+    setIsNavigateOpen(false);
+    await(window as any).browserAPI?.browser.navigate(url);
+    // toast.success('Added navigate action');
+  }
+
+  const handleWaitConfirm = async (ms: any) => {
+    if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+    const newAction = {
+      testcase_id: testcaseId,
+      action_id: Math.random().toString(36),
+      action_type: ActionType.wait,
+      value: String(ms),
+      description: `Wait for ${ms} ms`,
+    };
+    onActionsChange(prev => {
+      const next = receiveActionWithInsert(
+        testcaseId,
+        prev,
+        newAction,
+        selectedInsertPosition || 0
+      );
+      const added = next.length > prev.length;
+      if (added) {
+        const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
+        onInsertPositionChange(newPos);
+        onDisplayPositionChange(newPos);
+      }
+      return next;
+    });
+    setIsWaitOpen(false);
+    // toast.success('Added wait action');
+  }
+
+  const handleAddCookiesConfirm = async (selectedCookie: CookiesListItem) => {
+    if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+    const newAction = {
+      testcase_id: testcaseId,
+      action_id: Math.random().toString(36),
+      action_type: ActionType.add_cookies,
+      cookies_id: selectedCookie.cookies_id,
+      cookies: selectedCookie,
+      description: `Add cookies: ${selectedCookie.name}`,
+    } as any;
+    // console.log("cookies action:", newAction);
+    onActionsChange(prev => {
+      const next = receiveActionWithInsert(
+        testcaseId,
+        prev,
+        newAction,
+        selectedInsertPosition || 0
+      );
+      const added = next.length > prev.length;
+      if (added) {
+        const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
+        onInsertPositionChange(newPos);
+        onDisplayPositionChange(newPos);
+      }
+      return next;
+    });
+    setIsAddCookiesOpen(false);
+    await (window as any).browserAPI?.browser?.addCookies(JSON.stringify(selectedCookie.value));
+    // toast.success('Added cookies action');
+  }
+
   const handleDatabaseExecutionConfirm = (query: string, connectionId: string, connection: Connection) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
 
@@ -176,7 +273,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
       playwright_code: 'Database execution will be handled by backend',
       description: `Execute database query: ${query.substring(0, 50)}${query.length > 50 ? '...' : ''}`,
     };
-     onActionsChange(prev => {
+    onActionsChange(prev => {
       console.log("Previous actions:", prev);
       const next = receiveActionWithInsert(
         testcaseId,
@@ -184,9 +281,9 @@ const ActionTab: React.FC<ActionTabProps> = ({
         newAction,
         selectedInsertPosition || 0
       );
-      
-     console.log("Next actions:", next);
-      
+
+      console.log("Next actions:", next);
+
       const added = next.length > prev.length;
       if (added) {
         const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
@@ -195,8 +292,8 @@ const ActionTab: React.FC<ActionTabProps> = ({
       }
       return next;
     });
-    toast.success('Added database execution action');
-  
+    // toast.success('Added database execution action');
+
   };
 
 
@@ -204,7 +301,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
 
     // console.log("handleSelectAddAction called with type:", actionType);
-    
+
     // For database_execution, it's handled by modal, so don't add to list here
     if (actionType === 'database_execution') {
       console.log("Database execution handled by modal, not adding to list");
@@ -221,9 +318,14 @@ const ActionTab: React.FC<ActionTabProps> = ({
       return;
     }
 
+    if (actionType === 'add_cookies') {
+      handleSelectAddCookies();
+      return;
+    }
+
     const newAction = await createActionByType(actionType);
     // console.log("Created action:", newAction);
-    
+
     if (newAction) {
       onActionsChange(prev => {
         // console.log(`=== BEFORE ADDING ${actionType.toUpperCase()} ACTION ===`);
@@ -231,19 +333,19 @@ const ActionTab: React.FC<ActionTabProps> = ({
         // console.log("Previous actions:", prev.map(a => ({ id: a.action_id, type: a.action_type, desc: a.description })));
         // console.log("Insert position:", selectedInsertPosition);
         // console.log("New action to add:", { id: newAction.action_id, type: newAction.action_type, desc: newAction.description });
-        
+
         const next = receiveActionWithInsert(
           testcaseId,
           prev,
           newAction,
           selectedInsertPosition || 0
         );
-        
+
         // console.log(`=== AFTER ADDING ${actionType.toUpperCase()} ACTION ===`);
         // console.log("Next actions count:", next.length);
         // console.log("Next actions:", next.map(a => ({ id: a.action_id, type: a.action_type, desc: a.description })));
         // console.log("Action added successfully:", next.length > prev.length);
-        
+
         const added = next.length > prev.length;
         if (added) {
           const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
@@ -253,7 +355,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
         }
         return next;
       });
-      toast.success(`Added ${actionType} action`);
+      // toast.success(`Added ${actionType} action`);
     } else {
       console.error("Failed to create action for type:", actionType);
     }
@@ -267,27 +369,14 @@ const ActionTab: React.FC<ActionTabProps> = ({
       action_id: Math.random().toString(36),
     };
 
-    // console.log("Creating action for type:", actionType);
-    // console.log("Base action:", baseAction);
-
     switch (actionType) {
-      case 'wait':
-        const waitAction = {
-          ...baseAction,
-          action_type: ActionType.wait,
-          value: '1000', 
-          description: 'Wait for 1 second',
-        };
-        // console.log("Created wait action:", waitAction);
-        return waitAction;
-      
       case 'reload':
         const reloadAction = {
           ...baseAction,
           action_type: ActionType.reload,
           description: 'Reload current page',
         } as any;
-        // console.log("Created reload action:", reloadAction);
+        console.log("Created reload action:", reloadAction);
         await (window as any).browserAPI?.browser?.reload();
         return reloadAction;
 
@@ -297,7 +386,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
           action_type: ActionType.back,
           description: 'Go back to previous page',
         } as any;
-        // console.log("Created back action:", backAction);
+        console.log("Created back action:", backAction);
         await (window as any).browserAPI?.browser?.goBack();
         return backAction;
 
@@ -307,7 +396,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
           action_type: ActionType.forward,
           description: 'Go forward to next page',
         } as any;
-        // console.log("Created forward action:", forwardAction);
+        console.log("Created forward action:", forwardAction);
         await (window as any).browserAPI?.browser?.goForward();
         return forwardAction;
       
@@ -349,7 +438,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
     try {
       const container = listRef.current;
       container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
-    } catch {}
+    } catch { }
   }, [actions.length]);
 
   // Ensure the currently selected recording start index is visible
@@ -359,7 +448,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
     if (!node) return;
     try {
       node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } catch {}
+    } catch { }
   }, [recordingFromActionIndex]);
 
   // Ensure the selected insert position is visible (the action before the insertion point)
@@ -370,7 +459,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
     if (!node) return;
     try {
       node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } catch {}
+    } catch { }
   }, [selectedInsertPosition, actions.length]);
 
   // Auto-scroll to the currently executing or failed action
@@ -381,7 +470,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
     if (!node) return;
     try {
       node.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } catch {}
+    } catch { }
   }, [executingActionIndex, failedActionIndex]);
 
   return (
@@ -394,15 +483,15 @@ const ActionTab: React.FC<ActionTabProps> = ({
         <div className="rcd-actions-buttons">
           <button className="rcd-action-btn auth" title="Add Basic Http Authentication" onClick={() => onOpenBasicAuth && onOpenBasicAuth()}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 1C9.79086 1 8 2.79086 8 5V7H7C5.34315 7 4 8.34315 4 10V18C4 19.6569 5.34315 21 7 21H17C18.6569 21 20 19.6569 20 18V10C20 8.34315 18.6569 7 17 7H16V5C16 2.79086 14.2091 1 12 1ZM14 7V5C14 3.89543 13.1046 3 12 3C10.8954 3 10 3.89543 10 5V7H14Z" fill="currentColor"/>
+              <path d="M12 1C9.79086 1 8 2.79086 8 5V7H7C5.34315 7 4 8.34315 4 10V18C4 19.6569 5.34315 21 7 21H17C18.6569 21 20 19.6569 20 18V10C20 8.34315 18.6569 7 17 7H16V5C16 2.79086 14.2091 1 12 1ZM14 7V5C14 3.89543 13.1046 3 12 3C10.8954 3 10 3.89543 10 5V7H14Z" fill="currentColor" />
             </svg>
           </button>
           <div className="rcd-add-action-container">
             <button className="rcd-action-btn add" title="Add new action" onClick={() => onAddAction && onAddAction()}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </button>
             <AddActionModal
@@ -410,6 +499,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
               onClose={() => onCloseAddAction && onCloseAddAction()}
               onSelectAction={handleSelectAddAction}
               onSelectDatabaseExecution={handleSelectDatabaseExecution}
+              onSelectAddCookies={handleSelectAddCookies}
               onSelectApiRequest={handleSelectApiRequest}
             />
             <DatabaseExecutionModal
@@ -420,14 +510,30 @@ const ActionTab: React.FC<ActionTabProps> = ({
             <WaitModal
               isOpen={isWaitOpen}
               onClose={() => setIsWaitOpen(false)}
-              onConfirm={(ms) => {
+              onConfirm={handleWaitConfirm}
+            />
+            <NavigateModal
+              isOpen={isNavigateOpen}
+              onClose={() => setIsNavigateOpen(false)}
+              onConfirm={handleNavigateConfirm}
+            />
+            <AddCookiesModal
+              isOpen={isAddCookiesOpen}
+              projectId={projectId || ''}
+              onClose={() => setIsAddCookiesOpen(false)}
+              onConfirm={handleAddCookiesConfirm}
+            />
+            <ApiRequestModal
+              isOpen={isApiRequestOpen}
+              onClose={() => setIsApiRequestOpen(false)}
+              onConfirm={(data) => {
                 if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
                 const newAction = {
                   testcase_id: testcaseId,
                   action_id: Math.random().toString(36),
-                  action_type: ActionType.wait,
-                  value: String(ms),
-                  description: `Wait for ${ms} ms`,
+                  action_type: ActionType.api_request,
+                  api_request: data,
+                  description: `${data.method} ${data.url}`,
                 };
                 onActionsChange(prev => {
                   const next = receiveActionWithInsert(
@@ -444,40 +550,8 @@ const ActionTab: React.FC<ActionTabProps> = ({
                   }
                   return next;
                 });
-                setIsWaitOpen(false);
-                toast.success('Added wait action');
-              }}
-            />
-            <NavigateModal
-              isOpen={isNavigateOpen}
-              onClose={() => setIsNavigateOpen(false)}
-              onConfirm={async (url) => {
-                if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
-                const newAction = {
-                  testcase_id: testcaseId,
-                  action_id: Math.random().toString(36),
-                  action_type: ActionType.navigate,
-                  value: url,
-                  description: `Navigate to ${url}`,
-                } as any;
-                onActionsChange(prev => {
-                  const next = receiveActionWithInsert(
-                    testcaseId,
-                    prev,
-                    newAction,
-                    selectedInsertPosition || 0
-                  );
-                  const added = next.length > prev.length;
-                  if (added) {
-                    const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
-                    onInsertPositionChange(newPos);
-                    onDisplayPositionChange(newPos);
-                  }
-                  return next;
-                });
-                setIsNavigateOpen(false);
-                await (window as any).browserAPI?.browser.navigate(url);
-                toast.success('Added navigate action');
+                setIsApiRequestOpen(false);
+                toast.success('Added API request action');
               }}
             />
             <ApiRequestModal
@@ -514,8 +588,8 @@ const ActionTab: React.FC<ActionTabProps> = ({
           </div>
           <button className="rcd-action-btn reset" title="Reload actions" onClick={() => onReload && onReload()}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <polyline points="21,3 21,9 15,9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <polyline points="21,3 21,9 15,9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
           <button className="rcd-action-btn save" title="Save actions" onClick={() => onSaveActions && onSaveActions()} disabled={!!isSaving || !!isReloading}>
@@ -523,18 +597,18 @@ const ActionTab: React.FC<ActionTabProps> = ({
               <span className="rcd-spinner" aria-label="saving" />
             ) : (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <polyline points="17,21 17,13 7,13 7,21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <polyline points="7,3 7,8 15,8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <polyline points="17,21 17,13 7,13 7,21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <polyline points="7,3 7,8 15,8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
           </button>
           <button className="rcd-action-btn delete" title="Delete all actions" onClick={() => onDeleteAll && onDeleteAll()}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <line x1="10" y1="11" x2="10" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <line x1="10" y1="11" x2="10" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         </div>
@@ -550,7 +624,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
 
             {actions.map((action, index) => (
               <div key={action.action_id} className="rcd-action-item" ref={(el) => { itemRefs.current[index] = el; }}>
-                
+
                 <div
                   draggable
                   onDragStart={(e) => handleDragStart(e, index)}
@@ -560,9 +634,9 @@ const ActionTab: React.FC<ActionTabProps> = ({
                   onDragEnd={handleDragEnd}
                   className={`rcd-action-draggable ${draggedIndex === index ? 'rcd-dragging' : ''} ${dragOverIndex === index ? 'rcd-drag-over' : ''} ${executingActionIndex === index ? 'rcd-executing' : ''} ${failedActionIndex === index ? 'rcd-failed' : ''}`}
                 >
-                  <RenderedAction 
-                    action={action} 
-                    onDelete={onDeleteAction} 
+                  <RenderedAction
+                    action={action}
+                    onDelete={onDeleteAction}
                     onClick={(a) => onSelectAction && onSelectAction(a)}
                     onStartRecording={() => onStartRecording && onStartRecording(index)}
                     isBrowserOpen={isBrowserOpen}
@@ -570,7 +644,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
                     index={index}
                   />
                 </div>
-                
+
               </div>
             ))}
           </>

@@ -17,7 +17,7 @@ export function shouldSkipElementForClick(element) {
 }
 export function handleClickLikeBase(e, actionType, eventLabel = 'Click') {
   if (shouldIgnoreTarget(e?.target, eventLabel)) {
-    console.log(`Skipping ${eventLabel} - inside browser controls or assert modal`);
+    // console.log(`Skipping ${eventLabel} - inside browser controls or assert modal`);
     return;
   }
   if (getPauseMode && getPauseMode()) {
@@ -27,11 +27,11 @@ export function handleClickLikeBase(e, actionType, eventLabel = 'Click') {
     return;
   }
   if (e && e.isTrusted === false) {
-    try { console.log(`Skipping ${eventLabel} - event is not trusted`); } catch {}
+    try { /* console.log(`Skipping ${eventLabel} - event is not trusted`); */ } catch {}
     return;
   }
   if (e && e.detail === 0) {
-    try { console.log(`Skipping ${eventLabel} - event is not trusted`); } catch {}
+    try { /* console.log(`Skipping ${eventLabel} - event is not trusted`); */ } catch {}
     return;
   }
   

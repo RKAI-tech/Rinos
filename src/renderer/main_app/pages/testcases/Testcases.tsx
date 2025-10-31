@@ -87,7 +87,7 @@ const Testcases: React.FC = () => {
           const safeStatus = allowed.includes(normalized) ? (normalized as Testcase['status']) : 'draft';
           
           // Debug log to see what status we're getting from API
-          console.log('[DEBUG] Testcase:', tc.name, 'Raw status:', rawStatus, 'Normalized:', normalized, 'Safe status:', safeStatus);
+          // console.log('[DEBUG] Testcase:', tc.name, 'Raw status:', rawStatus, 'Normalized:', normalized, 'Safe status:', safeStatus);
           
           return {
             id: tc.testcase_id,
@@ -111,12 +111,14 @@ const Testcases: React.FC = () => {
         setTestcases(mapped);
       } else {
         setError(response.error || 'Failed to load testcases');
-        toast.error('Failed to load testcases');
+        // toast.error('Failed to load testcases');
+        console.error('Failed to load testcases', response.error);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred';
       setError(message);
-      toast.error('Failed to load testcases');
+      console.error('Failed to load testcases', message);
+      // toast.error('Failed to load testcases');
     } finally {
       setIsLoading(false);
     }
@@ -189,6 +191,12 @@ const Testcases: React.FC = () => {
       isActive: false
     },
     {
+      id: 'cookies',
+      label: 'Cookies',
+      path: `/cookies/${projectId || ''}`,
+      isActive: false
+    },
+    {
       id: 'databases',
       label: 'Databases',
       path: `/databases/${projectId || ''}`,
@@ -204,6 +212,13 @@ const Testcases: React.FC = () => {
       id: 'variables',
       label: 'Variables',
       path: `/variables/${projectId || ''}`,
+      isActive: false
+    }
+    ,
+    {
+      id: 'change-log',
+      label: 'Change Log',
+      path: `/change-log/${projectId || ''}`,
       isActive: false
     }
   ];
@@ -517,15 +532,18 @@ const Testcases: React.FC = () => {
     }
   };
 
-  const handleSaveEditTestcase = async ({ id, name, tag, basic_authentication }: { id: string; name: string; tag: string; basic_authentication?: { username: string; password: string } }) => {
+  const handleSaveEditTestcase = async (
+    { id, name, tag, basic_authentication, actions }:
+    { id: string; name: string; tag: string; basic_authentication?: { username: string; password: string }; actions?: any[] }) => {
     try {
       const payload = {
         testcase_id: id,
         name,
         tag: tag || undefined,
-        basic_authentication: basic_authentication || undefined
+        basic_authentication: basic_authentication || undefined,
+        actions: actions || undefined
       } as any;
-      console.log('[MAIN_APP] payload', payload);
+      // console.log('[MAIN_APP] payload', payload);
       const resp = await testCaseService.updateTestCase(payload);
       if (resp.success) {
         toast.success('Testcase updated successfully!');

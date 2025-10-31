@@ -11,10 +11,11 @@ interface AddActionModalProps {
   onClose: () => void;
   onSelectAction: (actionType: string) => void;
   onSelectDatabaseExecution?: () => void;
+  onSelectAddCookies?: () => void;
   onSelectApiRequest?: () => void;
 }
 
-const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSelectAction, onSelectDatabaseExecution, onSelectApiRequest }) => {
+const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSelectAction, onSelectDatabaseExecution, onSelectAddCookies, onSelectApiRequest }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -67,6 +68,11 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
       description: 'Reload the current page'
     },
     {
+      value: 'add_cookies',
+      label: 'Add Cookies',
+      description: 'Select and add cookies from project list'
+    },
+    {
       value: 'api_request',
       label: 'API Request',
       description: 'Make an HTTP(S) API request'
@@ -81,6 +87,10 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
   const handleSelectAction = (actionType: string) => {
     if (actionType === 'database_execution' && onSelectDatabaseExecution) {
       onSelectDatabaseExecution();
+      setSearchTerm('');
+      onClose();
+    } else if (actionType === 'add_cookies' && onSelectAddCookies) {
+      onSelectAddCookies();
       setSearchTerm('');
       onClose();
     } else if (actionType === 'api_request' && onSelectApiRequest) {
@@ -131,6 +141,18 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
             <polyline points="21,3 21,9 15,9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         );
+      case 'add_cookies':
+        return (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Cookie outline with a bite taken out */}
+            <path d="M21 12.8A9 9 0 1 1 11.2 3c0 2.2 1.8 4 4 4 0 2.2 1.8 4 4 4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            {/* Chocolate chips */}
+            <circle cx="12" cy="8" r="1" fill="currentColor"/>
+            <circle cx="15" cy="12" r="1" fill="currentColor"/>
+            <circle cx="9" cy="12.5" r="1" fill="currentColor"/>
+            <circle cx="12" cy="16.5" r="1" fill="currentColor"/>
+          </svg>
+        );
       case 'back':
         return (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -164,6 +186,8 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
         return '#f59e0b'; // Orange color
       case 'database_execution':
         return '#3b82f6'; // Blue color
+      case 'add_cookies':
+        return '#10b981'; // Green color
       case 'visit_url':
         return '#10b981'; // Green color
       case 'api_request':

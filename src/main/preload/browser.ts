@@ -55,6 +55,7 @@ const browserMethods = {
     cookieDomainRegex?: string,
   }) => ipcRenderer.invoke("browser:getBasicAuthFromStorage", payload),
 
+    addCookies: async (cookies: any) => ipcRenderer.invoke("browser:addCookies", cookies),
     reload: async () => ipcRenderer.invoke("browser:reload"),
     goBack: async () => ipcRenderer.invoke("browser:goBack"),
     goForward: async () => ipcRenderer.invoke("browser:goForward"),

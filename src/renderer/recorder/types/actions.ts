@@ -1,3 +1,4 @@
+import { CookiesResponse } from "./cookies";
 export enum ActionType {
   input = "input",
   navigate = "navigate",
@@ -30,6 +31,7 @@ export enum ActionType {
   forward = "forward",
   window_resize = "window_resize",
   api_request = "api_request",
+  add_cookies = "add_cookies",
 }
 
 export enum AssertType {
@@ -178,6 +180,8 @@ export interface Action {
     timestamp?: number;
     // API Request fields
     api_request?: ApiRequestData;
+    cookies_id?: string;
+    cookies?: CookiesResponse;
 }
 
 export interface ActionBatch {

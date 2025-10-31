@@ -40,7 +40,7 @@ const EditTestSuite: React.FC<EditTestSuiteProps> = ({ isOpen, onClose, onSave, 
       return;
     }
 
-    onSave({ id: testsuite.testsuite_id, name: suiteName.trim(), description: suiteDescription.trim() || undefined });
+    onSave({ id: testsuite.testsuite_id, name: suiteName.trim(), description: suiteDescription.trim() || '' });
     handleClose();
   };
 

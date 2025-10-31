@@ -31,6 +31,7 @@ export interface TestCaseUpdateRequest {
     name?: string;
     tag?: string;
     basic_authentication?: BasicAuthentication;
+    actions?: Action[];
 }
 
 export interface TestCaseDeleteRequest {

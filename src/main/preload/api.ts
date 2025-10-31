@@ -7,9 +7,18 @@ const windowAPI = {
   minimizeWindow: () => ipcRenderer.invoke("minimize-window"),
   toggleMaximizeWindow: () => ipcRenderer.invoke("toggle-maximize-window"),
   confirmCloseRecorder: (confirmed: boolean) => ipcRenderer.invoke("confirm-close-recorder", confirmed),
-  onCloseRequested: (callback: () => void) => {
-    ipcRenderer.on('window:close-requested', callback);
-    return () => ipcRenderer.removeListener('window:close-requested', callback);
+  sendMainAppCloseResult: (data: { confirm: boolean, save: boolean }) => ipcRenderer.send('mainapp:close-result', data),
+  onRecorderCloseRequested: (callback: () => void) => {
+    ipcRenderer.on('recorder:close-requested', callback);
+    return () => ipcRenderer.removeListener('recorder:close-requested', callback);
+  },
+  onMainAppCloseRequested: (callback: () => void) => {
+    ipcRenderer.on('mainapp:close-requested', callback);
+    return () => ipcRenderer.removeListener('mainapp:close-requested', callback);
+  },
+  onChildWindowForceSaveAndClose: (callback: () => void) => {
+    ipcRenderer.on('window:force-save-and-close', callback);
+    return () => ipcRenderer.removeListener('window:force-save-and-close', callback);
   },
 };
 

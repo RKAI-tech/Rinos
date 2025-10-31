@@ -38,7 +38,10 @@ import {
   function handleKeyLikeBase(e, actionType, eventLabel = 'Key') {
     // Bỏ qua nếu nhập liệu trong input/textarea/contenteditable
 
-  
+    if (e && e.isTrusted === false) {
+      try { console.log('Skipping key down recording - event is not trusted'); } catch {}
+      return;
+    }
     // Bỏ qua modifier đơn lẻ
     if (SKIP_KEYS.has(e?.key)) return;
   

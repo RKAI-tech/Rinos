@@ -7,11 +7,11 @@ export function handleCheckboxRadioChangeEvent(e) {
   const tag = el?.tagName?.toLowerCase?.();
   const type = el?.type?.toLowerCase?.();
   if (e && e.isTrusted === false) {
-    try { console.log(`Skipping ${eventLabel} - event is not trusted`); } catch {}
+    try { /* console.log(`Skipping ${eventLabel} - event is not trusted`); */ } catch {}
     return;
   }
   if (e && e.detail === 0) {
-    try { console.log(`Skipping ${eventLabel} - event is not trusted`); } catch {}
+    try { /* console.log(`Skipping ${eventLabel} - event is not trusted`); */ } catch {}
     return;
   }
   // Hỗ trợ input[checkbox|radio] và select

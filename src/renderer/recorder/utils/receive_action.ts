@@ -62,6 +62,8 @@ export function createDescription(action_received: any): string {
             return `Reload page`;
         case ActionType.scroll:
             return `Scroll viewport`;
+        case ActionType.add_cookies:
+            return `Add cookies`;
         case ActionType.assert:
             switch (action_received.assertType) {
                 case AssertType.toHaveText:
@@ -189,6 +191,14 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         url: action_received.url,
         timestamp: action_received.timeStamp || action_received.timestamp,
         api_request: action_received.api_request,
+        cookies_id: action_received.cookies_id,
+        cookies: action_received.cookies ? {
+            cookies_id: action_received.cookies_id,
+            project_id: action_received.project_id,
+            name: action_received.cookies.name,
+            description: action_received.cookies.description,
+            value: action_received.cookies.value,
+        } : undefined,
     } as Action;
 
     // console.log('[receiveAction]', receivedAction);

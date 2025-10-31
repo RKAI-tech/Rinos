@@ -266,7 +266,7 @@ export function generateActionCode(action: Action, index: number): string {
     if (action.connection) {
         connect_db_code = generateConnectDBCode(action);
     }
-    console.log('generateActionCode', action);
+    // console.log('generateActionCode', action);
     switch (action.action_type) {
         case ActionType.navigate:
             return `    await page.goto('${action.value || ''}');\n` +
@@ -388,6 +388,10 @@ export function generateActionCode(action: Action, index: number): string {
                 return generateApiRequestCode(action.api_request);
             }
             return `    // API Request action without data\n`;
+        case ActionType.add_cookies:            
+            return `    cookies = ${JSON.stringify(action.cookies?.value || [])};\n` +
+                `    await page.addCookies(cookies);\n` +
+                `    await page.waitForLoadState('networkidle');\n`;
         default:
             return "";
     }
@@ -475,7 +479,7 @@ export function actionToCode(actions: Action[]): string {
     code += `\n`;
     // Test block
     code += `test('Generated Test', async ({ page }) => {\n`;
-    code += `  let candidates; let sel;\n`;
+    code += `    let candidates; let sel; let cookies;\n`;
     for (let i = 0; i < actions.length; i++) {
         const action = actions[i];
         // Use the current position (1-based) to ensure numbering matches UI after local deletes/reorders

@@ -60,7 +60,7 @@ const Dashboard: React.FC = () => {
         const response = await projectService.getProjects();
         
         if (response.success && response.data) {
-          console.log('Loaded projects from API:', response.data.projects);
+          // console.log('Loaded projects from API:', response.data.projects);
           setProjects(response.data.projects);
         } else {
           setError(response.error || 'Failed to load projects');

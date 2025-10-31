@@ -17,7 +17,13 @@ function getScrollableTarget(e) {
   return document.scrollingElement || document.documentElement || document.body;
 }
 
+
 function dispatchScroll(e) {
+  if (e && e.isTrusted === false) {
+    try { console.log('Skipping scroll recording - event is not trusted'); } catch {}
+    return;
+  }
+  
   const target = getScrollableTarget(e);
   const selectors = buildSelectors(target);
   const isWindow = (target === window || target === document.scrollingElement || target === document.documentElement || target === document.body);
