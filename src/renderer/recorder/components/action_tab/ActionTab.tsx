@@ -36,6 +36,7 @@ interface ActionTabProps {
   onDisplayPositionChange?: (position: number) => void;
   executingActionIndex?: number | null;
   failedActionIndex?: number | null;
+  onOpenBasicAuth?: () => void;
 }
 
 const ActionTab: React.FC<ActionTabProps> = ({ 
@@ -61,7 +62,10 @@ const ActionTab: React.FC<ActionTabProps> = ({
   testcaseId, 
   onActionsChange, 
   onInsertPositionChange, 
-  onDisplayPositionChange, executingActionIndex, failedActionIndex 
+  onDisplayPositionChange, 
+  executingActionIndex, 
+  failedActionIndex,
+  onOpenBasicAuth
 }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -388,6 +392,11 @@ const ActionTab: React.FC<ActionTabProps> = ({
           <div className="rcd-actions-insert-info">Inserting at position #{selectedInsertPosition}</div>
         </div>
         <div className="rcd-actions-buttons">
+          <button className="rcd-action-btn auth" title="Add Basic Http Authentication" onClick={() => onOpenBasicAuth && onOpenBasicAuth()}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 1C9.79086 1 8 2.79086 8 5V7H7C5.34315 7 4 8.34315 4 10V18C4 19.6569 5.34315 21 7 21H17C18.6569 21 20 19.6569 20 18V10C20 8.34315 18.6569 7 17 7H16V5C16 2.79086 14.2091 1 12 1ZM14 7V5C14 3.89543 13.1046 3 12 3C10.8954 3 10 3.89543 10 5V7H14Z" fill="currentColor"/>
+            </svg>
+          </button>
           <div className="rcd-add-action-container">
             <button className="rcd-action-btn add" title="Add new action" onClick={() => onAddAction && onAddAction()}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

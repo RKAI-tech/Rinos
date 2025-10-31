@@ -3,31 +3,40 @@ import { useAuth } from '../../contexts/AuthContext';
 import authService from '../../services/auth';
 import './Header.css';
 import image from '../../assets/logo_user.png';
+import rikkeiLogo from '../../assets/logoRikkeisoft.png';
 const Header: React.FC = () => {
-  const { logout, isLoading } = useAuth();
+  const { logout, isLoading, userEmail } = useAuth();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [userEmail, setUserEmail] = useState<string>('');
+  const [localUserEmail, setLocalUserEmail] = useState<string>('');
 
   useEffect(() => {
     let mounted = true;
     (async () => {
+      // Ưu tiên sử dụng email từ AuthContext
+      if (userEmail) {
+        setLocalUserEmail(userEmail);
+        return;
+      }
+
+      // Chỉ gọi API nếu không có email từ AuthContext
       try {
         const resp = await authService.getCurrentUser();
         if (mounted && resp.success && (resp as any).data) {
           const email = (resp as any).data.email || '';
-          setUserEmail(email);
+          setLocalUserEmail(email);
         }
       } catch (e) {
         // silent fail; keep placeholder
       }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [userEmail]);
 
   const userEmailShort = useMemo(() => {
-    if (!userEmail) return '';
-    return userEmail.length > 16 ? `${userEmail.slice(0, 14)}...` : userEmail;
-  }, [userEmail]);
+    const email = localUserEmail || userEmail || '';
+    if (!email) return '';
+    return email.length > 16 ? `${email.slice(0, 14)}...` : email;
+  }, [localUserEmail, userEmail]);
 
   const handleLogout = async () => {
     try {
@@ -48,6 +57,11 @@ const Header: React.FC = () => {
         {/* Left side - App Logo */}
         <div className="header-left">
           <div className="app-logo">
+            <img 
+              src={rikkeiLogo} 
+              alt="Rikkei Logo" 
+              className="rikkei-logo"
+            />
             <span className="logo-text">Automation Test Execution</span>
           </div>
         </div>
@@ -64,7 +78,7 @@ const Header: React.FC = () => {
             </div>
             <div className="user-info">
               <div className="user-email-short">{userEmailShort || '...'}</div>
-              <div className="user-email-full">{userEmail || '...'}</div>
+              <div className="user-email-full">{localUserEmail || userEmail || '...'}</div>
             </div>
             <div className="dropdown-chevron">
               <svg 

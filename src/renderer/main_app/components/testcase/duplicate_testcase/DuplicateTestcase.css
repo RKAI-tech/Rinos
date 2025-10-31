@@ -1,17 +1,231 @@
-.tcase-dup-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
-.tcase-dup-modal-container { background: #fff; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); width: 100%; max-width: 640px; max-height: 90vh; overflow: auto; }
-.tcase-dup-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 24px 24px 0 24px; }
-.tcase-dup-modal-title { font-size: 20px; font-weight: 600; margin: 0; color: #1a1a1a; }
-.tcase-dup-modal-close-btn { background: none; border: none; padding: 8px; border-radius: 6px; cursor: pointer; color: #6b7280; }
-.tcase-dup-modal-instructions { padding: 12px 24px 0 24px; color: #6b7280; font-size: 14px; }
-.tcase-dup-modal-form { padding: 16px 24px 24px 24px; }
-.tcase-dup-form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-.tcase-dup-form-label { font-size: 14px; font-weight: 600; color: #374151; }
-.tcase-dup-required-asterisk { color: #ef4444; }
-.tcase-dup-form-input { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
-.tcase-dup-error { border-color: #ef4444; }
-.tcase-dup-error-message { color: #ef4444; font-size: 12px; }
-.tcase-dup-modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 12px; }
-.tcase-dup-btn-cancel { padding: 10px 20px; border-radius: 8px; border: 1px solid #d1d5db; background: #fff; cursor: pointer; }
-.tcase-dup-btn-save { padding: 10px 20px; border-radius: 8px; background: linear-gradient(135deg, #5549f5 0%, #7c3aed 100%); color: #fff; border: none; cursor: pointer; }
+/* Modal Overlay */
+.tcase-dup-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  /* Removed backdrop-filter for better performance */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  will-change: opacity;
+}
 
+/* Modal Container */
+.tcase-dup-modal-container {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow: auto;
+  animation: tcaseDupModalSlideIn 0.2s ease-out;
+  will-change: transform, opacity;
+  transform: translateZ(0); /* Force GPU acceleration */
+}
+
+@keyframes tcaseDupModalSlideIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -20px, 0) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* Header */
+.tcase-dup-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 24px 0 24px;
+}
+
+.tcase-dup-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  color: #1a1a1a;
+}
+
+.tcase-dup-modal-close-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tcase-dup-modal-close-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* Instructions */
+.tcase-dup-modal-instructions {
+  padding: 12px 24px 0 24px;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Form */
+.tcase-dup-modal-form {
+  padding: 16px 24px 24px 24px;
+}
+
+.tcase-dup-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tcase-dup-form-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.tcase-dup-required-asterisk {
+  color: #ef4444;
+}
+
+.tcase-dup-form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.tcase-dup-form-input:focus {
+  outline: none;
+  border-color: #5549f5;
+  box-shadow: 0 0 0 3px rgba(85, 73, 245, 0.1);
+}
+
+.tcase-dup-error {
+  border-color: #ef4444;
+}
+
+.tcase-dup-error-message {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Actions */
+.tcase-dup-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.tcase-dup-btn-cancel {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tcase-dup-btn-cancel:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.tcase-dup-btn-save {
+  padding: 10px 20px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #5549f5 0%, #7c3aed 100%);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(85, 73, 245, 0.3);
+}
+
+.tcase-dup-btn-save:hover {
+  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(85, 73, 245, 0.4);
+}
+
+.tcase-dup-btn-save:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(85, 73, 245, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .tcase-dup-modal-overlay {
+    padding: 16px;
+  }
+  
+  .tcase-dup-modal-container {
+    max-width: 100%;
+  }
+  
+  .tcase-dup-modal-header {
+    padding: 20px 20px 0 20px;
+  }
+  
+  .tcase-dup-modal-instructions {
+    padding: 12px 20px 0 20px;
+  }
+  
+  .tcase-dup-modal-form {
+    padding: 16px 20px 20px 20px;
+  }
+  
+  .tcase-dup-modal-title {
+    font-size: 18px;
+  }
+  
+  .tcase-dup-modal-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .tcase-dup-btn-cancel,
+  .tcase-dup-btn-save {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .tcase-dup-modal-container {
+    animation: none;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .tcase-dup-modal-container {
+    border: 2px solid #000;
+  }
+  
+  .tcase-dup-form-input {
+    border-width: 2px;
+  }
+}

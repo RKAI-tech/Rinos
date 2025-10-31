@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import '../../../project/create_project/CreateProject.css';
 import { UserService } from '../../../../services/user';
 import { ProjectService } from '../../../../services/projects';
@@ -82,13 +82,36 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
     }
   }, [isOpen]);
 
+  // Handle ESC key to close modal
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   const filteredUsers = useMemo(() => {
     const q = userSearchTerm.trim().toLowerCase();
     if (!q) return [];
-    return allUsers.filter(u => u.email.toLowerCase().includes(q));
-  }, [allUsers, userSearchTerm]);
 
-  const handleToggleSelectUser = (userId: string) => {
+    // Get list of existing member user IDs
+    const existingMemberIds = new Set(members.map(m => m.user_id));
+
+    return allUsers.filter(u =>
+      u.email.toLowerCase().includes(q) &&
+      !existingMemberIds.has(u.user_id)
+    );
+  }, [allUsers, userSearchTerm, members]);
+
+  const handleToggleSelectUser = useCallback((userId: string) => {
     setSelectedUsers(prev => {
       const next = { ...prev } as typeof prev;
       if (next[userId]) {
@@ -98,20 +121,20 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
       }
       return next;
     });
-  };
+  }, []);
 
-  const handleChangeUserPermission = (userId: string, perm: Permission) => {
+  const handleChangeUserPermission = useCallback((userId: string, perm: Permission) => {
     setSelectedUsers(prev => ({ ...prev, [userId]: perm }));
-  };
+  }, []);
 
-  const handleRemoveUser = (user: UserInProject) => {
+  const handleRemoveUser = useCallback((user: UserInProject) => {
     setUserToRemove(user);
     setShowRemoveConfirm(true);
-  };
+  }, []);
 
   const handleConfirmRemove = async () => {
     if (!userToRemove || !projectId) return;
-    
+
     try {
       setRemovingUser(true);
       const svc = new ProjectService();
@@ -119,7 +142,7 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
         user_id: userToRemove.user_id,
         project_id: projectId,
       });
-      
+
       if (resp.success) {
         toast.success('User removed successfully');
         // Refresh the members list
@@ -140,10 +163,10 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
     }
   };
 
-  const handleCancelRemove = () => {
+  const handleCancelRemove = useCallback(() => {
     setShowRemoveConfirm(false);
     setUserToRemove(null);
-  };
+  }, []);
 
   const handleSubmit = async () => {
     if (!projectId) return;
@@ -174,7 +197,7 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
       const resp = await svc.addUserToProject(payload);
       if (resp.success) {
         toast.success('Shared project successfully');
-        onClose();
+        setActiveTab('manage');
         if (onSuccess) await onSuccess();
       } else {
         toast.error(resp.error || 'Failed to share project');
@@ -189,222 +212,305 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className="modal-container"
+        className="modal-container add-user-modal-container"
         onClick={(e) => e.stopPropagation()}
-        style={{ width: 840, maxWidth: 840, height: 600, maxHeight: 600, overflowY: 'auto' }}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '80vh', // Đặt chiều cao cố định
+          maxHeight: '600px' // Giới hạn chiều cao tối đa
+        }}
       >
         <div className="modal-header">
           <h2 className="modal-title">Share Project</h2>
           <button className="modal-close-btn" onClick={onClose}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         </div>
 
-        <div className="modal-form">
+        <div className="modal-form" style={{
+          flex: 1,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
           {/* Tabs header */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <div className="tab-header">
             <button
               type="button"
-              className="btn-save"
-              style={{ opacity: activeTab === 'add' ? 1 : 0.6 }}
+              className={`tab-button ${activeTab === 'add' ? 'active' : ''}`}
               onClick={() => setActiveTab('add')}
             >
               Add member
             </button>
             <button
               type="button"
-              className="btn-cancel"
-              style={{ opacity: activeTab === 'manage' ? 1 : 0.6 }}
+              className={`tab-button ${activeTab === 'manage' ? 'active' : ''}`}
               onClick={() => setActiveTab('manage')}
             >
               Manage
             </button>
           </div>
 
-          {activeTab === 'add' && (
-            <>
-              <div className="form-group">
-                <label className="form-label">Search users</label>
-                <input
-                  type="text"
-                  placeholder="Search users by email..."
-                  value={userSearchTerm}
-                  onChange={(e) => setUserSearchTerm(e.target.value)}
-                  className="form-input"
-                />
-              </div>
-
-              {userSearchTerm.trim().length > 0 && (
-                <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 8 }}>
-                  {filteredUsers.map(u => (
-                    <div
-                      key={u.user_id}
-                      onClick={() => handleToggleSelectUser(u.user_id)}
-                      style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: selectedUsers[u.user_id] ? '#f5f7ff' : 'transparent' }}
-                    >
-                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: '#6b7280' }}>
-                          <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M20 22c0-4.418-3.582-8-8-8s-8 3.582-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        <div>
-                          <div>{u.email}</div>
-                          <div style={{ fontSize: 12, color: '#6b7280' }}>{u.role}</div>
-                        </div>
-                      </div>
-                      {selectedUsers[u.user_id] && (
-                        <div style={{ color: '#5549f5', fontWeight: 600 }}>Selected</div>
-                      )}
-                    </div>
-                  ))}
-                  {filteredUsers.length === 0 && (
-                    <div style={{ padding: 16, color: '#6b7280' }}>No users found</div>
-                  )}
+          {/* Content area - scrollable */}
+          <div style={{ flex: 1, overflow: 'auto', padding: '0 0px' }}>
+            {activeTab === 'add' && (
+              <>
+                <div className="form-group">
+                  <label className="form-label">Search users</label>
+                  <input
+                    type="text"
+                    placeholder="Search users by email..."
+                    value={userSearchTerm}
+                    onChange={(e) => setUserSearchTerm(e.target.value)}
+                    className="form-input"
+                  />
                 </div>
-              )}
 
-              {Object.keys(selectedUsers).length > 0 && (
-                <div style={{ marginTop: 12 }}>
-                  <div className="form-label" style={{ marginBottom: 8 }}>Selected users</div>
-                  <div style={{ border: '1px solid #e5e7eb', borderRadius: 8 }}>
-                    {Object.keys(selectedUsers).map(uid => {
-                      const info = allUsers.find(u => u.user_id === uid);
-                      return (
-                        <div key={uid} style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>
-                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: '#6b7280' }}>
-                              <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                              <path d="M20 22c0-4.418-3.582-8-8-8s-8 3.582-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                            <div>
-                              <div>{info?.email || uid}</div>
-                              <div style={{ fontSize: 12, color: '#6b7280' }}>{info?.role || ''}</div>
+                {userSearchTerm.trim().length > 0 && (
+                  <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 8 }}>
+                    {filteredUsers.map(u => (
+                      <div
+                        key={u.user_id}
+                        onClick={() => handleToggleSelectUser(u.user_id)}
+                        style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: selectedUsers[u.user_id] ? '#f5f7ff' : 'transparent' }}
+                      >
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: '#6b7280' }}>
+                            <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M20 22c0-4.418-3.582-8-8-8s-8 3.582-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          <div>
+                            <div>{u.email}</div>
+                            <div style={{ fontSize: 12, color: '#6b7280' }}>{u.role}</div>
+                          </div>
+                        </div>
+                        {selectedUsers[u.user_id] && (
+                          <div style={{ color: '#5549f5', fontWeight: 600 }}>Selected</div>
+                        )}
+                      </div>
+                    ))}
+                    {filteredUsers.length === 0 && (
+                      <div style={{ padding: 16, color: '#6b7280' }}>No users found</div>
+                    )}
+                  </div>
+                )}
+
+                {Object.keys(selectedUsers).length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <div className="form-label" style={{ marginBottom: 8 }}>Selected users</div>
+                    <div style={{ border: '1px solid #e5e7eb', borderRadius: 8 }}>
+                      {Object.keys(selectedUsers).map(uid => {
+                        const info = allUsers.find(u => u.user_id === uid);
+                        return (
+                          <div key={uid} style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: '#6b7280' }}>
+                                <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M20 22c0-4.418-3.582-8-8-8s-8 3.582-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                              <div>
+                                <div>{info?.email || uid}</div>
+                                <div style={{ fontSize: 12, color: '#6b7280' }}>{info?.role || ''}</div>
+                              </div>
+                            </div>
+                            <select
+                              value={selectedUsers[uid]}
+                              onChange={(e) => handleChangeUserPermission(uid, e.target.value as Permission)}
+                              className="form-input"
+                              style={{ width: 180, marginRight: 8 }}
+                            >
+                              <option value="CAN_VIEW">Can view</option>
+                              <option value="CAN_EDIT">Can edit</option>
+                              <option value="CAN_MANAGE">Can manage</option>
+                            </select>
+                            <button
+                              type="button"
+                              className="modal-close-btn"
+                              onClick={() => handleToggleSelectUser(uid)}
+                              aria-label="Remove user"
+                              title="Remove"
+                            >
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === 'manage' && (
+              <div style={{ border: '1px solid #e5e7eb', borderBottom: 'none', padding: '0px 0px' }}>
+                {loadingMembers && (
+                  <div style={{ padding: 16, color: '#6b7280' }}>Loading members...</div>
+                )}
+                {membersError && !loadingMembers && (
+                  <div style={{ padding: 16, color: '#b91c1c' }}>{membersError}</div>
+                )}
+                {!loadingMembers && !membersError && members.length === 0 && (
+                  <div style={{ padding: 16, color: '#6b7280' }}>No members in this project</div>
+                )}
+                {!loadingMembers && !membersError && members.length > 0 && (
+                  <div style={{ maxHeight: 420, overflowY: 'auto' }}>
+                    {members
+                      .sort((a, b) => {
+                        // Sort owner first, then others alphabetically by email
+                        if (a.role === 'owner' && b.role !== 'owner') return -1;
+                        if (a.role !== 'owner' && b.role === 'owner') return 1;
+                        return (a.email || a.user_id).localeCompare(b.email || b.user_id);
+                      })
+                      .map(m => {
+                        const isOwner = m.role === 'owner';
+                        return (
+                          <div
+                            key={m.user_id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '10px 12px',
+                              borderBottom: '1px solid #f3f4f6',
+                              backgroundColor: isOwner ? '#f0f9ff' : 'transparent',
+                              borderLeft: isOwner ? '3px solid #0ea5e9' : '3px solid transparent'
+                            }}
+                          >
+                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: isOwner ? '#0ea5e9' : '#6b7280' }}>
+                                <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M20 22c0-4.418-3.582-8-8-8s-8 3.582-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                              <div>
+                                <div style={{ fontWeight: isOwner ? '600' : 'normal', color: isOwner ? '#0c4a6e' : 'inherit' }}>
+                                  {m.email || m.user_id}
+                                </div>
+                                <div style={{ fontSize: 12, color: isOwner ? '#0369a1' : '#6b7280' }}>{m.role || ''}</div>
+                              </div>
+                            </div>
+                            <div style={{ width: '20%', fontSize: 12, color: '#374151', textAlign: 'right' }}>
+                              {!isOwner && (m.permissions || '-')}
+                            </div>
+                            <div style={{ width: '60px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                              {m.role !== 'owner' && (
+                                <button
+                                  onClick={() => handleRemoveUser(m)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: '4px',
+                                    borderRadius: '4px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#ef4444',
+                                    transition: 'background-color 0.2s'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#fef2f2';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                  }}
+                                  title="Remove user from project"
+                                >
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                </button>
+                              )}
                             </div>
                           </div>
-                          <select
-                            value={selectedUsers[uid]}
-                            onChange={(e) => handleChangeUserPermission(uid, e.target.value as Permission)}
-                            className="form-input"
-                            style={{ width: 180, marginRight: 8 }}
-                          >
-                            <option value="CAN_VIEW">Can view</option>
-                            <option value="CAN_EDIT">Can edit</option>
-                            <option value="CAN_MANAGE">Can manage</option>
-                          </select>
-                          <button
-                            type="button"
-                            className="modal-close-btn"
-                            onClick={() => handleToggleSelectUser(uid)}
-                            aria-label="Remove user"
-                            title="Remove"
-                          >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                              <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </button>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
                   </div>
-                </div>
-              )}
-
-              <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={onClose} disabled={submitting}>Cancel</button>
-                <button type="button" className="btn-save" onClick={handleSubmit} disabled={submitting}>Save</button>
+                )}
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* Compact Footer */}
+        <div className="modal-footer" style={{
+          borderTop: '1px solid #e5e7eb',
+          padding: '12px 20px',
+          backgroundColor: '#f9fafb',
+          borderRadius: '0 0 8px 8px',
+          flexShrink: 0,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '8px',
+          alignItems: 'center'
+        }}>
+          {activeTab === 'add' ? (
+            <>
+              <button
+                type="button"
+                className="btn-cancel"
+                onClick={onClose}
+                disabled={submitting}
+                style={{
+                  padding: '6px 16px',
+                  fontSize: '14px',
+                  height: '32px'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-save"
+                onClick={handleSubmit}
+                disabled={submitting}
+                style={{
+                  padding: '6px 16px',
+                  fontSize: '14px',
+                  height: '32px'
+                }}
+              >
+                Save
+              </button>
             </>
-          )}
-
-          {activeTab === 'manage' && (
-            <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 8, minHeight: 420 }}>
-              {loadingMembers && (
-                <div style={{ padding: 16, color: '#6b7280' }}>Loading members...</div>
-              )}
-              {membersError && !loadingMembers && (
-                <div style={{ padding: 16, color: '#b91c1c' }}>{membersError}</div>
-              )}
-              {!loadingMembers && !membersError && members.length === 0 && (
-                <div style={{ padding: 16, color: '#6b7280' }}>No members in this project</div>
-              )}
-              {!loadingMembers && !membersError && members.length > 0 && (
-                <div style={{ maxHeight: 420, overflowY: 'auto' }}>
-                  {members.map(m => (
-                    <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>
-                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: '#6b7280' }}>
-                          <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M20 22c0-4.418-3.582-8-8-8s-8 3.582-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        <div>
-                          <div>{m.email || m.user_id}</div>
-                          <div style={{ fontSize: 12, color: '#6b7280' }}>{m.role || ''}</div>
-                        </div>
-                      </div>
-                      <div style={{ width: 220, fontSize: 12, color: '#111827' }}>
-                        Role: {m.role || '-'}
-                      </div>
-                      <div style={{ width: 220, fontSize: 12, color: '#374151' }}>
-                        Permission: {m.permissions || '-'}
-                      </div>
-                      {m.role !== 'owner' && (
-                        <button
-                          onClick={() => handleRemoveUser(m)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            padding: '4px',
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#ef4444',
-                            transition: 'background-color 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#fef2f2';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                          }}
-                          title="Remove user from project"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="modal-actions" style={{ marginTop: 12 }}>
-                <button type="button" className="btn-cancel" onClick={onClose}>Close</button>
-              </div>
-            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn-cancel"
+              onClick={onClose}
+              style={{
+                padding: '6px 16px',
+                fontSize: '14px',
+                height: '32px'
+              }}
+            >
+              Close
+            </button>
           )}
         </div>
       </div>
 
       {/* Remove User Confirmation Dialog */}
       {showRemoveConfirm && userToRemove && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={(e) => e.stopPropagation()}>
           <div style={{
             backgroundColor: 'white',
             borderRadius: '8px',
@@ -417,7 +523,7 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
               Remove User
             </h3>
             <p style={{ margin: '0 0 24px 0', color: '#6b7280', lineHeight: '1.5' }}>
-              Are you sure you want to remove <strong>{userToRemove.email || userToRemove.user_id}</strong> from this project? 
+              Are you sure you want to remove <strong>{userToRemove.email || userToRemove.user_id}</strong> from this project?
               This action cannot be undone.
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>

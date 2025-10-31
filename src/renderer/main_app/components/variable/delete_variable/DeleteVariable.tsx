@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './DeleteVariable.css';
 
 interface VariableRef { id: string; name?: string }
@@ -17,6 +17,23 @@ const DeleteVariable: React.FC<DeleteVariableProps> = ({ isOpen, onClose, onDele
     onDelete(variable.id);
     onClose();
   };
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   return (
     <div className="dv-modal-overlay" onClick={onClose}>

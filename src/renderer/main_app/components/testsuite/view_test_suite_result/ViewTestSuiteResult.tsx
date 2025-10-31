@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import './ViewTestSuiteResult.css';
 import { TestSuiteService } from '../../../services/testsuites';
 import { TestCaseService } from '../../../services/testcases';
@@ -32,37 +34,66 @@ interface LogModalProps {
 
 // Log Modal Component
 const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, testcaseName, logs, videoUrl }) => {
+  const [activeTab, setActiveTab] = useState<'logs' | 'video'>('logs');
+
   if (!isOpen) return null;
 
   return (
     <div className="vtsr-log-overlay" onClick={(e) => e.stopPropagation()}>
-      <div className="vtsr-log-combined" onClick={(e) => e.stopPropagation()}>
+      <div className="vtsr-log-tabbed" onClick={(e) => e.stopPropagation()}>
         <div className="vtsr-log-header">
           <h3 className="vtsr-log-title">{testcaseName}</h3>
           <button className="vtsr-log-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
-        <div className="vtsr-log-content-row">
-          <div className="vtsr-log-pane">
-            <div className="vtsr-terminal">
-              <div className="vtsr-term-bar">
-                <span className="dot red" />
-                <span className="dot yellow" />
-                <span className="dot green" />
-                <span className="vtsr-term-title">Execution Logs</span>
-              </div>
-              <pre className="vtsr-term-content">
-                {logs || 'No logs available for this testcase.'}
-              </pre>
-            </div>
+        
+        <div className="vtsr-log-tabbed-content">
+          <div className="vtsr-log-tab-nav">
+            <button 
+              className={`vtsr-log-tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
+              onClick={() => setActiveTab('logs')}
+            >
+              📋 Logs
+            </button>
+            <button 
+              className={`vtsr-log-tab-btn ${activeTab === 'video' ? 'active' : ''}`}
+              onClick={() => setActiveTab('video')}
+            >
+              🎥 Video
+            </button>
           </div>
-          <div className="vtsr-log-pane">
-            {videoUrl ? (
-              <video style={{ width: '100%', height: '100%' }} controls src={videoUrl} />
-            ) : (
-              <div style={{ padding: 16 }}>No video available.</div>
+          
+          <div className="vtsr-log-tab-content">
+            {activeTab === 'logs' && (
+              <div className="vtsr-terminal">
+                <div className="vtsr-term-bar">
+                  <span className="dot red" />
+                  <span className="dot yellow" />
+                  <span className="dot green" />
+                  <span className="vtsr-term-title">Execution Logs</span>
+                </div>
+                <div className="vtsr-term-content">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {logs || 'No logs available for this testcase.'}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            )}
+            
+            {activeTab === 'video' && (
+              <div className="vtsr-log-video-container">
+                {videoUrl ? (
+                  <video style={{ width: '100%', height: '100%' }} controls src={videoUrl} />
+                ) : (
+                  <div className="vtsr-log-no-video">
+                    <div className="vtsr-log-no-video-icon">🎥</div>
+                    <div className="vtsr-log-no-video-text">No video available for this testcase.</div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
+        
         <div className="vtsr-log-footer">
           <button className="vtsr-btn" onClick={onClose}>Close</button>
         </div>
@@ -83,9 +114,10 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [testSuiteName, setTestSuiteName] = useState<string>('');
   const svc = useMemo(() => new TestSuiteService(), []);
   const tcs = useMemo(() => new TestCaseService(), []);
-  const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
+  const [isRetryingAll, setIsRetryingAll] = useState(false);
   const canEditPermission = canEdit(projectId);
 
   const fetchResults = useCallback(async (silent: boolean = false) => {
@@ -94,6 +126,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       if (!silent) setIsLoading(true);
       setError(null);
       const resp = await svc.getTestCasesBySuite({ test_suite_id: testSuiteId });
+      console.log('response:', resp);
       if (resp.success && resp.data) {
         const mapped: CaseItem[] = (resp.data.testcases || []).map((tc) => ({
           id: tc.testcase_id,
@@ -101,7 +134,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
           tag: (tc as any).tag,
           status: (tc as any).status,
           output: tc.logs || '',
-          url: (tc as any).url
+          url: (tc as any).url_video
         }));
         setCases(mapped);
       } else {
@@ -116,9 +149,25 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
     }
   }, [isOpen, testSuiteId, svc]);
 
+  const fetchTestSuiteName = useCallback(async () => {
+    if (!isOpen || !testSuiteId || !projectId) return;
+    try {
+      const resp = await svc.getTestSuites(projectId);
+      if (resp.success && resp.data) {
+        const testSuite = resp.data.test_suites.find(ts => ts.test_suite_id === testSuiteId);
+        if (testSuite) {
+          setTestSuiteName(testSuite.name);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch test suite name:', e);
+    }
+  }, [isOpen, testSuiteId, projectId, svc]);
+
   useEffect(() => {
     fetchResults();
-  }, [fetchResults]);
+    fetchTestSuiteName();
+  }, [fetchResults, fetchTestSuiteName]);
 
   // Auto-refresh every 2 seconds while modal is open
   useEffect(() => {
@@ -131,28 +180,20 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
     };
   }, [isOpen, testSuiteId, fetchResults]);
 
-  const handleRetry = async (testcaseId: string) => {
-    if (!canEditPermission) return;
-    setRetryingIds(prev => {
-      const next = new Set(prev);
-      next.add(testcaseId);
-      return next;
-    });
+  const handleRetryAll = async () => {
+    if (!canEditPermission || !testSuiteId) return;
+    setIsRetryingAll(true);
     try {
-      const resp = await tcs.executeTestCase({ testcase_id: testcaseId });
+      const resp = await svc.executeTestSuite({ test_suite_id: testSuiteId });
       if (resp.success) {
-        toast.success('Test case execution started');
+        toast.success('Test suite execution started');
       } else {
-        toast.error(resp.error || 'Failed to execute test case');
+        toast.error(resp.error || 'Failed to execute test suite');
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to execute test case');
+      toast.error(e instanceof Error ? e.message : 'Failed to execute test suite');
     } finally {
-      setRetryingIds(prev => {
-        const next = new Set(prev);
-        next.delete(testcaseId);
-        return next;
-      });
+      setIsRetryingAll(false);
       await fetchResults();
     }
   };
@@ -166,6 +207,23 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
     setIsLogModalOpen(false);
     setSelectedLog(null);
   };
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   // Calculate summary statistics
   const summaryStats = useMemo(() => {
@@ -256,65 +314,31 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
 
   const handleExport = async () => {
     try {
-      if (!projectId) {
-        toast.error('Missing project ID');
+      if (!testSuiteId) {
+        toast.error('Missing test suite ID');
         return;
       }
-      // Fetch all testcases in project to obtain actions and tags fully
-      const tcResp = await tcs.getTestCases(projectId, 10000, 0);
-      if (!tcResp.success || !tcResp.data) {
-        toast.error(tcResp.error || 'Failed to load testcases for export');
+
+      const response = await svc.exportTestSuite({ test_suite_id: testSuiteId });
+      
+      if (!response.success) {
+        toast.error(response.error || 'Failed to export test suite');
         return;
       }
-      const idToTc = new Map(tcResp.data.testcases.map(tc => [tc.testcase_id, tc]));
 
-      const now = new Date().toLocaleString();
-      const rows = cases.map(c => {
-        const full = idToTc.get(c.id);
-        const actions = full?.actions || [];
-        const steps = actions
-          .map((a, idx) => `${idx + 1}. ${a.description || ''}`)
-          .filter(line => line.trim() !== '1. ' ? true : true)
-          .join('\n');
-        const expected = actions
-          .filter(a => String(a.action_type).toLowerCase() === 'assert')
-          .map((a, idx) => `${idx + 1}. ${a.description || ''}`)
-          .join('\n');
-        return {
-          Name: c.name || '',
-          Description: c.tag || full?.tag || '',
-          Step: steps,
-          Expected: expected,
-          Result: c.status || '',
-          Date: now,
-          Tester: '',
-          Evidence: c.url || full?.url || ''
-        };
-      });
-
-      const headers = ['Name','Description','Step','Expected','Result','Date','Tester','Evidence'];
-      const escapeCsv = (val: unknown) => {
-        const s = String(val ?? '');
-        if (/[",\n,]/.test(s)) {
-          return '"' + s.replace(/"/g, '""') + '"';
-        }
-        return s;
-      };
-      const csvLines: string[] = [];
-      csvLines.push(headers.join(','));
-      for (const row of rows) {
-        csvLines.push(headers.map(h => escapeCsv((row as any)[h])).join(','));
+      if (response.blob && response.filename) {
+        const url = URL.createObjectURL(response.blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = response.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('Exported test suite to Excel');
+      } else {
+        toast.error('No file received from server');
       }
-      const blob = new Blob(["\uFEFF" + csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'test-suite-results.csv';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success('Exported results to CSV');
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Export failed');
     }
@@ -340,13 +364,21 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
             style={{ zIndex: 2147483648 }}
           />
           <div className="vtsr-header">
-            <h2 className="vtsr-title">Test Suite Results</h2>
+            <h2 className="vtsr-title">{testSuiteName || 'Test Suite Results'}</h2>
             <div style={{ display: 'flex', gap: 8 }}>
               <button 
-                className="vtsr-btn" 
+                className="vtsr-btn vtsr-btn-rerun" 
+                onClick={(e) => { e.stopPropagation(); handleRetryAll(); }}
+                disabled={isRetryingAll || isLoading || !canEditPermission || cases.length === 0}
+                aria-label="Retry All Test Cases"
+              >
+                {isRetryingAll ? 'Running...' : 'Rerun'}
+              </button>
+              <button
+                className="vtsr-btn vtsr-btn-export" 
                 onClick={(e) => { e.stopPropagation(); handleExport(); }}
                 disabled={isLoading || cases.length === 0}
-                aria-label="Export to Excel"
+                aria-label="Export"
               >
                 Export
               </button>
@@ -433,7 +465,6 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
                             </span>
                           </span>
                         </th>
-                        <th aria-label="Actions"></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -452,20 +483,9 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
                                   Running
                                 </span>
                               ) : (
-                                c.status || 'DRAFT'
+                                 ((c.status && c.status.toLowerCase() !== 'draft') ? c.status : 'N/A')
                               )}
                             </span>
-                          </td>
-                          <td className="vtsr-table-actions">
-                            <button 
-                              className="vtsr-btn" 
-                              onClick={(e) => { e.stopPropagation(); handleRetry(c.id); }}
-                              disabled={retryingIds.has(c.id) || isLoading || !canEditPermission}                             
-                              style={{ cursor: (retryingIds.has(c.id) || isLoading || !canEditPermission) ? 'not-allowed' : 'pointer' }}
-                              aria-label="Retry Testcase"
-                            >
-                              {retryingIds.has(c.id) ? 'Retrying...' : 'Retry'}
-                            </button>
                           </td>
                         </tr>
                       ))}
@@ -485,10 +505,9 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
                         onChange={(e) => handleItemsPerPageChange(e.target.value)}
                         className="vtsr-pagination-dropdown"
                       >
-                        <option value="5">5 rows/page</option>
                         <option value="10">10 rows/page</option>
                         <option value="20">20 rows/page</option>
-                        <option value="50">50 rows/page</option>
+                        <option value="30">30 rows/page</option>
                       </select>
                       
                       <button 
@@ -536,6 +555,10 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
                 )}
               </>
             )}
+          </div>
+
+          <div className="vtsr-footer">
+            <button className="vtsr-btn" onClick={onClose}>Close</button>
           </div>
 
         </div>

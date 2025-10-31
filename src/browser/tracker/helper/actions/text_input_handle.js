@@ -14,6 +14,11 @@ export function handleInputLikeBase(e, actionType = 'input', eventLabel = 'Input
     // console.log(`Skipping ${eventLabel} recording - recording is paused`);
     return;
   }
+
+  if (e && e.isTrusted === false) {
+    try { console.log(`Skipping ${eventLabel} - event is not trusted`); } catch {}
+    return;
+  }
   const selectors = buildSelectors(e?.target);
   const value = e?.target?.value;
   const payload = buildCommonActionData(e, selectors, { value });

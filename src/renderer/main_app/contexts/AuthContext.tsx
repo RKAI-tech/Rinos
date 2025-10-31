@@ -6,6 +6,7 @@ import { config } from '../../env.config';
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
+  userEmail: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   microsoftLogin: () => Promise<void>;
@@ -58,9 +59,38 @@ const tokenStorage = {
   }
 };
 
+// Helper functions for email storage
+const emailStorage = {
+  get: async (): Promise<string | null> => {
+    try {
+      return await (window as any).tokenStore.getEmail();
+    } catch (error) {
+      // console.error('[AuthContext] Error getting email from tokenStore:', error);
+      return null;
+    }
+  },
+  
+  set: async (email: string): Promise<void> => {
+    try {
+      await (window as any).tokenStore.setEmail(email);
+    } catch (error) {
+      // console.error('Error setting email to tokenStore:', error);
+    }
+  },
+  
+  remove: async (): Promise<void> => {
+    try {
+      await (window as any).tokenStore.removeEmail();
+    } catch (error) {
+      // console.error('Error removing email from tokenStore:', error);
+    }
+  }
+};
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const log = (...args: unknown[]) => console.log('[AuthContext]', ...args);
   
   // Kiểm tra token có sẵn khi component mount
@@ -69,14 +99,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const initializeAuth = async () => {
       try {
         const token = await tokenStorage.get(config.ACCESS_TOKEN_KEY);
+        const email = await emailStorage.get();
         // log('initializeAuth: token exists =', Boolean(token));
+        // log('initializeAuth: email exists =', Boolean(email));
         // log('initializeAuth: token =', token);
         if (token) {
           const response = await authService.validateToken(token);
           if (response.success && response.data?.access_token) {
             setIsAuthenticated(true);
+            // Nếu có email từ storage, sử dụng nó, nếu không thì lấy từ API
+            if (email) {
+              setUserEmail(email);
+            } else {
+              // Lấy email từ API nếu không có trong storage
+              try {
+                const userResponse = await authService.getCurrentUser();
+                if (userResponse.success && (userResponse as any).data?.email) {
+                  const apiEmail = (userResponse as any).data.email;
+                  setUserEmail(apiEmail);
+                  await emailStorage.set(apiEmail);
+                }
+              } catch (error) {
+                // console.error('[AuthContext] Error getting user email:', error);
+              }
+            }
           }
-
         }
       } catch (error) {
         // console.error('[AuthContext] Error initializing auth:', error);
@@ -93,8 +140,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const clearAuthData = () => {
     // log('clearAuthData');
     tokenStorage.remove(config.ACCESS_TOKEN_KEY);
+    emailStorage.remove();
     authService.clearAuth();
     setIsAuthenticated(false);
+    setUserEmail(null);
   };
   
   const login = async (email: string, password: string) => {
@@ -109,7 +158,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.success && response.data) {
         // Chỉ lưu token
         await tokenStorage.set(config.ACCESS_TOKEN_KEY, response.data.access_token);
+        // Lưu email
+        await emailStorage.set(email);
         setIsAuthenticated(true);
+        setUserEmail(email);
         // log('login: authenticated');
       } else {
         throw new Error(response.error || 'Login failed');
@@ -136,7 +188,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.success && response.data) {
         // Chỉ lưu token
         await tokenStorage.set(config.ACCESS_TOKEN_KEY, response.data.access_token);
+        // Lưu email
+        await emailStorage.set(email);
         setIsAuthenticated(true);
+        setUserEmail(email);
         // log('register: authenticated');
       } else {
         throw new Error(response.error || 'Registration failed');
@@ -197,6 +252,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.success && response.data) {
         // Chỉ lưu token
         await tokenStorage.set(config.ACCESS_TOKEN_KEY, response.data.access_token);
+        // Lấy email từ Microsoft token hoặc API
+        try {
+          const userResponse = await authService.getCurrentUser();
+          if (userResponse.success && (userResponse as any).data?.email) {
+            const apiEmail = (userResponse as any).data.email;
+            await emailStorage.set(apiEmail);
+            setUserEmail(apiEmail);
+          }
+        } catch (error) {
+          // console.error('[AuthContext] Error getting user email after Microsoft login:', error);
+        }
         setIsAuthenticated(true);
         // log('microsoftLogin: authenticated');
       } else {
@@ -215,6 +281,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     isAuthenticated,
     isLoading,
+    userEmail,
     login,
     logout,
     microsoftLogin,

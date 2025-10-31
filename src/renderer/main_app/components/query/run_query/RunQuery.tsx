@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './RunQuery.css';
 import { VariableService } from '../../../services/variables';
 import { toast } from 'react-toastify';
@@ -56,6 +56,24 @@ const RunQuery: React.FC<RunQueryProps> = ({ isOpen, sql, items, onClose, projec
       toast.error('Failed to save variable');
     }
   };
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   return (
     <div className="rqr-modal-overlay" onClick={onClose}>
       <div className="rqr-modal-container" onClick={(e) => e.stopPropagation()}>

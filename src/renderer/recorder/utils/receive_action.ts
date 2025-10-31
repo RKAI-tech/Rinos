@@ -5,17 +5,17 @@ export function createDescription(action_received: any): string {
     const type = action_received.type;
     let value = action_received.value;
     // Truncate value if it's too long
-    if (typeof value === 'string' && value.length > 15) {
-        value = value.substring(0, 15) + '...';
-    }
+    // if (typeof value === 'string' && value.length > 15) {
+    //     value = value.substring(0, 15) + '...';
+    // }
     let url = action_received.url;
-    if (typeof url === 'string' && url.length > 15) {
-        url = url.substring(0, 15) + '...';
-    }
+    // if (typeof url === 'string' && url.length > 15) {
+    //     url = url.substring(0, 15) + '...';
+    // }
     let element = action_received.elementText;
-    if (typeof element === 'string' && element.length > 15) {
-        element = element.substring(0, 15) + '...';
-    }
+    // if (typeof element === 'string' && element.length > 15) {
+    //     element = element.substring(0, 15) + '...';
+    // }
     let files = action_received.files?.map((f: any) => f.name).join(', ') || '';
     switch (type) {
         case ActionType.navigate:

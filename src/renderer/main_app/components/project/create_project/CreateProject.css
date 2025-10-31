@@ -6,12 +6,13 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 20px;
+  will-change: transform;
 }
 
 /* Modal Container */
@@ -23,13 +24,14 @@
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
-  animation: modalSlideIn 0.3s ease-out;
+  animation: modalSlideIn 0.2s ease-out;
+  will-change: transform, opacity;
 }
 
 @keyframes modalSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-20px) scale(0.95);
+    transform: translateY(-10px) scale(0.98);
   }
   to {
     opacity: 1;
@@ -256,6 +258,48 @@
   .modal-container {
     animation: none;
   }
+}
+
+/* Add User Modal Specific Styles */
+.add-user-modal-container {
+  /* width: 1000px !important; */
+  max-width: 700px !important;
+  max-height: 700px !important;
+  overflow-y: auto;
+}
+
+.tab-header {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tab-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  opacity: 0.6;
+}
+
+.tab-button.active {
+  opacity: 1;
+  background: #5549f5;
+  color: white;
+  border-color: #5549f5;
+}
+
+.tab-button:hover {
+  opacity: 0.8;
+}
+
+.tab-button.active:hover {
+  opacity: 1;
 }
 
 /* High Contrast Mode */

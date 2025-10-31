@@ -30,7 +30,8 @@ export const MainEnv = {
   OPEN_DEVTOOLS: process.env.OPEN_DEVTOOLS === "1",
 
   // Token store config
-  ACCESS_TOKEN_KEY: process.env.ACCESS_TOKEN_KEY || 'access_token',
+  ACCESS_TOKEN_KEY: process.env.VITE_ACCESS_TOKEN_KEY || 'access_token',
+  USER_EMAIL_KEY: process.env.VITE_USER_EMAIL_KEY || 'user_email',
 };
 
 export const MainEnvArrays = {
