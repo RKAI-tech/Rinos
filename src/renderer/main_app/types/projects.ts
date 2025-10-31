@@ -12,6 +12,18 @@ export interface ProjectDeleteRequest {
     project_id: string;
 }
 
+export interface HistoryItem {
+    history_id: string;
+    project_id: string;
+    user_id: string;
+    action_type: string;
+    entity_type: string;
+    entity_id: string;
+    old_data?: any;
+    new_data?: any;
+    created_at: string;
+}
+
 export interface Project {
     project_id: string;
     name: string;
@@ -24,6 +36,7 @@ export interface Project {
     number_member: number;
     user_role: string;
     user_permissions: string;
+    history: HistoryItem[];
 }
 
 export interface ProjectUpdateRequest {

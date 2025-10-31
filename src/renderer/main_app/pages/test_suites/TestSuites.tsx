@@ -70,7 +70,7 @@ const TestSuites: React.FC = () => {
       setError(null);
       const svc = new TestSuiteService();
       const resp = await svc.getTestSuites(projectId);
-      console.log('response:', resp);
+      // console.log('response:', resp);
       if (resp.success && resp.data) {
         const mapped: TestSuite[] = resp.data.test_suites.map(ts => ({
           id: ts.test_suite_id,
@@ -154,10 +154,11 @@ const TestSuites: React.FC = () => {
   const sidebarItems = [
     { id: 'testcases', label: 'Testcases', path: `/testcases/${projectId}`, isActive: false },
     { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: true },
-    
+    { id: 'cookies', label: 'Cookies', path: `/cookies/${projectId}`, isActive: false },
     { id: 'databases', label: 'Databases', path: `/databases/${projectId}`, isActive: false },
     { id: 'queries', label: 'Queries', path: `/queries/${projectId}`, isActive: false },
-    { id: 'variables', label: 'Variables', path: `/variables/${projectId}`, isActive: false }
+    { id: 'variables', label: 'Variables', path: `/variables/${projectId}`, isActive: false },
+    { id: 'change-log', label: 'Change Log', path: `/change-log/${projectId}`, isActive: false }
   ];
 
   const breadcrumbItems = [
@@ -346,7 +347,7 @@ const TestSuites: React.FC = () => {
     try {
       const svc = new TestSuiteService();
       const desc = description ?? (selectedSuite?.description || '');
-      const resp = await svc.updateTestSuite({ test_suite_id: id, name, description: desc });
+      const resp = await svc.updateTestSuite({ test_suite_id: id, name: name.trim(), description: desc.trim() });
       if (resp.success) {
         toast.success('Test suite updated');
         handleCloseEditSuite();

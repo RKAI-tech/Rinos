@@ -11,6 +11,10 @@ let _isExecutingActions = false;
 
 function dispatchResize(e) {
   const target = window; // window resize
+  if (e && e.isTrusted === false) {
+    try { console.log('Skipping window resize recording - event is not trusted'); } catch {}
+    return;
+  }
   const selectors = buildSelectors(document.documentElement || document.body);
   const width = Math.max(window.innerWidth || 0, 0);
   const height = Math.max(window.innerHeight || 0, 0);
@@ -23,11 +27,11 @@ export function handleWindowResizeEvent(e) {
   if (getPauseMode && getPauseMode()) return;
   // Don't record resize events when executing actions to prevent infinite loop
   if (_isExecutingActions) {
-    console.log('[WindowResize] Skipping resize event recording - actions are executing');
+    // console.log('[WindowResize] Skipping resize event recording - actions are executing');
     return;
   }
   
-  console.log('[WindowResize] Recording resize event:', window.innerWidth, 'x', window.innerHeight);
+  // console.log('[WindowResize] Recording resize event:', window.innerWidth, 'x', window.innerHeight);
   
   _pendingEvent = e;
   if (_resizeRafId != null) return;
@@ -50,6 +54,6 @@ export function disposeWindowResizeHandler() {
 // Functions to control execution state
 export function setExecutingActionsState(isExecuting) {
   _isExecutingActions = isExecuting;
-  console.log('[WindowResize] Execution state changed:', isExecuting);
+  // console.log('[WindowResize] Execution state changed:', isExecuting);
 }
 

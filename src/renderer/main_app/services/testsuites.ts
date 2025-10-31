@@ -90,9 +90,15 @@ export class TestSuiteService {
     }
 
     async updateTestSuite(payload: { test_suite_id: string; name: string; description: string }): Promise<ApiResponse<DefaultResponse>> {
-        if (!payload || !payload.test_suite_id || !payload.name || !payload.description) {
-            return { success: false, error: 'test_suite_id, name, description are required' };
+        console.log('updateTestSuite payload', payload);
+        if (!payload || !payload.test_suite_id) {
+            return { success: false, error: 'Suite ID is missing, please try again.' };
         }
+        
+        if (!payload.name) {
+            return { success: false, error: 'Name are required' };
+        }
+
         return await apiRouter.request<DefaultResponse>(`/test-suites/${payload.test_suite_id}`, {
             method: 'PUT',
             body: JSON.stringify(payload)

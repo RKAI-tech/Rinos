@@ -126,7 +126,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       if (!silent) setIsLoading(true);
       setError(null);
       const resp = await svc.getTestCasesBySuite({ test_suite_id: testSuiteId });
-      console.log('response:', resp);
+      // console.log('response:', resp);
       if (resp.success && resp.data) {
         const mapped: CaseItem[] = (resp.data.testcases || []).map((tc) => ({
           id: tc.testcase_id,

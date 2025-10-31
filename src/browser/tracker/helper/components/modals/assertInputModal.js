@@ -14,7 +14,7 @@ let assertInputModal = null;
  */
 export function closeAssertInputModal() {
   if (assertInputModal && assertInputModal.parentNode) {
-    console.log('closeAssertInputModal', assertInputModal);
+    // console.log('closeAssertInputModal', assertInputModal);
     assertInputModal.parentNode.removeChild(assertInputModal);
   }
   assertInputModal = null;
@@ -28,11 +28,6 @@ export function closeAssertInputModal() {
  * Hiển thị modal nhập assert
  */
 export function showAssertInputModal(assertType, defaultValue, anchorRect, onConfirm, onCancel) {
-  console.log('assertType', assertType);
-  console.log('defaultValue', defaultValue);
-  console.log('anchorRect', anchorRect);
-  console.log('onConfirm', onConfirm);
-  console.log('onCancel', onCancel);
   closeAssertInputModal();
   const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
   const scrollY = window.pageYOffset || document.documentElement.scrollTop;

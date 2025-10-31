@@ -19,7 +19,11 @@ export function handleDragStartEvent(e) {
     // console.log('Skipping drag start recording - recording is paused');
     return;
   }
-  
+  if (e && e.isTrusted === false) {
+    try { console.log('Skipping drag start recording - event is not trusted'); } catch {}
+    return;
+  }
+
   const selectors = buildSelectors(e?.target);
     
   const payload = buildCommonActionData(e, selectors);

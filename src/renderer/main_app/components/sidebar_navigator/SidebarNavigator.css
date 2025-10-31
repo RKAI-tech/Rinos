@@ -33,6 +33,19 @@
   box-sizing: border-box;
 }
 
+.menu-item-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.menu-icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  color: #9aa1af;
+}
+
 .menu-item:hover {
   background: #f8fafc;
 }
@@ -58,8 +71,16 @@
   font-weight: 600;
 }
 
+.menu-item.active .menu-icon {
+  color: #5549f5;
+}
+
 .menu-item:hover .menu-text {
   color: #374151;
+}
+
+.menu-item:hover .menu-icon {
+  color: #6b7280;
 }
 
 /* Responsive Design */

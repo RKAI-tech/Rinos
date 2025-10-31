@@ -19,7 +19,10 @@ export function handleSelectChangeEvent(e) {
     // console.log('Skipping select change recording - recording is paused');
     return;
   }
-
+  if (e && e.isTrusted === false) {
+    try { console.log('Skipping select change recording - event is not trusted'); } catch {}
+    return;
+  }
   const selectors = buildSelectors(el, { maxSelectors: 5, minScore: 300, validate: true });
   const selectedValue = el.value || '';
   const selectedText = el.selectedOptions && el.selectedOptions[0] ? (el.selectedOptions[0].text || '') : '';

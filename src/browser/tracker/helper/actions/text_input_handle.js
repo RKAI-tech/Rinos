@@ -16,7 +16,7 @@ export function handleInputLikeBase(e, actionType = 'input', eventLabel = 'Input
   }
 
   if (e && e.isTrusted === false) {
-    try { console.log(`Skipping ${eventLabel} - event is not trusted`); } catch {}
+    try { /* console.log(`Skipping ${eventLabel} - event is not trusted`); */ } catch {}
     return;
   }
   const selectors = buildSelectors(e?.target);

@@ -263,15 +263,6 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
     return cloned;
   };
 
-  if (!isOpen || !draft) return null;
-
-  const handleSave = () => {
-    if (draft && onSave) {
-      onSave(mapToResponse(normalizeForSave(draft)));
-    }
-    onClose();
-  };
-
   // Handle ESC key to close modal
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -288,6 +279,15 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
+  
+  if (!isOpen || !draft) return null;
+
+  const handleSave = () => {
+    if (draft && onSave) {
+      onSave(mapToResponse(normalizeForSave(draft)));
+    }
+    onClose();
+  };
 
   return (
     <div className="ma-action-detail-overlay" onClick={onClose}>
