@@ -1,5 +1,6 @@
 import { createVariablesPanel } from '../panels/variablesPanel.js';
 import { createQueryPanel } from '../panels/queryPanel.js';
+import { createApiRequestPanel } from '../panels/apiRequestPanel.js';
 
 /**
  * Assert modal functionality for value/text input
@@ -121,6 +122,8 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
   });
 
   const queryPanel = createQueryPanel(assertType, onConfirm);
+  // Lazy init API Request Panel để tránh ảnh hưởng mở modal
+  let apiRequestPanel = null;
 
   // Helper to render table from array of objects
   function renderResultAsTable(data) {
@@ -216,11 +219,13 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
     ev.stopPropagation();
     insertMenu.style.display = 'none';
     queryPanel.close();
+    if (apiRequestPanel && apiRequestPanel.close) apiRequestPanel.close();
     if (!variablesPanel.isOpen()) { openVariablePanel(); } else { variablesPanel.close(); }
   });
 
   function openQueryPanel() {
     variablesPanel.close();
+    if (apiRequestPanel && apiRequestPanel.close) apiRequestPanel.close();
     queryPanel.open();
   }
 
@@ -230,14 +235,28 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
     openQueryPanel();
   });
 
-  // Open API Request flow (notify host app to open API Request modal)
+  // Mở API Request panel (song song như Query Panel), lazy create và gắn element vào container nếu chưa có
+  function openApiRequestPanel() {
+    // try { console.log('[AssertInputModal][API] openApiRequestPanel: start'); } catch {}
+    variablesPanel.close();
+    queryPanel.close();
+    if (!apiRequestPanel) {
+      try {
+        apiRequestPanel = createApiRequestPanel(assertType, onConfirm);
+        container.appendChild(apiRequestPanel.element);
+      } catch (e) {
+      }
+    }
+    if (apiRequestPanel && apiRequestPanel.open) {
+      apiRequestPanel.open();
+    } else {
+    }
+  }
+
   itemApiRequest.addEventListener('click', (ev) => {
     ev.stopPropagation();
     insertMenu.style.display = 'none';
-    try {
-      const evt = new CustomEvent('rikkei-open-api-request-modal', { bubbles: true });
-      document.dispatchEvent(evt);
-    } catch {}
+    openApiRequestPanel();
   });
 
   // run/use handled inside queryPanel component
@@ -246,7 +265,7 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
     if (ev.key === 'Enter') {
       ev.preventDefault();
       const val = (input.value || '').trim();
-      if (onConfirm) onConfirm(val, undefined, undefined, undefined);
+      if (onConfirm) onConfirm(val, undefined, undefined, undefined, undefined);
       closeAssertInputModal();
     } else if (ev.key === 'Escape') {
       ev.preventDefault();
@@ -319,5 +338,6 @@ export function isAssertModalOpen() {
 export function getAssertModal() {
   return assertInputModal;
 }
+
 
 

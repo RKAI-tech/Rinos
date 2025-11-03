@@ -401,6 +401,57 @@ export class BrowserManager extends EventEmitter {
                 return { success: false, error: String(e) };
             }
         });
+
+        // Expose API request runner for tracker (bypass page's fetch restrictions)
+        await this.context.exposeFunction('runApiRequestForTracker', async (payload: {
+            method: string,
+            url: string,
+            headers?: Record<string, string>,
+            bodyType?: 'none' | 'json' | 'form',
+            body?: string,
+            formData?: Array<{ key: string; value: string }>,
+        }) => {
+            try {
+                if (!this.page) {
+                    return { success: false, error: 'No page context' };
+                }
+
+                const url = (payload?.url || '').trim();
+                if (!url) {
+                    return { success: false, error: 'URL is empty' };
+                }
+
+                const headers: Record<string, string> = { ...(payload?.headers || {}) };
+                const options: any = { headers };
+
+                // body
+                const bodyType = payload?.bodyType || 'none';
+                if (bodyType !== 'none') {
+                    if (bodyType === 'json') {
+                        options.data = payload?.body || '';
+                    } else if (bodyType === 'form') {
+                        const body: Record<string, string> = {};
+                        (payload?.formData || [])
+                            .filter(p => p.key && p.key.trim())
+                            .forEach(p => { body[p.key.trim()] = String(p.value ?? ''); });
+                        options.data = body;
+                    }
+                }
+
+                const method = (payload?.method || 'GET').toLowerCase();
+                const resp = await (this.page.request as any)[method](url, options);
+                const status = await resp.status();
+                let data: any = null;
+                try { data = await resp.json(); } catch { try { data = await resp.text(); } catch { data = null; } }
+                let respHeaders: Record<string, string> = {};
+                try { respHeaders = await resp.headers(); } catch {}
+                const ok = status >= 200 && status < 300;
+                const error = ok ? undefined : (typeof data === 'string' ? data : (data && (data.error || data.message || data.detail)) || `HTTP ${status}`);
+                return { success: ok, status, data, headers: respHeaders, error };
+            } catch (e) {
+                return { success: false, error: String(e) };
+            }
+        });
     }
 
     async setAssertMode(enabled: boolean, assertType: AssertType): Promise<void> {

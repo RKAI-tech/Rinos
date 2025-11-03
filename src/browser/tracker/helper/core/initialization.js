@@ -113,8 +113,8 @@ function processAssertClick(e) {
         assertType, 
         defaultValue, 
         rect, 
-        (finalValue, connection, connection_id, query) => {
-          sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement);
+        (finalValue, connection, connection_id, query,apiRequest) => {
+          sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement, apiRequest);
         }, 
         () => {
         }
@@ -126,7 +126,7 @@ function processAssertClick(e) {
   }
 }
 
-function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection_id, connection, query, DOMelement) {
+function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection_id, connection, query, DOMelement, apiRequest) {
   if (window.sendActionToMain) {
     const action = {
       type: 'assert',
@@ -143,6 +143,7 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
       url: window.location.href,
       title: document.title,
       DOMelement: DOMelement,
+      apiRequest: apiRequest,
     };
     window.sendActionToMain(action);
   }

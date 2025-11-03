@@ -147,7 +147,7 @@ export function createScriptForAiAssert(receivedAction: any, action_received: an
 }
 
 export function receiveAction(testcaseId: string, action_recorded: Action[], action_received: any): Action[] {
-    // console.log('[rawAction]', action_received);
+    console.log('[rawAction]', action_received);
     const normalizedType = (action_received?.action_type ?? action_received?.type) as ActionType | undefined;
     const normalizedDescription = (action_received?.description ?? createDescription(action_received)) as string | undefined;
 
