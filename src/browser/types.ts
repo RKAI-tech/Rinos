@@ -1,3 +1,5 @@
+import { BrowserStorageResponse } from "../renderer/main_app/types/browser_storage";
+
 export interface Selector {
     value: string;
 }
@@ -80,5 +82,5 @@ export interface Action {
     query?: string;
     connection?: Connection;
     files?: FileUpload[];
-    cookies?: any;
+    browser_storage?: BrowserStorageResponse;
 }

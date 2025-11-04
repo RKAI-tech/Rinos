@@ -1,4 +1,4 @@
-import { CookiesResponse } from "./cookies";
+import { BrowserStorageResponse } from "./browser_storage";
 export enum ActionType {
   input = "input",
   navigate = "navigate",
@@ -30,7 +30,7 @@ export enum ActionType {
   back = "back",
   forward = "forward",
   window_resize = "window_resize",
-  add_cookies = "add_cookies",
+  add_browser_storage = "add_browser_storage",
 }
 
 export enum AssertType {
@@ -120,8 +120,8 @@ export interface Action {
     // Browser events
     url?: string;
     timestamp?: number;
-    cookies_id?: string;
-    cookies?: CookiesResponse;
+    browser_storage_id?: string;
+    browser_storage?: BrowserStorageResponse;
 }
 
 export interface ActionBatch {

@@ -61,9 +61,9 @@ export function createDescription(action_received: any): string {
         case ActionType.reload:
             return `Reload page`;
         case ActionType.scroll:
-            return `Scroll viewport`;
-        case ActionType.add_cookies:
-            return `Add cookies`;
+                return `Scroll viewport`;
+        case ActionType.add_browser_storage:
+            return `Add browser storage ${action_received.browser_storage.name}`;
         case ActionType.assert:
             switch (action_received.assertType) {
                 case AssertType.toHaveText:
@@ -188,13 +188,14 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         // Browser events
         url: action_received.url,
         timestamp: action_received.timeStamp || action_received.timestamp,
-        cookies_id: action_received.cookies_id,
-        cookies: action_received.cookies ? {
-            cookies_id: action_received.cookies_id,
+        browser_storage_id: action_received.browser_storage_id,
+        browser_storage: action_received.browser_storage ? {
+            browser_storage_id: action_received.browser_storage_id,
             project_id: action_received.project_id,
-            name: action_received.cookies.name,
-            description: action_received.cookies.description,
-            value: action_received.cookies.value,
+            name: action_received.browser_storage.name,
+            description: action_received.browser_storage.description,
+            value: action_received.browser_storage.value,
+            storage_type: action_received.browser_storage.storage_type,
         } : undefined,
     } as Action;
 

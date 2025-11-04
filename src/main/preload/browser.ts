@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { Action, AssertType } from "../../browser/types";
+import { BrowserStorageType } from "../../browser/controller";
 
 const browserMethods = {
     start: async (basicAuthentication: { username: string, password: string }) => ipcRenderer.invoke("browser:start", basicAuthentication),
@@ -39,7 +40,7 @@ const browserMethods = {
     getProjectId: async () => ipcRenderer.invoke("browser:getProjectId"),
     setAuthToken: async (token: string | null) => ipcRenderer.invoke("browser:setAuthToken", token),
 
-    addCookies: async (cookies: any) => ipcRenderer.invoke("browser:addCookies", cookies),
+    addBrowserStorage: async (storageType: BrowserStorageType, value: any) => ipcRenderer.invoke("browser:addBrowserStorage", storageType, value),
     reload: async () => ipcRenderer.invoke("browser:reload"),
     goBack: async () => ipcRenderer.invoke("browser:goBack"),
     goForward: async () => ipcRenderer.invoke("browser:goForward"),

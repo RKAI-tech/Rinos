@@ -3,6 +3,7 @@ import { BrowserManager } from "../../browser/BrowserManager";
 import { Action, AssertType } from "../../browser/types";
 import { BrowserContext, Page } from "playwright";
 import { setBrowserManager } from "./screen_handle";
+import { BrowserStorageType } from "../../browser/controller";
 
 // Map mỗi cửa sổ recorder -> instance BrowserManager riêng
 const windowIdToManager = new Map<number, BrowserManager>();
@@ -126,11 +127,17 @@ export function registerBrowserIpc() {
         }
     });
 
-    ipcMain.handle("browser:addCookies", async (event, cookies: any) => {
+    ipcMain.handle("browser:addBrowserStorage", async (event, storageType: BrowserStorageType, value: any) => {
         const win = getWindowFromEvent(event);
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
-        await manager.controller?.addCookies(manager.context as BrowserContext, manager.page as Page, cookies);
+        if (storageType === BrowserStorageType.COOKIE) {
+            await manager.controller?.addCookies(manager.context as BrowserContext, manager.page as Page, value);
+        } else if (storageType === BrowserStorageType.LOCAL_STORAGE) {
+            await manager.controller?.addLocalStorage(manager.page as Page, value);
+        } else if (storageType === BrowserStorageType.SESSION_STORAGE) {
+            await manager.controller?.addSessionStorage(manager.page as Page, value);
+        }
     });
 
     ipcMain.handle("browser:navigate", async (event, url: string) => {

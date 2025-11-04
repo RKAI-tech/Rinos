@@ -7,6 +7,11 @@ const fs = require('fs');
 const path = require('path');
 const tmpDir = os.tmpdir();
 
+export enum BrowserStorageType {
+    COOKIE = 'cookie',
+    LOCAL_STORAGE = 'localStorage',
+    SESSION_STORAGE = 'sessionStorage',
+}
 
 export class Controller {
     private pendingRequests: number;
@@ -30,21 +35,21 @@ export class Controller {
         await page.reload();
     }
 
-    async addLocalStorage(page: Page, localStorage: any): Promise<void> {
-        await page.evaluate((localStorage: any) => {
-            Object.entries(localStorage).forEach(([key, value]) => {
-                localStorage.setItem(key, value);
+    async addLocalStorage(page: Page, localStorageJSON: any): Promise<void> {
+        await page.evaluate((data: any) => {
+            Object.entries(data).forEach(([key, value]) => {
+                localStorage.setItem(key, value as any);
             });
-        }, JSON.parse(localStorage));
+        }, JSON.parse(localStorageJSON));
         await page.reload();
     }
 
-    async addSessionStorage(page: Page, sessionStorage: any): Promise<void> {
-        await page.evaluate((sessionStorage: any) => {
-            Object.entries(sessionStorage).forEach(([key, value]) => {
-                sessionStorage.setItem(key, value);
+    async addSessionStorage(page: Page, sessionStorageJSON: any): Promise<void> {
+        await page.evaluate((data: any) => {
+            Object.entries(data).forEach(([key, value]) => {
+                sessionStorage.setItem(key, value as any);
             });
-        }, JSON.parse(sessionStorage));
+        }, JSON.parse(sessionStorageJSON));
         await page.reload();
     }
 
@@ -211,7 +216,16 @@ export class Controller {
                         await page.goForward();
                         break;
                     case ActionType.add_browser_storage:
-                        await this.addCookies(context, page, JSON.stringify(action.cookies.value));
+                        // console.log('[Controller] Action:', action);
+                        if (action.browser_storage) {
+                            if (action.browser_storage.storage_type === BrowserStorageType.COOKIE) {
+                                await this.addCookies(context, page, JSON.stringify(action.browser_storage.value));
+                            } else if (action.browser_storage.storage_type === BrowserStorageType.LOCAL_STORAGE) {
+                                await this.addLocalStorage(page, JSON.stringify(action.browser_storage.value));
+                            } else if (action.browser_storage.storage_type === BrowserStorageType.SESSION_STORAGE) {
+                                await this.addSessionStorage(page, JSON.stringify(action.browser_storage.value));
+                            }
+                        }
                         break;
                     case ActionType.click:
                         if (action.elements && action.elements.length === 1) {

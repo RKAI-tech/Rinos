@@ -18,6 +18,34 @@ interface CreateBrowserStorageModalProps {
 
 const CreateBrowserStorageModal: React.FC<CreateBrowserStorageModalProps> = ({ isOpen, onClose, onSave, isSaving, name, description, value, type, setName, setDescription, setValue, setType }) => {
   if (!isOpen) return null;
+
+  const handleValuePlaceholder = (type: BrowserStorageType) => {
+    if (type === BrowserStorageType.COOKIE) {
+      return `[\n` +
+        `  {\n` +
+        `    "domain": "automation-test.rikkei.org",\n` +
+        `    "hostOnly": true,\n` +
+        `    "path": "/",\n` +
+        `    "sameSite": "Lax",\n` +
+        `    "secure": false,\n` +
+        `    "value": "################################"\n` +
+        `  }` +
+        `\n]`;
+    } else if (type === BrowserStorageType.LOCAL_STORAGE) {
+      return `{\n` +
+        `  "user_data": "##########",\n` +
+        `  "access_token": "##########",\n` +
+        `  "refresh_token": "##########"\n` +
+        `}`;
+    } else if (type === BrowserStorageType.SESSION_STORAGE) {
+      return `{\n` +
+        `  "user_data": "##########",\n` +
+        `  "access_token": "##########",\n` +
+        `  "refresh_token": "##########"\n` +
+        `}`;
+    }
+  };
+
   return (
     <div className="cookies-modal-overlay" onClick={onClose}>
       <div className="cookies-modal" onClick={e => e.stopPropagation()}>
@@ -40,7 +68,7 @@ const CreateBrowserStorageModal: React.FC<CreateBrowserStorageModalProps> = ({ i
               </div>
             </div>
           </label>
-          <input className="cookies-modal-input" value={name} onChange={e => setName(e.target.value)} placeholder="Browser storage name" />
+          <input className="cookies-modal-input-placeholder" value={name} onChange={e => setName(e.target.value)} placeholder="Browser storage name" />
 
           <label className="cookies-modal-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             Description
@@ -51,7 +79,7 @@ const CreateBrowserStorageModal: React.FC<CreateBrowserStorageModalProps> = ({ i
               </div>
             </div>
           </label>
-          <input className="cookies-modal-input" value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description" />
+          <input className="cookies-modal-input-placeholder" value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description" />
 
           <label className="cookies-modal-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             Type <span style={{ color: '#dc2626', marginLeft: 2 }}>*</span>
@@ -81,7 +109,7 @@ const CreateBrowserStorageModal: React.FC<CreateBrowserStorageModalProps> = ({ i
               </div>
             </div>
           </label>
-          <textarea className="cookies-modal-textarea" rows={6} value={value} onChange={e => setValue(e.target.value)} placeholder='Enter value (JSON)'></textarea>
+          <textarea className="cookies-modal-textarea-placeholder" rows={6} value={value} onChange={e => setValue(e.target.value)} placeholder={handleValuePlaceholder(type)}></textarea>
         </div>
         <div className="cookies-modal-footer">
           <button className="cookies-btn-secondary" onClick={onClose} disabled={isSaving}>Cancel</button>
