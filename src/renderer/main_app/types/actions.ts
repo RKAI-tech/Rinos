@@ -1,4 +1,4 @@
-import { CookiesResponse } from "./cookies";
+import { CookiesResponse } from "./browser_storage";
 
 export enum ActionType {
     input = "input",

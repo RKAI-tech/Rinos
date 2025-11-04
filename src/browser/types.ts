@@ -39,7 +39,7 @@ export enum ActionType {
     back = 'back',
     forward = 'forward',
     window_resize = 'window_resize',
-    add_cookies = 'add_cookies',
+    add_browser_storage = 'add_browser_storage',
 }
 
 export enum AssertType {

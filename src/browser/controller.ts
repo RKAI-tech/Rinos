@@ -30,6 +30,24 @@ export class Controller {
         await page.reload();
     }
 
+    async addLocalStorage(page: Page, localStorage: any): Promise<void> {
+        await page.evaluate((localStorage: any) => {
+            Object.entries(localStorage).forEach(([key, value]) => {
+                localStorage.setItem(key, value);
+            });
+        }, JSON.parse(localStorage));
+        await page.reload();
+    }
+
+    async addSessionStorage(page: Page, sessionStorage: any): Promise<void> {
+        await page.evaluate((sessionStorage: any) => {
+            Object.entries(sessionStorage).forEach(([key, value]) => {
+                sessionStorage.setItem(key, value);
+            });
+        }, JSON.parse(sessionStorage));
+        await page.reload();
+    }
+
     async navigate(page: Page, url: string): Promise<void> {
         if (!page) {
             throw new Error('Browser page not found');
@@ -192,7 +210,7 @@ export class Controller {
                     case ActionType.forward:
                         await page.goForward();
                         break;
-                    case ActionType.add_cookies:
+                    case ActionType.add_browser_storage:
                         await this.addCookies(context, page, JSON.stringify(action.cookies.value));
                         break;
                     case ActionType.click:

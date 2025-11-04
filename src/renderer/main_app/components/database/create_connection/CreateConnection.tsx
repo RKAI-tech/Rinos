@@ -35,6 +35,19 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Partial<Record<'db_name' | 'host' | 'port' | 'username' | 'password', string>>>({});
 
+  // Reset form when modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setDbType('postgres');
+      setDbName('');
+      setHost('');
+      setPort('');
+      setUsername('');
+      setPassword('');
+      setErrors({});
+    }
+  }, [isOpen]);
+
   // Handle ESC key to close modal
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

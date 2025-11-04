@@ -5,7 +5,7 @@ import AddActionModal from '../add_action_modal/AddActionModal';
 import DatabaseExecutionModal from '../database_execution_modal/DatabaseExecutionModal';
 import WaitModal from '../wait_modal/WaitModal';
 import NavigateModal from '../navigate_modal/NavigateModal';
-import AddCookiesModal from '../add_cookies_modal/AddCookiesModal';
+import AddCookiesModal from '../add_browser_storage_modal/AddBrowserStorageModal';
 import { Action, ActionType, AssertType, Connection } from '../../types/actions';
 import { receiveActionWithInsert } from '../../utils/receive_action';
 import { toast } from 'react-toastify';

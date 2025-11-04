@@ -191,9 +191,9 @@ const Testcases: React.FC = () => {
       isActive: false
     },
     {
-      id: 'cookies',
-      label: 'Cookies',
-      path: `/cookies/${projectId || ''}`,
+      id: 'browser-storage',
+      label: 'Browser Storage',
+      path: `/browser-storage/${projectId || ''}`,
       isActive: false
     },
     {

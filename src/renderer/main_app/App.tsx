@@ -12,7 +12,7 @@ import Variables from './pages/variables/Variables';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Databases from './pages/databases/Databases';
-import Cookies from './pages/cookies/Cookies';
+import BrowserStorage from './pages/browser_storage/BrowserStorage';
 import ChangeLog from './pages/change_log/ChangeLog';
 import ConfirmCloseModal from '../recorder/components/confirm_close/ConfirmCloseModal';
 
@@ -126,9 +126,9 @@ function App() {
               <TestSuites />
             </ProtectedRoute>
           } />
-          <Route path="/cookies/:projectId" element={
+          <Route path="/browser-storage/:projectId" element={
             <ProtectedRoute>
-              <Cookies />
+              <BrowserStorage />
             </ProtectedRoute>
           } />
           <Route path="/databases/:projectId" element={

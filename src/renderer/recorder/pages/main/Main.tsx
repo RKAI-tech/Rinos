@@ -470,8 +470,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           assertType: AssertType.ai,
           playwright_code: (response as any).data.playwright_code || '',
           description: (response as any).data.description || '',
-          connection_id: databaseElements[0]?.connection?.connection_id,
-          connection: databaseElements[0]?.connection,
+          // connection_id: databaseElements[0]?.connection?.connection_id,
+          // connection: databaseElements[0]?.connection,
         };
 
         // console.log('[Main] AI action:', aiAction);
@@ -579,7 +579,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       if (response.success && response.data) {
         const newActions = response.data.actions || [];
         setActions(newActions);
-        // console.log('[Main] Reloaded actions:', newActions);
+        console.log('[Main] Reloaded actions:', newActions);
         // Sau reload, luôn đặt vị trí chèn = độ dài actions (rỗng → 0)
         const len = newActions.length;
         setSelectedInsertPosition(len);
