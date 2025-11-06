@@ -1,0 +1,630 @@
+/* API Element Panel - Inline panel for AI Assert Modal */
+
+/* Method and URL Section - Single container */
+.aep-method-url {
+  display: flex;
+  margin-bottom: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.aep-method-select {
+  padding: 10px 8px;
+  border: none;
+  border-right: 1px solid #d1d5db;
+  font-size: 14px;
+  background: #fff;
+  min-width: 80px;
+  width: 80px;
+  cursor: pointer;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.aep-url-input {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  font-size: 14px;
+  background: #fff;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.aep-send-btn {
+  padding: 10px 16px;
+  background: #8b5cf6;
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+  white-space: nowrap;
+}
+
+.aep-send-btn:hover:not(:disabled) {
+  background: #7c3aed;
+}
+
+.aep-send-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Section Styles */
+.aep-section {
+  margin-bottom: 12px;
+}
+
+.aep-section-header {
+  margin-bottom: 8px;
+}
+
+.aep-section-title {
+  font-size: 12px;
+  font-weight: 400;
+  color: #555;
+}
+
+/* Params Section */
+.aep-params {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.aep-param-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 10px;
+  border-bottom: 1px solid #f3f4f6;
+  align-items: center;
+  min-height: 48px;
+}
+
+.aep-param-row:last-child {
+  border-bottom: none;
+}
+
+.aep-param-key {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.aep-param-value {
+  flex: 2;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.aep-add-param {
+  padding: 8px;
+  border-top: 1px dashed #d1d5db;
+  text-align: center;
+}
+
+/* Headers Section */
+.aep-headers {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.aep-header-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 10px;
+  border-bottom: 1px solid #f3f4f6;
+  align-items: center;
+  min-height: 48px;
+}
+
+.aep-header-row:last-child {
+  border-bottom: none;
+}
+
+.aep-header-key {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.aep-header-value {
+  flex: 2;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.aep-remove-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: #fef2f2;
+  color: #dc2626;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.aep-remove-btn:hover {
+  background: #fee2e2;
+}
+
+.aep-add-header {
+  padding: 8px;
+  border-top: 1px dashed #d1d5db;
+  text-align: center;
+}
+
+.aep-add-btn {
+  background: none;
+  border: none;
+  color: #8b5cf6;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.aep-add-btn:hover {
+  background: #f3f4f6;
+}
+
+.aep-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Authorization Section */
+.aep-auth-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  cursor: pointer;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.aep-auth-fields {
+  display: flex;
+  gap: 8px;
+  flex-direction: row;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.aep-auth-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+/* Body Section */
+.aep-body-type-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  cursor: pointer;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.aep-body-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  background: #fff;
+  resize: vertical;
+  min-height: 120px;
+  box-sizing: border-box;
+}
+
+/* Token Storage Section */
+.aep-checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+}
+
+.aep-checkbox-container input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.aep-checkbox-label {
+  font-weight: 500;
+  user-select: none;
+}
+
+.aep-token-storage {
+  margin-top: 12px;
+  padding: 16px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.aep-storage-type,
+.aep-storage-key,
+.aep-storage-selector,
+.aep-storage-attribute {
+  margin-bottom: 16px;
+}
+
+.aep-storage-type:last-child,
+.aep-storage-key:last-child,
+.aep-storage-selector:last-child,
+.aep-storage-attribute:last-child {
+  margin-bottom: 0;
+}
+
+.aep-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.aep-storage-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+}
+
+.aep-storage-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.aep-storage-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+  color: #374151;
+  box-sizing: border-box;
+}
+
+.aep-storage-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.aep-custom-storage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.aep-storage-info {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+}
+
+.aep-info-text {
+  font-size: 13px;
+  color: #0369a1;
+  line-height: 1.5;
+}
+
+.aep-info-text strong {
+  font-weight: 600;
+}
+
+.aep-info-text ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.aep-info-text li {
+  margin-bottom: 4px;
+}
+
+/* Basic Auth Storage */
+.aep-basic-auth-keys {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.aep-basic-auth-keys .aep-storage-key {
+  margin-bottom: 0;
+}
+
+/* Response Section */
+.aep-response {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.aep-response-status {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+  font-weight: 600;
+  background: #f9fafb;
+  color: #374151;
+}
+
+.aep-response-status span {
+  margin-left: 8px;
+}
+
+.aep-status-code {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-block;
+  margin-left: 4px;
+}
+
+.aep-status-code.aep-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.aep-status-code.aep-error {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.aep-status-code.aep-warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.aep-response-content {
+  background: #fff;
+}
+
+.aep-response-data {
+  margin: 0;
+  padding: 16px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #374151;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 300px;
+  overflow: auto;
+  background: #f9fafb;
+}
+
+/* Focus states for accessibility */
+.aep-method-url:focus-within {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.aep-method-select:focus,
+.aep-url-input:focus {
+  outline: none;
+}
+
+.aep-header-key:focus,
+.aep-header-value:focus,
+.aep-auth-select:focus,
+.aep-auth-input:focus,
+.aep-body-type-select:focus,
+.aep-body-textarea:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+/* Scrollbar styling */
+.aep-response-data::-webkit-scrollbar {
+  width: 6px;
+}
+
+.aep-response-data::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.aep-response-data::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.aep-response-data::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .aep-method-url {
+    flex-direction: row;
+  }
+  
+  .aep-method-select {
+    min-width: 70px;
+    width: 70px;
+    font-size: 13px;
+    padding: 10px 6px;
+  }
+  
+  .aep-send-btn {
+    min-width: 60px;
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+  
+  .aep-auth-fields {
+    flex-direction: row;
+  }
+  
+  .aep-param-key {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  
+  .aep-param-value {
+    flex: 2;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .aep-header-key {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  
+  .aep-header-value {
+    flex: 2;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .aep-remove-btn {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+@media (max-width: 480px) {
+  .aep-method-url {
+    flex-direction: row;
+  }
+  
+  .aep-method-select {
+    min-width: 60px;
+    width: 60px;
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+  
+  .aep-url-input {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  
+  .aep-send-btn {
+    min-width: 50px;
+    padding: 8px 8px;
+    font-size: 12px;
+  }
+  
+  .aep-auth-select,
+  .aep-body-type-select,
+  .aep-auth-input {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  
+  .aep-auth-fields {
+    flex-direction: row;
+  }
+  
+  .aep-body-textarea {
+    padding: 10px;
+    font-size: 13px;
+    min-height: 100px;
+  }
+  
+  .aep-param-key {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  
+  .aep-param-value {
+    flex: 2;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .aep-header-key {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  
+  .aep-header-value {
+    flex: 2;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .aep-remove-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+  
+  .aep-response-data {
+    padding: 12px;
+    font-size: 12px;
+    max-height: 200px;
+  }
+}
+

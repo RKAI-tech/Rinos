@@ -1086,7 +1086,17 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         onChangePrompt={setAiPrompt}
         onChangeElement={(idx, updater) => setAiElements(prev => prev.map((el, i) => i === idx ? updater(el) : el))}
         onRemoveElement={(idx) => setAiElements(prev => prev.filter((_, i) => i !== idx))}
-        onClose={() => { setIsAiModalOpen(false); setAiPrompt(''); setAiElements([]); }}
+        onClose={async () => { 
+          setIsAiModalOpen(false); 
+          setAiPrompt(''); 
+          setAiElements([]);
+          // Tắt chế độ assert
+          setSelectedAssert(null);
+          setIsAssertMode(false);
+          setIsAssertDropdownOpen(false);
+          setAssertSearch('');
+          await (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
+        }}
         onSubmit={handleAiSubmit}
         onAddElement={handleAiAddElement}
       />

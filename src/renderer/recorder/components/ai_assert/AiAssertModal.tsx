@@ -3,12 +3,14 @@ import './AiAssertModal.css';
 import { StatementService } from '../../services/statements';
 import { apiRouter } from '../../services/baseAPIRequest';
 import QueryResultTable from './QueryResultTable';
-import ApiModel from '../api_model/ApiModel';
-import { Connection } from '../../types/actions';
+import ApiElementPanel from '../api_model/ApiElementPanel';
+import { Connection, ApiRequestData } from '../../types/actions';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { executeApiRequest, validateApiRequest, convertApiRequestDataToOptions } from '../../utils/api_request';
+import { toast } from 'react-toastify';
 const statementService = new StatementService();
 
-type ElementType = 'Browser' | 'Database';
+type ElementType = 'Browser' | 'Database' | 'API';
 
 interface AiElementItem {
   id: string;
@@ -23,6 +25,9 @@ interface AiElementItem {
   query?: string;
   queryResultPreview?: string;
   queryResultData?: any[];
+  // API fields
+  apiRequest?: ApiRequestData;
+  apiResponse?: { status: number; data: any; headers: any };
 }
 
 interface ConnectionOption { id: string; label: string }
@@ -57,10 +62,10 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
   const [connectionMap, setConnectionMap] = useState<Record<string, Connection>>({});
   const [isLoadingConns, setIsLoadingConns] = useState(false);
   const [isRunningQueryIdx, setIsRunningQueryIdx] = useState<number | null>(null);
+  const [isSendingApiIdx, setIsSendingApiIdx] = useState<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>({});
-  const [isApiModelOpen, setIsApiModelOpen] = useState(false);
 
   const toggleCollapsed = (id: string) => {
     setCollapsedMap((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -138,6 +143,58 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
     }
   };
 
+  const handleSendApiRequest = async (idx: number, apiData: ApiRequestData, response?: { status: number; data: any; headers: any }) => {
+    try {
+      setIsSendingApiIdx(idx);
+      
+      // If response is already provided (from ApiElementPanel), use it directly
+      // Otherwise, execute request (backward compatibility)
+      if (response) {
+        // Response already executed in ApiElementPanel (same as ApiRequestModal behavior)
+        onChangeElement(idx, (old) => ({ 
+          ...old, 
+          apiRequest: apiData,
+          apiResponse: response 
+        }));
+      } else {
+        // Fallback: execute request if response not provided
+        const options = convertApiRequestDataToOptions(apiData);
+        const validation = validateApiRequest(options);
+        if (!validation.valid) {
+          toast.error(validation.error || 'Invalid API request configuration');
+          return;
+        }
+
+        const apiResponse = await executeApiRequest(options);
+        
+        if (apiResponse.success) {
+          onChangeElement(idx, (old) => ({ 
+            ...old, 
+            apiRequest: apiData,
+            apiResponse: { status: apiResponse.status, data: apiResponse.data, headers: apiResponse.headers } 
+          }));
+          toast.success(`API request successful: ${apiResponse.status}`);
+        } else {
+          onChangeElement(idx, (old) => ({ 
+            ...old, 
+            apiRequest: apiData,
+            apiResponse: { status: apiResponse.status || 0, data: apiResponse.error || 'Unknown error', headers: {} } 
+          }));
+          toast.error(`API request failed: ${apiResponse.error || 'Unknown error'}`);
+        }
+      }
+    } catch (error: any) {
+      toast.error(`API request failed: ${error.message || 'Unknown error'}`);
+      onChangeElement(idx, (old) => ({ 
+        ...old, 
+        apiRequest: apiData,
+        apiResponse: { status: 0, data: error.message || 'Unknown error', headers: {} } 
+      }));
+    } finally {
+      setIsSendingApiIdx(null);
+    }
+  };
+
   return (
     <div className="aiam-overlay" onClick={() => { if (!isGenerating) onClose(); }}>
       <div className="aiam-modal" onClick={(e) => e.stopPropagation()}>
@@ -185,7 +242,27 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                   <button
                     className="aiam-btn"
                     style={{ display: 'block', width: '100%', borderRadius: 0, border: 'none', textAlign: 'left' }}
-                    onClick={() => { setIsAddMenuOpen(false); setIsApiModelOpen(true); }}
+                    onClick={() => { 
+                      setIsAddMenuOpen(false);
+                      // First add element (will add Database by default)
+                      onAddElement();
+                      // Then immediately update it to API type with initial API request data
+                      const newIndex = elements.length;
+                      setTimeout(() => {
+                        onChangeElement(newIndex, (old) => ({
+                          ...old,
+                          type: 'API',
+                          apiRequest: {
+                            method: 'GET',
+                            url: 'https://',
+                            params: [],
+                            headers: [],
+                            auth: { type: 'none' },
+                            body: { type: 'none', content: '' }
+                          }
+                        }));
+                      }, 0);
+                    }}
                   >
                     API 
                   </button>
@@ -274,6 +351,13 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                   </div>
                 )}
 
+                {collapsedMap[el.id] && el.type === 'API' && (
+                  <div className="aiam-mono aiam-mono-inline">
+                    <span className="aiam-text">API: {el.apiRequest?.method ? String(el.apiRequest.method) : ''} {el.apiRequest?.url ? String(el.apiRequest.url) : '(No URL)'}</span>
+                    <button className="aiam-close" title="Remove" onClick={() => onRemoveElement(idx)} style={{ width: 24, height: 24 }}>✕</button>
+                  </div>
+                )}
+
                 {!collapsedMap[el.id] && (
                   el.type === 'Browser' ? (
                     <div className="aiam-browser-box" >
@@ -283,12 +367,76 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                           <div className="aiam-mono">{el.value || '(No text available)'}</div>
                         </div>
                       </div>
+                      <div className="aiam-col">
+                        <div className="aiam-row">
+                          <label className="aiam-sub">Selectors <span style={{ color: 'red' }}>*</span></label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                            {(el.selector || []).map((sel, selIdx) => (
+                              <div key={selIdx} style={{ position: 'relative', width: '100%' }}>
+                                <input
+                                  className="aiam-input"
+                                  type="text"
+                                  value={sel}
+                                  onChange={(e) => {
+                                    const newSelectors = [...(el.selector || [])];
+                                    newSelectors[selIdx] = e.target.value;
+                                    onChangeElement(idx, (old) => ({ ...old, selector: newSelectors }));
+                                  }}
+                                  style={{ width: '100%', paddingRight: '32px' }}
+                                  placeholder="Enter selector"
+                                />
+                                <button
+                                  onClick={() => {
+                                    const newSelectors = [...(el.selector || [])];
+                                    newSelectors.splice(selIdx, 1);
+                                    onChangeElement(idx, (old) => ({ ...old, selector: newSelectors.length > 0 ? newSelectors : undefined }));
+                                  }}
+                                  style={{ 
+                                    position: 'absolute',
+                                    right: '8px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#9ca3af',
+                                    cursor: 'pointer',
+                                    padding: '4px',
+                                    fontSize: '16px',
+                                    lineHeight: 1,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}
+                                  title="Remove selector"
+                                  onMouseEnter={(e) => { e.currentTarget.style.color = '#6b7280'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.color = '#9ca3af'; }}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              className="aiam-btn"
+                              onClick={() => {
+                                const newSelectors = [...(el.selector || []), ''];
+                                onChangeElement(idx, (old) => ({ ...old, selector: newSelectors }));
+                              }}
+                              style={{ 
+                                alignSelf: 'flex-start',
+                                padding: '6px 12px'
+                              }}
+                            >
+                              + Add selector
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  ) : (
+                  ) : el.type === 'Database' ? (
                     <div className="aiam-db-box">
                       <div className="aiam-row">
                         <div className="aiam-col">
-                          <label className="aiam-sub">Connection</label>
+                          <label className="aiam-sub">Connection <span style={{ color: 'red' }}>*</span></label>
                           <select className="aiam-input" value={el.connectionId || ''} onChange={(e) => onChangeElement(idx, (old) => ({ ...old, connectionId: e.target.value, connection: connectionMap[e.target.value] }))}>
                             <option value="" disabled>{isLoadingConns ? 'Loading...' : 'Select a connection'}</option>
                             {connections.map(c => (
@@ -299,7 +447,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                       </div>
                       <div className="aiam-row">
                         <div className="aiam-col">
-                          <label className="aiam-sub">Query</label>
+                          <label className="aiam-sub">Query <span style={{ color: 'red' }}>*</span></label>
                           <textarea className="aiam-input" rows={3} value={el.query || ''} onChange={(e) => onChangeElement(idx, (old) => ({ ...old, query: e.target.value }))} placeholder="SELECT ..." />
                         </div>
                       </div>
@@ -317,23 +465,20 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                         </div>
                       )}
                     </div>
-                  )
+                  ) : el.type === 'API' ? (
+                    <ApiElementPanel
+                      apiRequest={el.apiRequest}
+                      apiResponse={el.apiResponse}
+                      onChange={(data) => onChangeElement(idx, (old) => ({ ...old, apiRequest: data }))}
+                      onSendRequest={async (data, response) => await handleSendApiRequest(idx, data, response)}
+                      isSending={isSendingApiIdx === idx}
+                    />
+                  ) : null
                 )}
               </div>
             ))}
           </div>
         </div>
-
-        {/* API Model modal */}
-        <ApiModel
-          isOpen={isApiModelOpen}
-          onClose={() => setIsApiModelOpen(false)}
-          onConfirm={() => {
-            // After successful API setup, add a new element below
-            onAddElement();
-            setIsApiModelOpen(false);
-          }}
-        />
 
         <div className="aiam-footer">
           <div className="aiam-left">
