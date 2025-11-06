@@ -119,7 +119,7 @@ export class Controller {
             throw new Error('[Controller] Invalid inputs for resolveUniqueSelector');
         }
 
-        // console.log(`[Controller] Resolving unique selector from candidates:`, selectors);
+         console.log(`[Controller] Resolving unique selector from candidates:`, selectors);
 
         for (const raw of selectors) {
             const s = String(raw).trim();
@@ -147,12 +147,12 @@ export class Controller {
                 if (count === 1) {
                     // Normalize return: if original is raw XPath, prefix with 'xpath='
                     const normalized = (s.startsWith('/') || s.startsWith('(')) ? `xpath=${s}` : s;
-                    // console.log(`[Controller] Using unique selector: ${normalized}`);
+                    console.log(`[Controller] Using unique selector: ${normalized}`);
                     return normalized;
                 }
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
-                // console.log(`[Controller] Selector "${s}" failed:`, errorMessage);
+                console.log(`[Controller] Selector "${s}" failed:`, errorMessage);
                 // ignore and try next selector
             }
         }
@@ -166,11 +166,11 @@ export class Controller {
             throw new Error('Actions array is required and cannot be empty');
         }
 
-        // console.log(`[Controller] Executing ${actions.length} actions`);
+        console.log(`[Controller] Executing ${actions.length} actions`);
 
         for (let i = 0; i < actions.length; i++) {
             const action = actions[i];
-            // console.log(`[Controller] Executing action ${i + 1}/${actions.length}: ${action.action_type}`);
+            console.log(`[Controller] Executing action ${i + 1}/${actions.length}: ${action.action_type}`);
 
             // Emit executing event
             this.onActionExecuting?.(i);
@@ -201,12 +201,12 @@ export class Controller {
                             const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
                             try {
                                 await page.click(uniqueSelector, { timeout: 5000 });
-                                // console.log(`[Controller] Clicked on unique selector: ${uniqueSelector}`);
+                                 console.log(`[Controller] Clicked on unique selector: ${uniqueSelector}`);
                             } catch (error) {
-                                // console.log(`[Controller] Click failed, trying JS fallback for unique selector: ${uniqueSelector}`);
+                                console.log(`[Controller] Click failed, trying JS fallback for unique selector: ${uniqueSelector}`);
                                 const jsCode = `document.querySelector('${uniqueSelector}').click()`;
                                 await page.evaluate(jsCode);
-                                // console.log(`[Controller] Clicked on unique selector: ${uniqueSelector} using JS fallback`);
+                                 console.log(`[Controller] Clicked on unique selector: ${uniqueSelector} using JS fallback`);
                             }
                         }
                         break;
@@ -218,17 +218,50 @@ export class Controller {
                         }
                         break;
                     case ActionType.select:
+                        try {
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
-                            await page.selectOption(uniqueSelector, action.value || '');
+
+                            // Ensure the select element exists (short timeout to avoid hanging)
+                            try {
+                                await page.waitForSelector(uniqueSelector, { state: 'attached', timeout: 3000 });
+                            } catch {
+                                console.warn('[Controller] Select: element not found for selector:', uniqueSelector);
+                                break; // Skip without throwing
+                            }
+
+                            const selectValue = action.value ?? '';
+
+                            // Check option existence inside the select to avoid hangs
+                            const optionExists = await page.$eval(uniqueSelector, (el, value) => {
+                                try {
+                                    if (!(el instanceof HTMLSelectElement)) return false;
+                                    return Array.from(el.options).some(o => o.value === String(value));
+                                } catch { return false; }
+                            }, selectValue).catch(() => false);
+
+                            if (!optionExists) {
+                                console.warn('[Controller] Select: option value not found, skipping selection', { selector: uniqueSelector, value: selectValue });
+                                break; // Do not attempt selection
+                            }
+
+                            // Perform selection with timeout to avoid hanging
+                            try {
+                                await page.selectOption(uniqueSelector, { value: String(selectValue) }, { timeout: 3000 } as any);
+                            } catch (e) {
+                                console.warn('[Controller] Select: selectOption failed but continuing', { selector: uniqueSelector, value: selectValue, error: String(e) });
+                            }
+                        }}
+                        catch (error) {
+                            console.error('Error selecting', error)
                         }
                         break;
                     case ActionType.checkbox:
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
-                            // console.log(uniqueSelector)
+                             console.log(uniqueSelector)
                             if (action.checked) {
                                 await page.check(uniqueSelector);
                             } else {
