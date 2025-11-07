@@ -17,15 +17,6 @@ const createDefaultApiRequest = (): ApiRequestData => ({
   url: 'https://',
   params: [],
   headers: [],
-  auths: [],
-  bodies: [
-    {
-      type: 'none',
-      content: '',
-      formData: [],
-      orderIndex: 0,
-    },
-  ],
   auth: { type: 'none' },
   body: { type: 'none', content: '', formData: [] },
 });

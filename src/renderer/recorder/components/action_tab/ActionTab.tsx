@@ -153,6 +153,44 @@ const ActionTab: React.FC<ActionTabProps> = ({
     setIsApiRequestOpen(true);
   };
 
+  const handleApiRequestConfirm = (apiData: ApiRequestData) => {
+    if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+
+    const method = (apiData.method || 'get').toUpperCase();
+    const url = apiData.url || '';
+    const desc = `API Request: ${method} ${url}`;
+
+    const newAction = {
+      testcase_id: testcaseId,
+      action_id: Math.random().toString(36),
+      action_type: ActionType.api_request,
+      description: desc,
+      action_datas: [
+        {
+          api_request: apiData,
+        } as any,
+      ],
+    } as any;
+
+    onActionsChange(prev => {
+      const next = receiveActionWithInsert(
+        testcaseId,
+        prev,
+        newAction,
+        selectedInsertPosition || 0
+      );
+      const added = next.length > prev.length;
+      if (added) {
+        const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
+        onInsertPositionChange(newPos);
+        onDisplayPositionChange(newPos);
+      }
+      return next;
+    });
+
+    setIsApiRequestOpen(false);
+  };
+
   const handleSelectWait = () => {
     setIsWaitOpen(true);
   };
@@ -500,6 +538,11 @@ const ActionTab: React.FC<ActionTabProps> = ({
               onSelectDatabaseExecution={handleSelectDatabaseExecution}
               onSelectAddBrowserStorage={handleSelectAddBrowserStorage}
               onSelectApiRequest={handleSelectApiRequest}
+            />
+            <ApiRequestModal
+              isOpen={isApiRequestOpen}
+              onClose={() => setIsApiRequestOpen(false)}
+              onConfirm={handleApiRequestConfirm}
             />
             <DatabaseExecutionModal
               isOpen={isDatabaseExecutionOpen}

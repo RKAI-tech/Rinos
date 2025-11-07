@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { executeApiRequest, validateApiRequest, ApiRequestOptions, formatResponseData, getStatusColorClass, getStatusDescription, convertApiRequestDataToOptions } from '../../../utils/api_request';
-import { ApiRequestData, ApiRequestTokenStorage, ApiRequestBasicAuthStorage, ApiRequestBody, ApiRequestMethod } from '../../../types/actions';
+import { ApiRequestData, ApiRequestTokenStorage, ApiRequestBasicAuthStorage, ApiRequestBody, ApiRequestMethod, ApiRequestAuth } from '../../../types/actions';
 import './ApiElementPanel.css';
 
 interface ApiElementPanelProps {
@@ -22,14 +22,12 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
   const getPrimaryAuth = (req?: ApiRequestData) => {
     if (!req) return undefined;
     if (req.auth && req.auth.type) return req.auth;
-    if (req.auths && req.auths.length > 0) return req.auths[0];
     return undefined;
   };
 
   const getPrimaryBody = (req?: ApiRequestData) => {
     if (!req) return undefined;
     if (req.body && req.body.type) return req.body;
-    if (req.bodies && req.bodies.length > 0) return req.bodies[0];
     return undefined;
   };
 
@@ -38,7 +36,7 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
     if (auth?.tokenStorages && auth.tokenStorages.length > 0) {
       return auth.tokenStorages[0];
     }
-    return (req as any)?.tokenStorage as any;
+    return undefined;
   };
 
   const getPrimaryBasicAuthStorage = (req?: ApiRequestData) => {
@@ -46,7 +44,7 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
     if (auth?.basicAuthStorages && auth.basicAuthStorages.length > 0) {
       return auth.basicAuthStorages[0];
     }
-    return (req as any)?.basicAuthStorage as any;
+    return undefined;
   };
 
   const toFormPairs = (formData?: any[]) => {
@@ -129,8 +127,8 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
       params: req.params,
       headers: req.headers,
       authType: auth?.type,
-      tokenStorageKey: auth?.tokenStorages?.[0]?.key || (req as any)?.tokenStorage?.key,
-      basicAuthUsernameKey: auth?.basicAuthStorages?.[0]?.usernameKey || (req as any)?.basicAuthStorage?.usernameKey,
+      tokenStorageKey: auth?.tokenStorages?.[0]?.key,
+      basicAuthUsernameKey: auth?.basicAuthStorages?.[0]?.usernameKey,
       bodyType: bodyData?.type
     });
   };
@@ -196,12 +194,10 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
       .map((p, index) => {
         const existing = apiRequest?.params?.[index];
         return {
-          id: existing?.id,
+          apiRequestParamId: existing?.apiRequestParamId,
           key: p.key.trim(),
           value: p.value,
           orderIndex: index,
-          createdAt: existing?.createdAt,
-          updatedAt: existing?.updatedAt,
         };
       });
 
@@ -210,12 +206,10 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
       .map((h, index) => {
         const existing = apiRequest?.headers?.[index];
         return {
-          id: existing?.id,
+          apiRequestHeaderId: existing?.apiRequestHeaderId,
           key: h.key.trim(),
           value: h.value,
           orderIndex: index,
-          createdAt: existing?.createdAt,
-          updatedAt: existing?.updatedAt,
         };
       });
 
@@ -224,12 +218,10 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
       .map((p, index) => {
         const existing = currentPrimaryBody?.formData?.[index];
         return {
-          id: existing?.id,
+          apiRequestBodyFormDataId: existing?.apiRequestBodyFormDataId,
           name: p.key.trim(),
           value: p.value,
           orderIndex: index,
-          createdAt: existing?.createdAt,
-          updatedAt: existing?.updatedAt,
         };
       });
 
@@ -243,7 +235,6 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
             ? undefined
             : '',
       formData: bodyType === 'form' ? bodyEntries : undefined,
-      orderIndex: currentPrimaryBody?.orderIndex ?? 0,
     };
 
     const includeBearerStorage = authType === 'bearer' && tokenStorageEnabled && tokenStorageKey.trim();
@@ -254,7 +245,6 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
           ...(currentPrimaryTokenStorage || {}),
           type: tokenStorageType,
           key: tokenStorageKey.trim(),
-          enabled: true,
         }
       : undefined;
 
@@ -264,7 +254,6 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
           type: basicAuthStorageType,
           usernameKey: basicAuthUsernameKey.trim(),
           passwordKey: basicAuthPasswordKey.trim(),
-          enabled: true,
         }
       : undefined;
 
@@ -282,37 +271,17 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
       basicAuthStorages: nextBasicStorage ? [nextBasicStorage] : [],
     };
 
-    const legacyTokenStorage = nextTokenStorage
-      ? { ...nextTokenStorage }
-      : tokenStorageEnabled
-        ? { enabled: false, type: tokenStorageType, key: tokenStorageKey }
-        : undefined;
-
-    const legacyBasicStorage = nextBasicStorage
-      ? { ...nextBasicStorage }
-      : basicAuthStorageEnabled
-        ? { enabled: false, type: basicAuthStorageType, usernameKey: basicAuthUsernameKey, passwordKey: basicAuthPasswordKey }
-        : undefined;
-
     const data: ApiRequestData = {
       ...(apiRequest || {}),
       method: normalizedMethod,
       url,
       params: filteredParams,
       headers: filteredHeaders,
-      auths: nextAuth.type === 'none' ? [] : [nextAuth],
-      bodies: [nextBody],
-      createdAt: apiRequest?.createdAt,
-      updatedAt: apiRequest?.updatedAt,
+      createdAt: undefined,
+      updatedAt: undefined,
       auth: nextAuth.type === 'none' ? { type: 'none' } : nextAuth,
       body: nextBody,
-      tokenStorage: legacyTokenStorage,
-      basicAuthStorage: legacyBasicStorage,
     } as ApiRequestData;
-
-    if (nextAuth.type === 'none') {
-      data.auths = [];
-    }
 
     return data;
   };

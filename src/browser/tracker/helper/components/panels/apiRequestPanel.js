@@ -367,6 +367,20 @@ export function createApiRequestPanel(assertType, onConfirm) {
     }
   }
   tokenFetchBtn.addEventListener('click', (ev) => { ev.stopPropagation(); fetchTokenFromStorage(); });
+  // Allow Enter to trigger token fetch when enabled and valid
+  tokenKeyInput.addEventListener('keydown', (e) => {
+    try {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const storageOn = !!storageToggle.checked;
+        const isBearer = authSelect.value === 'bearer';
+        const keyFilled = (tokenKeyInput.value || '').trim().length > 0;
+        if (storageOn && isBearer && keyFilled) {
+          fetchTokenFromStorage();
+        }
+      }
+    } catch {}
+  });
 
   // Adjust token label based on type
   tokenStorageTypeSelect.addEventListener('change', () => {
@@ -408,6 +422,23 @@ export function createApiRequestPanel(assertType, onConfirm) {
     if (pVal) authPasswordInput.value = pVal;
   }
   basicFetchBtn.addEventListener('click', (ev) => { ev.stopPropagation(); fetchBasicAuthFromStorage(); });
+  // Allow Enter to trigger basic auth fetch when enabled and valid
+  const handleBasicEnter = (e) => {
+    try {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const storageOn = !!storageToggle.checked;
+        const isBasic = authSelect.value === 'basic';
+        const uFilled = (basicUsernameKeyInput.value || '').trim().length > 0;
+        const pFilled = (basicPasswordKeyInput.value || '').trim().length > 0;
+        if (storageOn && isBasic && uFilled && pFilled) {
+          fetchBasicAuthFromStorage();
+        }
+      }
+    } catch {}
+  };
+  basicUsernameKeyInput.addEventListener('keydown', handleBasicEnter);
+  basicPasswordKeyInput.addEventListener('keydown', handleBasicEnter);
 
   // Body Section
   const bodySection = document.createElement('div');
@@ -827,6 +858,12 @@ export function createApiRequestPanel(assertType, onConfirm) {
     responseSection.style.display = 'block';
     responseStatus.textContent = 'Sending…';
     responseData.textContent = '';
+    // Auto scroll to response status area when sending
+    try {
+      setTimeout(() => {
+        try { responseSection.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {}
+      }, 0);
+    } catch {}
     
     // Build URL with params
     const params = paramsSection.getItems().filter(p => p.key.trim() && p.value.trim());
@@ -1074,45 +1111,49 @@ export function createApiRequestPanel(assertType, onConfirm) {
     }
     // Fallback: if no combobox selection, use empty string
     if (onConfirm) {
-      // Build API request data similar to ApiRequestData structure
-      const builtParams = paramsSection.getItems().filter(p => p.key && p.key.trim());
-      const builtHeaders = headersSection.getItems().filter(h => h.key && h.key.trim());
+      // Build API request data per new schema
+      const builtParams = paramsSection.getItems().filter(p => p.key && p.key.trim()).map(p => ({ key: p.key, value: p.value }));
+      const builtHeaders = headersSection.getItems().filter(h => h.key && h.key.trim()).map(h => ({ key: h.key, value: h.value }));
       const authType = authSelect.value;
       const storageEnabled = !!storageToggle.checked;
-      // Build auth; if using storage, do NOT persist real secret values
+
+      // Auth with storage embedded
+      const tokenStorages = (storageEnabled && authType === 'bearer' && (tokenKeyInput.value || '').trim()) ? [
+        { type: tokenStorageTypeSelect.value, key: (tokenKeyInput.value || '').trim() }
+      ] : [];
+      const basicAuthStorages = (storageEnabled && authType === 'basic' && (basicUsernameKeyInput.value || '').trim() && (basicPasswordKeyInput.value || '').trim()) ? [
+        { type: basicStorageTypeSelect.value, usernameKey: (basicUsernameKeyInput.value || '').trim(), passwordKey: (basicPasswordKeyInput.value || '').trim() }
+      ] : [];
+
       const auth = {
         type: authType,
+        storageEnabled: storageEnabled && authType !== 'none' ? true : false,
         username: authType === 'basic' && !storageEnabled ? (authUsernameInput.value || '') : undefined,
         password: authType === 'basic' && !storageEnabled ? (authPasswordInput.value || '') : undefined,
         token: authType === 'bearer' && !storageEnabled ? (authTokenInput.value || '') : undefined,
+        tokenStorages,
+        basicAuthStorages,
       };
+
       const bodyType = bodyTypeSelect.value;
       const body = {
         type: bodyType,
-        content: bodyType === 'json' ? (bodyTextarea.value || '') : '',
-        formData: bodyType === 'form' ? bodyFormSection.getItems().filter(f => f.key && f.key.trim()) : undefined,
+        content: bodyType === 'json' ? (bodyTextarea.value || '') : (bodyType === 'form' ? undefined : ''),
+        formData: bodyType === 'form' ? bodyFormSection.getItems().filter(f => f.key && f.key.trim()).map((f, i) => ({ name: f.key, value: f.value, orderIndex: i })) : undefined,
       };
+
       const apiRequest = {
-        method: methodSelect.value,
+        method: String(methodSelect.value || 'GET').toLowerCase(),
         url: (urlInput.value || '').trim(),
         params: builtParams,
         headers: builtHeaders,
         auth,
         body,
-        // Storage configs
-        tokenStorage: (storageEnabled && authType === 'bearer') ? {
-          enabled: true,
-          type: tokenStorageTypeSelect.value,
-          key: (tokenKeyInput.value || '').trim(),
-        } : { enabled: false },
-        basicAuthStorage: (storageEnabled && authType === 'basic') ? {
-          enabled: true,
-          type: basicStorageTypeSelect.value,
-          usernameKey: (basicUsernameKeyInput.value || '').trim(),
-          passwordKey: (basicPasswordKeyInput.value || '').trim(),
-        } : { enabled: false },
       };
-      try { onConfirm(finalValue, undefined, undefined, undefined, apiRequest); } catch {}
+
+      // Gửi kết quả assert giống queryPanel: (valuePath, connectionId, connection, query)
+      // Với API không có connection/query → truyền undefined cho 3 tham số sau
+      try { onConfirm(finalValue, undefined, undefined, undefined); } catch {}
       // Close both panel and assert popup
       try { close(); } catch {}
       try {

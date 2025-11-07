@@ -215,6 +215,7 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
     //         return action_recorded;
     //     }
     // }
+    console.log('[Received action]', receivedAction);
     return [...action_recorded, receivedAction];
 }
 

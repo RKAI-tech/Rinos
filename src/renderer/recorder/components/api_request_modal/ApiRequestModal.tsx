@@ -97,7 +97,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       setAuthToken(initialData.auth?.token || '');
       setBody(initialData.body?.content || '');
       setBodyType(initialData.body?.type || 'none');
-      setBodyForm(initialData.body?.formData || [{ key: '', value: '' }]);
+      setBodyForm(initialData.body?.formData ? initialData.body.formData.map((fd: any) => ({ key: fd.name, value: fd.value })) : [{ key: '', value: '' }]);
       setResponse(null);
     }
   }, [isOpen, initialData]);
@@ -136,9 +136,9 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
   };
 
   const handleSendRequest = async () => {
-    // Create ApiRequestData for validation
+    // Create ApiRequestData for validation (schema mới)
     const apiData: ApiRequestData = {
-      method,
+      method: (method || 'GET').toLowerCase() as any,
       url,
       params,
       headers,
@@ -146,13 +146,13 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
         type: authType,
         username: authUsername,
         password: authPassword,
-        token: authToken
+        token: authToken,
       },
       body: {
         type: bodyType,
         content: body,
-        formData: bodyForm
-      }
+        formData: bodyType === 'form' ? bodyForm.map((p, i) => ({ name: p.key, value: p.value, orderIndex: i })) : undefined,
+      },
     };
 
     // Convert to ApiRequestOptions for validation
@@ -190,50 +190,40 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
 
   const handleSave = () => {
     // Nếu dùng storage thì KHÔNG lưu giá trị thật của token/username/password
-    const effectiveAuthToken = (tokenStorageEnabled && authType === 'bearer') ? '' : authToken;
-    const effectiveAuthUsername = (tokenStorageEnabled && authType === 'basic') ? '' : authUsername;
-    const effectiveAuthPassword = (tokenStorageEnabled && authType === 'basic') ? '' : authPassword;
+    const hideBearer = tokenStorageEnabled && authType === 'bearer';
+    const hideBasic = tokenStorageEnabled && authType === 'basic';
+
+    const tokenStorages = !tokenStorageEnabled || authType !== 'bearer' || !tokenStorageKey.trim()
+      ? []
+      : [{ type: tokenStorageType, key: tokenStorageKey }];
+
+    const basicAuthStorages = !tokenStorageEnabled || authType !== 'basic' || !basicAuthUsernameKey.trim() || !basicAuthPasswordKey.trim()
+      ? []
+      : [{ type: basicAuthStorageType, usernameKey: basicAuthUsernameKey, passwordKey: basicAuthPasswordKey }];
 
     const data: ApiRequestData = {
-      method,
+      method: (method || 'GET').toLowerCase() as any,
       url,
       params: params.filter(p => p.key.trim() && p.value.trim()),
       headers: headers.filter(h => h.key.trim() && h.value.trim()),
       auth: {
         type: authType,
-        username: effectiveAuthUsername,
-        password: effectiveAuthPassword,
-        token: effectiveAuthToken
+        storageEnabled: tokenStorageEnabled && authType !== 'none' ? true : false,
+        username: authType === 'basic' && !hideBasic ? authUsername : undefined,
+        password: authType === 'basic' && !hideBasic ? authPassword : undefined,
+        token: authType === 'bearer' && !hideBearer ? authToken : undefined,
+        tokenStorages,
+        basicAuthStorages,
       },
       body: {
         type: bodyType,
-        content: bodyType === 'json' ? body : 
-                bodyType === 'form' ? JSON.stringify(
-                  Object.fromEntries(
-                    bodyForm
-                      .filter(p => p.key.trim())
-                      .map(p => [p.key.trim(), p.value])
-                  )
-                ) : '',
-        formData: bodyType === 'form' ? bodyForm.filter(p => p.key.trim() && p.value.trim()) : undefined
+        content: bodyType === 'json' ? body : bodyType === 'form' ? undefined : '',
+        formData: bodyType === 'form'
+          ? bodyForm
+              .filter(p => p.key.trim())
+              .map((p, i) => ({ name: p.key.trim(), value: p.value, orderIndex: i }))
+          : undefined,
       },
-      // Token storage information
-      tokenStorage: (tokenStorageEnabled && authType === 'bearer') ? {
-        enabled: true,
-        type: tokenStorageType,
-        key: tokenStorageKey
-      } : {
-        enabled: false
-      },
-      // Basic Auth storage information
-      basicAuthStorage: (tokenStorageEnabled && authType === 'basic') ? {
-        enabled: true,
-        type: basicAuthStorageType,
-        usernameKey: basicAuthUsernameKey,
-        passwordKey: basicAuthPasswordKey
-      } : {
-        enabled: false
-      }
     };
     
     onConfirm(data);
