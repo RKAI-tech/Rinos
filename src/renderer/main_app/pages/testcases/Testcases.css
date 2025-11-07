@@ -325,28 +325,28 @@
   transition: all 0.2s ease;
 }
 
-.status-badge.success,
-.status-badge.passed {
+.status-badge.Success,
+.status-badge.Passed {
   background: #dcfce7;
   color: #166534;
 }
 
-.status-badge.failed {
+.status-badge.Failed {
   background: #fee2e2;
   color: #dc2626;
 }
 
-.status-badge.pending {
+.status-badge.Pending {
   background: #fef3c7;
   color: #92400e;
 }
 
-.status-badge.draft {
+.status-badge.Draft {
   background: #f3f4f6;
   color: #6b7280;
 }
 
-.status-badge.running {
+.status-badge.Running {
   background: #dbeafe;
   color: #1e40af;
 }

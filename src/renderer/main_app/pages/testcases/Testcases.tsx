@@ -18,16 +18,17 @@ import { ActionService } from '../../services/actions';
 import { Action } from '../../types/actions';
 import { actionToCode } from '../../../recorder/utils/action_to_code';
 import { canEdit } from '../../hooks/useProjectPermissions';
+import { Evidence } from '../../types/testcases';
 
 
 interface Testcase {
-  id: string;
+  testcase_id: string;
   name: string;
-  tag: string;
-  createdBy: string;
-  createdAt: string;
+  description?: string;
+  updatedAt: string;
   updated?: string;
-  status: 'success' | 'failed' | 'draft' | 'running';
+  evidence: Evidence;
+  status: 'Passed' | 'Failed' | 'Draft' | 'Running';
   actionsCount: number;
   basic_authentication?: { username: string; password: string };
 }
@@ -50,7 +51,7 @@ const Testcases: React.FC = () => {
 
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
-  const [sortBy, setSortBy] = useState<'name' | 'tag' | 'actionsCount' | 'status' | 'createdAt'>('createdAt');
+  const [sortBy, setSortBy] = useState<'name' | 'description' | 'actionsCount' | 'status' | 'updatedAt'>('updatedAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [itemsPerPage, setItemsPerPage] = useState('10 rows/page');
   const [currentPage, setCurrentPage] = useState(1);
@@ -76,38 +77,36 @@ const Testcases: React.FC = () => {
       setError(null);
       const response = await testCaseService.getTestCases(projectData.projectId, 1000, 0);
       if (response.success && response.data) {
-        // Store original testcase data
-        setTestcasesData(response.data.testcases);
-        
-        const mapped: Testcase[] = response.data.testcases.map(tc => {
-          // Try multiple ways to get status
-          const rawStatus = tc.status || (tc as any).testcase_status || '';
-          const normalized = rawStatus.toLowerCase().trim();
-          const allowed = ['passed', 'failed', 'draft', 'running'];
-          const safeStatus = allowed.includes(normalized) ? (normalized as Testcase['status']) : 'draft';
-          
-          // Debug log to see what status we're getting from API
-          // console.log('[DEBUG] Testcase:', tc.name, 'Raw status:', rawStatus, 'Normalized:', normalized, 'Safe status:', safeStatus);
-          
+        const resp = response.data.testcases;
+        console.log('[MAIN_APP] Testcases', resp);       
+        const mapped: Testcase[] = resp.map((tc: any)=> {
           return {
-            id: tc.testcase_id,
+            testcase_id: tc.testcase_id,
             name: tc.name,
-            tag: tc.tag || '',
-            createdBy: projectData.projectName || 'Unknown',
-            createdAt: tc.created_at,
-            updated: tc.updated_at,
-            status: safeStatus,
-            actionsCount: Array.isArray(tc.actions) ? tc.actions.length : 0,
-            basic_authentication: tc.basic_authentication,
+            description: tc.description,
+            actionsCount: tc.actions.length,
+            status: tc.evidence.status,
+            evidence: {
+              evidence_id: tc.evidence_id,
+              url_video: tc.evidence?.video?.url ? tc.evidence.video.url : '',
+              url_screenshot: tc.evidence?.screenshots? tc.evidence.screenshots.map((screenshot: any) => screenshot.url) : [],
+              logs: tc.evidence?.log?.content? tc.evidence.log.content : '',
+            },
+            updatedAt: tc.updated_at,
+            basic_authentication: {
+              username: tc.basic_authentication?.username ? tc.basic_authentication.username : '',
+              password: tc.basic_authentication?.password ? tc.basic_authentication.password : '',
+            },
           };
         });
+        console.log('[MAIN_APP] mapped', mapped);
         
-        // Auto-detect running testcases from API response
+        setTestcasesData(mapped);
+        
         const runningIds = mapped
-          .filter(tc => tc.status === 'running')
-          .map(tc => tc.id);
+          .filter(tc => tc.status === 'Running')
+          .map(tc => tc.testcase_id);
         setRunningTestcases(runningIds);
-        // console.log('[MAIN_APP] mapped', mapped.find(x => x.name === 'FXON'));
         setTestcases(mapped);
       } else {
         setError(response.error || 'Failed to load testcases');
@@ -135,9 +134,12 @@ const Testcases: React.FC = () => {
     const interval = setInterval(() => {
       // Don't auto-reload if any modal is open to prevent data conflicts
       if (!isCreateModalOpen && !isEditModalOpen && !isDeleteModalOpen && !isDuplicateModalOpen && !isRunAndViewModalOpen) {
-        reloadTestcases();
+        const runningTestcases = testcases.filter(tc => tc.status === 'Running');
+        if (runningTestcases.length > 0) {
+          reloadTestcases();
+        }
       }
-    }, 2000);
+    }, 60000);
     
     setAutoReloadInterval(interval);
     
@@ -240,7 +242,7 @@ const Testcases: React.FC = () => {
   // Filter testcases based on search and status
   const filteredTestcases = testcases.filter(testcase => {
     const matchesSearch = testcase.name.toLowerCase().includes(searchText.toLowerCase()) ||
-                         (testcase.tag || '').toLowerCase().includes(searchText.toLowerCase());
+                         (testcase.description || '').toLowerCase().includes(searchText.toLowerCase());
     const matchesStatus = statusFilter === 'All Status' || testcase.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -250,11 +252,11 @@ const Testcases: React.FC = () => {
     const getVal = (it: Testcase): string | number => {
       switch (sortBy) {
         case 'name': return it.name || '';
-        case 'tag': return it.tag || '';
+        case 'description': return it.description || '';
         case 'actionsCount': return it.actionsCount ?? 0;
         case 'status': return it.status || '';
-        case 'createdAt': {
-          const t = it.createdAt || '';
+        case 'updatedAt': {
+          const t = it.updatedAt || '';
           const ms = t ? new Date(t).getTime() : 0;
           return isNaN(ms) ? 0 : ms;
         }
@@ -276,7 +278,7 @@ const Testcases: React.FC = () => {
     return copy;
   }, [filteredTestcases, sortBy, sortOrder]);
 
-  const handleSort = (col: 'name' | 'tag' | 'actionsCount' | 'status' | 'createdAt') => {
+  const handleSort = (col: 'name' | 'description' | 'actionsCount' | 'status' | 'updatedAt') => {
     if (sortBy === col) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     else { setSortBy(col); setSortOrder('asc'); }
     setCurrentPage(1);
@@ -375,7 +377,7 @@ const Testcases: React.FC = () => {
 
   const handleOpenEdit = (id: string, event?: React.MouseEvent) => {
     if (event) event.stopPropagation(); // Ngăn chặn event bubbling
-    const tc = testcases.find(t => t.id === id) || null;
+    const tc = testcases.find(t => t.testcase_id === id) || null;
     setSelectedTestcase(tc);
     setIsEditModalOpen(true);
     setOpenDropdownId(null);
@@ -383,7 +385,7 @@ const Testcases: React.FC = () => {
 
   const handleOpenDuplicate = (id: string, event?: React.MouseEvent) => {
     if (event) event.stopPropagation();
-    const tc = testcases.find(t => t.id === id) || null;
+    const tc = testcases.find(t => t.testcase_id === id) || null;
     setSelectedTestcase(tc);
     setIsDuplicateModalOpen(true);
     setOpenDropdownId(null);
@@ -391,7 +393,7 @@ const Testcases: React.FC = () => {
 
   const handleOpenDelete = (id: string, event?: React.MouseEvent) => {
     if (event) event.stopPropagation(); // Ngăn chặn event bubbling
-    const tc = testcases.find(t => t.id === id) || null;
+    const tc = testcases.find(t => t.testcase_id === id) || null;
     setSelectedTestcase(tc);
     setIsDeleteModalOpen(true);
     setOpenDropdownId(null);
@@ -406,7 +408,7 @@ const Testcases: React.FC = () => {
       // Update testcase status to 'running' immediately
       setTestcases(prevTestcases => 
         prevTestcases.map(tc => 
-          tc.id === id ? { ...tc, status: 'running' as const } : tc
+          tc.testcase_id === id ? { ...tc, status: 'Running' as const } : tc
         )
       );
       
@@ -434,7 +436,7 @@ const Testcases: React.FC = () => {
 
   const handleViewResult = (id: string, event?: React.MouseEvent) => {
     if (event) event.stopPropagation();
-    const tc = testcases.find(t => t.id === id) || null;
+    const tc = testcases.find(t => t.testcase_id === id) || null;
     const tcData = testcasesData.find(t => t.testcase_id === id) || null;
     setSelectedTestcase(tc);
     setSelectedTestcaseData(tcData);
@@ -519,7 +521,7 @@ const Testcases: React.FC = () => {
       (window as any).browserAPI?.browser?.setAuthToken?.(token);
       
       // Lấy tên test case để hiển thị trong title
-      const testcase = testcases.find(tc => tc.id === id);
+      const testcase = testcases.find(tc => tc.testcase_id === id);
       const testcaseName = testcase?.name || id;
       
       const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectData?.projectId, testcaseName);
@@ -533,13 +535,13 @@ const Testcases: React.FC = () => {
   };
 
   const handleSaveEditTestcase = async (
-    { id, name, tag, basic_authentication, actions }:
-    { id: string; name: string; tag: string; basic_authentication?: { username: string; password: string }; actions?: any[] }) => {
+    { testcase_id, name, description, basic_authentication, actions }:
+    { testcase_id: string; name: string; description: string | undefined; basic_authentication?: { username: string; password: string }; actions?: any[] }) => {
     try {
       const payload = {
-        testcase_id: id,
+        testcase_id,
         name,
-        tag: tag || undefined,
+        description: description || undefined,
         basic_authentication: basic_authentication || undefined,
         actions: actions || undefined
       } as any;
@@ -677,8 +679,8 @@ const Testcases: React.FC = () => {
                   <th className={`sortable ${sortBy === 'name' ? 'sorted' : ''}`} onClick={() => handleSort('name')}>
                     <span className="th-content"><span className="th-text">Name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'name' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'name' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                   </th>
-                  <th className={`sortable ${sortBy === 'tag' ? 'sorted' : ''}`} onClick={() => handleSort('tag')}>
-                    <span className="th-content"><span className="th-text">Tag</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'tag' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'tag' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                  <th className={`sortable ${sortBy === 'description' ? 'sorted' : ''}`} onClick={() => handleSort('description')}>
+                    <span className="th-content"><span className="th-text">Description</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'description' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'description' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                   </th>
                   <th className={`sortable ${sortBy === 'actionsCount' ? 'sorted' : ''}`} onClick={() => handleSort('actionsCount')}>
                     <span className="th-content"><span className="th-text">Actions</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'actionsCount' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'actionsCount' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
@@ -686,8 +688,8 @@ const Testcases: React.FC = () => {
                   <th className={`sortable ${sortBy === 'status' ? 'sorted' : ''}`} onClick={() => handleSort('status')}>
                     <span className="th-content"><span className="th-text">Status</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'status' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'status' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                   </th>
-                  <th className={`sortable ${sortBy === 'createdAt' ? 'sorted' : ''}`} onClick={() => handleSort('createdAt')}>
-                    <span className="th-content"><span className="th-text">Updated</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'createdAt' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'createdAt' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                  <th className={`sortable ${sortBy === 'updatedAt' ? 'sorted' : ''}`} onClick={() => handleSort('updatedAt')}>
+                    <span className="th-content"><span className="th-text">Updated</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'updatedAt' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'updatedAt' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                   </th>
                   <th>Options</th>
                 </tr>
@@ -695,18 +697,18 @@ const Testcases: React.FC = () => {
               <tbody>
                 {currentTestcases.map((testcase) => (
                   <tr
-                    key={testcase.id}
-                    onClick={() => canEditPermission && handleOpenRecorder(testcase.id)}
+                    key={testcase.testcase_id}
+                    onClick={() => canEditPermission && handleOpenRecorder(testcase.testcase_id)}
                     style={{ cursor: 'pointer' }}
-                    className={runningTestcases.includes(testcase.id) ? 'is-running' : ''}
-                    aria-busy={runningTestcases.includes(testcase.id)}
+                    className={runningTestcases.includes(testcase.testcase_id) ? 'is-running' : ''}
+                    aria-busy={runningTestcases.includes(testcase.testcase_id)}
                   >
                     <td className="testcase-name">{testcase.name}</td>
-                    <td className="testcase-tag">{formatValue(testcase.tag)}</td>
+                    <td className="testcase-tag">{formatValue(testcase.description || '')}</td>
                     <td className="testcase-actions-count">{testcase.actionsCount}</td>
                     <td className="testcase-status">
-                      <span className={`status-badge ${testcase.status || 'draft'}`}>
-                        {testcase.status === 'running' ? (
+                      <span className={`status-badge ${testcase.status || 'Draft'}`}>
+                        {testcase.status === 'Running' ? (
                           <>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="spinner">
                               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/>
@@ -719,12 +721,12 @@ const Testcases: React.FC = () => {
                         )}
                       </span>
                     </td>
-                    <td className="testcase-created">{testcase.updated}</td>
+                    <td className="testcase-created">{testcase.updatedAt}</td>
                     <td className="testcase-actions">
                       <div className="actions-container">
                         <button 
                           className="actions-btn"
-                          onClick={(e) => handleTestcaseActions(testcase.id, e)}
+                          onClick={(e) => handleTestcaseActions(testcase.testcase_id, e)}
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <circle cx="12" cy="12" r="1" fill="currentColor"/>
@@ -733,15 +735,15 @@ const Testcases: React.FC = () => {
                           </svg>
                         </button>
                         
-                        {openDropdownId === testcase.id && (
+                        {openDropdownId === testcase.testcase_id && (
                           <div className="actions-dropdown">
                             <button
                               className="dropdown-item"
-                              onClick={(e) => handleRunTestcase(testcase.id, e)}
-                              disabled={runningTestcases.includes(testcase.id) || !canEditPermission || testcase.actionsCount === 0}
+                              onClick={(e) => handleRunTestcase(testcase.testcase_id, e)}
+                              disabled={runningTestcases.includes(testcase.testcase_id) || !canEditPermission || testcase.actionsCount === 0}
                               title={testcase.actionsCount === 0 ? "Cannot run testcase without actions" : "Execute this testcase and view results"}
                             >
-                              {runningTestcases.includes(testcase.id) ? (
+                              {runningTestcases.includes(testcase.testcase_id) ? (
                                 <>
                                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="spinner">
                                     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/>
@@ -760,7 +762,7 @@ const Testcases: React.FC = () => {
                             </button>
                             <button 
                               className="dropdown-item" 
-                              onClick={(e) => handleViewResult(testcase.id, e)}
+                              onClick={(e) => handleViewResult(testcase.testcase_id, e)}
                               title="View testcase execution results and details"
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -770,7 +772,7 @@ const Testcases: React.FC = () => {
                             </button>
                             <button 
                               className="dropdown-item" 
-                              onClick={(e) => handleOpenEdit(testcase.id, e)}
+                              onClick={(e) => handleOpenEdit(testcase.testcase_id, e)}
                               title="Edit testcase name and tag"
                               disabled={!canEditPermission}
                             >
@@ -782,7 +784,7 @@ const Testcases: React.FC = () => {
                             </button>
                             <button 
                               className="dropdown-item" 
-                              onClick={(e) => handleOpenDuplicate(testcase.id, e)}
+                              onClick={(e) => handleOpenDuplicate(testcase.testcase_id, e)}
                               title="Create a copy of this testcase with all its actions"
                               disabled={!canEditPermission}
                             >
@@ -794,7 +796,7 @@ const Testcases: React.FC = () => {
                             </button>
                             <button 
                               className="dropdown-item delete" 
-                              onClick={(e) => handleOpenDelete(testcase.id, e)}
+                              onClick={(e) => handleOpenDelete(testcase.testcase_id, e)}
                               title="Permanently delete this testcase and all its actions"
                               disabled={!canEditPermission}
                             >
@@ -873,7 +875,7 @@ const Testcases: React.FC = () => {
         isOpen={isEditModalOpen}
         onClose={handleCloseEditModal}
         onSave={handleSaveEditTestcase}
-        testcase={selectedTestcase ? { testcase_id: selectedTestcase.id, name: selectedTestcase.name, tag: selectedTestcase.tag, basic_authentication: selectedTestcase.basic_authentication } : null}
+        testcase={selectedTestcase ? { testcase_id: selectedTestcase.testcase_id, name: selectedTestcase.name, description: selectedTestcase.description, basic_authentication: selectedTestcase.basic_authentication } : null}
       />
 
       {/* Delete Testcase Modal */}
@@ -881,7 +883,7 @@ const Testcases: React.FC = () => {
         isOpen={isDeleteModalOpen}
         onClose={handleCloseDeleteModal}
         onDelete={handleDeleteTestcase}
-        testcase={selectedTestcase ? { testcase_id: selectedTestcase.id, name: selectedTestcase.name } : null}
+        testcase={selectedTestcase ? { testcase_id: selectedTestcase.testcase_id, name: selectedTestcase.name } : null}
       />
 
       {/* Duplicate Testcase Modal */}
@@ -890,14 +892,14 @@ const Testcases: React.FC = () => {
         onClose={handleCloseDuplicateModal}
         onSave={handleSaveDuplicateTestcase}
         createTestcaseWithActions={createTestcaseWithActions}
-        testcase={selectedTestcase ? { testcase_id: selectedTestcase.id, name: selectedTestcase.name, tag: selectedTestcase.tag, basic_authentication: selectedTestcase.basic_authentication } : null}
+        testcase={selectedTestcase ? { testcase_id: selectedTestcase.testcase_id, name: selectedTestcase.name, description: selectedTestcase.description, basic_authentication: selectedTestcase.basic_authentication } : null}
       />
 
       {/* Run And View Testcase Modal */}
       <RunAndViewTestcase
         isOpen={isRunAndViewModalOpen}
         onClose={handleCloseRunAndViewModal}
-        testcaseId={selectedTestcase?.id}
+        testcaseId={selectedTestcase?.testcase_id}
         testcaseName={selectedTestcase?.name}
         projectId={projectData?.projectId}
         testcaseData={selectedTestcaseData}

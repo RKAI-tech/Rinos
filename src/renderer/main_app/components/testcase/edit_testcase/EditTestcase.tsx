@@ -11,14 +11,14 @@ import MAActionDetailModal from '../../action_detail/ActionDetailModal';
 interface MinimalTestcase {
   testcase_id: string;
   name: string;
-  tag: string;
+  description: string | undefined;
   basic_authentication?: { username: string; password: string };
 }
 
 interface EditTestcaseProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { id: string; name: string; tag: string; basic_authentication?: { username: string; password: string }; actions?: any[] }) => void;
+  onSave: (data: { testcase_id: string; name: string; description: string | undefined; basic_authentication?: { username: string; password: string }; actions?: any[] }) => void;
   testcase: MinimalTestcase | null;
 }
 
@@ -44,7 +44,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
   useEffect(() => {
     if (testcase) {
       setTestcaseName(testcase.name || '');
-      setTestcaseTag(testcase.tag || '');
+      setTestcaseTag(testcase.description || '');
       const initialBasicAuth = testcase.basic_authentication || null;
       setBasicAuth(initialBasicAuth);
       setHasInitialBasicAuth(!!initialBasicAuth);
@@ -93,7 +93,6 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
           testcase_id: a.testcase_id,
           action_type: a.action_type,
           description: a.description,
-          playwright_code: a.playwright_code,
           elements: (a.elements || []).map((el: any) => ({
             selectors: ((el?.selectors || []) as any[])
               .map((s: any) => {
@@ -101,29 +100,17 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
                 return val && val.length > 0 ? { value: val } : null;
               })
               .filter(Boolean) as { value: string }[],
-            query: el.query,
-            value: el.value,
-            variable_name: el.variable_name,
           })),
           assert_type: a.assert_type as any,
-          value: a.value,
-          selected_value: a.selected_value,
-          checked: a.checked,
-          connection_id: a.connection_id,
-          connection: a.connection,
-          statement_id: a.statement_id,
-          statement: a.statement,
-          variable_name: a.variable_name,
-          order_index: a.order_index,
-          file_upload: a.file_upload,
+          action_datas: a.action_datas,
         }));
       }
 
       // 2) Then update testcase info (including Basic Auth if provided)
       onSave({
-        id: testcase.testcase_id,
+        testcase_id: testcase.testcase_id,
         name: testcaseName.trim(),
-        tag: testcaseTag.trim() || '',
+        description: testcaseTag.trim() || undefined,
         basic_authentication: basicAuth && (basicAuth.username || basicAuth.password) ? basicAuth : undefined,
         actions: actionRequests || []
       });

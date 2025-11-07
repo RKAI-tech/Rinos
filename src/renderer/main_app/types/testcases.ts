@@ -6,18 +6,6 @@ export interface BasicAuthentication {
     password: string;
 }
 
-export interface TestCase {
-    id: number;
-    name: string;
-    project_id: number;
-    projectName: string;
-    description?: string;
-    script: string;
-    status: string;
-    createdAt: string;
-    basic_authentication?: BasicAuthentication;
-}
-
 export interface TestCaseCreateRequest {
     project_id: string;
     name: string;
@@ -43,26 +31,29 @@ export interface TestCaseGetRequest {
     limit: number;
     offset: number;
 }
+export interface Evidence {
+    evidence_id: string;
+    url_video: string;
+    url_screenshot: string[];
+    logs: string;
+}
 
-// Updated TestCase response interface
-export interface TestCaseGetResponse {
+export interface TestCase {
     testcase_id: string;
     project_id: string;
     name: string;
-    tag?: string;
+    description?: string;
     actions: Action[];
-    status: string;
-    script: string | null;
-    url_video?: string | null;
-    url_screenshot?: string[] | null;
-    logs?: string;
+    status: 'Passed' | 'Failed' | 'Draft' | 'Running';
+    evidence_id?: string | null;
+    evidence?: Evidence;
     created_at: string;
     updated_at: string;
-    basic_authentication?: BasicAuthentication;
+    basic_authentication?: BasicAuthentication | null;
 }
 
-export interface TestCaseGetAllResponse {
-    testcases: TestCaseGetResponse[];
+export interface TestCaseBatch {
+    testcases: TestCase[];
 }
 
 export interface ExecuteTestCaseRequest {
