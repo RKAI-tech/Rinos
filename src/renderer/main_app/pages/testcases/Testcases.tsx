@@ -84,13 +84,19 @@ const Testcases: React.FC = () => {
             testcase_id: tc.testcase_id,
             name: tc.name,
             description: tc.description,
-            actionsCount: tc.actions.length,
+            actionsCount: tc.actions? tc.actions.length : 0,
             status: tc.evidence.status,
             evidence: {
               evidence_id: tc.evidence_id,
-              url_video: tc.evidence?.video?.url ? tc.evidence.video.url : '',
-              url_screenshot: tc.evidence?.screenshots? tc.evidence.screenshots.map((screenshot: any) => screenshot.url) : [],
-              logs: tc.evidence?.log?.content? tc.evidence.log.content : '',
+              video: tc.evidence?.video ? {
+                video_id: tc.evidence.video.video_id || '',
+                url: tc.evidence.video.url || '',
+              } : null,
+              screenshots: tc.evidence?.screenshots ? tc.evidence.screenshots : [],
+              log: tc.evidence?.log ? {
+                log_id: tc.evidence.log.log_id || '',
+                content: tc.evidence.log.content || '',
+               } : null,
             },
             updatedAt: tc.updated_at,
             basic_authentication: {
