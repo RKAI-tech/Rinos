@@ -1,5 +1,8 @@
+/* Add User To Project Modal Styles */
+/* This file contains styles specifically for the AddUser/ShareProject modal */
+
 /* Modal Overlay */
-.modal-overlay {
+.add-user-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -16,19 +19,19 @@
 }
 
 /* Modal Container */
-.modal-container {
+.add-user-modal-container {
   background: white;
   border-radius: 12px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   width: 100%;
-  max-width: 500px;
-  max-height: 90vh;
+  max-width: 700px;
+  max-height: 600px;
   overflow-y: auto;
-  animation: modalSlideIn 0.2s ease-out;
+  animation: addUserModalSlideIn 0.2s ease-out;
   will-change: transform, opacity;
 }
 
-@keyframes modalSlideIn {
+@keyframes addUserModalSlideIn {
   from {
     opacity: 0;
     transform: translateY(-10px) scale(0.98);
@@ -40,15 +43,18 @@
 }
 
 /* Modal Header */
-.modal-header {
+.add-user-modal-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   padding: 24px 24px 0 24px;
   margin-bottom: 8px;
+  position: relative;
+  z-index: 10;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.modal-title {
+.add-user-modal-title {
   font-size: 20px;
   font-weight: 600;
   color: #1a1a1a;
@@ -56,7 +62,7 @@
   line-height: 1.2;
 }
 
-.modal-close-btn {
+.add-user-modal-close-btn {
   background: none;
   border: none;
   padding: 8px;
@@ -67,33 +73,39 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  z-index: 11;
+  align-self: flex-start;
+  margin-top: -2px;
 }
 
-.modal-close-btn:hover {
+.add-user-modal-close-btn:hover {
   background: #f3f4f6;
   color: #374151;
 }
 
-/* Modal Instructions */
-.modal-instructions {
-  padding: 0 24px;
-  margin: 0 0 24px 0;
-  font-size: 14px;
-  color: #6b7280;
-  line-height: 1.5;
+/* Close button for selected users (smaller, inline) */
+.add-user-modal-close-btn[aria-label="Remove user"] {
+  padding: 4px;
+  align-self: flex-start;
+  margin-top: 2px;
 }
 
 /* Modal Form */
-.modal-form {
+.add-user-modal-form {
   padding: 0 24px 24px 24px;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Form Groups */
-.form-group {
+.add-user-form-group {
   margin-bottom: 20px;
 }
 
-.form-label {
+.add-user-form-label {
   display: block;
   font-size: 14px;
   font-weight: 500;
@@ -102,14 +114,8 @@
   line-height: 1.4;
 }
 
-.required-asterisk {
-  color: #dc2626;
-  margin-left: 2px;
-}
-
 /* Form Inputs */
-.form-input,
-.form-textarea {
+.add-user-form-input {
   width: 100%;
   padding: 12px 16px;
   border: 1px solid #d1d5db;
@@ -122,56 +128,68 @@
   font-family: inherit;
 }
 
-.form-input:focus,
-.form-textarea:focus {
+.add-user-form-input:focus {
   outline: none;
   border-color: #5549f5;
   box-shadow: 0 0 0 3px rgba(85, 73, 245, 0.1);
 }
 
-.form-input::placeholder,
-.form-textarea::placeholder {
+.add-user-form-input::placeholder {
   color: #9ca3af;
 }
 
-.form-input.error {
-  border-color: #dc2626;
+/* Tabs Header */
+.add-user-tab-header {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
-.form-input.error:focus {
-  border-color: #dc2626;
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-}
-
-.form-textarea {
-  resize: vertical;
-  min-height: 100px;
-  line-height: 1.5;
-}
-
-/* Error Message */
-.error-message {
-  display: block;
-  font-size: 12px;
-  color: #dc2626;
-  margin-top: 4px;
+.add-user-tab-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
   font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  opacity: 0.6;
 }
 
-/* Modal Actions */
-.modal-actions {
+.add-user-tab-button.active {
+  opacity: 1;
+  background: #5549f5;
+  color: white;
+  border-color: #5549f5;
+}
+
+.add-user-tab-button:hover {
+  opacity: 0.8;
+}
+
+.add-user-tab-button.active:hover {
+  opacity: 1;
+}
+
+/* Modal Footer */
+.add-user-modal-footer {
+  border-top: 1px solid #e5e7eb;
+  padding: 12px 20px;
+  background-color: #f9fafb;
+  border-radius: 0 0 8px 8px;
+  flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 32px;
-  padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
+  gap: 8px;
+  align-items: center;
 }
 
 /* Buttons */
-.btn-cancel,
-.btn-save {
-  padding: 10px 20px;
+.add-user-btn-cancel,
+.add-user-btn-save {
+  padding: 6px 16px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -179,37 +197,38 @@
   transition: all 0.2s ease;
   border: none;
   min-width: 80px;
+  height: 32px;
 }
 
-.btn-cancel {
+.add-user-btn-cancel {
   background: white;
   color: #374151;
   border: 1px solid #d1d5db;
 }
 
-.btn-cancel:hover {
+.add-user-btn-cancel:hover {
   background: #f9fafb;
   border-color: #9ca3af;
 }
 
-.btn-save {
+.add-user-btn-save {
   background: linear-gradient(135deg, #5549f5 0%, #7c3aed 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(85, 73, 245, 0.3);
 }
 
-.btn-save:hover {
+.add-user-btn-save:hover {
   background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(85, 73, 245, 0.4);
 }
 
-.btn-save:active {
+.add-user-btn-save:active {
   transform: translateY(0);
   box-shadow: 0 4px 12px rgba(85, 73, 245, 0.3);
 }
 
-.btn-save:disabled {
+.add-user-btn-save:disabled {
   background: linear-gradient(135deg, rgba(85, 73, 245, 0.4) 0%, rgba(124, 58, 237, 0.4) 100%);
   color: rgba(255, 255, 255, 0.7);
   cursor: not-allowed;
@@ -217,7 +236,7 @@
   opacity: 0.6;
 }
 
-.btn-save:disabled:hover {
+.add-user-btn-save:disabled:hover {
   background: linear-gradient(135deg, rgba(85, 73, 245, 0.4) 0%, rgba(124, 58, 237, 0.4) 100%);
   transform: none;
   box-shadow: none;
@@ -225,63 +244,58 @@
 
 /* Responsive Design */
 @media (max-width: 640px) {
-  .modal-overlay {
+  .add-user-modal-overlay {
     padding: 16px;
   }
   
-  .modal-container {
+  .add-user-modal-container {
     max-width: 100%;
   }
   
-  .modal-header {
+  .add-user-modal-header {
     padding: 20px 20px 0 20px;
   }
   
-  .modal-instructions {
-    padding: 0 20px;
-    margin-bottom: 20px;
-  }
-  
-  .modal-form {
+  .add-user-modal-form {
     padding: 0 20px 20px 20px;
   }
   
-  .modal-title {
+  .add-user-modal-title {
     font-size: 18px;
   }
   
-  .modal-actions {
+  .add-user-modal-footer {
     flex-direction: column;
     gap: 8px;
   }
   
-  .btn-cancel,
-  .btn-save {
+  .add-user-btn-cancel,
+  .add-user-btn-save {
     width: 100%;
     justify-content: center;
   }
 }
 
 /* Focus Management */
-.modal-container:focus-within {
+.add-user-modal-container:focus-within {
   outline: none;
 }
 
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
-  .modal-container {
+  .add-user-modal-container {
     animation: none;
   }
 }
 
 /* High Contrast Mode */
 @media (prefers-contrast: high) {
-  .modal-container {
+  .add-user-modal-container {
     border: 2px solid #000;
   }
   
-  .form-input,
-  .form-textarea {
+  .add-user-form-input {
     border-width: 2px;
   }
 }
+

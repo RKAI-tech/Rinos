@@ -25,7 +25,6 @@ interface EditTestcaseProps {
 const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, testcase }) => {
   const [testcaseName, setTestcaseName] = useState('');
   const [testcaseTag, setTestcaseTag] = useState('');
-  const [errors, setErrors] = useState<{ name?: string; tag?: string; username?: string; password?: string }>({});
   const [basicAuth, setBasicAuth] = useState<{ username: string; password: string } | null>(null);
   const [hasInitialBasicAuth, setHasInitialBasicAuth] = useState(false);
   const [actions, setActions] = useState<Action[]>([]);
@@ -48,7 +47,6 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
       const initialBasicAuth = testcase.basic_authentication || null;
       setBasicAuth(initialBasicAuth);
       setHasInitialBasicAuth(!!initialBasicAuth);
-      setErrors({});
       // Prefer data from parent (already loaded with testcases), fallback to API fetch
       // Load actions by testcase
       const loadActions = async () => {
@@ -73,14 +71,8 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
     e.preventDefault();
     if (!testcase) return;
 
-    const newErrors: { name?: string; tag?: string; username?: string; password?: string } = {};
+    // Validation - nếu không có tên thì không làm gì (nút đã bị disable)
     if (!testcaseName.trim()) {
-      newErrors.name = 'Testcase name is required';
-    }
-    // allow empty username/password meaning remove basic auth
-    // Tag is optional; no validation needed
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
       return;
     }
 
@@ -119,7 +111,6 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
       setTestcaseTag('');
       setBasicAuth(null);
       setHasInitialBasicAuth(false);
-      setErrors({});
       onClose();
     } catch (err) {
       // console.error('[EditTestcase] Save failed:', err);
@@ -131,7 +122,6 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
     setTestcaseTag('');
     setBasicAuth(null);
     setHasInitialBasicAuth(false);
-    setErrors({});
     onClose();
   };
 
@@ -183,9 +173,8 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
               value={testcaseName}
               onChange={(e) => setTestcaseName(e.target.value)}
               placeholder="Enter testcase name"
-              className={`tcase-edit-form-input ${errors.name ? 'tcase-edit-error' : ''}`}
+              className="tcase-edit-form-input"
             />
-            {errors.name && <span className="tcase-edit-error-message">{errors.name}</span>}
           </div>
 
           <div className="tcase-edit-form-group">
@@ -198,9 +187,8 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
               value={testcaseTag}
               onChange={(e) => setTestcaseTag(e.target.value)}
               placeholder="Enter tag (e.g., smoke, regression)"
-              className={`tcase-edit-form-input ${errors.tag ? 'tcase-edit-error' : ''}`}
+              className="tcase-edit-form-input"
             />
-            {errors.tag && <span className="tcase-edit-error-message">{errors.tag}</span>}
           </div>
 
           {/* Basic Authentication */}
@@ -244,7 +232,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
                     value={basicAuth?.username || ''}
                     onChange={(e) => setBasicAuth(prev => ({ username: e.target.value, password: prev?.password || '' }))}
                     placeholder="Username"
-                    className={`tcase-edit-form-input ${errors.username ? 'tcase-edit-error' : ''}`}
+                    className="tcase-edit-form-input"
                     style={{ flex: 1 }}
                   />
                   <input
@@ -252,7 +240,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
                     value={basicAuth?.password || ''}
                     onChange={(e) => setBasicAuth(prev => ({ username: prev?.username || '', password: e.target.value }))}
                     placeholder="Password"
-                    className={`tcase-edit-form-input ${errors.password ? 'tcase-edit-error' : ''}`}
+                    className="tcase-edit-form-input"
                     style={{ flex: 1 }}
                   />
                   <button
@@ -280,8 +268,6 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
                     </svg>
                   </button>
                 </div>
-                {errors.username && <span className="tcase-edit-error-message">{errors.username}</span>}
-                {errors.password && <span className="tcase-edit-error-message">{errors.password}</span>}
               </div>
             ) : (
               <button
@@ -344,7 +330,11 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
             <button type="button" className="tcase-edit-btn-cancel" onClick={handleClose}>
               Cancel
             </button>
-            <button type="submit" className="tcase-edit-btn-save">
+            <button 
+              type="submit" 
+              className="tcase-edit-btn-save"
+              disabled={!testcaseName.trim()}
+            >
               Update
             </button>
           </div>

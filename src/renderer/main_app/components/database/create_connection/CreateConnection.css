@@ -4,7 +4,7 @@
 .cc-modal-title { font-size: 18px; font-weight: 700; color: #111827; margin: 0; }
 .cc-modal-close-btn { background: transparent; border: none; padding: 6px; border-radius: 6px; cursor: pointer; color: #6b7280; }
 .cc-modal-close-btn:hover { background: #f3f4f6; color: #111827; }
-.cc-modal-instructions { margin: 0; padding: 12px 20px; color: #6b7280; font-size: 14px; border-bottom: 1px solid #f3f4f6; }
+.cc-modal-instructions { margin: 0; padding: 12px 20px; color: #6b7280; font-size: 14px;}
 .cc-modal-form { padding: 16px 20px; }
 .cc-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; }
 .cc-form-group { display: flex; flex-direction: column; gap: 6px; }
@@ -21,8 +21,14 @@
 .cc-btn { padding: 10px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; border: 1px solid transparent; cursor: pointer; }
 .cc-btn-cancel { background: #fff; color: #374151; border-color: #e5e7eb; }
 .cc-btn-cancel:hover { background: #f9fafb; }
+.cc-password-wrapper { position: relative; display: flex; align-items: center; }
+.cc-password-wrapper .cc-form-input { width: 100%; padding-right: 40px; }
+.cc-password-toggle { position: absolute; right: 10px; color: #9ca3af; background: none; border: none; cursor: pointer; line-height: 1; padding: 4px; display: inline-flex; align-items: center; justify-content: center; }
+.cc-password-toggle:hover { color: #6b7280; }
 .cc-btn-save { background: #5549f5; color: #fff; }
 .cc-btn-save:hover { background: #4338ca; }
+.cc-btn-save:disabled { background: linear-gradient(135deg, rgba(85, 73, 245, 0.4) 0%, rgba(124, 58, 237, 0.4) 100%); color: rgba(255, 255, 255, 0.7); cursor: not-allowed; box-shadow: none; }
+.cc-btn-save:disabled:hover { background: linear-gradient(135deg, rgba(85, 73, 245, 0.4) 0%, rgba(124, 58, 237, 0.4) 100%); }
 
 @media (max-width: 640px) {
   .cc-form-row { grid-template-columns: 1fr; }

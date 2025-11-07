@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import '../../../project/create_project/CreateProject.css';
+import './AddUserToProjectModal.css';
 import { UserService } from '../../../../services/user';
 import { ProjectService } from '../../../../services/projects';
 import { toast } from 'react-toastify';
@@ -46,9 +46,9 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
     return () => { mounted = false; };
   }, [isOpen]);
 
-  // Load members when opening modal or switching to manage tab
+  // Load members when opening modal (cần để filter user đã có trong project)
   useEffect(() => {
-    if (!isOpen || activeTab !== 'manage' || !projectId) return;
+    if (!isOpen || !projectId) return;
     let mounted = true;
     (async () => {
       try {
@@ -72,7 +72,7 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
       }
     })();
     return () => { mounted = false; };
-  }, [isOpen, activeTab, projectId]);
+  }, [isOpen, projectId]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -197,6 +197,14 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
       const resp = await svc.addUserToProject(payload);
       if (resp.success) {
         toast.success('Shared project successfully');
+        // Refresh members list để filter đúng khi search
+        const membersResp = await svc.getUsersInProject(projectId);
+        if (membersResp.success && membersResp.data) {
+          setMembers(membersResp.data);
+        }
+        // Clear selected users sau khi add thành công
+        setSelectedUsers({});
+        setUserSearchTerm('');
         setActiveTab('manage');
         if (onSuccess) await onSuccess();
       } else {
@@ -210,9 +218,9 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="add-user-modal-overlay" onClick={onClose}>
       <div
-        className="modal-container add-user-modal-container"
+        className="add-user-modal-container"
         onClick={(e) => e.stopPropagation()}
         style={{
           display: 'flex',
@@ -221,9 +229,9 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
           maxHeight: '600px' // Giới hạn chiều cao tối đa
         }}
       >
-        <div className="modal-header">
-          <h2 className="modal-title">Share Project</h2>
-          <button className="modal-close-btn" onClick={onClose}>
+        <div className="add-user-modal-header">
+          <h2 className="add-user-modal-title">Share Project</h2>
+          <button className="add-user-modal-close-btn" onClick={onClose}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -231,24 +239,19 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
           </button>
         </div>
 
-        <div className="modal-form" style={{
-          flex: 1,
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
+        <div className="add-user-modal-form">
           {/* Tabs header */}
-          <div className="tab-header">
+          <div className="add-user-tab-header">
             <button
               type="button"
-              className={`tab-button ${activeTab === 'add' ? 'active' : ''}`}
+              className={`add-user-tab-button ${activeTab === 'add' ? 'active' : ''}`}
               onClick={() => setActiveTab('add')}
             >
               Add member
             </button>
             <button
               type="button"
-              className={`tab-button ${activeTab === 'manage' ? 'active' : ''}`}
+              className={`add-user-tab-button ${activeTab === 'manage' ? 'active' : ''}`}
               onClick={() => setActiveTab('manage')}
             >
               Manage
@@ -259,14 +262,14 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
           <div style={{ flex: 1, overflow: 'auto', padding: '0 0px' }}>
             {activeTab === 'add' && (
               <>
-                <div className="form-group">
-                  <label className="form-label">Search users</label>
+                <div className="add-user-form-group">
+                  <label className="add-user-form-label">Search users</label>
                   <input
                     type="text"
                     placeholder="Search users by email..."
                     value={userSearchTerm}
                     onChange={(e) => setUserSearchTerm(e.target.value)}
-                    className="form-input"
+                    className="add-user-form-input"
                   />
                 </div>
 
@@ -301,12 +304,12 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
 
                 {Object.keys(selectedUsers).length > 0 && (
                   <div style={{ marginTop: 12 }}>
-                    <div className="form-label" style={{ marginBottom: 8 }}>Selected users</div>
+                    <div className="add-user-form-label" style={{ marginBottom: 8 }}>Selected users</div>
                     <div style={{ border: '1px solid #e5e7eb', borderRadius: 8 }}>
                       {Object.keys(selectedUsers).map(uid => {
                         const info = allUsers.find(u => u.user_id === uid);
                         return (
-                          <div key={uid} style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                          <div key={uid} style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
                             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
                               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: '#6b7280' }}>
                                 <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -320,8 +323,14 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
                             <select
                               value={selectedUsers[uid]}
                               onChange={(e) => handleChangeUserPermission(uid, e.target.value as Permission)}
-                              className="form-input"
-                              style={{ width: 180, marginRight: 8 }}
+                              className="add-user-form-input"
+                              style={{ 
+                                width: 140, 
+                                height: '32px',
+                                padding: '4px 8px',
+                                fontSize: '14px',
+                                marginRight: 8
+                              }}
                             >
                               <option value="CAN_VIEW">Can view</option>
                               <option value="CAN_EDIT">Can edit</option>
@@ -329,10 +338,20 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
                             </select>
                             <button
                               type="button"
-                              className="modal-close-btn"
+                              className="add-user-modal-close-btn"
                               onClick={() => handleToggleSelectUser(uid)}
                               aria-label="Remove user"
                               title="Remove"
+                              style={{ 
+                                position: 'relative', 
+                                zIndex: 1, 
+                                flexShrink: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                alignSelf: 'flex-start',
+                                marginTop: '2px'
+                              }}
                             >
                               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -438,42 +457,22 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
         </div>
 
         {/* Compact Footer */}
-        <div className="modal-footer" style={{
-          borderTop: '1px solid #e5e7eb',
-          padding: '12px 20px',
-          backgroundColor: '#f9fafb',
-          borderRadius: '0 0 8px 8px',
-          flexShrink: 0,
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '8px',
-          alignItems: 'center'
-        }}>
+        <div className="add-user-modal-footer">
           {activeTab === 'add' ? (
             <>
               <button
                 type="button"
-                className="btn-cancel"
+                className="add-user-btn-cancel"
                 onClick={onClose}
                 disabled={submitting}
-                style={{
-                  padding: '6px 16px',
-                  fontSize: '14px',
-                  height: '32px'
-                }}
               >
                 Cancel
               </button>
               <button
                 type="button"
-                className="btn-save"
+                className="add-user-btn-save"
                 onClick={handleSubmit}
-                disabled={submitting}
-                style={{
-                  padding: '6px 16px',
-                  fontSize: '14px',
-                  height: '32px'
-                }}
+                disabled={submitting || Object.keys(selectedUsers).length === 0}
               >
                 Save
               </button>
@@ -481,13 +480,8 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
           ) : (
             <button
               type="button"
-              className="btn-cancel"
+              className="add-user-btn-cancel"
               onClick={onClose}
-              style={{
-                padding: '6px 16px',
-                fontSize: '14px',
-                height: '32px'
-              }}
             >
               Close
             </button>

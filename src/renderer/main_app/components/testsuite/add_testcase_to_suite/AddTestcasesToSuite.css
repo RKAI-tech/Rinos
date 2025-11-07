@@ -30,8 +30,10 @@
 .tsuite-add-btn-cancel, .tsuite-add-btn-save { padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; border: none; }
 .tsuite-add-btn-cancel { background: white; color: #374151; border: 1px solid #d1d5db; }
 .tsuite-add-btn-cancel:hover { background: #f9fafb; border-color: #9ca3af; }
-.tsuite-add-btn-save { background: #5549f5; color: #fff; box-shadow: 0 4px 12px rgba(85,73,245,0.3); }
-.tsuite-add-btn-save:hover { background: #4338ca; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(85,73,245,0.4); }
+.tsuite-add-btn-save { background: linear-gradient(135deg, #5549f5 0%, #7c3aed 100%); color: #fff; box-shadow: 0 4px 12px rgba(85,73,245,0.3); }
+.tsuite-add-btn-save:hover { background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(85,73,245,0.4); }
+.tsuite-add-btn-save:disabled { background: linear-gradient(135deg, rgba(85, 73, 245, 0.4) 0%, rgba(124, 58, 237, 0.4) 100%); color: rgba(255, 255, 255, 0.7); cursor: not-allowed; box-shadow: none; opacity: 0.6; }
+.tsuite-add-btn-save:disabled:hover { background: linear-gradient(135deg, rgba(85, 73, 245, 0.4) 0%, rgba(124, 58, 237, 0.4) 100%); transform: none; box-shadow: none; }
 
 @media (max-width: 640px) {
   .tsuite-add-modal-container { max-width: 100%; }

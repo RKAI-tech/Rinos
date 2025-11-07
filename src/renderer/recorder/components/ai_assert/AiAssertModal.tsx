@@ -3,7 +3,7 @@ import './AiAssertModal.css';
 import { StatementService } from '../../services/statements';
 import { apiRouter } from '../../services/baseAPIRequest';
 import QueryResultTable from './QueryResultTable';
-import ApiElementPanel from '../api_model/ApiElementPanel';
+import ApiElementPanel from './api_model/ApiElementPanel';
 import { Connection, ApiRequestData } from '../../types/actions';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { executeApiRequest, validateApiRequest, convertApiRequestDataToOptions } from '../../utils/api_request';
@@ -11,6 +11,24 @@ import { toast } from 'react-toastify';
 const statementService = new StatementService();
 
 type ElementType = 'Browser' | 'Database' | 'API';
+
+const createDefaultApiRequest = (): ApiRequestData => ({
+  method: 'get',
+  url: 'https://',
+  params: [],
+  headers: [],
+  auths: [],
+  bodies: [
+    {
+      type: 'none',
+      content: '',
+      formData: [],
+      orderIndex: 0,
+    },
+  ],
+  auth: { type: 'none' },
+  body: { type: 'none', content: '', formData: [] },
+});
 
 interface AiElementItem {
   id: string;
@@ -252,14 +270,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                         onChangeElement(newIndex, (old) => ({
                           ...old,
                           type: 'API',
-                          apiRequest: {
-                            method: 'GET',
-                            url: 'https://',
-                            params: [],
-                            headers: [],
-                            auth: { type: 'none' },
-                            body: { type: 'none', content: '' }
-                          }
+                          apiRequest: createDefaultApiRequest()
                         }));
                       }, 0);
                     }}
@@ -353,7 +364,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
 
                 {collapsedMap[el.id] && el.type === 'API' && (
                   <div className="aiam-mono aiam-mono-inline">
-                    <span className="aiam-text">API: {el.apiRequest?.method ? String(el.apiRequest.method) : ''} {el.apiRequest?.url ? String(el.apiRequest.url) : '(No URL)'}</span>
+                    <span className="aiam-text">API: {el.apiRequest?.method ? String(el.apiRequest.method).toUpperCase() : ''} {el.apiRequest?.url ? String(el.apiRequest.url) : '(No URL)'}</span>
                     <button className="aiam-close" title="Remove" onClick={() => onRemoveElement(idx)} style={{ width: 24, height: 24 }}>✕</button>
                   </div>
                 )}

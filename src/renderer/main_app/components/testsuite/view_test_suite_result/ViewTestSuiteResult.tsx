@@ -18,7 +18,7 @@ interface Props {
 interface CaseItem {
   id: string;
   name: string;
-  tag?: string;
+  description?: string;
   status?: string;
   output?: string; // placeholder for terminal-like logs
   url?: string;
@@ -119,6 +119,10 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
   const tcs = useMemo(() => new TestCaseService(), []);
   const [isRetryingAll, setIsRetryingAll] = useState(false);
   const canEditPermission = canEdit(projectId);
+  const hasProcessingCases = useMemo(() => {
+    const processingStatuses = new Set(['running', 'pending', 'queued', 'waiting', 'processing', 'in_progress']);
+    return cases.some((c) => processingStatuses.has(String(c.status || '').toLowerCase()));
+  }, [cases]);
 
   const fetchResults = useCallback(async (silent: boolean = false) => {
     if (!isOpen || !testSuiteId) return;
@@ -126,12 +130,12 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       if (!silent) setIsLoading(true);
       setError(null);
       const resp = await svc.getTestCasesBySuite({ test_suite_id: testSuiteId });
-      // console.log('response:', resp);
+      console.log('response:', resp);
       if (resp.success && resp.data) {
         const mapped: CaseItem[] = (resp.data.testcases || []).map((tc) => ({
           id: tc.testcase_id,
           name: tc.name,
-          tag: (tc as any).tag,
+          description: (tc as any).description || '',
           status: (tc as any).status,
           output: tc.logs || '',
           url: (tc as any).url_video
@@ -169,16 +173,16 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
     fetchTestSuiteName();
   }, [fetchResults, fetchTestSuiteName]);
 
-  // Auto-refresh every 2 seconds while modal is open
+  // Auto-refresh every 15 seconds while there are processing testcases
   useEffect(() => {
-    if (!isOpen || !testSuiteId) return;
+    if (!isOpen || !testSuiteId || !hasProcessingCases) return;
     const intervalId = window.setInterval(() => {
       fetchResults(true);
-    }, 2000);
+    }, 15000);
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [isOpen, testSuiteId, fetchResults]);
+  }, [isOpen, testSuiteId, fetchResults, hasProcessingCases]);
 
   const handleRetryAll = async () => {
     if (!canEditPermission || !testSuiteId) return;

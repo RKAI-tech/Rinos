@@ -52,6 +52,7 @@
   color: #1a1a1a;
   margin: 0;
   line-height: 1.2;
+  
 }
 
 .testcase-modal-close-btn {
@@ -79,6 +80,7 @@
   font-size: 14px;
   color: #6b7280;
   line-height: 1.5;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 /* Testcase Modal Form */
@@ -207,6 +209,20 @@
 .testcase-btn-save:active {
   transform: translateY(0);
   box-shadow: 0 4px 12px rgba(85, 73, 245, 0.3);
+}
+
+.testcase-btn-save:disabled {
+  background: linear-gradient(135deg, rgba(85, 73, 245, 0.4) 0%, rgba(124, 58, 237, 0.4) 100%);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+.testcase-btn-save:disabled:hover {
+  background: linear-gradient(135deg, rgba(85, 73, 245, 0.4) 0%, rgba(124, 58, 237, 0.4) 100%);
+  transform: none;
+  box-shadow: none;
 }
 
 /* Responsive Design */

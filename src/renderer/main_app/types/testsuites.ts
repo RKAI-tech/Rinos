@@ -45,7 +45,7 @@ export interface TestCaseInSuite {
     testcase_id: string;
     project_id: string;
     name: string;
-    tag: string;
+    description: string;
     status: string;
     logs: string;
     created_at: string;

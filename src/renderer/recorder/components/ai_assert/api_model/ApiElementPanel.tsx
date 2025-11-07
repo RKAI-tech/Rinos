@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
-import { executeApiRequest, validateApiRequest, ApiRequestOptions, formatResponseData, getStatusColorClass, getStatusDescription, convertApiRequestDataToOptions } from '../../utils/api_request';
-import { ApiRequestData } from '../../types/actions';
+import { executeApiRequest, validateApiRequest, ApiRequestOptions, formatResponseData, getStatusColorClass, getStatusDescription, convertApiRequestDataToOptions } from '../../../utils/api_request';
+import { ApiRequestData, ApiRequestTokenStorage, ApiRequestBasicAuthStorage, ApiRequestBody, ApiRequestMethod } from '../../../types/actions';
 import './ApiElementPanel.css';
 
 interface ApiElementPanelProps {
@@ -19,48 +19,93 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
   onSendRequest,
   isSending = false
 }) => {
+  const getPrimaryAuth = (req?: ApiRequestData) => {
+    if (!req) return undefined;
+    if (req.auth && req.auth.type) return req.auth;
+    if (req.auths && req.auths.length > 0) return req.auths[0];
+    return undefined;
+  };
+
+  const getPrimaryBody = (req?: ApiRequestData) => {
+    if (!req) return undefined;
+    if (req.body && req.body.type) return req.body;
+    if (req.bodies && req.bodies.length > 0) return req.bodies[0];
+    return undefined;
+  };
+
+  const getPrimaryTokenStorage = (req?: ApiRequestData) => {
+    const auth = getPrimaryAuth(req);
+    if (auth?.tokenStorages && auth.tokenStorages.length > 0) {
+      return auth.tokenStorages[0];
+    }
+    return (req as any)?.tokenStorage as any;
+  };
+
+  const getPrimaryBasicAuthStorage = (req?: ApiRequestData) => {
+    const auth = getPrimaryAuth(req);
+    if (auth?.basicAuthStorages && auth.basicAuthStorages.length > 0) {
+      return auth.basicAuthStorages[0];
+    }
+    return (req as any)?.basicAuthStorage as any;
+  };
+
+  const toFormPairs = (formData?: any[]) => {
+    if (!formData || formData.length === 0) {
+      return [{ key: '', value: '' }];
+    }
+    return formData.map((item: any) => ({ key: item.name ?? item.key ?? '', value: item.value ?? '' }));
+  };
+
+  const primaryAuth = getPrimaryAuth(apiRequest);
+  const primaryBody = getPrimaryBody(apiRequest);
+  const primaryTokenStorage = getPrimaryTokenStorage(apiRequest);
+  const primaryBasicStorage = getPrimaryBasicAuthStorage(apiRequest);
+
   // Initialize with default values or existing data
-  const [method, setMethod] = useState<string>(apiRequest?.method || 'GET');
+  const [method, setMethod] = useState<string>((apiRequest?.method || 'get').toString().toUpperCase());
   const [url, setUrl] = useState<string>(apiRequest?.url || 'https://');
+  const initialHeaders = apiRequest?.headers?.map(h => ({ key: h.key, value: h.value })) || [];
+  const initialParams = apiRequest?.params?.map(p => ({ key: p.key, value: p.value })) || [];
   const [headers, setHeaders] = useState<Array<{ key: string; value: string }>>(
-    apiRequest?.headers || [{ key: '', value: '' }]
+    initialHeaders.length > 0 ? initialHeaders : [{ key: '', value: '' }]
   );
   const [params, setParams] = useState<Array<{ key: string; value: string }>>(
-    apiRequest?.params || [{ key: '', value: '' }]
+    initialParams.length > 0 ? initialParams : [{ key: '', value: '' }]
   );
   const [authType, setAuthType] = useState<'none' | 'basic' | 'bearer'>(
-    apiRequest?.auth?.type || 'none'
+    (primaryAuth?.type as 'none' | 'basic' | 'bearer') || 'none'
   );
-  const [authUsername, setAuthUsername] = useState<string>(apiRequest?.auth?.username || '');
-  const [authPassword, setAuthPassword] = useState<string>(apiRequest?.auth?.password || '');
-  const [authToken, setAuthToken] = useState<string>(apiRequest?.auth?.token || '');
-  const [body, setBody] = useState<string>(apiRequest?.body?.content || '');
+  const [authUsername, setAuthUsername] = useState<string>(primaryAuth?.username || '');
+  const [authPassword, setAuthPassword] = useState<string>(primaryAuth?.password || '');
+  const [authToken, setAuthToken] = useState<string>(primaryAuth?.token || '');
+  const [body, setBody] = useState<string>(primaryBody?.content || '');
   const [bodyType, setBodyType] = useState<'none' | 'json' | 'form'>(
-    (apiRequest?.body?.type as 'none' | 'json' | 'form') || 'none'
+    (primaryBody?.type as 'none' | 'json' | 'form') || 'none'
   );
+  const initialBodyForm = bodyType === 'form' ? toFormPairs(primaryBody?.formData) : [];
   const [bodyForm, setBodyForm] = useState<Array<{ key: string; value: string }>>(
-    apiRequest?.body?.formData || [{ key: '', value: '' }]
+    bodyType === 'form' ? (initialBodyForm.length > 0 ? initialBodyForm : [{ key: '', value: '' }]) : [{ key: '', value: '' }]
   );
-  
+
   // Token storage fields
-  const [tokenStorageEnabled, setTokenStorageEnabled] = useState(
-    apiRequest?.tokenStorage?.enabled || false
+  const [tokenStorageEnabled, setTokenStorageEnabled] = useState<boolean>(
+    authType === 'bearer' && !!primaryTokenStorage
   );
   const [tokenStorageType, setTokenStorageType] = useState<'localStorage' | 'sessionStorage' | 'cookie'>(
-    apiRequest?.tokenStorage?.type || 'localStorage'
+    primaryTokenStorage?.type || 'localStorage'
   );
-  const [tokenStorageKey, setTokenStorageKey] = useState(apiRequest?.tokenStorage?.key || '');
-  
+  const [tokenStorageKey, setTokenStorageKey] = useState(primaryTokenStorage?.key || '');
+
   // Basic Auth storage fields
-  const [basicAuthStorageEnabled, setBasicAuthStorageEnabled] = useState(
-    apiRequest?.basicAuthStorage?.enabled || false
+  const [basicAuthStorageEnabled, setBasicAuthStorageEnabled] = useState<boolean>(
+    authType === 'basic' && !!primaryBasicStorage
   );
   const [basicAuthStorageType, setBasicAuthStorageType] = useState<'localStorage' | 'sessionStorage' | 'cookie'>(
-    apiRequest?.basicAuthStorage?.type || 'localStorage'
+    primaryBasicStorage?.type || 'localStorage'
   );
-  const [basicAuthUsernameKey, setBasicAuthUsernameKey] = useState(apiRequest?.basicAuthStorage?.usernameKey || '');
-  const [basicAuthPasswordKey, setBasicAuthPasswordKey] = useState(apiRequest?.basicAuthStorage?.passwordKey || '');
-  
+  const [basicAuthUsernameKey, setBasicAuthUsernameKey] = useState(primaryBasicStorage?.usernameKey || '');
+  const [basicAuthPasswordKey, setBasicAuthPasswordKey] = useState(primaryBasicStorage?.passwordKey || '');
+
   const [isFetchingToken, setIsFetchingToken] = useState(false);
   const [fetchedTokenValue, setFetchedTokenValue] = useState<string | null>(null);
   const [fetchedBasicUsername, setFetchedBasicUsername] = useState<string | null>(null);
@@ -76,97 +121,209 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
   // Helper to create a stable string representation for comparison
   const getApiRequestKey = (req?: ApiRequestData): string => {
     if (!req) return '';
+    const auth = getPrimaryAuth(req);
+    const bodyData = getPrimaryBody(req);
     return JSON.stringify({
       method: req.method,
       url: req.url,
       params: req.params,
       headers: req.headers,
-      authType: req.auth?.type,
-      bodyType: req.body?.type
+      authType: auth?.type,
+      tokenStorageKey: auth?.tokenStorages?.[0]?.key || (req as any)?.tokenStorage?.key,
+      basicAuthUsernameKey: auth?.basicAuthStorages?.[0]?.usernameKey || (req as any)?.basicAuthStorage?.usernameKey,
+      bodyType: bodyData?.type
     });
   };
 
   // Sync with prop changes (only when prop actually changes from outside)
   useEffect(() => {
     const currentKey = getApiRequestKey(apiRequest);
-    // Only sync if prop actually changed from outside (not from our own onChange)
     if (apiRequest && currentKey !== prevApiRequestRef.current && !isInternalUpdateRef.current) {
-      setMethod(apiRequest.method || 'GET');
+      const nextPrimaryAuth = getPrimaryAuth(apiRequest);
+      const nextPrimaryBody = getPrimaryBody(apiRequest);
+      const nextPrimaryTokenStorage = getPrimaryTokenStorage(apiRequest);
+      const nextPrimaryBasicStorage = getPrimaryBasicAuthStorage(apiRequest);
+
+      setMethod((apiRequest.method || 'get').toString().toUpperCase());
       setUrl(apiRequest.url || 'https://');
-      setHeaders(apiRequest.headers || [{ key: '', value: '' }]);
-      setParams(apiRequest.params || [{ key: '', value: '' }]);
-      setAuthType(apiRequest.auth?.type || 'none');
-      setAuthUsername(apiRequest.auth?.username || '');
-      setAuthPassword(apiRequest.auth?.password || '');
-      setAuthToken(apiRequest.auth?.token || '');
-      setBody(apiRequest.body?.content || '');
-      setBodyType(apiRequest.body?.type || 'none');
-      setBodyForm(apiRequest.body?.formData || [{ key: '', value: '' }]);
-      setTokenStorageEnabled(apiRequest.tokenStorage?.enabled || false);
-      setTokenStorageType(apiRequest.tokenStorage?.type || 'localStorage');
-      setTokenStorageKey(apiRequest.tokenStorage?.key || '');
-      setBasicAuthStorageEnabled(apiRequest.basicAuthStorage?.enabled || false);
-      setBasicAuthStorageType(apiRequest.basicAuthStorage?.type || 'localStorage');
-      setBasicAuthUsernameKey(apiRequest.basicAuthStorage?.usernameKey || '');
-      setBasicAuthPasswordKey(apiRequest.basicAuthStorage?.passwordKey || '');
+      const nextHeaders = apiRequest.headers?.map(h => ({ key: h.key, value: h.value })) || [];
+      setHeaders(nextHeaders.length > 0 ? nextHeaders : [{ key: '', value: '' }]);
+      const nextParams = apiRequest.params?.map(p => ({ key: p.key, value: p.value })) || [];
+      setParams(nextParams.length > 0 ? nextParams : [{ key: '', value: '' }]);
+      setAuthType((nextPrimaryAuth?.type as 'none' | 'basic' | 'bearer') || 'none');
+      setAuthUsername(nextPrimaryAuth?.username || '');
+      setAuthPassword(nextPrimaryAuth?.password || '');
+      setAuthToken(nextPrimaryAuth?.token || '');
+      setBody(nextPrimaryBody?.content || '');
+      const nextBodyType = (nextPrimaryBody?.type as 'none' | 'json' | 'form') || 'none';
+      setBodyType(nextBodyType);
+      if (nextBodyType === 'form') {
+        const nextBodyForm = toFormPairs(nextPrimaryBody?.formData);
+        setBodyForm(nextBodyForm.length > 0 ? nextBodyForm : [{ key: '', value: '' }]);
+      } else {
+        setBodyForm([{ key: '', value: '' }]);
+      }
+
+      const hasTokenStorage = (nextPrimaryAuth?.type === 'bearer' && !!nextPrimaryTokenStorage);
+      setTokenStorageEnabled(hasTokenStorage);
+      setTokenStorageType(nextPrimaryTokenStorage?.type || 'localStorage');
+      setTokenStorageKey(nextPrimaryTokenStorage?.key || '');
+
+      const hasBasicStorage = (nextPrimaryAuth?.type === 'basic' && !!nextPrimaryBasicStorage);
+      setBasicAuthStorageEnabled(hasBasicStorage);
+      setBasicAuthStorageType(nextPrimaryBasicStorage?.type || 'localStorage');
+      setBasicAuthUsernameKey(nextPrimaryBasicStorage?.usernameKey || '');
+      setBasicAuthPasswordKey(nextPrimaryBasicStorage?.passwordKey || '');
+
       prevApiRequestRef.current = currentKey;
     }
-    // Reset flag after processing
     if (isInternalUpdateRef.current) {
       isInternalUpdateRef.current = false;
     }
   }, [apiRequest]);
 
-  // Update parent whenever any field changes
-  useEffect(() => {
-    // Skip initial mount if no apiRequest
-    if (!apiRequest) {
-      return;
+  const buildApiRequestData = (opts: { forSave: boolean }): ApiRequestData => {
+    const { forSave } = opts;
+    const normalizedMethod = (method || 'GET').toLowerCase() as ApiRequestMethod;
+
+    const currentPrimaryAuth = getPrimaryAuth(apiRequest);
+    const currentPrimaryBody = getPrimaryBody(apiRequest);
+    const currentPrimaryTokenStorage = getPrimaryTokenStorage(apiRequest);
+    const currentPrimaryBasicStorage = getPrimaryBasicAuthStorage(apiRequest);
+
+    const filteredParams = params
+      .filter((p) => p.key.trim() || p.value.trim())
+      .map((p, index) => {
+        const existing = apiRequest?.params?.[index];
+        return {
+          id: existing?.id,
+          key: p.key.trim(),
+          value: p.value,
+          orderIndex: index,
+          createdAt: existing?.createdAt,
+          updatedAt: existing?.updatedAt,
+        };
+      });
+
+    const filteredHeaders = headers
+      .filter((h) => h.key.trim() || h.value.trim())
+      .map((h, index) => {
+        const existing = apiRequest?.headers?.[index];
+        return {
+          id: existing?.id,
+          key: h.key.trim(),
+          value: h.value,
+          orderIndex: index,
+          createdAt: existing?.createdAt,
+          updatedAt: existing?.updatedAt,
+        };
+      });
+
+    const bodyEntries = bodyForm
+      .filter((p) => p.key.trim())
+      .map((p, index) => {
+        const existing = currentPrimaryBody?.formData?.[index];
+        return {
+          id: existing?.id,
+          name: p.key.trim(),
+          value: p.value,
+          orderIndex: index,
+          createdAt: existing?.createdAt,
+          updatedAt: existing?.updatedAt,
+        };
+      });
+
+    const nextBody: ApiRequestBody = {
+      ...(currentPrimaryBody || {}),
+      type: bodyType,
+      content:
+        bodyType === 'json'
+          ? body
+          : bodyType === 'form'
+            ? undefined
+            : '',
+      formData: bodyType === 'form' ? bodyEntries : undefined,
+      orderIndex: currentPrimaryBody?.orderIndex ?? 0,
+    };
+
+    const includeBearerStorage = authType === 'bearer' && tokenStorageEnabled && tokenStorageKey.trim();
+    const includeBasicStorage = authType === 'basic' && basicAuthStorageEnabled && basicAuthUsernameKey.trim() && basicAuthPasswordKey.trim();
+
+    const nextTokenStorage: ApiRequestTokenStorage | undefined = includeBearerStorage
+      ? {
+          ...(currentPrimaryTokenStorage || {}),
+          type: tokenStorageType,
+          key: tokenStorageKey.trim(),
+          enabled: true,
+        }
+      : undefined;
+
+    const nextBasicStorage: ApiRequestBasicAuthStorage | undefined = includeBasicStorage
+      ? {
+          ...(currentPrimaryBasicStorage || {}),
+          type: basicAuthStorageType,
+          usernameKey: basicAuthUsernameKey.trim(),
+          passwordKey: basicAuthPasswordKey.trim(),
+          enabled: true,
+        }
+      : undefined;
+
+    const shouldHideBasicCreds = forSave && authType === 'basic' && basicAuthStorageEnabled;
+    const shouldHideBearerToken = forSave && authType === 'bearer' && tokenStorageEnabled;
+
+    const nextAuth: ApiRequestAuth = {
+      ...(currentPrimaryAuth || {}),
+      type: authType,
+      storageEnabled: (authType !== 'none') && (tokenStorageEnabled || basicAuthStorageEnabled) ? true : false,
+      username: authType === 'basic' && !shouldHideBasicCreds ? authUsername : undefined,
+      password: authType === 'basic' && !shouldHideBasicCreds ? authPassword : undefined,
+      token: authType === 'bearer' && !shouldHideBearerToken ? authToken : undefined,
+      tokenStorages: nextTokenStorage ? [nextTokenStorage] : [],
+      basicAuthStorages: nextBasicStorage ? [nextBasicStorage] : [],
+    };
+
+    const legacyTokenStorage = nextTokenStorage
+      ? { ...nextTokenStorage }
+      : tokenStorageEnabled
+        ? { enabled: false, type: tokenStorageType, key: tokenStorageKey }
+        : undefined;
+
+    const legacyBasicStorage = nextBasicStorage
+      ? { ...nextBasicStorage }
+      : basicAuthStorageEnabled
+        ? { enabled: false, type: basicAuthStorageType, usernameKey: basicAuthUsernameKey, passwordKey: basicAuthPasswordKey }
+        : undefined;
+
+    const data: ApiRequestData = {
+      ...(apiRequest || {}),
+      method: normalizedMethod,
+      url,
+      params: filteredParams,
+      headers: filteredHeaders,
+      auths: nextAuth.type === 'none' ? [] : [nextAuth],
+      bodies: [nextBody],
+      createdAt: apiRequest?.createdAt,
+      updatedAt: apiRequest?.updatedAt,
+      auth: nextAuth.type === 'none' ? { type: 'none' } : nextAuth,
+      body: nextBody,
+      tokenStorage: legacyTokenStorage,
+      basicAuthStorage: legacyBasicStorage,
+    } as ApiRequestData;
+
+    if (nextAuth.type === 'none') {
+      data.auths = [];
     }
 
+    return data;
+  };
+
+  // Update parent whenever any field changes
+  useEffect(() => {
     isInternalUpdateRef.current = true;
-    const apiData: ApiRequestData = {
-      method,
-      url,
-      params: params.filter(p => p.key.trim() || p.value.trim()),
-      headers: headers.filter(h => h.key.trim() || h.value.trim()),
-      auth: {
-        type: authType,
-        username: authType === 'basic' && !basicAuthStorageEnabled ? authUsername : undefined,
-        password: authType === 'basic' && !basicAuthStorageEnabled ? authPassword : undefined,
-        token: authType === 'bearer' && !tokenStorageEnabled ? authToken : undefined
-      },
-      body: {
-        type: bodyType,
-        content: bodyType === 'json' ? body : 
-                bodyType === 'form' ? JSON.stringify(
-                  Object.fromEntries(
-                    bodyForm
-                      .filter(p => p.key.trim())
-                      .map(p => [p.key.trim(), p.value])
-                  )
-                ) : '',
-        formData: bodyType === 'form' ? bodyForm.filter(p => p.key.trim() && p.value.trim()) : undefined
-      },
-      tokenStorage: (tokenStorageEnabled && authType === 'bearer') ? {
-        enabled: true,
-        type: tokenStorageType,
-        key: tokenStorageKey
-      } : {
-        enabled: false
-      },
-      basicAuthStorage: (basicAuthStorageEnabled && authType === 'basic') ? {
-        enabled: true,
-        type: basicAuthStorageType,
-        usernameKey: basicAuthUsernameKey,
-        passwordKey: basicAuthPasswordKey
-      } : {
-        enabled: false
-      }
-    };
-    prevApiRequestRef.current = getApiRequestKey(apiData);
-    onChange(apiData);
-  }, [method, url, headers, params, authType, authUsername, authPassword, authToken, body, bodyType, bodyForm, tokenStorageEnabled, tokenStorageType, tokenStorageKey, basicAuthStorageEnabled, basicAuthStorageType, basicAuthUsernameKey, basicAuthPasswordKey, onChange, apiRequest]);
+    const apiDataForSave = buildApiRequestData({ forSave: true });
+    prevApiRequestRef.current = getApiRequestKey(apiDataForSave);
+    onChange(apiDataForSave);
+  }, [method, url, headers, params, authType, authUsername, authPassword, authToken, body, bodyType, bodyForm, tokenStorageEnabled, tokenStorageType, tokenStorageKey, basicAuthStorageEnabled, basicAuthStorageType, basicAuthUsernameKey, basicAuthPasswordKey, onChange]);
 
   const handleAddHeader = () => {
     setHeaders([...headers, { key: '', value: '' }]);
@@ -258,28 +415,9 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
   };
 
   const handleSendRequest = async () => {
-    // Create ApiRequestData for validation (same as ApiRequestModal)
-    // When sending, use actual values from inputs (not storage info)
-    const apiData: ApiRequestData = {
-      method,
-      url,
-      params,
-      headers,
-      auth: {
-        type: authType,
-        username: authUsername,
-        password: authPassword,
-        token: authToken
-      },
-      body: {
-        type: bodyType,
-        content: body,
-        formData: bodyForm
-      }
-    };
+    const runtimeApiData = buildApiRequestData({ forSave: false });
 
-    // Convert to ApiRequestOptions for validation
-    const options = convertApiRequestDataToOptions(apiData);
+    const options = convertApiRequestDataToOptions(runtimeApiData);
     const validation = validateApiRequest(options);
 
     if (!validation.valid) {
@@ -290,48 +428,8 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
     // Execute request and handle response (same as ApiRequestModal)
     try {
       const response = await executeApiRequest(options);
-      
-      // Update response state via parent callback
-      // Pass the full apiData with storage info for saving, and response data
-      const apiDataForSave: ApiRequestData = {
-        method,
-        url,
-        params: params.filter(p => p.key.trim() && p.value.trim()),
-        headers: headers.filter(h => h.key.trim() && h.value.trim()),
-        auth: {
-          type: authType,
-          username: authType === 'basic' && !basicAuthStorageEnabled ? authUsername : undefined,
-          password: authType === 'basic' && !basicAuthStorageEnabled ? authPassword : undefined,
-          token: authType === 'bearer' && !tokenStorageEnabled ? authToken : undefined
-        },
-        body: {
-          type: bodyType,
-          content: bodyType === 'json' ? body : 
-                  bodyType === 'form' ? JSON.stringify(
-                    Object.fromEntries(
-                      bodyForm
-                        .filter(p => p.key.trim())
-                        .map(p => [p.key.trim(), p.value])
-                    )
-                  ) : '',
-          formData: bodyType === 'form' ? bodyForm.filter(p => p.key.trim() && p.value.trim()) : undefined
-        },
-        tokenStorage: (tokenStorageEnabled && authType === 'bearer') ? {
-          enabled: true,
-          type: tokenStorageType,
-          key: tokenStorageKey
-        } : {
-          enabled: false
-        },
-        basicAuthStorage: (basicAuthStorageEnabled && authType === 'basic') ? {
-          enabled: true,
-          type: basicAuthStorageType,
-          usernameKey: basicAuthUsernameKey,
-          passwordKey: basicAuthPasswordKey
-        } : {
-          enabled: false
-        }
-      };
+
+      const apiDataForSave = buildApiRequestData({ forSave: true });
       
       // Call onSendRequest to update parent with apiData and response (same pattern as ApiRequestModal)
       // Pass response so parent can update apiResponse without executing again

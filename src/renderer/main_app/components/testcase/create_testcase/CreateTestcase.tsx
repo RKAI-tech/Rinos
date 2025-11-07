@@ -10,21 +10,13 @@ interface CreateTestcaseProps {
 
 const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave, projectId = '' }) => {
   const [testcaseName, setTestcaseName] = useState('');
-  
   const [testcaseTag, setTestcaseTag] = useState('');
-  const [errors, setErrors] = useState<{ name?: string; tag?: string }>({});
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const newErrors: { name?: string; tag?: string } = {};
+    // Validation - nếu không có tên thì không làm gì (nút đã bị disable)
     if (!testcaseName.trim()) {
-      newErrors.name = 'Testcase name is required';
-    }
-    // Tag is optional; no validation needed
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
       return;
     }
 
@@ -36,14 +28,12 @@ const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave
 
     setTestcaseName('');
     setTestcaseTag('');
-    setErrors({});
     onClose();
   };
 
   const handleClose = () => {
     setTestcaseName('');
     setTestcaseTag('');
-    setErrors({});
     onClose();
   };
 
@@ -104,19 +94,18 @@ const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave
               value={testcaseName}
               onChange={(e) => setTestcaseName(e.target.value)}
               placeholder="Enter testcase name"
-              className={`testcase-form-input ${errors.name ? 'testcase-error' : ''}`}
+              className="testcase-form-input"
             />
-            {errors.name && <span className="testcase-error-message">{errors.name}</span>}
           </div>
 
           {/* Testcase Tag */}
           <div className="testcase-form-group">
             <label htmlFor="testcaseTag" className="testcase-form-label">
-              Tag
+              Description
               <div className="tooltip-container">
                 <span className="tooltip-icon">?</span>
                 <div className="tooltip-content">
-                  Optional tag to categorize your testcase (e.g., smoke, regression, critical). This helps organize and filter testcases.
+                  Optional description to categorize your testcase (e.g., smoke, regression, critical). This helps organize and filter testcases.
                 </div>
               </div>
             </label>
@@ -126,9 +115,8 @@ const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave
               value={testcaseTag}
               onChange={(e) => setTestcaseTag(e.target.value)}
               placeholder="Enter tag (e.g., smoke, regression)"
-              className={`testcase-form-input ${errors.tag ? 'testcase-error' : ''}`}
+              className="testcase-form-input"
             />
-            {errors.tag && <span className="testcase-error-message">{errors.tag}</span>}
           </div>
 
         
@@ -138,7 +126,11 @@ const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave
             <button type="button" className="testcase-btn-cancel" onClick={handleClose}>
               Cancel
             </button>
-            <button type="submit" className="testcase-btn-save">
+            <button 
+              type="submit" 
+              className="testcase-btn-save"
+              disabled={!testcaseName.trim()}
+            >
               Save
             </button>
           </div>

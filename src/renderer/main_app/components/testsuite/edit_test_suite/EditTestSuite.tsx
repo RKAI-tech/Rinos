@@ -17,13 +17,11 @@ interface EditTestSuiteProps {
 const EditTestSuite: React.FC<EditTestSuiteProps> = ({ isOpen, onClose, onSave, testsuite }) => {
   const [suiteName, setSuiteName] = useState('');
   const [suiteDescription, setSuiteDescription] = useState('');
-  const [errors, setErrors] = useState<{ name?: string }>({});
 
   useEffect(() => {
     if (testsuite) {
       setSuiteName(testsuite.name || '');
       setSuiteDescription(testsuite.description || '');
-      setErrors({});
     }
   }, [testsuite]);
 
@@ -31,12 +29,8 @@ const EditTestSuite: React.FC<EditTestSuiteProps> = ({ isOpen, onClose, onSave, 
     e.preventDefault();
     if (!testsuite) return;
 
-    const newErrors: { name?: string } = {};
+    // Validation - nếu không có tên thì không làm gì (nút đã bị disable)
     if (!suiteName.trim()) {
-      newErrors.name = 'Testsuite name is required';
-    }
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
       return;
     }
 
@@ -47,7 +41,6 @@ const EditTestSuite: React.FC<EditTestSuiteProps> = ({ isOpen, onClose, onSave, 
   const handleClose = () => {
     setSuiteName('');
     setSuiteDescription('');
-    setErrors({});
     onClose();
   };
 
@@ -96,9 +89,8 @@ const EditTestSuite: React.FC<EditTestSuiteProps> = ({ isOpen, onClose, onSave, 
               value={suiteName}
               onChange={(e) => setSuiteName(e.target.value)}
               placeholder="Enter test suite name"
-              className={`tsuite-edit-form-input ${errors.name ? 'tsuite-edit-error' : ''}`}
+              className="tsuite-edit-form-input"
             />
-            {errors.name && <span className="tsuite-edit-error-message">{errors.name}</span>}
           </div>
 
           <div className="tsuite-edit-form-group">
@@ -115,7 +107,13 @@ const EditTestSuite: React.FC<EditTestSuiteProps> = ({ isOpen, onClose, onSave, 
 
           <div className="tsuite-edit-modal-actions">
             <button type="button" className="tsuite-edit-btn-cancel" onClick={handleClose}>Cancel</button>
-            <button type="submit" className="tsuite-edit-btn-save">Update</button>
+            <button 
+              type="submit" 
+              className="tsuite-edit-btn-save"
+              disabled={!suiteName.trim()}
+            >
+              Update
+            </button>
           </div>
         </form>
       </div>

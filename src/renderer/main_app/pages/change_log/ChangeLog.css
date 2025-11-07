@@ -13,6 +13,17 @@
   margin-top: 128px;
 }
 
+.changelog-page,
+.changelog-layout,
+.changelog-main,
+.changelog-container,
+.change-log-table,
+.change-log-content,
+.timeline-item-content,
+.modal-content {
+  font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
 .changelog-main {
   flex: 1;
   overflow: hidden; /* Prevent whole main from scrolling */

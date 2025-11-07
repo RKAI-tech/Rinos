@@ -39,6 +39,7 @@ const AddTestcasesToSuite: React.FC<AddTestcasesToSuiteProps> = ({ isOpen, onClo
         // 1) Get all testcases in project
         const respAll = await testCaseService.getTestCases(projectId, 1000, 0);
         // 2) Get testcases already in this suite (if provided) to exclude
+        // Chỉ hiển thị testcases chưa có trong suite
         let existingIds = new Set<string>();
         if (testSuiteId) {
           const respInSuite = await testSuiteService.getTestCasesBySuite({ test_suite_id: testSuiteId });
@@ -47,6 +48,7 @@ const AddTestcasesToSuite: React.FC<AddTestcasesToSuiteProps> = ({ isOpen, onClo
           }
         }
         if (respAll.success && respAll.data) {
+          // Filter: chỉ lấy testcases chưa có trong suite
           const mapped: TestcaseItem[] = respAll.data.testcases
             .filter(tc => !existingIds.has(tc.testcase_id))
             .map(tc => ({ id: tc.testcase_id, name: tc.name, tag: (tc as any).tag }));
@@ -91,6 +93,7 @@ const AddTestcasesToSuite: React.FC<AddTestcasesToSuiteProps> = ({ isOpen, onClo
     };
   }, [isOpen, onClose]);
 
+  // Search chỉ được thực hiện trên danh sách testcases chưa có trong suite
   const filtered = items.filter(it => {
     const q = search.toLowerCase();
     return it.name.toLowerCase().includes(q) || (it.tag || '').toLowerCase().includes(q);

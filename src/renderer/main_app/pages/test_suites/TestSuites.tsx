@@ -70,7 +70,7 @@ const TestSuites: React.FC = () => {
       setError(null);
       const svc = new TestSuiteService();
       const resp = await svc.getTestSuites(projectId);
-      // console.log('response:', resp);
+      console.log('response:', resp);
       if (resp.success && resp.data) {
         const mapped: TestSuite[] = resp.data.test_suites.map(ts => ({
           id: ts.test_suite_id,
@@ -100,14 +100,14 @@ const TestSuites: React.FC = () => {
     fetchSuites();
   }, [projectId]);
 
-  // Auto-reload test suites every 2 seconds (only when no modals are open)
+  // Auto-reload test suites every 1 minute (only when no modals are open)
   useEffect(() => {
     const interval = setInterval(() => {
       // Don't auto-reload if any modal is open to prevent data conflicts
       if (!isCreateOpen && !isEditOpen && !isDeleteOpen && !isAddOpen && !isRemoveOpen && !isViewResultOpen) {
         fetchSuites();
       }
-    }, 2000); // 2 seconds
+    }, 60000); 
 
     return () => {
       clearInterval(interval);

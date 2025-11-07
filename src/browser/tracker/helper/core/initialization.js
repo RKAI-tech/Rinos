@@ -165,16 +165,16 @@ export function initBrowserControls() {
 
 export function initializeEventListeners() {
   // Enhanced input tracking
-  document.addEventListener('input', handleTextInputEvent);
+  document.addEventListener('input', handleTextInputEvent,true);
   // document.addEventListener('change', handleCheckboxRadioChangeEvent);
-  document.addEventListener('change', handleSelectChangeEvent);
+  document.addEventListener('change', handleSelectChangeEvent,true);
   document.addEventListener('click', handleClickEvent, true);
-  document.addEventListener('dblclick', handleDoubleClickEvent);
-  document.addEventListener('keydown', handleKeyDownEvent);
-  document.addEventListener('change', handleUploadChangeEvent);
-  document.addEventListener('dragstart', handleDragStartEvent);
-  document.addEventListener('drop', handleDropEvent);
-  document.addEventListener('contextmenu', handleRightClickEvent);
+  document.addEventListener('dblclick', handleDoubleClickEvent,true);
+  document.addEventListener('keydown', handleKeyDownEvent,true);
+  document.addEventListener('change', handleUploadChangeEvent,true);
+  document.addEventListener('dragstart', handleDragStartEvent,true);
+  document.addEventListener('drop', handleDropEvent,true);
+  document.addEventListener('contextmenu', handleRightClickEvent,true);
   // Scroll tracking (passive)
   window.addEventListener('scroll', handleScrollEvent, { passive: true });
   // Capture internal container scrolls as well

@@ -209,6 +209,20 @@
   box-shadow: 0 4px 12px rgba(85, 73, 245, 0.3);
 }
 
+.btn-save:disabled {
+  background: linear-gradient(135deg, rgba(85, 73, 245, 0.4) 0%, rgba(124, 58, 237, 0.4) 100%);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+.btn-save:disabled:hover {
+  background: linear-gradient(135deg, rgba(85, 73, 245, 0.4) 0%, rgba(124, 58, 237, 0.4) 100%);
+  transform: none;
+  box-shadow: none;
+}
+
 /* Responsive Design */
 @media (max-width: 640px) {
   .modal-overlay {

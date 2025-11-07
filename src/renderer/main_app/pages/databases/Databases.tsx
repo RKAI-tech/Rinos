@@ -355,13 +355,10 @@ const Databases: React.FC = () => {
         onClose={() => setIsCreateOpen(false)}
         projectId={projectId}
         onSave={async (payload) => {
+          const svc = new DatabaseService();
           try {
-            const svc = new DatabaseService();
             const resp = await svc.createDatabaseConnection(payload as any);
             if (resp.success) {
-              toast.success('Connection created');
-              setIsCreateOpen(false);
-              // reload list
               if (projectId) {
                 const listResp = await svc.getDatabaseConnections({ project_id: projectId });
                 if (listResp.success && listResp.data) {
@@ -375,11 +372,11 @@ const Databases: React.FC = () => {
                   setDatabases(items);
                 }
               }
-            } else {
-              toast.error(resp.error || 'Failed to create connection');
             }
+            return resp;
           } catch (e) {
-            toast.error('Failed to create connection');
+            const message = e instanceof Error ? e.message : 'Failed to create connection';
+            return { success: false, error: message };
           }
         }}
       />

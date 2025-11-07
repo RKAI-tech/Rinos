@@ -1,16 +1,29 @@
-import { ApiRequestData, ApiResponse, ApiRequestParam, ApiRequestHeader, ApiRequestAuth, ApiRequestBody } from '../types/actions';
+import {
+  ApiRequestData,
+  ApiResponse,
+  ApiRequestParam,
+  ApiRequestHeader,
+  ApiRequestAuth,
+  ApiRequestBody,
+  ApiRequestBodyFormData,
+  ApiRequestTokenStorage,
+  ApiRequestBasicAuthStorage,
+  ApiRequestMethod,
+  ApiRequestBodyType,
+  ApiRequestAuthType
+} from '../types/actions';
 
 export interface ApiRequestOptions {
   method: string;
   url: string;
   params: Array<{ key: string; value: string }>;
   headers: Array<{ key: string; value: string }>;
-  authType: 'none' | 'basic' | 'bearer';
+  authType: ApiRequestAuthType;
   authUsername?: string;
   authPassword?: string;
   authToken?: string;
   body: string;
-  bodyType: 'none' | 'json' | 'form';
+  bodyType: ApiRequestBodyType;
   bodyForm?: Array<{ key: string; value: string }>;
 }
 
@@ -37,11 +50,11 @@ function buildUrlWithParams(baseUrl: string, params: Array<{ key: string; value:
  */
 function buildRequestHeaders(
   headers: Array<{ key: string; value: string }>,
-  authType: 'none' | 'basic' | 'bearer',
+  authType: ApiRequestAuthType,
   authUsername?: string,
   authPassword?: string,
   authToken?: string,
-  bodyType?: 'none' | 'json' | 'form'
+  bodyType?: ApiRequestBodyType
 ): Record<string, string> {
   const requestHeaders: Record<string, string> = {};
 
@@ -74,7 +87,7 @@ function buildRequestHeaders(
  * Build request body
  */
 function buildRequestBody(
-  bodyType: 'none' | 'json' | 'form',
+  bodyType: ApiRequestBodyType,
   body: string,
   bodyForm?: Array<{ key: string; value: string }>
 ): string | undefined {
@@ -308,19 +321,93 @@ export function getStatusDescription(status: number): string {
 /**
  * Convert ApiRequestData to ApiRequestOptions for execution
  */
+function getPrimaryAuth(apiData?: ApiRequestData): ApiRequestAuth | undefined {
+  if (!apiData) return undefined;
+  if (apiData.auth) return apiData.auth;
+  if (apiData.auths && apiData.auths.length > 0) return apiData.auths[0];
+  return undefined;
+}
+
+function getPrimaryBody(apiData?: ApiRequestData): ApiRequestBody | undefined {
+  if (!apiData) return undefined;
+  if (apiData.body) return apiData.body;
+  if (apiData.bodies && apiData.bodies.length > 0) return apiData.bodies[0];
+  return undefined;
+}
+
+function getPrimaryTokenStorage(auth?: ApiRequestAuth, apiData?: ApiRequestData): ApiRequestTokenStorage | undefined {
+  if (auth?.tokenStorages && auth.tokenStorages.length > 0) {
+    return auth.tokenStorages[0];
+  }
+  return apiData?.tokenStorage;
+}
+
+function getPrimaryBasicAuthStorage(auth?: ApiRequestAuth, apiData?: ApiRequestData): ApiRequestBasicAuthStorage | undefined {
+  if (auth?.basicAuthStorages && auth.basicAuthStorages.length > 0) {
+    return auth.basicAuthStorages[0];
+  }
+  return apiData?.basicAuthStorage;
+}
+
+function mapFormDataToLegacy(formData?: ApiRequestBodyFormData[]): Array<{ key: string; value: string }> | undefined {
+  if (!formData) return undefined;
+  return formData.map((item) => ({ key: item.name, value: item.value }));
+}
+
+function mapLegacyFormToNew(formData?: Array<{ key: string; value: string }>): ApiRequestBodyFormData[] | undefined {
+  if (!formData) return undefined;
+  return formData
+    .filter((item) => item.key.trim())
+    .map((item, index) => ({
+      name: item.key,
+      value: item.value,
+      orderIndex: index,
+    }));
+}
+
+function ensureLegacyFields(data: ApiRequestData): ApiRequestData {
+  const primaryAuth = getPrimaryAuth(data);
+  const primaryBody = getPrimaryBody(data);
+
+  if (primaryAuth) {
+    data.auth = primaryAuth;
+    const primaryToken = getPrimaryTokenStorage(primaryAuth, data);
+    if (primaryToken) {
+      data.tokenStorage = primaryToken;
+    }
+    const primaryBasic = getPrimaryBasicAuthStorage(primaryAuth, data);
+    if (primaryBasic) {
+      data.basicAuthStorage = primaryBasic;
+    }
+  }
+
+  if (primaryBody) {
+    data.body = primaryBody;
+  }
+
+  return data;
+}
+
 export function convertApiRequestDataToOptions(apiData: ApiRequestData): ApiRequestOptions {
+  const normalized = ensureLegacyFields(apiData);
+  const auth = getPrimaryAuth(normalized);
+  const body = getPrimaryBody(normalized);
+
   return {
-    method: apiData.method,
-    url: apiData.url,
-    params: apiData.params,
-    headers: apiData.headers,
-    authType: apiData.auth.type,
-    authUsername: apiData.auth.username,
-    authPassword: apiData.auth.password,
-    authToken: apiData.auth.token,
-    body: apiData.body.content,
-    bodyType: apiData.body.type,
-    bodyForm: apiData.body.formData
+    method: (normalized.method || 'get').toUpperCase(),
+    url: normalized.url || '',
+    params: (normalized.params || []).map((param) => ({ key: param.key, value: param.value })),
+    headers: (normalized.headers || []).map((header) => ({ key: header.key, value: header.value })),
+    authType: auth?.type || 'none',
+    authUsername: auth?.username,
+    authPassword: auth?.password,
+    authToken: auth?.token,
+    body: body?.type === 'json' ? body.content ?? '' : body?.type === 'form' ? '' : body?.content ?? '',
+    bodyType: body?.type || 'none',
+    bodyForm:
+      body?.type === 'form'
+        ? (body.formData || []).map((item) => ({ key: item.name, value: item.value }))
+        : undefined,
   };
 }
 
@@ -328,23 +415,55 @@ export function convertApiRequestDataToOptions(apiData: ApiRequestData): ApiRequ
  * Convert ApiRequestOptions to ApiRequestData for storage
  */
 export function convertApiRequestOptionsToData(options: ApiRequestOptions): ApiRequestData {
-  return {
-    method: options.method,
-    url: options.url,
-    params: options.params,
-    headers: options.headers,
-    auth: {
-      type: options.authType,
-      username: options.authUsername,
-      password: options.authPassword,
-      token: options.authToken
-    },
-    body: {
-      type: options.bodyType,
-      content: options.body,
-      formData: options.bodyForm
-    }
+  const method = (options.method || 'GET').toLowerCase() as ApiRequestMethod;
+
+  const params: ApiRequestParam[] = (options.params || []).map((param, index) => ({
+    key: param.key,
+    value: param.value,
+    orderIndex: index,
+  }));
+
+  const headers: ApiRequestHeader[] = (options.headers || []).map((header, index) => ({
+    key: header.key,
+    value: header.value,
+    orderIndex: index,
+  }));
+
+  const auth: ApiRequestAuth = {
+    type: options.authType,
+    username: options.authUsername,
+    password: options.authPassword,
+    token: options.authToken,
+    storageEnabled: false,
+    tokenStorages: [],
+    basicAuthStorages: [],
   };
+
+  const body: ApiRequestBody = {
+    type: options.bodyType,
+    content: options.bodyType === 'json' ? options.body ?? '' : options.bodyType === 'none' ? '' : options.body,
+    formData: mapLegacyFormToNew(options.bodyForm),
+    orderIndex: 0,
+  };
+
+  const data: ApiRequestData = {
+    method,
+    url: options.url,
+    params,
+    headers,
+    auths: auth.type === 'none' ? [] : [auth],
+    bodies: [body],
+    createdAt: undefined,
+    updatedAt: undefined,
+    auth,
+    body,
+  };
+
+  if (auth.type === 'none') {
+    data.auth = { type: 'none' };
+  }
+
+  return data;
 }
 
 /**

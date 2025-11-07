@@ -153,7 +153,15 @@ function App() {
           } />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
-        <ToastContainer position="top-right" autoClose={3000} newestOnTop closeOnClick pauseOnHover theme="colored" />
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          newestOnTop
+          closeOnClick
+          pauseOnHover
+          theme="colored"
+          style={{ zIndex: 2147483648 }}
+        />
       </Router>
       <ConfirmCloseModal
         isOpen={showConfirmClose}

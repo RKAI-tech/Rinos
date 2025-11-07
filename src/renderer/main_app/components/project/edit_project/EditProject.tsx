@@ -12,14 +12,12 @@ interface EditProjectProps {
 const EditProject: React.FC<EditProjectProps> = ({ isOpen, onClose, onSave, project }) => {
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
-  const [errors, setErrors] = useState<{ name?: string }>({});
 
   // Populate form when project data is available
   useEffect(() => {
     if (project) {
       setProjectName(project.name);
       setProjectDescription(project.description);
-      setErrors({});
     }
   }, [project]);
 
@@ -28,14 +26,8 @@ const EditProject: React.FC<EditProjectProps> = ({ isOpen, onClose, onSave, proj
     
     if (!project) return;
     
-    // Validation
-    const newErrors: { name?: string } = {};
+    // Validation - nếu không có tên thì không làm gì (nút đã bị disable)
     if (!projectName.trim()) {
-      newErrors.name = 'Project name is required';
-    }
-    
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
       return;
     }
 
@@ -49,14 +41,12 @@ const EditProject: React.FC<EditProjectProps> = ({ isOpen, onClose, onSave, proj
     // Reset form
     setProjectName('');
     setProjectDescription('');
-    setErrors({});
     onClose();
   }, [project, projectName, projectDescription, onSave, onClose]);
 
   const handleClose = useCallback(() => {
     setProjectName('');
     setProjectDescription('');
-    setErrors({});
     onClose();
   }, [onClose]);
 
@@ -110,9 +100,8 @@ const EditProject: React.FC<EditProjectProps> = ({ isOpen, onClose, onSave, proj
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
               placeholder="Enter project name"
-              className={`form-input ${errors.name ? 'error' : ''}`}
+              className="form-input"
             />
-            {errors.name && <span className="error-message">{errors.name}</span>}
           </div>
 
           {/* Project Description */}
@@ -135,7 +124,11 @@ const EditProject: React.FC<EditProjectProps> = ({ isOpen, onClose, onSave, proj
             <button type="button" className="btn-cancel" onClick={handleClose}>
               Cancel
             </button>
-            <button type="submit" className="btn-save">
+            <button 
+              type="submit" 
+              className="btn-save"
+              disabled={!projectName.trim()}
+            >
               Update
             </button>
           </div>

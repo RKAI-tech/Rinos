@@ -11,17 +11,12 @@ interface CreateTestSuiteProps {
 const CreateTestSuite: React.FC<CreateTestSuiteProps> = ({ isOpen, onClose, onSave, projectId = '' }) => {
   const [suiteName, setSuiteName] = useState('');
   const [suiteDescription, setSuiteDescription] = useState('');
-  const [errors, setErrors] = useState<{ name?: string }>({});
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const newErrors: { name?: string } = {};
+    // Validation - nếu không có tên thì không làm gì (nút đã bị disable)
     if (!suiteName.trim()) {
-      newErrors.name = 'Testsuite name is required';
-    }
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
       return;
     }
 
@@ -33,14 +28,12 @@ const CreateTestSuite: React.FC<CreateTestSuiteProps> = ({ isOpen, onClose, onSa
 
     setSuiteName('');
     setSuiteDescription('');
-    setErrors({});
     onClose();
   };
 
   const handleClose = () => {
     setSuiteName('');
     setSuiteDescription('');
-    setErrors({});
     onClose();
   };
 
@@ -97,9 +90,8 @@ const CreateTestSuite: React.FC<CreateTestSuiteProps> = ({ isOpen, onClose, onSa
               value={suiteName}
               onChange={(e) => setSuiteName(e.target.value)}
               placeholder="Enter test suite name"
-              className={`tsuite-form-input ${errors.name ? 'tsuite-error' : ''}`}
+              className="tsuite-form-input"
             />
-            {errors.name && <span className="tsuite-error-message">{errors.name}</span>}
           </div>
 
           <div className="tsuite-form-group">
@@ -126,7 +118,11 @@ const CreateTestSuite: React.FC<CreateTestSuiteProps> = ({ isOpen, onClose, onSa
             <button type="button" className="tsuite-btn-cancel" onClick={handleClose}>
               Cancel
             </button>
-            <button type="submit" className="tsuite-btn-save">
+            <button 
+              type="submit" 
+              className="tsuite-btn-save"
+              disabled={!suiteName.trim()}
+            >
               Save
             </button>
           </div>

@@ -84,7 +84,7 @@ const Testcases: React.FC = () => {
             testcase_id: tc.testcase_id,
             name: tc.name,
             description: tc.description,
-            actionsCount: tc.actions.length,
+            actionsCount: tc.actions? tc.actions.length : 0,
             status: tc.evidence.status,
             evidence: {
               evidence_id: tc.evidence_id,
@@ -825,7 +825,7 @@ const Testcases: React.FC = () => {
               <button 
                 className="pagination-btn"
                 onClick={handlePreviousPage}
-                disabled={currentPage === 1}
+                disabled={currentPage === 1 || totalPages === 0}
               >
                 Previous
               </button>
@@ -850,7 +850,7 @@ const Testcases: React.FC = () => {
               <button 
                 className="pagination-btn"
                 onClick={handleNextPage}
-                disabled={currentPage === totalPages}
+                disabled={currentPage >= totalPages || totalPages === 0 || filteredTestcases.length === 0}
               >
                 Next
               </button>

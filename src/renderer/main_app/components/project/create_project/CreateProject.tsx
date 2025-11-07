@@ -10,19 +10,12 @@ interface CreateProjectProps {
 const CreateProject: React.FC<CreateProjectProps> = ({ isOpen, onClose, onSave }) => {
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
-  const [errors, setErrors] = useState<{ name?: string }>({});
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
-    const newErrors: { name?: string } = {};
+    // Validation - nếu không có tên thì không làm gì (nút đã bị disable)
     if (!projectName.trim()) {
-      newErrors.name = 'Project name is required';
-    }
-    
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
       return;
     }
 
@@ -35,14 +28,12 @@ const CreateProject: React.FC<CreateProjectProps> = ({ isOpen, onClose, onSave }
     // Reset form
     setProjectName('');
     setProjectDescription('');
-    setErrors({});
     onClose();
   }, [projectName, projectDescription, onSave, onClose]);
 
   const handleClose = useCallback(() => {
     setProjectName('');
     setProjectDescription('');
-    setErrors({});
     onClose();
   }, [onClose]);
 
@@ -96,9 +87,8 @@ const CreateProject: React.FC<CreateProjectProps> = ({ isOpen, onClose, onSave }
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
               placeholder="Enter project name"
-              className={`form-input ${errors.name ? 'error' : ''}`}
+              className="form-input"
             />
-            {errors.name && <span className="error-message">{errors.name}</span>}
           </div>
 
           {/* Project Description */}
@@ -121,7 +111,11 @@ const CreateProject: React.FC<CreateProjectProps> = ({ isOpen, onClose, onSave }
             <button type="button" className="btn-cancel" onClick={handleClose}>
               Cancel
             </button>
-            <button type="submit" className="btn-save">
+            <button 
+              type="submit" 
+              className="btn-save"
+              disabled={!projectName.trim()}
+            >
               Save
             </button>
           </div>

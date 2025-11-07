@@ -28,7 +28,6 @@ interface DuplicateTestcaseProps {
 const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, onSave, createTestcaseWithActions, testcase }) => {
   const [testcaseName, setTestcaseName] = useState('');
   const [testcaseTag, setTestcaseTag] = useState('');
-  const [errors, setErrors] = useState<{ name?: string; tag?: string; username?: string; password?: string }>({});
   const [basicAuth, setBasicAuth] = useState<{ username: string; password: string } | null>(null);
   const [hasInitialBasicAuth, setHasInitialBasicAuth] = useState(false);
   const [actions, setActions] = useState<Action[]>([]);
@@ -44,12 +43,11 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
 
   useEffect(() => {
     if (testcase) {
-      setTestcaseName(`Copy of ${testcase.name || ''}`);
+      setTestcaseName(`${testcase.name || ''} (1)`);
       setTestcaseTag(testcase.description || '');
       const initialBasicAuth = testcase.basic_authentication || null;
       setBasicAuth(initialBasicAuth);
       setHasInitialBasicAuth(!!initialBasicAuth);
-      setErrors({});
       const loadActions = async () => {
         try {
           setIsLoadingActions(true);
@@ -72,12 +70,8 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
     e.preventDefault();
     if (!testcase) return;
 
-    const newErrors: { name?: string; tag?: string; username?: string; password?: string } = {};
+    // Validation - nếu không có tên thì không làm gì (nút đã bị disable)
     if (!testcaseName.trim()) {
-      newErrors.name = 'Testcase name is required';
-    }
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
       return;
     }
 
@@ -130,7 +124,6 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
     setTestcaseTag('');
     setBasicAuth(null);
     setHasInitialBasicAuth(false);
-    setErrors({});
     onClose();
   };
 
@@ -179,9 +172,8 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
               value={testcaseName}
               onChange={(e) => setTestcaseName(e.target.value)}
               placeholder="Enter testcase name"
-              className={`tcase-dup-form-input ${errors.name ? 'tcase-dup-error' : ''}`}
+              className="tcase-dup-form-input"
             />
-            {errors.name && <span className="tcase-dup-error-message">{errors.name}</span>}
           </div>
 
           <div className="tcase-dup-form-group">
@@ -194,9 +186,8 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
               value={testcaseTag}
               onChange={(e) => setTestcaseTag(e.target.value)}
               placeholder="Enter tag (e.g., smoke, regression)"
-              className={`tcase-dup-form-input ${errors.tag ? 'tcase-dup-error' : ''}`}
+              className="tcase-dup-form-input"
             />
-            {errors.tag && <span className="tcase-dup-error-message">{errors.tag}</span>}
           </div>
 
           {/* Basic Authentication */}
@@ -240,7 +231,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
                     value={basicAuth?.username || ''}
                     onChange={(e) => setBasicAuth(prev => ({ username: e.target.value, password: prev?.password || '' }))}
                     placeholder="Username"
-                    className={`tcase-dup-form-input ${errors.username ? 'tcase-dup-error' : ''}`}
+                    className="tcase-dup-form-input"
                     style={{ flex: 1 }}
                   />
                   <input
@@ -248,7 +239,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
                     value={basicAuth?.password || ''}
                     onChange={(e) => setBasicAuth(prev => ({ username: prev?.username || '', password: e.target.value }))}
                     placeholder="Password"
-                    className={`tcase-dup-form-input ${errors.password ? 'tcase-dup-error' : ''}`}
+                    className="tcase-dup-form-input"
                     style={{ flex: 1 }}
                   />
                   <button
@@ -276,8 +267,6 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
                     </svg>
                   </button>
                 </div>
-                {errors.username && <span className="tcase-dup-error-message">{errors.username}</span>}
-                {errors.password && <span className="tcase-dup-error-message">{errors.password}</span>}
               </div>
             ) : (
               <button
@@ -338,7 +327,11 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
             <button type="button" className="tcase-dup-btn-cancel" onClick={handleClose}>
               Cancel
             </button>
-            <button type="submit" className="tcase-dup-btn-save">
+            <button 
+              type="submit" 
+              className="tcase-dup-btn-save"
+              disabled={!testcaseName.trim()}
+            >
               Duplicate
             </button>
           </div>
