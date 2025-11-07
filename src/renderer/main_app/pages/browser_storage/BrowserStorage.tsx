@@ -4,13 +4,14 @@ import Header from '../../components/header/Header';
 import Footer from '../../components/footer/Footer';
 import Breadcrumb from '../../components/breadcumb/Breadcrumb';
 import SidebarNavigator from '../../components/sidebar_navigator/SidebarNavigator';
-import './Cookies.css';
+import './BrowserStorage.css';
 import { ProjectService } from '../../services/projects';
-import { CookiesService } from '../../services/cookies';
+import { BrowserStorageService } from '../../services/browser_storage';
 import { toast } from 'react-toastify';
-import CreateCookieModal from '../../components/cookies/modals/CreateCookieModal';
-import EditCookieModal from '../../components/cookies/modals/EditCookieModal';
-import DeleteCookieModal from '../../components/cookies/modals/DeleteCookieModal';
+import CreateBrowserStorageModal from '../../components/browser_storage/modals/CreateStorageModal';
+import EditBrowserStorageModal from '../../components/browser_storage/modals/EditStorageModal';
+import DeleteBrowserStorageModal from '../../components/browser_storage/modals/DeleteStorageModal';
+import { BrowserStorageType } from '../../types/browser_storage';
 
 interface CookieItem {
   id: string;
@@ -18,9 +19,10 @@ interface CookieItem {
   description?: string;
   updated?: string;
   value?: any;
+  type?: BrowserStorageType;
 }
 
-const Cookies: React.FC = () => {
+const BrowserStorage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { projectId } = useParams();
@@ -41,12 +43,14 @@ const Cookies: React.FC = () => {
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newValue, setNewValue] = useState('');
+  const [newType, setNewType] = useState<BrowserStorageType>(BrowserStorageType.COOKIE);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingCookie, setEditingCookie] = useState<CookieItem | null>(null);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editValue, setEditValue] = useState('');
+  const [editType, setEditType] = useState<BrowserStorageType>(BrowserStorageType.COOKIE);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedCookie, setSelectedCookie] = useState<CookieItem | null>(null);
 
@@ -54,15 +58,16 @@ const Cookies: React.FC = () => {
     const loadCookies = async () => {
       if (!projectId) return;
       try {
-        const svc = new CookiesService();
-        const resp = await svc.getCookiesByProject(projectId);
+        const svc = new BrowserStorageService();
+        const resp = await svc.getBrowserStoragesByProject(projectId);
         if (resp.success && resp.data) {
           const items: CookieItem[] = resp.data.items.map((it) => ({
-            id: it.cookies_id,
+            id: it.browser_storage_id,
             name: it.name,
             description: it.description,
             updated: (it as any).updated_at || (it as any).created_at,
             value: it.value,
+            type: (it as any).storage_type,
           }));
           setCookies(items);
         } else {
@@ -103,7 +108,7 @@ const Cookies: React.FC = () => {
   const sidebarItems = [
     { id: 'testcases', label: 'Testcases', path: `/testcases/${projectId}`, isActive: false },
     { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
-    { id: 'cookies', label: 'Cookies', path: `/cookies/${projectId}`, isActive: true },
+    { id: 'browser-storage', label: 'Browser Storage', path: `/browser-storage/${projectId}`, isActive: true },
     { id: 'databases', label: 'Databases', path: `/databases/${projectId}`, isActive: false },
     { id: 'queries', label: 'Queries', path: `/queries/${projectId}`, isActive: false },
     { id: 'variables', label: 'Variables', path: `/variables/${projectId}`, isActive: false },
@@ -112,7 +117,7 @@ const Cookies: React.FC = () => {
 
   const breadcrumbItems = [
     { label: 'Projects', path: '/dashboard', isActive: false },
-    { label: resolvedProjectName, path: `/cookies/${projectId}`, isActive: true },
+    { label: resolvedProjectName, path: `/browser-storage/${projectId}`, isActive: true },
   ];
 
   const filtered = cookies.filter((c) => {
@@ -189,33 +194,34 @@ const Cookies: React.FC = () => {
   const handleBreadcrumbNavigate = (path: string) => navigate(path);
   const handleSidebarNavigate = (path: string) => navigate(path);
 
-  const handleCookieActions = (id: string) => {
+  const handleBrowserStorageActions = (id: string) => {
     setOpenDropdownId(openDropdownId === id ? null : id);
   };
 
-  const handleDeleteCookie = async (id: string) => {
+  const handleDeleteBrowserStorage = async (id: string) => {
     try {
-      const svc = new CookiesService();
-      const resp = await svc.deleteCookie(id);
+      const svc = new BrowserStorageService();
+      const resp = await svc.deleteBrowserStorage(id);
       if (resp.success) {
-        toast.success('Cookie deleted');
+        toast.success('Browser storage deleted');
         if (projectId) {
-          const list = await svc.getCookiesByProject(projectId);
+          const list = await svc.getBrowserStoragesByProject(projectId);
           if (list.success && list.data) {
             const items: CookieItem[] = list.data.items.map((it) => ({
-              id: it.cookies_id,
+              id: it.browser_storage_id,
               name: it.name,
               description: it.description,
               updated: (it as any).updated_at || (it as any).created_at,
+              type: (it as any).storage_type,
             }));
             setCookies(items);
           }
         }
       } else {
-        toast.error(resp.error || 'Failed to delete cookie');
+        toast.error(resp.error || 'Failed to delete browser storage');
       }
     } catch (e) {
-      toast.error('Failed to delete cookie');
+      toast.error('Failed to delete browser storage');
     } finally {
       setOpenDropdownId(null);
     }
@@ -236,7 +242,7 @@ const Cookies: React.FC = () => {
     if (!deletingCookie?.id) return;
     try {
       setIsDeleting(true);
-      await handleDeleteCookie(deletingCookie.id);
+      await handleDeleteBrowserStorage(deletingCookie.id);
       closeDeleteModal();
     } finally {
       setIsDeleting(false);
@@ -245,15 +251,16 @@ const Cookies: React.FC = () => {
 
   const reloadList = async () => {
     if (!projectId) return;
-    const svc = new CookiesService();
-    const list = await svc.getCookiesByProject(projectId);
+    const svc = new BrowserStorageService();
+    const list = await svc.getBrowserStoragesByProject(projectId);
     if (list.success && list.data) {
       const items: CookieItem[] = list.data.items.map((it) => ({
-        id: it.cookies_id,
+        id: it.browser_storage_id,
         name: it.name,
         description: it.description,
         updated: (it as any).updated_at || (it as any).created_at,
         value: it.value,
+        type: (it as any).storage_type,
       }));
       setCookies(items);
     }
@@ -279,6 +286,7 @@ const Cookies: React.FC = () => {
     setEditingCookie(cookie);
     setEditName(cookie?.name || '');
     setEditDescription(cookie?.description || '');
+    setEditType(cookie?.type ?? BrowserStorageType.COOKIE);
     const raw = cookie?.value;
     let str = '';
     try {
@@ -295,6 +303,7 @@ const Cookies: React.FC = () => {
     setEditName('');
     setEditDescription('');
     setEditValue('');
+    setEditType(BrowserStorageType.COOKIE);
   };
 
   const handleSaveEdit = async () => {
@@ -306,21 +315,22 @@ const Cookies: React.FC = () => {
       if ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'))) {
         try { parsed = JSON.parse(t); } catch { parsed = editValue; }
       }
-      const svc = new CookiesService();
-      const resp = await svc.updateCookie(editingCookie.id, {
+      const svc = new BrowserStorageService();
+      const resp = await svc.updateBrowserStorage(editingCookie.id, {
         name: editName.trim() || undefined,
         description: editDescription.trim() || undefined,
         value: parsed,
+        storage_type: editType,
       });
       if (resp.success) {
-        toast.success('Cookie updated');
+        toast.success('Browser storage updated');
         handleCloseEdit();
         await reloadList();
       } else {
-        toast.error(resp.error || 'Failed to update cookie');
+        toast.error(resp.error || 'Failed to update browser storage');
       }
     } catch (e) {
-      toast.error('Failed to update cookie');
+      toast.error('Failed to update browser storage');
     } finally {
       setIsUpdating(false);
     }
@@ -342,17 +352,17 @@ const Cookies: React.FC = () => {
       if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
         try { parsedValue = JSON.parse(trimmed); } catch { parsedValue = newValue; }
       }
-      const svc = new CookiesService();
-      const resp = await svc.createCookie({ project_id: projectId, name: newName.trim(), description: newDescription.trim() || undefined, value: parsedValue });
+      const svc = new BrowserStorageService();
+      const resp = await svc.createBrowserStorage({ project_id: projectId, name: newName.trim(), description: newDescription.trim() || undefined, value: parsedValue, storage_type: newType });
       if (resp.success) {
-        toast.success('Cookie created');
+        toast.success('Browser storage created');
         handleCloseCreate();
         await reloadList();
       } else {
-        toast.error(resp.error || 'Failed to create cookie');
+        toast.error(resp.error || 'Failed to create browser storage');
       }
     } catch (e) {
-      toast.error('Failed to create cookie');
+      toast.error('Failed to create browser storage');
     } finally {
       setIsSaving(false);
     }
@@ -403,7 +413,7 @@ const Cookies: React.FC = () => {
                     <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  Create Cookie
+                  Create Browser Storage
                 </button>
               </div>
             </div>
@@ -433,6 +443,11 @@ const Cookies: React.FC = () => {
                       </th>
                       <th>
                         <span className="th-content">
+                          <span className="th-text">Type</span>
+                        </span>
+                      </th>
+                      <th>
+                        <span className="th-content">
                           <span className="th-text">Updated</span>
                         </span>
                       </th>
@@ -448,12 +463,24 @@ const Cookies: React.FC = () => {
                       >
                         <td className="cookie-name">{c.name}</td>
                         <td className="cookie-description">{c.description || '-'}</td>
+                        <td className="cookie-type">{(() => {
+                          switch (c.type) {
+                            case BrowserStorageType.COOKIE:
+                              return 'Cookie';
+                            case BrowserStorageType.LOCAL_STORAGE:
+                              return 'Local Storage';
+                            case BrowserStorageType.SESSION_STORAGE:
+                              return 'Session Storage';
+                            default:
+                              return '-';
+                          }
+                        })()}</td>
                         <td className="cookie-updated">{c.updated || '-'}</td>
                         <td className="cookie-actions">
                           <div className="actions-container">
                             <button
                               className="actions-btn"
-                              onClick={(e) => { e.stopPropagation(); handleCookieActions(c.id); }}
+                              onClick={(e) => { e.stopPropagation(); handleBrowserStorageActions(c.id); }}
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <circle cx="12" cy="12" r="1" fill="currentColor" />
@@ -491,8 +518,8 @@ const Cookies: React.FC = () => {
               <aside className="cookies-detail">
                 {!selectedCookie ? (
                   <div className="cookies-detail-empty">
-                    <div className="empty-title">No cookie selected</div>
-                    <div className="empty-subtitle">Select a cookie to preview its value</div>
+                    <div className="empty-title">No browser storage selected</div>
+                    <div className="empty-subtitle">Select a browser storage to preview its value</div>
                   </div>
                 ) : (
                   <div className="cookies-detail-card">
@@ -525,7 +552,7 @@ const Cookies: React.FC = () => {
             {Math.ceil(filtered.length / getItemsPerPageNumber()) > 1 && (
               <div className="pagination">
                 <div className="pagination-info">
-                  Showing {filtered.length === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, filtered.length)} of {filtered.length} cookies
+                  Showing {filtered.length === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, filtered.length)} of {filtered.length} browser storages
                 </div>
                 <div className="pagination-controls">
                   <button className="pagination-btn" onClick={handlePreviousPage} disabled={currentPage === 1}>Previous</button>
@@ -553,7 +580,7 @@ const Cookies: React.FC = () => {
       <Footer />
 
       {/* Modals */}
-      <CreateCookieModal
+      <CreateBrowserStorageModal
         isOpen={isCreateOpen}
         onClose={handleCloseCreate}
         onSave={handleSaveCreate}
@@ -561,11 +588,13 @@ const Cookies: React.FC = () => {
         name={newName}
         description={newDescription}
         value={newValue}
+        type={newType}
         setName={setNewName}
         setDescription={setNewDescription}
         setValue={setNewValue}
+        setType={setNewType}
       />
-      <EditCookieModal
+      <EditBrowserStorageModal
         isOpen={isEditOpen}
         onClose={handleCloseEdit}
         onSave={handleSaveEdit}
@@ -573,11 +602,13 @@ const Cookies: React.FC = () => {
         name={editName}
         description={editDescription}
         value={editValue}
+        type={editType}
         setName={setEditName}
         setDescription={setEditDescription}
         setValue={setEditValue}
+        setType={setEditType}
       />
-      <DeleteCookieModal
+      <DeleteBrowserStorageModal
         isOpen={isDeleteOpen}
         onClose={closeDeleteModal}
         onConfirm={confirmDelete}
@@ -588,6 +619,6 @@ const Cookies: React.FC = () => {
   );
 };
 
-export default Cookies;
+export default BrowserStorage;
 
 

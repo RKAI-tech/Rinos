@@ -1,21 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { cookiesService } from '../../services/cookies';
-import { CookiesListItem } from '../../types/cookies';
+import { browserStorageService } from '../../services/browser_storage';
+import { BrowserStorageListItem } from '../../types/browser_storage';
 
-interface AddCookiesModalProps {
+interface AddBrowserStorageModalProps {
   isOpen: boolean;
   projectId: string;
   onClose: () => void;
-  onConfirm: (cookie: CookiesListItem) => void;
+  onConfirm: (browserStorage: BrowserStorageListItem) => void;
 }
 
-const AddCookiesModal: React.FC<AddCookiesModalProps> = ({ isOpen, projectId, onClose, onConfirm }) => {
+const AddBrowserStorageModal: React.FC<AddBrowserStorageModalProps> = ({ isOpen, projectId, onClose, onConfirm }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cookies, setCookies] = useState<CookiesListItem[]>([]);
+  const [browserStorages, setBrowserStorages] = useState<BrowserStorageListItem[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
 
-  const selectedCookie = useMemo(() => cookies.find(c => c.cookies_id === selectedId), [cookies, selectedId]);
+  const selectedBrowserStorage = useMemo(() => browserStorages.find(c => c.browser_storage_id === selectedId), [browserStorages, selectedId]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -27,16 +27,17 @@ const AddCookiesModal: React.FC<AddCookiesModalProps> = ({ isOpen, projectId, on
       setIsLoading(true);
       setError(null);
       try {
-        const resp = await cookiesService.getCookiesByProject(projectId);
+        const resp = await browserStorageService.getBrowserStoragesByProject(projectId);
         if (resp.success && resp.data) {
-          setCookies(resp.data.items || []);
+          console.log(resp.data.items);
+          setBrowserStorages(resp.data.items || []);
         } else {
-          setCookies([]);
-          setError(resp.error || 'Failed to load cookies');
+          setBrowserStorages([]);
+          setError(resp.error || 'Failed to load browser storages');
         }
       } catch (e) {
-        setError('Failed to load cookies');
-        setCookies([]);
+        setError('Failed to load browser storages');
+        setBrowserStorages([]);
       } finally {
         setIsLoading(false);
       }
@@ -68,12 +69,12 @@ const AddCookiesModal: React.FC<AddCookiesModalProps> = ({ isOpen, projectId, on
         }}
       >
         <div style={{ padding: '14px 16px', borderBottom: '1px solid #e5e7eb', background: '#f8fafc' }}>
-          <div style={{ fontSize: '16px', fontWeight: 600, color: '#111827' }}>Add Cookies</div>
-          <div style={{ fontSize: '12px', color: '#6b7280' }}>Select a cookie set to add to this testcase</div>
+          <div style={{ fontSize: '16px', fontWeight: 600, color: '#111827' }}>Add Browser Storage</div>
+          <div style={{ fontSize: '12px', color: '#6b7280' }}>Select a browser storage to add to this testcase</div>
         </div>
 
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <label style={{ fontSize: '12px', color: '#374151' }}>Select cookies</label>
+          <label style={{ fontSize: '12px', color: '#374151' }}>Select browser storage</label>
           <select
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
@@ -89,10 +90,10 @@ const AddCookiesModal: React.FC<AddCookiesModalProps> = ({ isOpen, projectId, on
             }}
           >
             <option value="" disabled>
-              {isLoading ? 'Loading...' : (error ? 'Failed to load cookies' : 'Choose a cookie...')}
+              {isLoading ? 'Loading...' : (error ? 'Failed to load browser storages' : 'Choose a browser storage...')}
             </option>
-            {cookies.map((c) => (
-              <option key={c.cookies_id} value={c.cookies_id}>
+            {browserStorages.map((c) => (
+              <option key={c.browser_storage_id} value={c.browser_storage_id}>
                 {c.name}
               </option>
             ))}
@@ -102,7 +103,7 @@ const AddCookiesModal: React.FC<AddCookiesModalProps> = ({ isOpen, projectId, on
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '12px', color: '#374151' }}>Name</label>
               <input
-                value={selectedCookie?.name || ''}
+                value={selectedBrowserStorage?.name || ''}
                 readOnly
                 placeholder=""
                 style={{ padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: '6px', background: '#f9fafb', color: '#111827', fontSize: '13px' }}
@@ -111,7 +112,7 @@ const AddCookiesModal: React.FC<AddCookiesModalProps> = ({ isOpen, projectId, on
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '12px', color: '#374151' }}>Description</label>
               <input
-                value={selectedCookie?.description || ''}
+                value={selectedBrowserStorage?.description || ''}
                 readOnly
                 placeholder=""
                 style={{ padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: '6px', background: '#f9fafb', color: '#111827', fontSize: '13px' }}
@@ -120,9 +121,19 @@ const AddCookiesModal: React.FC<AddCookiesModalProps> = ({ isOpen, projectId, on
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '12px', color: '#374151' }}>Type</label>
+            <input
+              value={selectedBrowserStorage?.storage_type || ''}
+              readOnly
+              placeholder=""
+              style={{ padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: '6px', background: '#f9fafb', color: '#111827', fontSize: '13px' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <label style={{ fontSize: '12px', color: '#374151' }}>Value</label>
             <textarea
-              value={selectedCookie ? JSON.stringify(selectedCookie.value, null, 2) : ''}
+              value={selectedBrowserStorage ? JSON.stringify(selectedBrowserStorage.value, null, 2) : ''}
               readOnly
               placeholder=""
               style={{
@@ -161,16 +172,16 @@ const AddCookiesModal: React.FC<AddCookiesModalProps> = ({ isOpen, projectId, on
             Cancel
           </button>
           <button
-            onClick={() => selectedCookie && onConfirm(selectedCookie)}
-            disabled={!selectedCookie}
+            onClick={() => selectedBrowserStorage && onConfirm(selectedBrowserStorage)}
+            disabled={!selectedBrowserStorage}
             style={{
               padding: '8px 12px',
               border: '1px solid transparent',
               borderRadius: '6px',
-              background: selectedCookie ? '#10b981' : '#d1d5db',
-              color: selectedCookie ? '#fff' : '#6b7280',
+              background: selectedBrowserStorage ? '#10b981' : '#d1d5db',
+              color: selectedBrowserStorage ? '#fff' : '#6b7280',
               fontSize: '13px',
-              cursor: selectedCookie ? 'pointer' : 'not-allowed'
+              cursor: selectedBrowserStorage ? 'pointer' : 'not-allowed'
             }}
           >
             Add
@@ -181,6 +192,6 @@ const AddCookiesModal: React.FC<AddCookiesModalProps> = ({ isOpen, projectId, on
   );
 };
 
-export default AddCookiesModal;
+export default AddBrowserStorageModal;
 
 

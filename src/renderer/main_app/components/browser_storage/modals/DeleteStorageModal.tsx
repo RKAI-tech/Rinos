@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface DeleteCookieModalProps {
+interface DeleteBrowserStorageModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -8,13 +8,13 @@ interface DeleteCookieModalProps {
   cookieName?: string;
 }
 
-const DeleteCookieModal: React.FC<DeleteCookieModalProps> = ({ isOpen, onClose, onConfirm, isDeleting, cookieName }) => {
+const DeleteBrowserStorageModal: React.FC<DeleteBrowserStorageModalProps> = ({ isOpen, onClose, onConfirm, isDeleting, cookieName }) => {
   if (!isOpen) return null;
   return (
     <div className="cookies-modal-overlay" onClick={onClose}>
       <div className="cookies-modal" onClick={e => e.stopPropagation()}>
         <div className="cookies-modal-header">
-          Delete Cookie
+          Delete Browser Storage
           <button className="modal-close-btn" aria-label="Close" onClick={onClose}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -37,4 +37,4 @@ const DeleteCookieModal: React.FC<DeleteCookieModalProps> = ({ isOpen, onClose, 
   );
 };
 
-export default DeleteCookieModal;
+export default DeleteBrowserStorageModal;

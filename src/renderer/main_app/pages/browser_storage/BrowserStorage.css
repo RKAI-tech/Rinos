@@ -122,8 +122,12 @@
 .cookies-modal-label { font-size: 13px; color: #374151; font-weight: 600; }
 .cookies-modal-input { width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
 .cookies-modal-input:focus { outline: none; border-color: #5549f5; box-shadow: 0 0 0 3px rgba(85, 73, 245, 0.12); }
+.cookies-modal-input-placeholder { width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 12px; font-style: italic; box-sizing: border-box; }
+.cookies-modal-input-placeholder:focus { outline: none; border-color: #5549f5; box-shadow: 0 0 0 3px rgba(85, 73, 245, 0.12); }
 .cookies-modal-textarea { width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; resize: vertical; min-height: 140px; box-sizing: border-box; }
 .cookies-modal-textarea:focus { outline: none; border-color: #5549f5; box-shadow: 0 0 0 3px rgba(85, 73, 245, 0.12); }
+.cookies-modal-textarea-placeholder { width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 12px; font-style: italic; resize: vertical; min-height: 140px; box-sizing: border-box; }
+.cookies-modal-textarea-placeholder:focus { outline: none; border-color: #5549f5; box-shadow: 0 0 0 3px rgba(85, 73, 245, 0.12); }
 .cookies-modal-footer { padding: 14px 20px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 10px; }
 .cookies-btn-secondary { padding: 10px 16px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; font-weight: 600; color: #374151; cursor: pointer; }
 .cookies-btn-secondary:hover { background: #f8fafc; }

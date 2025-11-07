@@ -5,7 +5,6 @@ import {
   buildCommonActionData,
   sendAction
 } from './baseAction.js';
-import { previewNode, extractElementText } from '../dom/domUtils.js';
 
 // Xử lý sự kiện change cho <select>
 export function handleSelectChangeEvent(e) {
@@ -28,17 +27,20 @@ export function handleSelectChangeEvent(e) {
   const selectedText = el.selectedOptions && el.selectedOptions[0] ? (el.selectedOptions[0].text || '') : '';
   const elementText = extractElementText(el);
 
-  const payload = buildCommonActionData(e, selectors, {
-    value: selectedValue,
-    selected_value: selectedValue,
-    selected_text: selectedText,
-    element: 'select',
-    elementPreview: previewNode(el),
-    elementText
+  sendAction({
+    action_type: 'select',
+    elements: [{
+      selectors: selectors.map((selector) => ({ value: selector })),
+    }],
+    action_datas: [{
+      value: {
+        value: selectedValue,
+        selected_value: selectedValue,
+        selected_text: selectedText,
+        elementText: elementText,
+      },
+    }],
   });
-
-  // console.log('Select event - selectors:', selectors, 'value:', selectedValue, 'text:', selectedText);
-  sendAction('select', payload);
 }
 
 

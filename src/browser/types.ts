@@ -1,72 +1,117 @@
-export interface Selector {
-    value: string;
-}
-
-export interface Element {
-    name?: string;
-    selectors?: Selector[];
-    query?: string;
-    value?: string;
-}
+import { BrowserStorageResponse } from "../renderer/main_app/types/browser_storage";
 
 export enum ActionType {
-    input = 'input',
-    click = 'click',
-    select = 'select',
-    checkbox = 'checkbox',
-    change = 'change',
-    drag_and_drop = 'drag_and_drop',
-    drag_start = 'drag_start',
-    drag_end = 'drag_end',
-    drag_over = 'drag_over',
-    drag_leave = 'drag_leave',
-    drop = 'drop',
-    assert = 'assert',
-    update_input = 'update_input',
-    connect_db = 'connect_db',
-    navigate = 'navigate',
-    double_click = 'double_click',
-    right_click = 'right_click',
-    shift_click = 'shift_click',
-    keydown = 'keydown',
-    keyup = 'keyup',
-    keypress = 'keypress',
-    upload = 'upload',
-    scroll = 'scroll',
-    wait = 'wait',
-    database_execution = 'database_execution',
-    reload = 'reload',
-    back = 'back',
-    forward = 'forward',
-    window_resize = 'window_resize',
-    add_cookies = 'add_cookies',
-    api_request = 'api_request',
+  input = "input",
+  click = "click",
+  select = "select",
+  checkbox = "checkbox",
+  change = "change",
+  drag_and_drop = "drag_and_drop",
+  drag_start = "drag_start",
+  drag_end = "drag_end",
+  drag_over = "drag_over",
+  drag_leave = "drag_leave",
+  drop = "drop",
+  assert = "assert",
+  update_input = "update_input",
+  connect_db = "connect_db",
+  navigate = "navigate",
+  double_click = "double_click",
+  right_click = "right_click",
+  shift_click = "shift_click",
+  keydown = "keydown",
+  keyup = "keyup",
+  keypress = "keypress",
+  upload = "upload",
+  scroll = "scroll",
+  database_execution = "database_execution",
+  wait = "wait",
+  reload = "reload",
+  back = "back",
+  forward = "forward",
+  window_resize = "window_resize",
+  add_browser_storage = "add_browser_storage",
+  api_request = "api_request",
 }
 
 export enum AssertType {
-    toHaveValue = 'toHaveValue',
-    toHaveText = 'toHaveText'
+  toBeChecked = "toBeChecked",
+  toBeUnchecked = "toBeUnchecked",
+  toBeDisabled = "toBeDisabled",
+  toBeEditable = "toBeEditable",
+  toBeReadOnly = "toBeReadOnly",
+  toBeEmpty = "toBeEmpty",
+  toBeEnabled = "toBeEnabled",
+  toBeFocused = "toBeFocused",
+  toBeHidden = "toBeHidden",
+  toBeVisible = "toBeVisible",
+  toContainText = "toContainText",
+  toHaveAccessibleDescription = "toHaveAccessibleDescription",
+  toHaveAccessibleName = "toHaveAccessibleName",
+  toHaveCount = "toHaveCount",
+  toHaveRole = "toHaveRole",
+  toHaveText = "toHaveText",
+  toHaveValue = "toHaveValue",
+  toHaveValues = "toHaveValues",
+  pageHasATitle = "pageHasATitle",
+  pageHasAURL = "pageHasAURL",
+  ai = "AI"
+}
+
+export enum CreateType {
+  system = "system",
+  user = "user",
 }
 
 export enum ConnectionType {
-    postgres = 'postgres',
-    mysql = 'mysql',
-    mssql = 'mssql',
+  postgres = "postgres",
+  mysql = "mysql",
+  mssql = "mssql",
 }
 
 export interface Connection {
-    username?: string;
-    password?: string;
-    host?: string;
-    port?: string;
-    db_name?: string;
-    db_type?: ConnectionType;
+  connection_id?: string;
+  username: string;
+  password: string;
+  host: string;
+  port: string;
+  db_name: string;
+  db_type: ConnectionType;
 }
 
+export interface Statement {
+  statement_id?: string;
+  query: string;
+  create_type: CreateType;
+  connection?: Connection;
+}
+
+export interface Selector {
+  value: string;
+  order_index?: number;
+}
+
+export interface Element {
+  selectors?: Selector[];
+  order_index?: number;
+}
+
+
 export interface FileUpload {
-    file_name: string;
-    file_content: string;
-    file_path?: string;
+  file_upload_id?: string;
+  file_name?: string;
+  file_path?: string;
+  file_content?: string;
+}
+
+export interface ActionData {
+  action_data_id?: string;
+  order_index?: number;
+  value?: any;
+  statement?: Statement;
+  file_upload?: FileUpload;
+  browser_storage?: BrowserStorageResponse;
+  api_request?: ApiRequestData;
 }
 
 // API Request types (aligned with recorder models)
@@ -118,18 +163,11 @@ export interface ApiRequestData {
 }
 
 export interface Action {
-    action_type: ActionType;
-    elements: Element[];
-    value: string;
-    expected_value?: string;
-    assert_type?: AssertType;
-    description?: string;
-    playwright_code?: string;
-    checked?: boolean;
-    query?: string;
-    connection?: Connection;
-    files?: FileUpload[];
-    cookies?: any;
-    // API Request
-    api_request?: ApiRequestData;
+  action_id?: string;
+  testcase_id: string;
+  action_type: ActionType;
+  description?: string;  
+  elements?: Element[]; 
+  assert_type?: AssertType;
+  action_datas?: ActionData[];
 }

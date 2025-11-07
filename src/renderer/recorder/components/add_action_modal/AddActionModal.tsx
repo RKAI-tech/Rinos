@@ -11,11 +11,11 @@ interface AddActionModalProps {
   onClose: () => void;
   onSelectAction: (actionType: string) => void;
   onSelectDatabaseExecution?: () => void;
-  onSelectAddCookies?: () => void;
+  onSelectAddBrowserStorage?: () => void;
   onSelectApiRequest?: () => void;
 }
 
-const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSelectAction, onSelectDatabaseExecution, onSelectAddCookies, onSelectApiRequest }) => {
+const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSelectAction, onSelectDatabaseExecution, onSelectAddBrowserStorage, onSelectApiRequest }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -68,7 +68,7 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
       description: 'Reload the current page'
     },
     {
-      value: 'add_cookies',
+      value: 'add_browser_storage',
       label: 'Add Cookies',
       description: 'Select and add cookies from project list'
     },
@@ -89,8 +89,8 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
       onSelectDatabaseExecution();
       setSearchTerm('');
       onClose();
-    } else if (actionType === 'add_cookies' && onSelectAddCookies) {
-      onSelectAddCookies();
+    } else if (actionType === 'add_browser_storage' && onSelectAddBrowserStorage) {
+      onSelectAddBrowserStorage();
       setSearchTerm('');
       onClose();
     } else if (actionType === 'api_request' && onSelectApiRequest) {
@@ -141,7 +141,7 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
             <polyline points="21,3 21,9 15,9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         );
-      case 'add_cookies':
+      case 'add_browser_storage':
         return (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             {/* Cookie outline with a bite taken out */}
@@ -186,7 +186,7 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
         return '#f59e0b'; // Orange color
       case 'database_execution':
         return '#3b82f6'; // Blue color
-      case 'add_cookies':
+      case 'add_browser_storage':
         return '#10b981'; // Green color
       case 'visit_url':
         return '#10b981'; // Green color

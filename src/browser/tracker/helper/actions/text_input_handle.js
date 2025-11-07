@@ -6,6 +6,7 @@ import {
   sendAction
 } from './baseAction.js';
 import { previewNode } from '../dom/domUtils.js';
+import { extractElementText } from '../dom/domUtils.js';
 
 export function handleInputLikeBase(e, actionType = 'input', eventLabel = 'Input') {
   // console.log(`${eventLabel} event detected:`, previewNode(e?.target));
@@ -21,9 +22,17 @@ export function handleInputLikeBase(e, actionType = 'input', eventLabel = 'Input
   }
   const selectors = buildSelectors(e?.target);
   const value = e?.target?.value;
-  const payload = buildCommonActionData(e, selectors, { value });
+  const elementText = extractElementText(e?.target);
   // console.log(`${eventLabel} event - generated selectors:`, selectors, 'value:', value);
-  sendAction(actionType, payload);
+  sendAction({
+    action_type: actionType,
+    elements: [{
+      selectors: selectors.map((selector) => ({ value: selector })),
+    }],
+    action_datas: [{
+      value: { value: value, elementText: elementText },
+    }],
+  });
 }
 
 // Xử lý input cho các trường nhập văn bản và số liệu phổ biến

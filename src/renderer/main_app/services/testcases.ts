@@ -1,7 +1,7 @@
 import { apiRouter } from './baseAPIRequest';
 import { ApiResponse } from '../types/api_responses';
 import {
-    TestCaseGetAllResponse,
+    TestCaseBatch as TestCaseGetAllResponse,
     TestCaseGetRequest,
     TestCaseCreateRequest,
     TestCaseUpdateRequest,

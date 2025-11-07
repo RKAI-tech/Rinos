@@ -106,7 +106,7 @@ const Variables: React.FC = () => {
   const sidebarItems = [
     { id: 'testcases', label: 'Testcases', path: `/testcases/${projectId}`, isActive: false },
     { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
-    { id: 'cookies', label: 'Cookies', path: `/cookies/${projectId}`, isActive: false },
+    { id: 'browser-storage', label: 'Browser Storage', path: `/browser-storage/${projectId}`, isActive: false },
     { id: 'databases', label: 'Databases', path: `/databases/${projectId}`, isActive: false },
     { id: 'queries', label: 'Queries', path: `/queries/${projectId}`, isActive: false },
     { id: 'variables', label: 'Variables', path: `/variables/${projectId}`, isActive: true },

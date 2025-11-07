@@ -11,7 +11,7 @@ import MAActionDetailModal from '../../action_detail/ActionDetailModal';
 interface MinimalTestcase {
   testcase_id: string;
   name: string;
-  tag: string;
+  description: string | undefined;
   basic_authentication?: { username: string; password: string };
 }
 
@@ -45,7 +45,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
   useEffect(() => {
     if (testcase) {
       setTestcaseName(`Copy of ${testcase.name || ''}`);
-      setTestcaseTag(testcase.tag || '');
+      setTestcaseTag(testcase.description || '');
       const initialBasicAuth = testcase.basic_authentication || null;
       setBasicAuth(initialBasicAuth);
       setHasInitialBasicAuth(!!initialBasicAuth);

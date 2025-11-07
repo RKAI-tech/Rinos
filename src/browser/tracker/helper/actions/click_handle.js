@@ -1,18 +1,18 @@
-import { 
+import {
   getPauseMode,
   shouldIgnoreTarget,
   buildSelectors,
   buildCommonActionData,
   sendAction
 } from './baseAction.js';
-import { previewNode } from '../dom/domUtils.js';
+import { extractElementText } from '../dom/domUtils.js';
 export function shouldSkipElementForClick(element) {
   try {
-    if(!element) return false;
+    if (!element) return false;
     const tagName = element?.tagName?.toLowerCase?.();
     if (!tagName) return false;
     if (tagName === 'select') return true;
-  } catch {}
+  } catch { }
   return false;
 }
 export function handleClickLikeBase(e, actionType, eventLabel = 'Click') {
@@ -27,21 +27,30 @@ export function handleClickLikeBase(e, actionType, eventLabel = 'Click') {
     return;
   }
   if (e && e.isTrusted === false) {
-    try { /* console.log(`Skipping ${eventLabel} - event is not trusted`); */ } catch {}
+    try { /* console.log(`Skipping ${eventLabel} - event is not trusted`); */ } catch { }
     return;
   }
   if (e && e.detail === 0) {
-    try { /* console.log(`Skipping ${eventLabel} - event is not trusted`); */ } catch {}
+    try { /* console.log(`Skipping ${eventLabel} - event is not trusted`); */ } catch { }
     return;
   }
-  
-  if (! shouldSkipElementForClick(e?.target)) {
+
+  if (!shouldSkipElementForClick(e?.target)) {
     const selectors = buildSelectors(e?.target, { minScore: 100, validate: true });
-  const payload = buildCommonActionData(e, selectors);
-    sendAction(actionType, payload);
+    const elementText = extractElementText(e?.target);
+    sendAction({
+      action_type: actionType,
+      elements: [{
+        selectors: selectors.map((selector) => ({ value: selector })),
+      }],
+      action_datas: [{
+        value: {
+          elementText: elementText,
+        },
+      }],
+    });
   }
 }
-
 // Click thường
 export function handleClickEvent(e) {
   return handleClickLikeBase(e, 'click', 'Click');

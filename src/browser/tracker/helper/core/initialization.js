@@ -16,7 +16,7 @@ import { handleDragStartEvent, handleDragEndEvent, handleDropEvent } from '../ac
 import { handleUploadChangeEvent } from '../actions/upload_handle.js';
 import { handleScrollEvent } from '../actions/scroll_handle.js';
 import { handleWindowResizeEvent, setExecutingActionsState } from '../actions/window_resize.js';
-// import { attachBrowserHandlers } from './actions/browser_handle.js';
+
 let globalAssertMode = false;
 let browserControls = null;
 let browserHandlersDisposer = null;
@@ -243,8 +243,6 @@ export function initializeTracking() {
   initBrowserControls();
   initializeEventListeners();
   initializeHoverEffects();
-  
-  // browserHandlersDisposer = attachBrowserHandlers();
   
   // Expose functions to main process
   window.setAssertMode = function(enabled, assertType) {

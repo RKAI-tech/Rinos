@@ -6,11 +6,10 @@ import DatabaseExecutionModal from '../database_execution_modal/DatabaseExecutio
 import WaitModal from '../wait_modal/WaitModal';
 import NavigateModal from '../navigate_modal/NavigateModal';
 import ApiRequestModal from '../api_request_modal/ApiRequestModal';
-import AddCookiesModal from '../add_cookies_modal/AddCookiesModal';
 import { Action, ActionType, AssertType, Connection, ApiRequestData } from '../../types/actions';
 import { receiveActionWithInsert } from '../../utils/receive_action';
-import { toast } from 'react-toastify';
-import { CookiesListItem } from '../../types/cookies';
+import { BrowserStorageResponse } from '../../types/browser_storage';
+import AddBrowserStorageModal from '../add_browser_storage_modal/AddBrowserStorageModal';
 
 interface ActionTabProps {
   actions: Action[];
@@ -77,7 +76,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
   const [isWaitOpen, setIsWaitOpen] = useState(false);
   const [isNavigateOpen, setIsNavigateOpen] = useState(false);
   const [isApiRequestOpen, setIsApiRequestOpen] = useState(false);
-  const [isAddCookiesOpen, setIsAddCookiesOpen] = useState(false);
+  const [isAddBrowserStorageOpen, setIsAddBrowserStorageOpen] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
 
@@ -162,8 +161,8 @@ const ActionTab: React.FC<ActionTabProps> = ({
     setIsNavigateOpen(true);
   };
 
-  const handleSelectAddCookies = () => {
-    setIsAddCookiesOpen(true);
+  const handleSelectAddBrowserStorage = () => {
+    setIsAddBrowserStorageOpen(true);
   };
 
   const handleNavigateConfirm = async (url: string) => {
@@ -223,15 +222,15 @@ const ActionTab: React.FC<ActionTabProps> = ({
     // toast.success('Added wait action');
   }
 
-  const handleAddCookiesConfirm = async (selectedCookie: CookiesListItem) => {
+  const handleAddBrowserStorageConfirm = async (selectedBrowserStorage: BrowserStorageResponse) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
     const newAction = {
       testcase_id: testcaseId,
       action_id: Math.random().toString(36),
-      action_type: ActionType.add_cookies,
-      cookies_id: selectedCookie.cookies_id,
-      cookies: selectedCookie,
-      description: `Add cookies: ${selectedCookie.name}`,
+      action_type: ActionType.add_browser_storage,
+      browser_storage_id: selectedBrowserStorage.browser_storage_id,
+      browser_storage: selectedBrowserStorage,
+      description: `Add browser storage: ${selectedBrowserStorage.name}`,
     } as any;
     // console.log("cookies action:", newAction);
     onActionsChange(prev => {
@@ -249,8 +248,8 @@ const ActionTab: React.FC<ActionTabProps> = ({
       }
       return next;
     });
-    setIsAddCookiesOpen(false);
-    await (window as any).browserAPI?.browser?.addCookies(JSON.stringify(selectedCookie.value));
+    setIsAddBrowserStorageOpen(false);
+    await (window as any).browserAPI?.browser?.addBrowserStorage(selectedBrowserStorage.storage_type, JSON.stringify(selectedBrowserStorage.value));
     // toast.success('Added cookies action');
   }
 
@@ -319,7 +318,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
     }
 
     if (actionType === 'add_cookies') {
-      handleSelectAddCookies();
+      handleSelectAddBrowserStorage();
       return;
     }
 
@@ -499,7 +498,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
               onClose={() => onCloseAddAction && onCloseAddAction()}
               onSelectAction={handleSelectAddAction}
               onSelectDatabaseExecution={handleSelectDatabaseExecution}
-              onSelectAddCookies={handleSelectAddCookies}
+              onSelectAddBrowserStorage={handleSelectAddBrowserStorage}
               onSelectApiRequest={handleSelectApiRequest}
             />
             <DatabaseExecutionModal
@@ -517,73 +516,11 @@ const ActionTab: React.FC<ActionTabProps> = ({
               onClose={() => setIsNavigateOpen(false)}
               onConfirm={handleNavigateConfirm}
             />
-            <AddCookiesModal
-              isOpen={isAddCookiesOpen}
+            <AddBrowserStorageModal
+              isOpen={isAddBrowserStorageOpen}
               projectId={projectId || ''}
-              onClose={() => setIsAddCookiesOpen(false)}
-              onConfirm={handleAddCookiesConfirm}
-            />
-            <ApiRequestModal
-              isOpen={isApiRequestOpen}
-              onClose={() => setIsApiRequestOpen(false)}
-              onConfirm={(data) => {
-                if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
-                const newAction = {
-                  testcase_id: testcaseId,
-                  action_id: Math.random().toString(36),
-                  action_type: ActionType.api_request,
-                  api_request: data,
-                  description: `${data.method} ${data.url}`,
-                };
-                onActionsChange(prev => {
-                  const next = receiveActionWithInsert(
-                    testcaseId,
-                    prev,
-                    newAction,
-                    selectedInsertPosition || 0
-                  );
-                  const added = next.length > prev.length;
-                  if (added) {
-                    const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
-                    onInsertPositionChange(newPos);
-                    onDisplayPositionChange(newPos);
-                  }
-                  return next;
-                });
-                setIsApiRequestOpen(false);
-                toast.success('Added API request action');
-              }}
-            />
-            <ApiRequestModal
-              isOpen={isApiRequestOpen}
-              onClose={() => setIsApiRequestOpen(false)}
-              onConfirm={(data) => {
-                if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
-                const newAction = {
-                  testcase_id: testcaseId,
-                  action_id: Math.random().toString(36),
-                  action_type: ActionType.api_request,
-                  api_request: data,
-                  description: `${data.method} ${data.url}`,
-                };
-                onActionsChange(prev => {
-                  const next = receiveActionWithInsert(
-                    testcaseId,
-                    prev,
-                    newAction,
-                    selectedInsertPosition || 0
-                  );
-                  const added = next.length > prev.length;
-                  if (added) {
-                    const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
-                    onInsertPositionChange(newPos);
-                    onDisplayPositionChange(newPos);
-                  }
-                  return next;
-                });
-                setIsApiRequestOpen(false);
-                toast.success('Added API request action');
-              }}
+              onClose={() => setIsAddBrowserStorageOpen(false)}
+              onConfirm={handleAddBrowserStorageConfirm}
             />
           </div>
           <button className="rcd-action-btn reset" title="Reload actions" onClick={() => onReload && onReload()}>

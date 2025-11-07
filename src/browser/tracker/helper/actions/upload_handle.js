@@ -5,7 +5,7 @@ import {
   buildCommonActionData,
   sendAction
 } from './baseAction.js';
-import { previewNode } from '../dom/domUtils.js';
+import { previewNode, extractElementText } from '../dom/domUtils.js';
 
 function readFileContent(file) {
   return new Promise((resolve, reject) => {
@@ -44,9 +44,18 @@ export async function handleUploadChangeEvent(e) {
 
   const value= undefined;
 
-  const payload = buildCommonActionData(e, selectors, {
-    value,
-    files: fileList
+  const elementText = extractElementText(el);
+  sendAction({
+    action_type: 'upload',
+    elements: [{
+      selectors: selectors.map((selector) => ({ value: selector })),
+    }],
+    action_datas: [{
+      value: {
+        value: value,
+        elementText: elementText,
+      },
+      files: fileList
+    }],
   });
-  sendAction('upload', payload);
 }
