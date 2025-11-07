@@ -13,7 +13,7 @@ import TitleInputModal from '../../components/title_input_modal/TitleInputModal'
 import AddActionModal from '../../components/add_action_modal/AddActionModal';
 import DatabaseExecutionModal from '../../components/database_execution_modal/DatabaseExecutionModal';
 import { ActionService } from '../../services/actions';
-import { Action, ActionBatch, ActionType, AiAssertRequest, AssertType } from '../../types/actions';
+import { Action, ActionBatch, ActionType, AiAssertRequest, AssertType, ApiRequestData } from '../../types/actions';
 import { actionToCode } from '../../utils/action_to_code';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
@@ -55,7 +55,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiElements, setAiElements] = useState<{
         id: string;
-        type: 'Browser' | 'Database';
+        type: 'Browser' | 'Database' | 'API';
         selector?: string[];
         value?: string;
         domHtml?: string;
@@ -63,7 +63,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         connection?: Connection;
         query?: string;
         queryResultPreview?:string;
-        queryResultData?: any[]; 
+        queryResultData?: any[];
+        apiRequest?: ApiRequestData;
+        apiResponse?: { status: number; data: any; headers: any };
   }[]>([]);
   const [recordingFromActionIndex, setRecordingFromActionIndex] = useState<number | null>(null);
   const [isBasicAuthOpen, setIsBasicAuthOpen] = useState(false);
