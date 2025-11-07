@@ -89,6 +89,10 @@
         "to": ".env"
       },
       {
+        "from": "images/icon.ico",
+        "to": "icon.ico"
+      },
+      {
         "from": "C:\\Users\\ASUS\\AppData\\Local\\ms-playwright",
         "to": "playwright-browsers",
         "filter": [
@@ -137,6 +141,7 @@
           ]
         }
       ],
+      "icon": "images/icon.ico",
       "requestedExecutionLevel": "asInvoker",
       "signAndEditExecutable": false
     },
