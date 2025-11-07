@@ -4,8 +4,8 @@ import path from "path";
 const isDev = false; //app.isPackaged;
 // Build target is CJS, so __dirname is available; avoid import.meta to silence warnings
 const __dirnameResolved = __dirname;
-const iconFileNamePng = "app_logo.png";
-const iconFileNameIco = "build/icons/icon.ico";
+const iconFileNamePng = "images/icon.png";
+const iconFileNameIco = "images/icon.ico";
 const resolveIconPath = () => {
   // Trên Windows, ưu tiên .ico để taskbar/shortcut hiển thị chuẩn
   if (process.platform === 'win32') {

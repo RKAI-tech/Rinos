@@ -89,14 +89,6 @@
         "to": ".env"
       },
       {
-        "from": "app_logo.png",
-        "to": "app_logo.png"
-      },
-      {
-        "from": "build/icons/icon.ico",
-        "to": "icon.ico"
-      },
-      {
         "from": "C:\\Users\\ASUS\\AppData\\Local\\ms-playwright",
         "to": "playwright-browsers",
         "filter": [
@@ -145,7 +137,6 @@
           ]
         }
       ],
-      "icon": "build/icons/icon.ico",
       "requestedExecutionLevel": "asInvoker",
       "signAndEditExecutable": false
     },
@@ -155,8 +146,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Automation Test Execution",
-      "installerIcon": "build/icons/icon.ico",
-      "uninstallerIcon": "build/icons/icon.ico"
+      "installerIcon": "images/icon.ico",
+      "uninstallerIcon": "images/icon.ico"
     },
     "portable": {
       "artifactName": "${productName}-${version}-portable.${ext}"
