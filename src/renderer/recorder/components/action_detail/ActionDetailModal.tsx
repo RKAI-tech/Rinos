@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './ActionDetailModal.css';
-import { Action, Element, ActionType, AssertType } from '../../types/actions';
+import { Action, Element, ActionType, AssertType, CreateType } from '../../types/actions';
 import Editor from '@monaco-editor/react';
 
 interface ActionDetailModalProps {
@@ -18,12 +18,7 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
       // Deep clone minimal mutable fields to avoid mutating prop
       const cloned: Action = {
         ...action,
-        elements: action.elements ? action.elements.map(el => ({
-          selectors: el.selectors ? el.selectors.map(s => ({ ...s })) : undefined,
-          query: el.query,
-          value: el.value,
-          variable_name: el.variable_name,
-        })) : [],
+        elements: action.elements ? action.elements : [],
       };
       setDraft(cloned);
     } else {
@@ -47,7 +42,10 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
     setDraft(prev => {
       if (!prev) return prev;
       const next = { ...prev } as Action;
-      next.statement = { ...(next.statement || { statement_id: '', query: '' }), query: sql };
+      next.action_datas = (next.action_datas ?? []).map(ad => ({
+        ...ad,
+        statement: { ...(ad.statement || { statement_id: '', query: '', create_type: CreateType.system }), query: sql },
+      }));
       return next;
     });
   };
@@ -291,7 +289,7 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
       if (!prev) return prev;
       const next: Action = { ...prev, assert_type: nextType };
       // Always regenerate description to match selected assert type
-      next.description = generateAssertDescription(nextType, next.value || '');
+      next.description = generateAssertDescription(nextType, next.action_datas?.[0]?.value?.["value"] || '');
       return next;
     });
   };
@@ -315,7 +313,12 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
     };
 
     // For all action types, the main input is kept in `value`
-    cloned.value = (source.value ?? '').toString();
+    cloned.action_datas = (source.action_datas ?? []).map(ad => ({
+      ...ad,
+      value: {
+        value: (ad.value?.["value"] ?? '').toString(),
+      },
+    }));
 
     // Assert specific mapping
     if (cloned.action_type === ActionType.assert) {
@@ -335,9 +338,19 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
         AssertType.toBeVisible,
       ];
       if (cloned.assert_type && noValueAsserts.includes(cloned.assert_type)) {
-        cloned.value = '';
+        cloned.action_datas = (source.action_datas ?? []).map(ad => ({
+          ...ad,
+          value: {
+            value: '',
+          },
+        }));
       } else {
-        cloned.value = (source.value ?? '').toString();
+        cloned.action_datas = (source.action_datas ?? []).map(ad => ({
+          ...ad,
+          value: {
+            value: (ad.value?.["value"] ?? '').toString(),
+          },
+        }));
       }
     }
 
@@ -400,8 +413,8 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
                 <input
                   type={assertConfig ? assertConfig.valueInputType : 'text'}
                   className="rcd-action-detail-input"
-                  value={draft.value || ''}
-                  onChange={(e) => updateField('value', e.target.value)}
+                  value={draft.action_datas?.[0]?.value?.["value"] || ''}
+                  onChange={(e) => updateField('action_datas', e.target.value)}
                   placeholder={assertConfig && assertConfig.valuePlaceholder ? assertConfig.valuePlaceholder : `Enter ${(assertConfig ? assertConfig.valueLabel : visibility.valueLabel).toLowerCase()}`}
                   required={draft.action_type === ActionType.assert}
                 />
@@ -413,8 +426,8 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
                 <label className="rcd-action-detail-kv-label">Accessible Name (optional)</label>
                 <input
                   className="rcd-action-detail-input"
-                  value={draft.selected_value || ''}
-                  onChange={(e) => updateField('selected_value', e.target.value)}
+                  value={draft.action_datas?.[0]?.value?.["selected_value"] || ''}
+                  onChange={(e) => updateField('action_datas', e.target.value)}
                   placeholder="Enter accessible name"
                 />
               </div>
@@ -426,8 +439,8 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
                     <label className="rcd-action-detail-kv-label">Selected Value</label>
                     <input
                       className="rcd-action-detail-input"
-                      value={draft.selected_value || ''}
-                      onChange={(e) => updateField('selected_value', e.target.value)}
+                      value={draft.action_datas?.[0]?.value?.["selected_value"] || ''}
+                      onChange={(e) => updateField('action_datas', e.target.value)}
                       placeholder="Enter selected value"
                     />
                   </div>
@@ -438,11 +451,11 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
                     <div className="rcd-action-detail-kv-value">
                       <input
                         type="checkbox"
-                        checked={Boolean(draft.checked)}
-                        onChange={(e) => updateField('checked', e.target.checked)}
+                        checked={Boolean(draft.action_datas?.[0]?.value?.["checked"])}
+                        onChange={(e) => updateField('action_datas', e.target.checked)}
                         style={{ marginRight: '8px' }}
                       />
-                      {draft.checked ? 'Yes' : 'No'}
+                      {draft.action_datas?.[0]?.value?.["checked"] ? 'Yes' : 'No'}
                     </div>
                   </div>
                 )}
@@ -453,15 +466,15 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
 
         {(draft.action_type !== ActionType.database_execution && (assertConfig ? assertConfig.showSelectors : visibility.showSelectors)) && renderElements()}
 
-          {(draft.action_type !== ActionType.database_execution && draft.playwright_code) && (
+          {(draft.action_type !== ActionType.database_execution && draft.action_datas?.[0]?.value?.["playwright_code"]) && (
             <div className="rcd-action-detail-section">
               <div className="rcd-action-detail-section-title">Playwright</div>
               <div className="rcd-action-detail-editor">
                 <Editor
-                  value={draft.playwright_code || ''}
+                  value={draft.action_datas?.[0]?.value?.["playwright_code"] || ''}
                   language="javascript"
                   theme="vs"
-                  onChange={(value) => updateField('playwright_code', value || '')}
+                  onChange={(value) => updateField('action_datas', value || '')}
                   options={{
                     minimap: { enabled: false },
                     fontSize: 13,
@@ -484,7 +497,7 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
                 <textarea
                   className="rcd-action-detail-input"
                   style={{ minHeight: '120px', fontFamily: 'monospace' }}
-                  value={(draft.statement?.query || '')}
+                  value={(draft.action_datas?.[0]?.statement?.query || '')}
                   onChange={(e) => updateStatementQuery(e.target.value)}
                   placeholder="SELECT * FROM table_name;"
                 />

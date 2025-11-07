@@ -165,7 +165,13 @@ const ActionTab: React.FC<ActionTabProps> = ({
       testcase_id: testcaseId,
       action_id: Math.random().toString(36),
       action_type: ActionType.navigate,
-      value: url,
+      action_datas: [
+        {
+          value: {
+            value: url,
+          },
+        }
+      ],
       description: `Navigate to ${url}`,
     } as any;
     onActionsChange(prev => {
@@ -194,7 +200,13 @@ const ActionTab: React.FC<ActionTabProps> = ({
       testcase_id: testcaseId,
       action_id: Math.random().toString(36),
       action_type: ActionType.wait,
-      value: String(ms),
+      action_datas: [
+        {
+          value: {
+            value: String(ms),
+          },
+        }
+      ],
       description: `Wait for ${ms} ms`,
     };
     onActionsChange(prev => {
@@ -222,8 +234,17 @@ const ActionTab: React.FC<ActionTabProps> = ({
       testcase_id: testcaseId,
       action_id: Math.random().toString(36),
       action_type: ActionType.add_browser_storage,
-      browser_storage_id: selectedBrowserStorage.browser_storage_id,
-      browser_storage: selectedBrowserStorage,
+      action_datas: [
+        {
+          browser_storage: {
+            browser_storage_id: selectedBrowserStorage.browser_storage_id,
+            name: selectedBrowserStorage.name,
+            description: selectedBrowserStorage.description,
+            value: selectedBrowserStorage.value,
+            storage_type: selectedBrowserStorage.storage_type,
+          },
+        }
+      ],
       description: `Add browser storage: ${selectedBrowserStorage.name}`,
     } as any;
     // console.log("cookies action:", newAction);
@@ -256,8 +277,6 @@ const ActionTab: React.FC<ActionTabProps> = ({
       action_type: ActionType.database_execution,
       connection_id: connectionId,
       connection: connection,
-      // query: query,
-      // statement: { query },
       elements: [
         {
           query: query,
@@ -266,6 +285,22 @@ const ActionTab: React.FC<ActionTabProps> = ({
       playwright_code: 'Database execution will be handled by backend',
       description: `Execute database query: ${query.substring(0, 50)}${query.length > 50 ? '...' : ''}`,
     };
+    
+    const nnewAction = {
+      testcase_id: testcaseId,
+      action_id: Math.random().toString(36),
+      action_type: ActionType.database_execution,
+      action_datas: [
+        {
+          statement: {
+            statement_id: Math.random().toString(36),
+            statement_text: query,
+            connection: connection,
+          },
+        }
+      ]
+    }
+    
     onActionsChange(prev => {
       console.log("Previous actions:", prev);
       const next = receiveActionWithInsert(
@@ -320,11 +355,6 @@ const ActionTab: React.FC<ActionTabProps> = ({
 
     if (newAction) {
       onActionsChange(prev => {
-        // console.log(`=== BEFORE ADDING ${actionType.toUpperCase()} ACTION ===`);
-        // console.log("Previous actions count:", prev.length);
-        // console.log("Previous actions:", prev.map(a => ({ id: a.action_id, type: a.action_type, desc: a.description })));
-        // console.log("Insert position:", selectedInsertPosition);
-        // console.log("New action to add:", { id: newAction.action_id, type: newAction.action_type, desc: newAction.description });
 
         const next = receiveActionWithInsert(
           testcaseId,
@@ -332,11 +362,6 @@ const ActionTab: React.FC<ActionTabProps> = ({
           newAction,
           selectedInsertPosition || 0
         );
-
-        // console.log(`=== AFTER ADDING ${actionType.toUpperCase()} ACTION ===`);
-        // console.log("Next actions count:", next.length);
-        // console.log("Next actions:", next.map(a => ({ id: a.action_id, type: a.action_type, desc: a.description })));
-        // console.log("Action added successfully:", next.length > prev.length);
 
         const added = next.length > prev.length;
         if (added) {

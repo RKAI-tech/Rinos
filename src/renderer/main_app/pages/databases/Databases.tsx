@@ -357,6 +357,7 @@ const Databases: React.FC = () => {
         onSave={async (payload) => {
           try {
             const svc = new DatabaseService();
+            console.log('[MAIN_APP] payload', payload);
             const resp = await svc.createDatabaseConnection(payload as any);
             if (resp.success) {
               toast.success('Connection created');
