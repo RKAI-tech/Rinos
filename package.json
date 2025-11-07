@@ -33,8 +33,8 @@
     "electron"
   ],
   "author": {
-    "name": "Rikkei",
-    "email": "contact@rikkei.com"
+    "name": "RikkeiSoft",
+    "email": "contact@rikkeisoft.com"
   },
   "homepage": "https://github.com/rikkei/automation-test-execution",
   "license": "ISC",
@@ -66,13 +66,14 @@
     "electron": "^38.1.2",
     "electron-builder": "^26.0.12",
     "esbuild": "^0.23.1",
+    "png2icons": "^2.0.1",
     "typescript": "^5.9.2",
     "vite": "^6.3.6",
     "wait-on": "^9.0.1"
   },
   "build": {
     "appId": "com.rikkei.automation",
-    "productName": "Rikkei_Automation_Test_Execution",
+    "productName": "Automation Test Execution",
     "directories": {
       "output": "release"
     },
@@ -86,6 +87,14 @@
       {
         "from": ".env",
         "to": ".env"
+      },
+      {
+        "from": "app_logo.png",
+        "to": "app_logo.png"
+      },
+      {
+        "from": "build/icons/icon.ico",
+        "to": "icon.ico"
       },
       {
         "from": "C:\\Users\\ASUS\\AppData\\Local\\ms-playwright",
@@ -118,8 +127,8 @@
       ],
       "icon": "src/renderer/main_app/assets/app_logo.png",
       "category": "Development",
-      "synopsis": "Rikkei Automation Test Execution Tool",
-      "maintainer": "Rikkei <contact@rikkei.com>"
+      "synopsis": "Automation Test Execution",
+      "maintainer": "RikkeiSoft Corporation<contact@rikkeisoft.com>"
     },
     "win": {
       "target": [
@@ -136,7 +145,7 @@
           ]
         }
       ],
-      "icon": "src/renderer/main_app/assets/app_logo.png",
+      "icon": "build/icons/icon.ico",
       "requestedExecutionLevel": "asInvoker",
       "signAndEditExecutable": false
     },
@@ -145,7 +154,9 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Rikkei Automation Test"
+      "shortcutName": "Automation Test Execution",
+      "installerIcon": "build/icons/icon.ico",
+      "uninstallerIcon": "build/icons/icon.ico"
     },
     "portable": {
       "artifactName": "${productName}-${version}-portable.${ext}"

@@ -4,6 +4,22 @@ import path from "path";
 const isDev = false; //app.isPackaged;
 // Build target is CJS, so __dirname is available; avoid import.meta to silence warnings
 const __dirnameResolved = __dirname;
+const iconFileNamePng = "app_logo.png";
+const iconFileNameIco = "build/icons/icon.ico";
+const resolveIconPath = () => {
+  // Trên Windows, ưu tiên .ico để taskbar/shortcut hiển thị chuẩn
+  if (process.platform === 'win32') {
+    if (app.isPackaged) {
+      return path.join(process.resourcesPath, path.basename(iconFileNameIco));
+    }
+    return path.join(process.cwd(), iconFileNameIco);
+  }
+  // Nền tảng khác dùng PNG như trước
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, iconFileNamePng);
+  }
+  return path.join(process.cwd(), iconFileNamePng);
+};
 // console.log(__dirnameResolved)
 async function tryLoadDevPaths(win: BrowserWindow, page: string) {
   // console.log('tryLoadDevPaths', MainEnv.API_URL, page);
@@ -30,6 +46,7 @@ function createWindow(options: Electron.BrowserWindowConstructorOptions, page: s
   // console.log('__dirname', __dirnameResolved);
   const win = new BrowserWindow({
     ...options,
+    icon: resolveIconPath(),
     webPreferences: {
       preload: path.join(__dirnameResolved, "preload.cjs"),
       contextIsolation: true,

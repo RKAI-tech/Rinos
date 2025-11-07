@@ -18,6 +18,8 @@ app.commandLine.appendSwitch("no-zygote");
 // browserWindow() => BrowserWindow
 
 app.whenReady().then(() => {
+  // Đặt AppUserModelID để Windows taskbar/shortcut ánh xạ đúng icon từ .exe
+  try { app.setAppUserModelId("com.rikkei.automation"); } catch {}
   try {
     Menu.setApplicationMenu(null);
   } catch {}
