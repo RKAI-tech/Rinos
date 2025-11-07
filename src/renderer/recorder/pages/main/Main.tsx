@@ -352,7 +352,14 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         // TODO: Increase insert position by 1
         setSelectedInsertPosition(selectedInsertPosition + 1);
         setDisplayInsertPosition(selectedInsertPosition + 1);
-        setActions(prev => receiveAction(testcaseId || '', prev, { type: ActionType.navigate, selector: [], url: url, value: url }));
+        setActions(prev => receiveAction(
+          testcaseId || '', 
+          prev, 
+          { 
+            action_type: ActionType.navigate, 
+            action_datas: [{ value: { value: url } }] 
+          }
+        ));
         setIsPaused(false);
       }
     } catch (error) {
@@ -418,7 +425,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   };
 
   const handleAiSubmit = async () => {
-    // console.log('[Main] AI elements:', aiElements);
+    console.log('[Main] AI elements:', aiElements);
     // Validation
     if (!aiPrompt || !aiPrompt.trim()) {
       toast.error('Prompt is required');
@@ -466,15 +473,26 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
 
       if (response.success) {
         const aiAction = {
-          type: ActionType.assert,
+          action_type: ActionType.assert,
           assertType: AssertType.ai,
-          playwright_code: (response as any).data.playwright_code || '',
           description: (response as any).data.description || '',
-          // connection_id: databaseElements[0]?.connection?.connection_id,
-          // connection: databaseElements[0]?.connection,
+          elements: HTMLElements.map(el => ({
+            selectors: el.selectors
+          })),
+          action_datas: [
+            { 
+              value: { 
+                playwright_code: (response as any).data.playwright_code || ''
+              },
+              statement: databaseElements.map(db => ({
+                statement_text: db.query,
+                connection_id: db.connection?.connection_id,
+              }))
+            }
+          ]
         };
 
-        // console.log('[Main] AI action:', aiAction);
+        console.log('[Main] AI action:', aiAction);
 
         setActions(prev => {
           const next = receiveActionWithInsert(
@@ -584,7 +602,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         const len = newActions.length;
         setSelectedInsertPosition(len);
         setDisplayInsertPosition(len);
-        // console.log('[Main] Reloaded actions count:', len);
       } else {
         setActions([]);
         setSelectedInsertPosition(0);
@@ -739,6 +756,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     }
 
     try {
+      console.log('[Main] Saving actions:', actions);
       const response = await actionService.batchCreateActions(actions);
       if (response.success) {
         // toast.success('Saved successfully');
@@ -781,21 +799,10 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     try {
       const toastId = toast.loading('Running script...');
       const payload = {
-        actions: actions.map(action => {
-          if (action.connection && typeof action.connection.port === 'string') {
-            return {
-              ...action,
-              connection: {
-                ...action.connection,
-                port: Number(action.connection.port)
-              }
-            };
-          }
-          return action;
-        }),
+        actions: actions,
         testcase_id: testcaseId || '',
       };
-      // console.log('[Main] Run script payload:', payload);
+      console.log('[Main] Run script payload:', payload);
       const resp = await service.executeActions(payload);
       // console.log('[Main] Run script response:', resp);
       if (resp.success) {
@@ -825,18 +832,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setIsConfirmCloseOpen(false);
     // Gửi hủy đóng cửa sổ đến main process
     await (window as any).electronAPI?.window?.confirmCloseRecorder?.(false);
-  };
-
-  const handleDeleteTmpFile = async () => {
-    setIsConfirmCloseOpen(false);
-    actions.forEach(async action => {
-      if (action.action_type === ActionType.upload) {
-        const filename = action.value;
-        if (filename) {
-          await service.deleteFile({ filename });
-        }
-      }
-    });
   };
 
   const handleSaveAndClose = async () => {

@@ -24,13 +24,18 @@ export function handleCheckboxRadioChangeEvent(e) {
   // Chuẩn hóa value theo loại phần tử
   if (tag === 'input' && type === 'checkbox') {
     const normalizedValue = isChecked ? 'on' : 'off';
-    sendAction("change", {
-      selector: selectors,
-      checked: isChecked,
-      value: normalizedValue,
-      element: 'checkbox',
-      elementPreview: previewNode(el),
-      elementText
+    sendAction({
+      action_type: 'change',
+      elements: [{
+        selectors: selectors.map((selector) => ({ value: selector })),
+      }],
+      action_datas: [{
+        value: {
+          value: normalizedValue,
+          checked: isChecked,
+          elementText: elementText,
+        },
+      }],
     });
     return;
   }
@@ -38,14 +43,18 @@ export function handleCheckboxRadioChangeEvent(e) {
   if (tag === 'input' && type === 'radio') {
     // Radio: giá trị là value của option được chọn; checked = true
     const radioValue = el.value || 'on';
-    sendAction("change", {
-      selector: selectors,
-      checked: true,
-      value: radioValue,
-      element: 'radio',
-      name: el.name || undefined,
-      elementPreview: previewNode(el),
-      elementText
+    sendAction({
+      action_type: 'change',
+      elements: [{
+        selectors: selectors.map((selector) => ({ value: selector })),
+      }],
+      action_datas: [{
+        value: {
+          value: radioValue,
+          checked: true,
+          elementText: elementText,
+        },
+      }],
     });
     return;
   }

@@ -5,8 +5,7 @@ import {
     buildCommonActionData,
     sendAction
   } from './baseAction.js';
-  import { previewNode } from '../dom/domUtils.js';
-  
+  import { extractElementText } from '../dom/domUtils.js';
   // Danh sách phím modifier/special không cần ghi lại riêng lẻ
   const SKIP_KEYS = new Set([
     'Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'NumLock', 'ScrollLock',
@@ -50,6 +49,7 @@ import {
   
     // Log thông tin
     const selectors = buildSelectors(e?.target);
+    const elementText = extractElementText(e?.target);
     const shortcut = buildShortcutName(e);
     //check type input to isEditableElement
     if (isEditableElement(e?.target)){
@@ -58,10 +58,15 @@ import {
       }
     }
 
-    const payload = buildCommonActionData(e, selectors, { value: shortcut });
-    // console.log(`${eventLabel}: ${shortcut}`, previewNode(e?.target));
-  
-    sendAction(actionType, payload);
+    sendAction({
+      action_type: actionType,
+      elements: [{
+        selectors: selectors.map((selector) => ({ value: selector })),
+      }],
+      action_datas: [{
+        value: { value: shortcut, elementText: elementText },
+      }],
+    });
   }
   
   // Export handlers

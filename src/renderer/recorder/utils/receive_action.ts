@@ -1,25 +1,14 @@
-import { Action, Element, Selector, ActionType, AssertType } from "../types/actions";
-import { actionToCode, generateConnectDBCode, processSelector } from "./action_to_code";
+import { Action, ActionData, Element, Selector, ActionType, AssertType, Statement, FileUpload } from "../types/actions";
+import { BrowserStorageResponse } from "../types/browser_storage";
 
 export function createDescription(action_received: any): string {
-    const type = action_received.type;
-    let value = action_received.value;
-    // Truncate value if it's too long
-    // if (typeof value === 'string' && value.length > 15) {
-    //     value = value.substring(0, 15) + '...';
-    // }
-    let url = action_received.url;
-    // if (typeof url === 'string' && url.length > 15) {
-    //     url = url.substring(0, 15) + '...';
-    // }
-    let element = action_received.elementText;
-    // if (typeof element === 'string' && element.length > 15) {
-    //     element = element.substring(0, 15) + '...';
-    // }
-    let files = action_received.files?.map((f: any) => f.name).join(', ') || '';
+    const type = action_received.action_type;
+    let value = action_received.action_datas?.[0]?.value?.value;
+    let element = action_received.action_datas?.[0]?.value?.elementText;
+    let files = action_received.action_datas?.[0]?.files?.map((f: any) => f.name).join(', ') || '';
     switch (type) {
         case ActionType.navigate:
-            return `Navigate to ${url}`;
+            return `Navigate to ${value}`;
         case ActionType.click:
             return `Click on ${element}`;
         case ActionType.input:
@@ -112,94 +101,19 @@ export function createDescription(action_received: any): string {
     }
 }
 
-export function createScriptForAiAssert(receivedAction: any, action_received: any): string {
-    let script = "    " + receivedAction.playwright_code;
-    if (receivedAction.connection) {
-        script += '\n' + generateConnectDBCode(receivedAction);
-    }
-    script += '\n' + `    let outerHTMLs = [];\n` + `  let databaseResults = [];\n`;
-    receivedAction.elements?.forEach((element: Element) => {
-        if (element.selectors) {
-            const candidatesLiteral = processSelector([element]);
-            // TODO: script to get outerHTML of the element
-            script += '\n' + `    candidates = ${candidatesLiteral};\n` +
-                `    sel = await resolveUniqueSelector(page, candidates);\n` +
-                `    const outerHTML = await page.locator(sel).evaluate((el) => el.outerHTML);\n` +
-                `    var str = String(outerHTML);\n` +   // ép về string
-                `    outerHTMLs.push(str);\n`;
-
-        }
-        if (element.query) {
-            const dbVar = receivedAction.connection?.db_type?.toLowerCase();
-            script += '\n' + `    var result = await ${dbVar}.query('${element.query}');\n` +
-                `    databaseResults=[result.rows];\n` + 
-                `    await ${dbVar}.end();\n`;
-        }
-    });
-    const function_name = action_received.function_name;
-    // TODO: script to call the function, the function is used to verify the assert, it return True or False
-    script += '\n' + `    var result = await ${function_name}(outerHTMLs, databaseResults);\n` +
-        `    await expect(result).toBe(true);\n`;
-        
-    return script;
-}
-
-export function receiveAction(testcaseId: string, action_recorded: Action[], action_received: any): Action[] {
-    // console.log('[rawAction]', action_received);
-    const normalizedType = (action_received?.action_type ?? action_received?.type) as ActionType | undefined;
-    const normalizedDescription = (action_received?.description ?? createDescription(action_received)) as string | undefined;
-
+export function receiveAction(testcaseId: string, action_recorded: Action[], action_received: any): Action[] {    
     const receivedAction = {
         action_id: Math.random().toString(36),
         testcase_id: testcaseId,
-        action_type: normalizedType as ActionType,
-        description: normalizedDescription,
-        playwright_code: action_received.playwright_code,
-        elements: action_received.selector ? [{
-            selectors: action_received.selector.map((sel: string) => ({ value: sel } as Selector)),
-            query: action_received.query,
-            value: action_received.value,
-            variable_name: action_received.variable_name,
-        } as Element] : action_received.elements ? action_received.elements.map((element: Element) => ({
-            query: element.query,
-        } as Element)) : [],
-        assert_type: action_received.assertType,
-        value: action_received.value || action_received.files?.[0]?.name || action_received.url || undefined,
-        connection_id: action_received.connection_id,
-        connection: action_received.connection ? {
-            connection_id: action_received.connection_id,
-            username: action_received.connection.username,
-            password: action_received.connection.password,
-            host: action_received.connection.host,
-            port: action_received.connection.port,
-            db_name: action_received.connection.db_name,
-            db_type: action_received.connection.db_type,
-        } : undefined,
-        statement_id: action_received.statement_id,
-        query: action_received.query,
-        statement: (action_received.statement && action_received.statement.query)
-            ? { query: action_received.statement.query }
-            : (action_received.query ? { query: action_received.query } : undefined),
-        files: action_received.files ? action_received.files.map((file: any) => ({
-            file_name: file.name,
-            file_content: file.content.split(',')[1],
-            file_path: undefined,
-        })) : [],
-        // Browser events
-        url: action_received.url,
-        timestamp: action_received.timeStamp || action_received.timestamp,
-        browser_storage_id: action_received.browser_storage_id,
-        browser_storage: action_received.browser_storage ? {
-            browser_storage_id: action_received.browser_storage_id,
-            project_id: action_received.project_id,
-            name: action_received.browser_storage.name,
-            description: action_received.browser_storage.description,
-            value: action_received.browser_storage.value,
-            storage_type: action_received.browser_storage.storage_type,
-        } : undefined,
+        action_type: action_received.action_type as ActionType,
+        description: createDescription(action_received),
+        elements: action_received.elements ? action_received.elements as Element[] : [],
+        assert_type: action_received.assertType? action_received.assertType as AssertType : undefined,
+        action_datas: action_received.action_datas ? action_received.action_datas as ActionData[] : [],        
     } as Action;
 
-    // console.log('[receiveAction]', receivedAction);
+    console.log('[Action sent from browser]', action_received);
+    console.log('[Action received by recorder]', receivedAction);
 
     const last_action = action_recorded[action_recorded.length - 1];
 
@@ -298,9 +212,6 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
     //     if (last_action && last_action.action_type!==ActionType.drop) {
     //         return action_recorded;
     //     }
-    // }
-    // if (receivedAction.action_type === ActionType.assert && receivedAction.assert_type === AssertType.ai) {
-    //      receivedAction.playwright_code = createScriptForAiAssert(receivedAction, action_received);
     // }
     return [...action_recorded, receivedAction];
 }

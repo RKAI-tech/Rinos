@@ -1,7 +1,7 @@
 import { BrowserStorageResponse } from "./browser_storage";
+
 export enum ActionType {
   input = "input",
-  navigate = "navigate",
   click = "click",
   select = "select",
   checkbox = "checkbox",
@@ -15,6 +15,7 @@ export enum ActionType {
   assert = "assert",
   update_input = "update_input",
   connect_db = "connect_db",
+  navigate = "navigate",
   double_click = "double_click",
   right_click = "right_click",
   shift_click = "shift_click",
@@ -25,7 +26,6 @@ export enum ActionType {
   scroll = "scroll",
   database_execution = "database_execution",
   wait = "wait",
-  // Browser events
   reload = "reload",
   back = "back",
   forward = "forward",
@@ -34,11 +34,6 @@ export enum ActionType {
 }
 
 export enum AssertType {
-  ai = "AI",
-  toContainText = "toContainText",
-  toHaveText = "toHaveText",
-  toHaveValue = "toHaveValue",
-  toHaveValues = "toHaveValues",
   toBeChecked = "toBeChecked",
   toBeUnchecked = "toBeUnchecked",
   toBeDisabled = "toBeDisabled",
@@ -49,12 +44,22 @@ export enum AssertType {
   toBeFocused = "toBeFocused",
   toBeHidden = "toBeHidden",
   toBeVisible = "toBeVisible",
+  toContainText = "toContainText",
   toHaveAccessibleDescription = "toHaveAccessibleDescription",
   toHaveAccessibleName = "toHaveAccessibleName",
   toHaveCount = "toHaveCount",
   toHaveRole = "toHaveRole",
+  toHaveText = "toHaveText",
+  toHaveValue = "toHaveValue",
+  toHaveValues = "toHaveValues",
   pageHasATitle = "pageHasATitle",
   pageHasAURL = "pageHasAURL",
+  ai = "AI"
+}
+
+export enum CreateType {
+  system = "system",
+  user = "user",
 }
 
 export enum ConnectionType {
@@ -64,30 +69,32 @@ export enum ConnectionType {
 }
 
 export interface Connection {
-  connection_id: string;
+  connection_id?: string;
   username: string;
   password: string;
   host: string;
-  port: string | number;
+  port: string;
   db_name: string;
   db_type: ConnectionType;
 }
 
 export interface Statement {
-  statement_id: string;
+  statement_id?: string;
   query: string;
+  create_type: CreateType;
+  connection?: Connection;
 }
 
 export interface Selector {
   value: string;
+  order_index?: number;
 }
 
 export interface Element {
   selectors?: Selector[];
-  query?: string;
-  value?: string;
-  variable_name?: string;
+  order_index?: number;
 }
+
 
 export interface FileUpload {
   file_upload_id?: string;
@@ -96,37 +103,27 @@ export interface FileUpload {
   file_content?: string;
 }
 
+export interface ActionData {
+  action_data_id?: string;
+  order_index?: number;
+  value?: any;
+  statement?: Statement;
+  file_upload?: FileUpload;
+  browser_storage?: BrowserStorageResponse;
+}
+
 export interface Action {
-    action_id?: string;                                                                                                                                                                                                               
-    testcase_id: string;
-    action_type: ActionType;
-    description?: string; // edit
-    playwright_code?: string; // edit
-    elements?: Element[]; // edit 
-    assert_type?: AssertType;
-    value?: string; // edit
-    // Select-specific fields
-    selected_value?: string; // edit
-    // Checkbox-specific fields
-    checked?: boolean; // edit
-    // Database-related fields
-    connection_id?: string;
-    connection?: Connection;
-    statement_id?: string;
-    statement?: Statement;
-    query?: string;
-    variable_name?: string;
-    file_upload?: FileUpload[];
-    // Browser events
-    url?: string;
-    timestamp?: number;
-    browser_storage_id?: string;
-    browser_storage?: BrowserStorageResponse;
+  action_id?: string;
+  testcase_id: string;
+  action_type: ActionType;
+  description?: string;  
+  elements?: Element[]; 
+  assert_type?: AssertType;
+  action_datas?: ActionData[];
 }
 
 export interface ActionBatch {
   actions: Action[];
-  testcase_id: string;
 }
 
 // AI Assert Request types

@@ -201,10 +201,10 @@ export class Controller {
             try {
                 switch (action.action_type) {
                     case ActionType.navigate:
-                        if (!action.value) {
+                        if (!action.action_datas?.[0]?.value?.value) {
                             throw new Error('URL is required for navigate action');
                         }
-                        await this.navigate(page, action.value);
+                        await this.navigate(page, action.action_datas?.[0]?.value?.value);
                         break;
                     case ActionType.reload:
                         await page.reload();
@@ -217,13 +217,14 @@ export class Controller {
                         break;
                     case ActionType.add_browser_storage:
                         // console.log('[Controller] Action:', action);
-                        if (action.browser_storage) {
-                            if (action.browser_storage.storage_type === BrowserStorageType.COOKIE) {
-                                await this.addCookies(context, page, JSON.stringify(action.browser_storage.value));
-                            } else if (action.browser_storage.storage_type === BrowserStorageType.LOCAL_STORAGE) {
-                                await this.addLocalStorage(page, JSON.stringify(action.browser_storage.value));
-                            } else if (action.browser_storage.storage_type === BrowserStorageType.SESSION_STORAGE) {
-                                await this.addSessionStorage(page, JSON.stringify(action.browser_storage.value));
+                        if (action.action_datas?.[0]?.browser_storage) {
+                            const browser_storage = action.action_datas?.[0]?.browser_storage;
+                            if (browser_storage.storage_type === BrowserStorageType.COOKIE) {
+                                await this.addCookies(context, page, JSON.stringify(browser_storage.value));
+                            } else if (browser_storage.storage_type === BrowserStorageType.LOCAL_STORAGE) {
+                                await this.addLocalStorage(page, JSON.stringify(browser_storage.value));
+                            } else if (browser_storage.storage_type === BrowserStorageType.SESSION_STORAGE) {
+                                await this.addSessionStorage(page, JSON.stringify(browser_storage.value));
                             }
                         }
                         break;
@@ -243,17 +244,17 @@ export class Controller {
                         }
                         break;
                     case ActionType.input:
-                        if (action.elements && action.elements.length === 1) {
+                        if (action.elements) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
-                            await page.fill(uniqueSelector, action.value || '');
+                            await page.fill(uniqueSelector, action.action_datas?.[0]?.value?.value || '');
                         }
                         break;
                     case ActionType.select:
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
-                            await page.selectOption(uniqueSelector, action.value || '');
+                            await page.selectOption(uniqueSelector, action.action_datas?.[0]?.value?.value || '');
                         }
                         break;
                     case ActionType.checkbox:
@@ -261,7 +262,7 @@ export class Controller {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
                             // console.log(uniqueSelector)
-                            if (action.checked) {
+                            if (action.action_datas?.[0]?.value?.checked === 'true') {
                                 await page.check(uniqueSelector);
                             } else {
                                 await page.uncheck(uniqueSelector);
@@ -272,15 +273,16 @@ export class Controller {
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
-                            await page.locator(uniqueSelector).press(action.value || '');
+                            await page.locator(uniqueSelector).press(action.action_datas?.[0]?.value?.value || '');
                         }
                         break;
                     case ActionType.upload:
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
-                            if (action.files && action.files.length > 0) {
-                                for (const file of action.files) {
+                            for (const action_data of action.action_datas || []) {
+                                if (action_data.file_upload) {
+                                    const file = action_data.file_upload;
                                     let content: string | undefined;
                                     if (file.file_content) {
                                         content = file.file_content;
@@ -330,7 +332,7 @@ export class Controller {
                         }
                         break;
                     case ActionType.wait:
-                        await page.waitForTimeout(Number(action.value) || 0);
+                        await page.waitForTimeout(Number(action.action_datas?.[0]?.value?.value) || 0);
                         break;
                     case ActionType.drag_and_drop:
                         if (action.elements && action.elements.length === 2) {
@@ -357,12 +359,12 @@ export class Controller {
                         //Format y X:,y:
                         let x = 0;
                         let y = 0;
-                        const match = action.value?.match(/X\s*:\s*(\d+)\s*,\s*Y\s*:\s*(\d+)/i);
+                        const match = action.action_datas?.[0]?.value?.value?.match(/X\s*:\s*(\d+)\s*,\s*Y\s*:\s*(\d+)/i);
                         if (match) {
                             x = Number(match[1]);
                             y = Number(match[2]);
                         }
-                        const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
+                        const selectors = action.elements?.[0]?.selectors?.map(selector => selector.value) || [];
                         const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
                         await page.locator(uniqueSelector).evaluate((el, pos) => {
                             const { x, y } = pos;
@@ -379,7 +381,7 @@ export class Controller {
                     case ActionType.window_resize:
                         let width = 0;
                         let height = 0;
-                        const match_window_resize = action.value?.match(/Width\s*:\s*(\d+)\s*,\s*Height\s*:\s*(\d+)/i);
+                        const match_window_resize = action.action_datas?.[0]?.value?.value?.match(/Width\s*:\s*(\d+)\s*,\s*Height\s*:\s*(\d+)/i);
                         if (match_window_resize) {
                             width = Number(match_window_resize[1]);
                             height = Number(match_window_resize[2]);

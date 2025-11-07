@@ -5,7 +5,6 @@ import {
   buildCommonActionData,
   sendAction
 } from './baseAction.js';
-import { previewNode } from '../dom/domUtils.js';
 
 // Trạng thái drag and drop đơn giản
 let isDragging = false;
@@ -21,14 +20,22 @@ export function handleDragStartEvent(e) {
   }
   
   const selectors = buildSelectors(e?.target);
-    
-  const payload = buildCommonActionData(e, selectors);
-  
+  const elementText = extractElementText(e?.target);
   // Đánh dấu đang drag
   isDragging = true;
   
   // console.log('Drag start event - generated selectors:', selectors);
-  sendAction('drag_start', payload);
+  sendAction({
+    action_type: 'drag_start',
+    elements: [{
+      selectors: selectors,
+    }],
+    action_datas: [{
+      value: {
+        elementText: elementText,
+      },
+    }],
+  });
 }
 
 // Xử lý sự kiện drag end
@@ -47,11 +54,20 @@ export function handleDragEndEvent(e) {
   }
   
   const selectors = buildSelectors(e?.target);
+  const elementText = extractElementText(e?.target);
     
-    const payload = buildCommonActionData(e, selectors);
-  
   // console.log('Drag end event - generated selectors:', selectors);
-  sendAction('drag_end', payload);
+  sendAction({
+    action_type: 'drag_end',
+    elements: [{
+      selectors: selectors,
+    }],
+    action_datas: [{
+      value: {
+        elementText: elementText,
+      },
+    }],
+  });
   
   // Reset trạng thái drag
   isDragging = false;
@@ -73,11 +89,19 @@ export function handleDropEvent(e) {
   }
   
   const selectors = buildSelectors(e?.target);
-    
-  const payload = buildCommonActionData(e, selectors);
-  
+  const elementText = extractElementText(e?.target);
   // console.log('Drop event - generated selectors:', selectors);
-  sendAction('drop', payload);
+  sendAction({
+    action_type: 'drop',
+    elements: [{
+      selectors: selectors.map((selector) => ({ value: selector })),
+    }],
+    action_datas: [{
+      value: {
+        elementText: elementText,
+      },
+    }],
+  });
   
   // Reset trạng thái drag
   isDragging = false;

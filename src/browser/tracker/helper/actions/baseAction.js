@@ -43,7 +43,7 @@ export function shouldIgnoreTarget(target, label = 'Event') {
       // console.log(`Skipping ${label} - inside browser controls or assert modal`);
       return true;
     }
-  } catch {}
+  } catch { }
   return false;
 }
 
@@ -60,47 +60,29 @@ export function buildSelectors(target, options = {}) {
   }
 }
 
-// Helper: dựng payload chung
+
 export function buildCommonActionData(e, selectors, extra = {}, actionType = 'unknown') {
-  if (actionType === 'scroll_handle' || actionType === 'window_resize') {
-    return {
-      selector: selectors,
-      element: 'window',
-      elementPreview:  undefined,
-      elementText: undefined,
-      coordinates: (typeof e?.clientX === 'number' && typeof e?.clientY === 'number')
-        ? { x: e.clientX, y: e.clientY }
-        : undefined,
-      ...extra
-    };
-  }
   return {
-    selector: selectors,
-    element: e?.target?.tagName?.toLowerCase?.() || 'unknown',
-    elementPreview: previewNode(e?.target),
-    elementText: extractElementText(e?.target),
-    coordinates: (typeof e?.clientX === 'number' && typeof e?.clientY === 'number')
-      ? { x: e.clientX, y: e.clientY }
-      : undefined,
-    ...extra
+    action_type: actionType,
+    elements: [{
+      selectors: selectors.map((selector) => ({ value: selector })),
+    }],
+    action_datas: [{
+      value: {
+        coordinates: (typeof e?.clientX === 'number' && typeof e?.clientY === 'number')
+          ? { x: e.clientX, y: e.clientY }
+          : undefined,
+        ...extra,
+      },
+    }],
   };
 }
 
-// Helper: gửi action sang main
-export function sendAction(type, data) {
-  // console.log('[BaseAction] Attempting to send action:', type, data);
+
+export function sendAction(action) {
   if (window.sendActionToMain) {
-    const timestamp = Date.now();
     try {
-      const action = {
-        type,
-        ...data,
-        timestamp,
-        url: window.location.href,
-        title: document.title
-      };
       window.sendActionToMain(action);
-      // console.log('[BaseAction] Action sent successfully:', type, action, 'timestamp:', timestamp);
     } catch (error) {
       console.error('[BaseAction] Error sending action:', error);
     }

@@ -4,7 +4,7 @@ import {
   buildCommonActionData,
   sendAction
 } from './baseAction.js';
-
+import { extractElementText } from '../dom/domUtils.js';
 let _scrollRafId = null;
 let _pendingEvent = null;
 
@@ -24,8 +24,16 @@ function dispatchScroll(e) {
   const scrollX = isWindow ? Math.max(window.scrollX || window.pageXOffset || 0, 0) : Math.max(target.scrollLeft || 0, 0);
   const scrollY = isWindow ? Math.max(window.scrollY || window.pageYOffset || 0, 0) : Math.max(target.scrollTop || 0, 0);
   const value = `X:${scrollX}, Y:${scrollY}`;
-  const payload = buildCommonActionData(e, selectors, { value },"scroll_handle");
-  sendAction('scroll', payload);
+  const elementText = extractElementText(target);
+  sendAction({
+    action_type: 'scroll',
+    elements: [{
+      selectors: selectors.map((selector) => ({ value: selector })),
+    }],
+    action_datas: [{
+      value: { value: value, elementText: elementText },
+    }],
+  });
 }
 
 export function handleScrollEvent(e) {
