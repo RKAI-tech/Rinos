@@ -31,11 +31,24 @@ export interface TestCaseGetRequest {
     limit: number;
     offset: number;
 }
+
+export interface Screenshot {
+    screenshot_id: string;
+    url: string;
+}
+export interface Video {
+    video_id: string;
+    url: string;
+}
+export interface Log {
+    log_id: string;
+    content: string;
+}
 export interface Evidence {
     evidence_id: string;
-    url_video: string;
-    url_screenshot: string[];
-    logs: string;
+    video: Video | null;
+    screenshots: Screenshot[] | null;
+    log: Log | null;
 }
 
 export interface TestCase {

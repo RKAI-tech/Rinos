@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import './RunAndViewTestcase.css';
 import { TestCaseService } from '../../../services/testcases';
-import { TestCaseGetResponse } from '../../../types/testcases';
+import { Screenshot, TestCase as TestCaseGetResponse } from '../../../types/testcases';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { canEdit } from '../../../hooks/useProjectPermissions';
@@ -42,6 +42,10 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
     }
   }, [isOpen, testcaseId, projectId, testcaseData]);
 
+  useEffect(() => {
+    console.log('[MAIN_APP] result', result);
+  }, [result]);
+  
   const loadTestcaseData = async () => {
     if (!testcaseId) return;
     
@@ -203,7 +207,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                     </div>
                     <div className="ravt-term-content">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {result.logs || 'No logs available for this testcase.'}
+                        {result.evidence?.log?.content || 'No logs available for this testcase.'}
                       </ReactMarkdown>
                     </div>
                   </div>
@@ -211,8 +215,8 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                 
                 {activeTab === 'video' && (
                   <div className="ravt-video-container">
-                    {result.url_video ? (
-                      <video style={{ width: '100%', height: '100%' }} controls src={result.url_video} />
+                    {result.evidence?.video?.url ? (
+                      <video style={{ width: '100%', height: '100%' }} controls src={result.evidence?.video?.url} />
                     ) : (
                       <div className="ravt-no-video">
                         <div className="ravt-no-video-icon">🎥</div>
@@ -224,11 +228,11 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                 
                 {activeTab === 'screenshots' && (
                   <div className="ravt-screenshots-container">
-                    {result.url_screenshot && result.url_screenshot.length > 0 ? (
+                    {result.evidence?.screenshots && result.evidence?.screenshots.length > 0 ? (
                       <div className="ravt-screenshots-list">
-                        {result.url_screenshot.map((screenshotUrl, index) => {
+                        {result.evidence?.screenshots.map((screenshot: Screenshot, index: number) => {
                           // Extract image name from URL pattern: after code and _ prefix, before .png
-                          const urlParts = screenshotUrl.split('/');
+                          const urlParts = screenshot.url.split('/');
                           const fileName = urlParts[urlParts.length - 1];
                           let imageName = fileName;
                           
@@ -256,7 +260,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                               <button 
                                 className="ravt-screenshot-btn"
                                 onClick={() => {
-                                  setSelectedImage(screenshotUrl);
+                                  setSelectedImage(screenshot.url);
                                   setCurrentImageIndex(index);
                                 }}
                               >
@@ -274,7 +278,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                     )}
                     
                     {/* Image display modal */}
-                    {selectedImage && result.url_screenshot && (
+                    {selectedImage && result.evidence?.screenshots && result.evidence?.screenshots.length > 0 && (
                       <div className="ravt-image-modal-overlay" onClick={() => {
                         setSelectedImage(null);
                         setIsFullscreen(false);
@@ -298,11 +302,11 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                             <button 
                               className="ravt-image-nav-btn"
                               onClick={() => {
-                                const prevIndex = currentImageIndex > 0 ? currentImageIndex - 1 : result.url_screenshot!.length - 1;
+                                const prevIndex = currentImageIndex > 0 ? currentImageIndex - 1 : result.evidence?.screenshots?.length ? result.evidence?.screenshots?.length - 1 : 0;
                                 setCurrentImageIndex(prevIndex);
-                                setSelectedImage(result.url_screenshot![prevIndex]);
+                                setSelectedImage(result.evidence?.screenshots?.[prevIndex]?.url || null);
                               }}
-                              disabled={result.url_screenshot!.length <= 1}
+                              disabled={result.evidence?.screenshots?.length <= 1}
                               title="Previous image"
                             >
                               ◀
@@ -311,11 +315,11 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                             <button 
                               className="ravt-image-nav-btn"
                               onClick={() => {
-                                const nextIndex = currentImageIndex < result.url_screenshot!.length - 1 ? currentImageIndex + 1 : 0;
+                                const nextIndex = currentImageIndex < (result.evidence?.screenshots?.length || 0) ? currentImageIndex + 1 : 0;
                                 setCurrentImageIndex(nextIndex);
-                                setSelectedImage(result.url_screenshot![nextIndex]);
+                                setSelectedImage(result.evidence?.screenshots?.[nextIndex]?.url || null);
                               }}
-                              disabled={result.url_screenshot!.length <= 1}
+                              disabled={result.evidence?.screenshots?.length <= 1}
                               title="Next image"
                             >
                               ▶
