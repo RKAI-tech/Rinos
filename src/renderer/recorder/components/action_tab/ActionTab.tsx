@@ -275,21 +275,6 @@ const ActionTab: React.FC<ActionTabProps> = ({
       testcase_id: testcaseId,
       action_id: Math.random().toString(36),
       action_type: ActionType.database_execution,
-      connection_id: connectionId,
-      connection: connection,
-      elements: [
-        {
-          query: query,
-        }
-      ],
-      playwright_code: 'Database execution will be handled by backend',
-      description: `Execute database query: ${query.substring(0, 50)}${query.length > 50 ? '...' : ''}`,
-    };
-    
-    const nnewAction = {
-      testcase_id: testcaseId,
-      action_id: Math.random().toString(36),
-      action_type: ActionType.database_execution,
       action_datas: [
         {
           statement: {

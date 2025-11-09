@@ -1,7 +1,7 @@
 import { createHoverOverlay, enableHoverEffects, disableHoverEffects, showHoverEffect, hideHoverEffect, getCurrentHoveredElement, getHoverOverlay } from '../dom/hoverOverlay.js';
 import { initializeErrorHandlers } from './errorHandler.js';
 import { initializeNavigationPrevention, setAssertMode as setNavAssertMode } from './navigationPrevention.js';
-import {handleClickEvent} from './eventHandlers.js';
+import { handleClickEvent } from './eventHandlers.js';
 import { setPauseMode } from '../actions/baseAction.js';
 import { handleDoubleClickEvent, handleRightClickEvent, handleShiftClickEvent } from '../actions/click_handle.js';
 import { generateSelector, validateAndImproveSelector } from '../selector_generator/selectorGenerator.js';
@@ -10,7 +10,7 @@ import { showAssertInputModal, closeAssertInputModal } from '../components/modal
 import { handleTextInputEvent } from '../actions/text_input_handle.js';
 import { initializeElementFreezer, freezeEntireScreen, unfreezeEntireScreen, unfreezeAllElements } from '../dom/elementFreezer.js';
 // import { handleCheckboxRadioChangeEvent } from '../actions/change_handle.js';
-import { handleKeyDownEvent} from '../actions/keyboard_handle.js';
+import { handleKeyDownEvent } from '../actions/keyboard_handle.js';
 import { handleSelectChangeEvent } from '../actions/select_handle.js';
 import { handleDragStartEvent, handleDragEndEvent, handleDropEvent } from '../actions/drag_and_drop.js';
 import { handleUploadChangeEvent } from '../actions/upload_handle.js';
@@ -25,12 +25,12 @@ function handleAssertCaptureBlocking(e) {
   if (!globalAssertMode) {
     return;
   }
-  
+
   // Allow interactions with assert modal
   if (e.target && e.target.closest && e.target.closest('#rikkei-assert-input-modal')) {
     return;
   }
-  
+
   // Allow interactions with browser controls
   if (e.target && e.target.closest && e.target.closest('#rikkei-browser-controls')) {
     return;
@@ -40,32 +40,32 @@ function handleAssertCaptureBlocking(e) {
   if (e.target && e.target.closest && e.target.closest('#rikkei-query-panel')) {
     return;
   }
-  
+
   // Only block specific events that could trigger unwanted actions
   const blockableEvents = [
     'click',
     'submit',
-    'mousedown', 
-    'mouseup', 
-    'keydown', 
-    'keyup', 
-    'input', 
-    'change', 
-    'dragstart', 
-    'dragend', 
-    'dragover', 
-    'dragleave', 
-    'drop', 
-    'contextmenu', 
+    'mousedown',
+    'mouseup',
+    'keydown',
+    'keyup',
+    'input',
+    'change',
+    'dragstart',
+    'dragend',
+    'dragover',
+    'dragleave',
+    'drop',
+    'contextmenu',
     'dblclick'
   ];
-  
+
   if (blockableEvents.includes(e.type)) {
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
     e.returnValue = false;
-    
+
     if (e.type === 'click') {
       const clickTarget = e.target;
       queueMicrotask(() => {
@@ -95,7 +95,7 @@ function processAssertClick(e) {
     const elementPreview = previewNode(e.target);
     const elementText = extractElementText(e.target);
     const DOMelement = e.target.outerHTML;
-    
+
     const types = ['toHaveText', 'toContainText', 'toHaveValue', 'toHaveAccessibleDescription', 'toHaveAccessibleName', 'toHaveCount', 'toHaveRole'];
     if (types.includes(assertType)) {
       let defaultValue = '';
@@ -108,14 +108,14 @@ function processAssertClick(e) {
       } else {
         defaultValue = e.target.textContent?.trim() || e.target.innerText?.trim() || '';
       }
-      const rect = e.target.getBoundingClientRect();  
+      const rect = e.target.getBoundingClientRect();
       showAssertInputModal(
-        assertType, 
-        defaultValue, 
-        rect, 
+        assertType,
+        defaultValue,
+        rect,
         (finalValue, connection, connection_id, query) => {
           sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement);
-        }, 
+        },
         () => {
         }
       );
@@ -129,23 +129,34 @@ function processAssertClick(e) {
 function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection_id, connection, query, DOMelement) {
   if (window.sendActionToMain) {
     const action = {
-      type: 'assert',
-      selector: selector,
-      assertType: assertType,
-      value: value,
-      element: elementType,
-      elementPreview: elementPreview,
-      elementText: elementText,
-      connection: connection,
-      connection_id: connection_id,
-      query: query,
-      timestamp: Date.now(),
-      url: window.location.href,
-      title: document.title,
-      DOMelement: DOMelement,
-    };
+      action_type: ActionType.assert,
+      assert_type: assertType,
+      elements: [{
+        selectors: selector.map((selector) => ({ value: selector })),
+      }],
+      action_datas: [
+        {
+          value: {
+            value: value,
+          },
+          statement: [
+            {
+              statement_id: Math.random().toString(36),
+              statement_text: query,
+              database_connection: connection
+            }
+          ],
+          // api_request: [
+          //   {
+          //     // api configs
+          //   }
+          // ]
+        }
+      ]
+    }
     window.sendActionToMain(action);
   }
+
 }
 
 export function initBrowserControls() {
@@ -156,7 +167,7 @@ export function initBrowserControls() {
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
     document.head.appendChild(link);
   }
-  
+
   setTimeout(() => {
     createHoverOverlay();
   }, 100);
@@ -180,7 +191,7 @@ export function initializeEventListeners() {
   document.addEventListener('scroll', handleScrollEvent, { passive: true, capture: true });
   // Window resize tracking (passive)
   window.addEventListener('resize', handleWindowResizeEvent, { passive: true });
-  
+
   // Add capture phase event blocker for assert mode - blocks specific events only
   document.addEventListener('click', handleAssertCaptureBlocking, true);
   document.addEventListener('submit', handleAssertCaptureBlocking, true);
@@ -197,36 +208,36 @@ export function initializeEventListeners() {
   document.addEventListener('drop', handleAssertCaptureBlocking, true);
   document.addEventListener('contextmenu', handleAssertCaptureBlocking, true);
   document.addEventListener('dblclick', handleAssertCaptureBlocking, true);
- 
+
 }
 
 export function initializeHoverEffects() {
-  document.addEventListener('mouseover', function(e) {
+  document.addEventListener('mouseover', function (e) {
     if (e.target.closest('#rikkei-browser-controls') || e.target.closest('#rikkei-hover-overlay')) {
       return;
     }
     showHoverEffect(e.target);
   });
-  
+
   // Mouse out tracking
-  document.addEventListener('mouseout', function(e) {
+  document.addEventListener('mouseout', function (e) {
     if (e.relatedTarget && (e.relatedTarget.closest('#rikkei-browser-controls') || e.relatedTarget.closest('#rikkei-hover-overlay'))) {
       return;
     }
     hideHoverEffect();
   });
-  
+
   // Handle scroll events to update hover overlay position
-  document.addEventListener('scroll', function() {
+  document.addEventListener('scroll', function () {
     const currentHoveredElement = getCurrentHoveredElement();
     const hoverOverlay = getHoverOverlay();
     if (currentHoveredElement && hoverOverlay) {
       showHoverEffect(currentHoveredElement);
     }
   });
-  
+
   // Handle window resize to update hover overlay
-  window.addEventListener('resize', function() {
+  window.addEventListener('resize', function () {
     const currentHoveredElement = getCurrentHoveredElement();
     const hoverOverlay = getHoverOverlay();
     if (currentHoveredElement && hoverOverlay) {
@@ -242,16 +253,16 @@ export function initializeTracking() {
   initBrowserControls();
   initializeEventListeners();
   initializeHoverEffects();
-  
+
   // Expose functions to main process
-  window.setAssertMode = function(enabled, assertType) {
+  window.setAssertMode = function (enabled, assertType) {
     globalAssertMode = enabled;
     if (enabled) {
       window.currentAssertType = assertType;
     }
     // setAssertMode(enabled, assertType);
     setNavAssertMode(enabled, assertType);
-    
+
     if (enabled) {
       freezeEntireScreen();
     } else {
@@ -260,24 +271,24 @@ export function initializeTracking() {
     }
   };
 
-  window.setPauseMode = function(enabled) {
+  window.setPauseMode = function (enabled) {
     setPauseMode(enabled);
   };
-  
+
   // Control hover effects
   window.enableHoverEffects = enableHoverEffects;
   window.disableHoverEffects = disableHoverEffects;
-  
+
   // Expose reset function globally so it can be called from main process
-  window.resetLastInputAction = function() {
+  window.resetLastInputAction = function () {
     resetLastInputAction();
   };
-  
+
   // Expose element freezer functions globally
   window.unfreezeEntireScreen = unfreezeEntireScreen;
   window.unfreezeAllElements = unfreezeAllElements;
   // Note: per new full-screen freeze design, no per-element unfreeze API exposed
-  
+
   // Expose cleanup function for browser handlers
   // window.cleanupBrowserHandlers = function() {
   //   if (browserHandlersDisposer) {
@@ -285,7 +296,7 @@ export function initializeTracking() {
   //     browserHandlersDisposer = null;
   //   }
   // };
-  
+
   // Expose function to control execution state for resize events
   window.setExecutingActionsState = setExecutingActionsState;
 }
