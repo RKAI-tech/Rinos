@@ -1,8 +1,6 @@
 import { apiRouter } from './baseAPIRequest';
 import { ApiResponse } from '../types/api_responses';
 import {
-    AiAssertRequest,
-    AiAssertResponse,
     ActionBatch,
     Action,
 } from '../types/actions';
@@ -61,25 +59,6 @@ export class ActionService {
 
         const requestBody: ActionBatch = { actions };
 
-        // console.log('[ApiRouter] Sending batch create request:', JSON.stringify(requestBody, null, 2));
-        // console.log('[ApiRouter] Request structure validation:');
-        // console.log('- Actions count:', requestBody.actions.length);
-        // requestBody.actions.forEach((action, index) => {
-        //     console.log(`- Action ${index}:`, {
-        //         testcase_id: action.testcase_id,
-        //         action_type: action.action_type,
-        //         elements_count: action.elements ? action.elements.length : 0,
-        //         elements: action.elements,
-        //         value: action.value,
-        //         assert_type: action.assert_type,
-        //         connection_id: action.connection_id,
-        //         statement_id: action.statement_id,
-        //         query: action.query,
-        //         variable_name: action.variable_name
-        //     });
-        // });
-        // console.log('[ApiRouter] Request body:', requestBody);
-
         const response = await apiRouter.request<DefaultResponse>('/actions/batch-create', {
             method: 'POST',
             body: JSON.stringify(requestBody),
@@ -119,40 +98,6 @@ export class ActionService {
         const response = await apiRouter.request<DefaultResponse>(endpoint, {
             method: 'DELETE'
         });
-        return response;
-    }
-
-    // Generate AI assert action
-    async generateAiAssert(request: AiAssertRequest): Promise<AiAssertResponse> {
-        // Input validation
-        if (!request.testcase_id) {
-            return {
-                success: false,
-                error: 'Valid testcase ID is required'
-            };
-        }
-
-        if (!request.prompt || request.prompt.trim() === '') {
-            return {
-                success: false,
-                error: 'Prompt is required'
-            };
-        }
-
-        if (!request.elements || !Array.isArray(request.elements) || request.elements.length === 0) {
-            return {
-                success: false,
-                error: 'At least one element is required'
-            };
-        }
-
-        // console.log('[ApiRouter] Sending AI assert request:', JSON.stringify(request, null, 2));
-
-        const response = await apiRouter.request<AiAssertResponse['data']>('/actions/generate_assert', {
-            method: 'POST',
-            body: JSON.stringify(request),
-        });
-
         return response;
     }
 }
