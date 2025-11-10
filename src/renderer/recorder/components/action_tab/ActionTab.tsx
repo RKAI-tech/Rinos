@@ -10,6 +10,13 @@ import { Action, ActionType, AssertType, Connection, ApiRequestData } from '../.
 import { receiveActionWithInsert } from '../../utils/receive_action';
 import { BrowserStorageResponse } from '../../types/browser_storage';
 import AddBrowserStorageModal from '../add_browser_storage_modal/AddBrowserStorageModal';
+import { toast } from 'react-toastify';
+
+export type ActionOperationResult = {
+  success: boolean;
+  message?: string;
+  level?: 'success' | 'warning' | 'error';
+};
 
 interface ActionTabProps {
   actions: Action[];
@@ -19,8 +26,8 @@ interface ActionTabProps {
   onDeleteAction?: (actionId: string) => void;
   onDeleteAll?: () => void;
   onReorderActions?: (reorderedActions: Action[]) => void;
-  onReload?: () => void;
-  onSaveActions?: () => void;
+  onReload?: () => Promise<ActionOperationResult | void> | ActionOperationResult | void;
+  onSaveActions?: () => Promise<ActionOperationResult | void> | ActionOperationResult | void;
   selectedInsertPosition?: number;
   displayInsertPosition?: number;
   onSelectInsertPosition?: (position: number | null) => void;
@@ -203,13 +210,72 @@ const ActionTab: React.FC<ActionTabProps> = ({
     setIsAddBrowserStorageOpen(true);
   };
 
+  const normalizeResult = (result?: ActionOperationResult | void): ActionOperationResult => {
+    if (!result) {
+      return { success: true };
+    }
+    return result;
+  };
+
+  const showResultToast = (result: ActionOperationResult, fallbackSuccess: string, fallbackError: string) => {
+    if (result.success) {
+      toast.success(result.message || fallbackSuccess);
+      return;
+    }
+
+    const level = result.level || 'error';
+    const message = result.message || fallbackError;
+
+    if (level === 'warning') {
+      toast.warning(message);
+    } else {
+      toast.error(message);
+    }
+  };
+
+  const handleReloadClick = async () => {
+    if (!onReload) {
+      return;
+    }
+
+    try {
+      const rawResult = await onReload();
+      const normalized = normalizeResult(rawResult);
+      showResultToast(normalized, 'Actions reloaded successfully', 'Failed to reload actions');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : undefined;
+      toast.error(message || 'Failed to reload actions');
+    }
+  };
+
+  const handleSaveClick = async () => {
+    if (!onSaveActions) {
+      return;
+    }
+
+    try {
+      const rawResult = await onSaveActions();
+      const normalized = normalizeResult(rawResult);
+      showResultToast(normalized, 'Actions saved successfully', 'Failed to save actions');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : undefined;
+      toast.error(message || 'Failed to save actions');
+    }
+  };
+
   const handleNavigateConfirm = async (url: string) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
     const newAction = {
       testcase_id: testcaseId,
       action_id: Math.random().toString(36),
       action_type: ActionType.navigate,
-      value: url,
+      action_datas: [
+        {
+          value: {
+            value: url,
+          },
+        }
+      ],
       description: `Navigate to ${url}`,
     } as any;
     onActionsChange(prev => {
@@ -238,7 +304,13 @@ const ActionTab: React.FC<ActionTabProps> = ({
       testcase_id: testcaseId,
       action_id: Math.random().toString(36),
       action_type: ActionType.wait,
-      value: String(ms),
+      action_datas: [
+        {
+          value: {
+            value: String(ms),
+          },
+        }
+      ],
       description: `Wait for ${ms} ms`,
     };
     onActionsChange(prev => {
@@ -266,8 +338,17 @@ const ActionTab: React.FC<ActionTabProps> = ({
       testcase_id: testcaseId,
       action_id: Math.random().toString(36),
       action_type: ActionType.add_browser_storage,
-      browser_storage_id: selectedBrowserStorage.browser_storage_id,
-      browser_storage: selectedBrowserStorage,
+      action_datas: [
+        {
+          browser_storage: {
+            browser_storage_id: selectedBrowserStorage.browser_storage_id,
+            name: selectedBrowserStorage.name,
+            description: selectedBrowserStorage.description,
+            value: selectedBrowserStorage.value,
+            storage_type: selectedBrowserStorage.storage_type,
+          },
+        }
+      ],
       description: `Add browser storage: ${selectedBrowserStorage.name}`,
     } as any;
     // console.log("cookies action:", newAction);
@@ -300,8 +381,6 @@ const ActionTab: React.FC<ActionTabProps> = ({
       action_type: ActionType.database_execution,
       connection_id: connectionId,
       connection: connection,
-      // query: query,
-      // statement: { query },
       elements: [
         {
           query: query,
@@ -310,6 +389,22 @@ const ActionTab: React.FC<ActionTabProps> = ({
       playwright_code: 'Database execution will be handled by backend',
       description: `Execute database query: ${query.substring(0, 50)}${query.length > 50 ? '...' : ''}`,
     };
+    
+    const nnewAction = {
+      testcase_id: testcaseId,
+      action_id: Math.random().toString(36),
+      action_type: ActionType.database_execution,
+      action_datas: [
+        {
+          statement: {
+            statement_id: Math.random().toString(36),
+            statement_text: query,
+            connection: connection,
+          },
+        }
+      ]
+    }
+    
     onActionsChange(prev => {
       console.log("Previous actions:", prev);
       const next = receiveActionWithInsert(
@@ -365,11 +460,6 @@ const ActionTab: React.FC<ActionTabProps> = ({
 
     if (newAction) {
       onActionsChange(prev => {
-        // console.log(`=== BEFORE ADDING ${actionType.toUpperCase()} ACTION ===`);
-        // console.log("Previous actions count:", prev.length);
-        // console.log("Previous actions:", prev.map(a => ({ id: a.action_id, type: a.action_type, desc: a.description })));
-        // console.log("Insert position:", selectedInsertPosition);
-        // console.log("New action to add:", { id: newAction.action_id, type: newAction.action_type, desc: newAction.description });
 
         const next = receiveActionWithInsert(
           testcaseId,
@@ -377,11 +467,6 @@ const ActionTab: React.FC<ActionTabProps> = ({
           newAction,
           selectedInsertPosition || 0
         );
-
-        // console.log(`=== AFTER ADDING ${actionType.toUpperCase()} ACTION ===`);
-        // console.log("Next actions count:", next.length);
-        // console.log("Next actions:", next.map(a => ({ id: a.action_id, type: a.action_type, desc: a.description })));
-        // console.log("Action added successfully:", next.length > prev.length);
 
         const added = next.length > prev.length;
         if (added) {
@@ -566,13 +651,13 @@ const ActionTab: React.FC<ActionTabProps> = ({
               onConfirm={handleAddBrowserStorageConfirm}
             />
           </div>
-          <button className="rcd-action-btn reset" title="Reload actions" onClick={() => onReload && onReload()}>
+          <button className="rcd-action-btn reset" title="Reload actions" onClick={handleReloadClick}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               <polyline points="21,3 21,9 15,9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          <button className="rcd-action-btn save" title="Save actions" onClick={() => onSaveActions && onSaveActions()} disabled={!!isSaving || !!isReloading}>
+          <button className="rcd-action-btn save" title="Save actions" onClick={handleSaveClick} disabled={!!isSaving || !!isReloading}>
             {isSaving ? (
               <span className="rcd-spinner" aria-label="saving" />
             ) : (

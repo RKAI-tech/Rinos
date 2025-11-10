@@ -49,10 +49,18 @@ export function createDescription(action_received: any): string {
             return `Drop ${element}`;
         case ActionType.reload:
             return `Reload page`;
+        case ActionType.back:
+            return `Go back to previous page`;
+        case ActionType.forward:
+            return `Go forward to next page`;
+        case ActionType.wait:
+            return `Wait for ${value} ms`;
+        case ActionType.database_execution:
+            return `Execute database query: ${action_received.action_datas?.[0]?.statement?.statement_text}`;
         case ActionType.scroll:
                 return `Scroll viewport`;
         case ActionType.add_browser_storage:
-            return `Add browser storage ${action_received.browser_storage.name}`;
+            return `Add browser storage ${action_received.action_datas?.[0]?.browser_storage?.name}`;
         case ActionType.assert:
             switch (action_received.assertType) {
                 case AssertType.toHaveText:

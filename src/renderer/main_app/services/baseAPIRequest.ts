@@ -150,7 +150,7 @@ export class ApiRouter {
 
       const blob = await response.blob();
       const contentDisposition = response.headers.get('Content-Disposition');
-      let filename = 'export.xlsx';
+      let filename = 'Exported.zip';
       
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);

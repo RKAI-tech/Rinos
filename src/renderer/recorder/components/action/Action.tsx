@@ -147,7 +147,7 @@ export default function RenderedAction({ action, onDelete, onClick, onStartRecor
       <div className="rcd-action-body">
         <div className="rcd-action-title">{renderValue(action.description) || formatActionType(action.action_type)}</div>
         {/* <div className="rcd-action-meta">{getSelector()}</div> */}
-        {renderValue(action.value) && <div className="rcd-action-value">{renderValue(action.value)}</div>}
+        {renderValue(action.action_datas?.[0]?.value?.["value"]) && <div className="rcd-action-value">{renderValue(action.action_datas?.[0]?.value?.["value"])}</div>}
         {/* <div className="rcd-action-time">Order: {action.order_index}</div> */}
       </div>
       <div className="rcd-action-actions">

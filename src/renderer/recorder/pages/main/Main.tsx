@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import './Main.css';
-import ActionTab from '../../components/action_tab/ActionTab';
+import ActionTab, { ActionOperationResult } from '../../components/action_tab/ActionTab';
 import ActionDetailModal from '../../components/action_detail/ActionDetailModal';
 import TestScriptTab from '../../components/code_convert/TestScriptTab';
 import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab';
@@ -584,13 +584,17 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   };
 
   // Reload actions from server
-  const reloadActions = async () => {
+  const reloadActions = async (): Promise<ActionOperationResult> => {
     // Fallback: nếu testcaseId chưa có (null) nhưng đã có actions hiện tại,
     // dùng testcase_id của action đầu tiên để reload
     const effectiveId = testcaseId || actions[0]?.testcase_id || null;
     if (!effectiveId) {
       // console.warn('[Main] Reload aborted: missing testcaseId');
-      return;
+      return {
+        success: false,
+        message: 'Missing testcase ID to reload actions',
+        level: 'warning',
+      };
     }
     setIsLoading(true);
     try {
@@ -604,15 +608,30 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         const len = newActions.length;
         setSelectedInsertPosition(len);
         setDisplayInsertPosition(len);
+        return {
+          success: true,
+          message: 'Actions reloaded successfully',
+        };
       } else {
         setActions([]);
         setSelectedInsertPosition(0);
         setDisplayInsertPosition(0);
+        return {
+          success: false,
+          message: response.error || 'Failed to reload actions',
+          level: 'error',
+        };
       }
-    } catch {
+    } catch (error) {
       setActions([]);
       setSelectedInsertPosition(0);
       setDisplayInsertPosition(0);
+      const message = error instanceof Error ? error.message : 'Failed to reload actions';
+      return {
+        success: false,
+        message,
+        level: 'error',
+      };
     } finally {
       setIsLoading(false);
     }
@@ -746,28 +765,45 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     toast.success('Action updated');
   };
 
-  const handleSaveActions = async () => {
+  const handleSaveActions = async (): Promise<ActionOperationResult> => {
     if (!testcaseId) {
-      toast.error('No testcase ID available for saving');
-      return;
+      return {
+        success: false,
+        message: 'No testcase ID available for saving',
+        level: 'error',
+      };
     }
 
     if (actions.length === 0) {
-      toast.warning('No actions to save');
-      return;
+      return {
+        success: false,
+        message: 'No actions to save',
+        level: 'warning',
+      };
     }
 
     try {
       console.log('[Main] Saving actions:', actions);
       const response = await actionService.batchCreateActions(actions);
       if (response.success) {
-        // toast.success('Saved successfully');
-      } else {
-        toast.error(response.error || 'Failed to save actions');
+        return {
+          success: true,
+          message: 'Actions saved successfully',
+        };
       }
+
+      return {
+        success: false,
+        message: response.error || 'Failed to save actions',
+        level: 'error',
+      };
     } catch (error) {
-      // console.error('[Main] Error saving actions:', error);
-      toast.error('Failed to save actions');
+      const message = error instanceof Error ? error.message : 'Failed to save actions';
+      return {
+        success: false,
+        message,
+        level: 'error',
+      };
     }
   };
 
@@ -841,7 +877,19 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     // handleDeleteTmpFile();
     try {
       // Lưu actions trước khi đóng
-      await handleSaveActions();
+      const saveResult = await handleSaveActions();
+
+      if (!saveResult.success) {
+        if (saveResult.level === 'warning') {
+          if (saveResult.message) {
+            toast.warning(saveResult.message);
+          }
+        } else {
+          const message = saveResult.message || 'Failed to save actions. Please try again.';
+          throw new Error(message);
+        }
+      }
+
       await handleSaveBasicAuth();
       // Đợi một chút để đảm bảo lưu thành công
       setTimeout(async () => {
@@ -850,7 +898,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     } catch (error) {
       // Nếu lưu thất bại, vẫn hiển thị modal để người dùng quyết định
       setIsConfirmCloseOpen(true);
-      toast.error('Failed to save actions. Please try again.');
+      const message = error instanceof Error ? error.message : 'Failed to save actions. Please try again.';
+      toast.error(message || 'Failed to save actions. Please try again.');
     }
   };
 
@@ -867,22 +916,22 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     };
   }, [handleSaveAndClose]);
 
-  const reloadAll = () => {
-    reloadActions();
-    reloadBasicAuth();
-  }
+  const reloadAll = async (): Promise<ActionOperationResult> => {
+    const result = await reloadActions();
+    await reloadBasicAuth();
+    return result;
+  };
 
-  const saveAll = () => {
+  const saveAll = async (): Promise<ActionOperationResult> => {
     setIsSaving(true);
-    (async () => {
-      try {
-        await handleSaveActions();
-        await handleSaveBasicAuth();
-      } finally {
-        setIsSaving(false);
-      }
-    })();
-  }
+    try {
+      const result = await handleSaveActions();
+      await handleSaveBasicAuth();
+      return result;
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Kiểm tra xem có actions chưa được lưu không
   // Actions được coi là chưa lưu nếu:
