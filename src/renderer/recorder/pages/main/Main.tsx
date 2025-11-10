@@ -169,12 +169,13 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
 
       // AI assert goes to modal only
       if ((action?.action_type === 'assert') && (action?.assert_type === 'AI')) {
+        console.log('[Main] AI action:', action);
         const newItem = {
           id: Math.random().toString(36),
-          domHtml: action.DOMelement || '',
+          domHtml: action.domHtml || '',
           type: 'Browser' as const,
-          selector: action.selector || [],
-          value: action.elementText || action.value || '',
+          selector: action.elements[0].selectors ||[],
+          value: action.action_datas[0].value?.value || '',
         };
         setAiElements(prev => [...prev, newItem]);
         return;

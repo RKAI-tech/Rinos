@@ -986,7 +986,14 @@ export function createApiRequestPanel(assertType, onConfirm) {
             if (panel && responseSection) {
               // responseSection is a direct child of panel, so offsetTop is relative to panel
               const responseTop = responseSection.offsetTop;
-              panel.scrollTo({ top: Math.max(0, responseTop - 10), behavior: 'smooth' });
+              const targetTop = Math.max(0, responseTop - 10);
+              if (typeof panel.scrollTo === 'function') {
+                panel.scrollTo({ top: targetTop, behavior: 'smooth' });
+              } else if (typeof panel.scroll === 'function') {
+                panel.scroll({ top: targetTop, behavior: 'smooth' });
+              } else {
+                panel.scrollTop = targetTop;
+              }
             }
           } catch {}
         }, 200);
@@ -1057,7 +1064,14 @@ export function createApiRequestPanel(assertType, onConfirm) {
             if (panel && responseSection) {
               // responseSection is a direct child of panel, so offsetTop is relative to panel
               const responseTop = responseSection.offsetTop;
-              panel.scrollTo({ top: Math.max(0, responseTop - 10), behavior: 'smooth' });
+              const targetTop = Math.max(0, responseTop - 10);
+              if (typeof panel.scrollTo === 'function') {
+                panel.scrollTo({ top: targetTop, behavior: 'smooth' });
+              } else if (typeof panel.scroll === 'function') {
+                panel.scroll({ top: targetTop, behavior: 'smooth' });
+              } else {
+                panel.scrollTop = targetTop;
+              }
             }
           } catch {}
         }, 200);

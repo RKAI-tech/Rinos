@@ -8,6 +8,7 @@ import { Connection, ApiRequestData } from '../../types/actions';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { executeApiRequest, validateApiRequest, convertApiRequestDataToOptions } from '../../utils/api_request';
 import { toast } from 'react-toastify';
+import { useRef } from 'react';
 const statementService = new StatementService();
 
 type ElementType = 'Browser' | 'Database' | 'API';
@@ -75,11 +76,32 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>({});
+  const addMenuWrapRef = useRef<HTMLDivElement | null>(null);
+  const addMenuButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const toggleCollapsed = (id: string) => {
     setCollapsedMap((prev) => ({ ...prev, [id]: !prev[id] }));
   };
   
+  // Close Add element popup when clicking outside
+  useEffect(() => {
+    if (!isAddMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      const wrapEl = addMenuWrapRef.current;
+      const btnEl = addMenuButtonRef.current;
+      if (!wrapEl) return;
+      const clickedInsideMenu = wrapEl.contains(target);
+      const clickedToggleBtn = btnEl ? btnEl.contains(target) : false;
+      if (!clickedInsideMenu && !clickedToggleBtn) {
+        setIsAddMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside, true);
+    };
+  }, [isAddMenuOpen]);
 
   useEffect(() => {
     const loadConnections = async () => {
@@ -137,9 +159,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
     try {
       setIsRunningQueryIdx(idx);
       const el = elements[idx];
-      if (!el?.connectionId || !el?.query || !el.query.trim()) return;
-
-      // console.log('Running query', el.connectionId, el.query);
+    if (!el?.connectionId || !el?.query || !el.query.trim()) return;
 
       const resp = await statementService.runWithoutCreate({ connection_id: el.connectionId, query: el.query });
       
@@ -220,10 +240,11 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
 
           <div className="aiam-elements-header">
             <div className="aiam-elements-title">Elements</div>
-            <div className="aiam-elements-actions" style={{ position: 'relative' }}>
+            <div className="aiam-elements-actions" style={{ position: 'relative' }} ref={addMenuWrapRef}>
               <button
                 className="aiam-btn"
                 onClick={() => setIsAddMenuOpen((v) => !v)}
+                ref={addMenuButtonRef}
               >
                 Add element
               </button>
@@ -450,12 +471,31 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                       <div className="aiam-row">
                         <div className="aiam-col">
                           <label className="aiam-sub">Query <span style={{ color: 'red' }}>*</span></label>
-                          <textarea className="aiam-input" rows={3} value={el.query || ''} onChange={(e) => onChangeElement(idx, (old) => ({ ...old, query: e.target.value }))} placeholder="SELECT ..." />
+                          <textarea
+                            className="aiam-input"
+                            rows={3}
+                            value={el.query || ''}
+                            onChange={(e) => onChangeElement(idx, (old) => ({ ...old, query: e.target.value }))}
+                            onKeyDown={(e) => {
+                              if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                                e.preventDefault();
+                                const canRun = !!el.connectionId && !!el.query && el.query.trim();
+                                if (!isRunningQueryIdx && canRun) handleRunQuery(idx);
+                              }
+                            }}
+                            placeholder="SELECT ..."
+                          />
                         </div>
                       </div>
                       <div className="aiam-row">
                         <div className="aiam-col">
-                          <button className="aiam-btn" disabled={!el.connectionId || !el.query || isRunningQueryIdx === idx} onClick={() => handleRunQuery(idx)}>{isRunningQueryIdx === idx ? 'Running...' : 'Run query'}</button>
+                          <button
+                            className="aiam-btn"
+                            disabled={!el.connectionId || !el.query || !el.query.trim() || isRunningQueryIdx === idx}
+                            onClick={() => handleRunQuery(idx)}
+                          >
+                            {isRunningQueryIdx === idx ? 'Running...' : 'Run query'}
+                          </button>
                         </div>
                       </div>
                       {el.queryResultData && el.queryResultData.length > 0 && (
