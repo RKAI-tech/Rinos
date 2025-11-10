@@ -121,7 +121,7 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         action_type: action_received.action_type as ActionType,
         description: createDescription(action_received),
         elements: action_received.elements ? action_received.elements as Element[] : [],
-        assert_type: action_received.assertType? action_received.assertType as AssertType : undefined,
+        assert_type: action_received.assert_type? action_received.assert_type as AssertType : undefined,
         action_datas: action_received.action_datas ? action_received.action_datas as ActionData[] : [],        
     } as Action;
 
