@@ -155,60 +155,18 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
           value: {
             value: value,
           },
-          statement: query ? [
-            {
+          statement: {
               statement_id: Math.random().toString(36),
               statement_text: query,
+              connection_id: connection_id,
               database_connection: connection
             }
-          ] : undefined,
-          api_request: apiRequest ? {
-            apiRequestId: apiRequest.apiRequestId,
-            createType: apiRequest.createType || 'system',
-            url: apiRequest.url,
-            method: apiRequest.method,
-            params: apiRequest.params && apiRequest.params.length > 0 ? apiRequest.params.map(p => ({
-              api_request_param_id: p.api_request_param_id,
-              key: p.key,
-              value: p.value
-            })) : undefined,
-            headers: apiRequest.headers && apiRequest.headers.length > 0 ? apiRequest.headers.map(h => ({
-              api_request_header_id: h.api_request_header_id,
-              key: h.key,
-              value: h.value
-            })) : undefined,
-            auth: apiRequest.auth ? {
-              apiRequestId: apiRequest.auth.apiRequestId,
-              type: apiRequest.auth.type,
-              storage_enabled: apiRequest.auth.storage_enabled,
-              username: apiRequest.auth.username,
-              password: apiRequest.auth.password,
-              token: apiRequest.auth.token,
-              token_storages: apiRequest.auth.token_storages && apiRequest.auth.token_storages.length > 0 ? apiRequest.auth.token_storages.map(ts => ({
-                api_request_token_storage_id: ts.api_request_token_storage_id,
-                type: ts.type,
-                key: ts.key
-              })) : undefined,
-              basic_auth_storages: apiRequest.auth.basic_auth_storages && apiRequest.auth.basic_auth_storages.length > 0 ? apiRequest.auth.basic_auth_storages.map(bs => ({
-                api_request_basic_auth_storage_id: bs.api_request_basic_auth_storage_id,
-                type: bs.type,
-                usernameKey: bs.usernameKey,
-                passwordKey: bs.passwordKey,
-                enabled: bs.enabled
-              })) : undefined
-            } : undefined,
-            body: apiRequest.body ? {
-              api_request_id: apiRequest.body.api_request_id,
-              type: apiRequest.body.type,
-              content: apiRequest.body.content,
-              formData: apiRequest.body.formData && apiRequest.body.formData.length > 0 ? apiRequest.body.formData.map(fd => ({
-                api_request_body_form_data_id: fd.api_request_body_form_data_id,
-                name: fd.name,
-                value: fd.value,
-                orderIndex: fd.orderIndex
-              })) : undefined
-            } : undefined
-          } : undefined
+          ],
+          // api_request: [
+          //   {
+          //     // api configs
+          //   }
+          // ]
         }
       ]
     }
