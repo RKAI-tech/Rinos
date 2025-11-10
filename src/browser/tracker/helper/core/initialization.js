@@ -139,13 +139,12 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
           value: {
             value: value,
           },
-          statement: [
-            {
+          statement: {
               statement_id: Math.random().toString(36),
               statement_text: query,
+              connection_id: connection_id,
               database_connection: connection
-            }
-          ],
+          },
           // api_request: [
           //   {
           //     // api configs
