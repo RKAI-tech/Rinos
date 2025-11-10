@@ -17,39 +17,39 @@ export type ApiRequestAuthType = 'none' | 'basic' | 'bearer';
 export type ApiRequestStorageType = 'cookie' | 'localStorage' | 'sessionStorage';
 
 export interface ApiRequestParam {
-  apiRequestParamId?: string;
+  api_request_param_id?: string;
   key: string;
   value: string;
 }
 
 export interface ApiRequestHeader {
-  apiRequestHeaderId?: string;
+  api_request_header_id?: string;
   key: string;
   value: string;
 }
 
 export interface ApiRequestBodyFormData {
-  apiRequestBodyFormDataId?: string;
+  api_request_body_form_data_id?: string;
   name: string;
   value: string;
   orderIndex?: number;
 }
 
 export interface ApiRequestBody {
-  apiRequestId?: string;
+  api_request_id?: string;
   type: ApiRequestBodyType;
   content?: string | null;
   formData?: ApiRequestBodyFormData[];
 }
 
 export interface ApiRequestTokenStorage {
-  apiRequestTokenStorageId?: string;
+  api_request_token_storage_id?: string;
   type: ApiRequestStorageType;
   key: string;
 }
 
 export interface ApiRequestBasicAuthStorage {
-  apiRequestBasicAuthStorageId?: string;
+  api_request_basic_auth_storage_id?: string;
   type: ApiRequestStorageType;
   usernameKey: string;
   passwordKey: string;
@@ -57,18 +57,18 @@ export interface ApiRequestBasicAuthStorage {
 }
 
 export interface ApiRequestAuth {
-  apiRequestId?: string;
+  api_request_id?: string;
   type: ApiRequestAuthType;
-  storageEnabled?: boolean;
+  storage_enabled?: boolean;
   username?: string;
   password?: string;
   token?: string;
-  tokenStorages?: ApiRequestTokenStorage[];
-  basicAuthStorages?: ApiRequestBasicAuthStorage[];
+  token_storages?: ApiRequestTokenStorage[];
+  basic_auth_storages?: ApiRequestBasicAuthStorage[];
 }
 
 export interface ApiRequestData {
-  apiRequestId?: string;
+  api_request_id?: string;
   createType?: 'system' | 'user';
   url?: string;
   method?: ApiRequestMethod;

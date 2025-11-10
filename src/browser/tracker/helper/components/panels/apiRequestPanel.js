@@ -1154,14 +1154,14 @@ export function createApiRequestPanel(assertType, onConfirm) {
         { type: basicStorageTypeSelect.value, usernameKey: (basicUsernameKeyInput.value || '').trim(), passwordKey: (basicPasswordKeyInput.value || '').trim() }
       ] : [];
 
-      const auth = {
+      const auth  = {
         type: authType,
-        storageEnabled: storageEnabled && authType !== 'none' ? true : false,
+        storage_enabled: storageEnabled && authType !== 'none' ? true : false,
         username: authType === 'basic' && !storageEnabled ? (authUsernameInput.value || '') : undefined,
         password: authType === 'basic' && !storageEnabled ? (authPasswordInput.value || '') : undefined,
         token: authType === 'bearer' && !storageEnabled ? (authTokenInput.value || '') : undefined,
-        tokenStorages,
-        basicAuthStorages,
+        token_storages: tokenStorages,
+        basic_auth_storages: basicAuthStorages,
       };
 
       const bodyType = bodyTypeSelect.value;

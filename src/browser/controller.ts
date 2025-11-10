@@ -110,7 +110,7 @@ export class Controller {
         if (auth.token && String(auth.token).trim()) {
           headers['Authorization'] = `Bearer ${String(auth.token).trim()}`;
         } else {
-          const ts = auth.tokenStorages && auth.tokenStorages.length > 0 ? auth.tokenStorages[0] : undefined;
+          const ts = auth.token_storages && auth.token_storages.length > 0 ? auth.token_storages[0] : undefined;
           if (ts && ts.key && ts.type) {
             let bearer = '';
             if (ts.type === 'localStorage') {
@@ -127,7 +127,7 @@ export class Controller {
         if (auth.username && auth.password) {
           headers['Authorization'] = 'Basic ' + Buffer.from(`${auth.username}:${auth.password}`).toString('base64');
         } else {
-          const bs = auth.basicAuthStorages && auth.basicAuthStorages.length > 0 ? auth.basicAuthStorages[0] : undefined;
+          const bs = auth.basic_auth_storages && auth.basic_auth_storages.length > 0 ? auth.basic_auth_storages[0] : undefined;
           if (bs && bs.type && bs.usernameKey && bs.passwordKey) {
             let creds: { u: string; p: string } = { u: '', p: '' };
             if (bs.type === 'localStorage') {
@@ -165,40 +165,8 @@ export class Controller {
     try { console.log('[Controller][API] Sending request', { method, url, hasHeaders: Object.keys(headers).length > 0 }); } catch {}
     const resp = await (page.request as any)[method](url, options);
     try { console.log('[Controller][API] Response status:', await resp.status()); } catch {}
-    // Optionally store tokens/basic credentials
-    try {
-      const auth = apiData.auth;
-      if (auth?.storageEnabled && auth.tokenStorages && auth.tokenStorages.length > 0) {
-        const ts = auth.tokenStorages[0];
-        if (ts && ts.type && ts.key) {
-          const token = await resp.json().then((d: any) => d?.token || d?.access_token || d?.accessToken).catch(() => null);
-          if (token) {
-            if (ts.type === 'localStorage') {
-              await page.evaluate(({ k, v }) => localStorage.setItem(k, v), { k: ts.key, v: token });
-            } else if (ts.type === 'sessionStorage') {
-              await page.evaluate(({ k, v }) => sessionStorage.setItem(k, v), { k: ts.key, v: token });
-            } else if (ts.type === 'cookie') {
-              await page.evaluate(({ name, v }) => { document.cookie = name + '=' + encodeURIComponent(v) + '; path=/; max-age=3600'; }, { name: ts.key, v: token });
-            }
-          }
-        }
-      }
-      if (auth?.storageEnabled && auth.basicAuthStorages && auth.basicAuthStorages.length > 0) {
-        const bs = auth.basicAuthStorages[0];
-        const u = auth.username || '';
-        const p = auth.password || '';
-        if (bs && bs.type && bs.usernameKey && bs.passwordKey && (u || p)) {
-          if (bs.type === 'localStorage') {
-            await page.evaluate(({ uk, uVal, pk, pVal }) => { localStorage.setItem(uk, uVal); localStorage.setItem(pk, pVal); }, { uk: bs.usernameKey, uVal: u, pk: bs.passwordKey, pVal: p });
-          } else if (bs.type === 'sessionStorage') {
-            await page.evaluate(({ uk, uVal, pk, pVal }) => { sessionStorage.setItem(uk, uVal); sessionStorage.setItem(pk, pVal); }, { uk: bs.usernameKey, uVal: u, pk: bs.passwordKey, pVal: p });
-          } else if (bs.type === 'cookie') {
-            await page.evaluate(({ uk, uVal, pk, pVal }) => { document.cookie = uk + '=' + encodeURIComponent(uVal) + '; path=/; max-age=3600'; document.cookie = pk + '=' + encodeURIComponent(pVal) + '; path=/; max-age=3600'; }, { uk: bs.usernameKey, uVal: u, pk: bs.passwordKey, pVal: p });
-          }
-        }
-      }
-    } catch { try { console.log('[Controller][API] Store to storage error'); } catch {} }
-    try { console.log('[Controller][API] Done'); } catch {}
+   
+      
   }
 
     trackRequests(page: Page): void {

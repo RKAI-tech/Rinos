@@ -323,7 +323,7 @@ export function getStatusDescription(status: number): string {
  */
 function getPrimaryAuth(apiData?: ApiRequestData): ApiRequestAuth | undefined {
   if (!apiData) return undefined;
-  return apiData.auths;
+  return apiData.auth;
 }
 
 function getPrimaryBody(apiData?: ApiRequestData): ApiRequestBody | undefined {
@@ -332,15 +332,15 @@ function getPrimaryBody(apiData?: ApiRequestData): ApiRequestBody | undefined {
 }
 
 function getPrimaryTokenStorage(auth?: ApiRequestAuth): ApiRequestTokenStorage | undefined {
-  if (auth?.tokenStorages && auth.tokenStorages.length > 0) {
-    return auth.tokenStorages[0];
+  if (auth?.token_storages && auth.token_storages.length > 0) {
+    return auth.token_storages[0];
   }
   return undefined;
 }
 
 function getPrimaryBasicAuthStorage(auth?: ApiRequestAuth): ApiRequestBasicAuthStorage | undefined {
-  if (auth?.basicAuthStorages && auth.basicAuthStorages.length > 0) {
-    return auth.basicAuthStorages[0];
+  if (auth?.basic_auth_storages && auth.basic_auth_storages.length > 0) {
+    return auth.basic_auth_storages[0];
   }
   return undefined;
 }
@@ -410,9 +410,9 @@ export function convertApiRequestOptionsToData(options: ApiRequestOptions): ApiR
     username: options.authUsername,
     password: options.authPassword,
     token: options.authToken,
-    storageEnabled: false,
-    tokenStorages: [],
-    basicAuthStorages: [],
+    storage_enabled: false,
+    token_storages: [],
+    basic_auth_storages: [],
   };
 
   const body: ApiRequestBody = {
@@ -426,7 +426,7 @@ export function convertApiRequestOptionsToData(options: ApiRequestOptions): ApiR
     url: options.url,
     params,
     headers,
-    auths: auth.type === 'none' ? undefined : auth,
+    auth: auth.type === 'none' ? undefined : auth,
     body: options.bodyType === 'none' ? undefined : body,
   };
 

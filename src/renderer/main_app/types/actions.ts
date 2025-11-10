@@ -1,3 +1,4 @@
+import { ElementAIDatabase } from "../../recorder/types/actions";
 import { BrowserStorageResponse } from "./browser_storage";
 
 export enum ActionType {
@@ -170,8 +171,8 @@ export interface ApiRequestAuth {
   username?: string;
   password?: string;
   token?: string;
-  tokenStorages?: ApiRequestTokenStorage[];
-  basicAuthStorages?: ApiRequestBasicAuthStorage[]
+  token_storages?: ApiRequestTokenStorage[];
+  basic_auth_storages?: ApiRequestBasicAuthStorage[]
 }
 
 export interface ApiRequestData {
@@ -207,4 +208,22 @@ export interface Action {
 
 export interface ActionBatch {
   actions: Action[];
+}
+
+export interface AiAssertRequest {
+  testcase_id: string;
+  elements?: Element[];
+  database_results?: ElementAIDatabase[];
+  prompt: string;
+}
+
+export interface AiAssertResponse {
+  success: boolean;
+  playwright_code?: string;
+  description?: string;
+  error?: string;
+  data?: {
+    playwright_code?: string;
+    description?: string;
+  };
 }

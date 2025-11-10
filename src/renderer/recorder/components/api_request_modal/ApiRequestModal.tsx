@@ -136,6 +136,53 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
   };
 
   const handleSendRequest = async () => {
+    // Fetch latest token/basic auth from storage if enabled
+    let currentToken = authToken;
+    let currentUsername = authUsername;
+    let currentPassword = authPassword;
+
+    try {
+      const api = (window as any)?.browserAPI?.browser;
+      
+      // Fetch token if storage is enabled for bearer
+      if (tokenStorageEnabled && authType === 'bearer' && tokenStorageKey.trim() && api?.getAuthValue) {
+        const source = tokenStorageType === 'localStorage'
+          ? 'local'
+          : tokenStorageType === 'sessionStorage'
+          ? 'session'
+          : 'cookie';
+        const fetchedToken = await api.getAuthValue(source, tokenStorageKey);
+        if (typeof fetchedToken === 'string' && fetchedToken) {
+          currentToken = fetchedToken;
+          setAuthToken(fetchedToken);
+          setFetchedTokenValue(fetchedToken);
+        }
+      }
+
+      // Fetch basic auth if storage is enabled for basic
+      if (tokenStorageEnabled && authType === 'basic' && basicAuthUsernameKey.trim() && basicAuthPasswordKey.trim() && api?.getBasicAuthFromStorage) {
+        const payload: any = {
+          type: basicAuthStorageType,
+          usernameKey: basicAuthUsernameKey,
+          passwordKey: basicAuthPasswordKey
+        };
+        const result = await api.getBasicAuthFromStorage(payload);
+        if (result?.username) {
+          currentUsername = result.username;
+          setAuthUsername(result.username);
+          setFetchedBasicUsername(result.username);
+        }
+        if (result?.password) {
+          currentPassword = result.password;
+          setAuthPassword(result.password);
+          setFetchedBasicPassword(result.password);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch auth from storage:', error);
+      // Continue with existing values if fetch fails
+    }
+
     // Create ApiRequestData for validation (schema mới)
     const apiData: ApiRequestData = {
       method: (method || 'GET').toLowerCase() as any,
@@ -144,9 +191,9 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       headers,
       auth: {
         type: authType,
-        username: authUsername,
-        password: authPassword,
-        token: authToken,
+        username: currentUsername,
+        password: currentPassword,
+        token: currentToken,
       },
       body: {
         type: bodyType,
@@ -208,12 +255,12 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       headers: headers.filter(h => h.key.trim() && h.value.trim()),
       auth: {
         type: authType,
-        storageEnabled: tokenStorageEnabled && authType !== 'none' ? true : false,
+        storage_enabled: tokenStorageEnabled && authType !== 'none' ? true : false,
         username: authType === 'basic' && !hideBasic ? authUsername : undefined,
         password: authType === 'basic' && !hideBasic ? authPassword : undefined,
         token: authType === 'bearer' && !hideBearer ? authToken : undefined,
-        tokenStorages,
-        basicAuthStorages,
+        token_storages: tokenStorages,
+        basic_auth_storages: basicAuthStorages,
       },
       body: {
         type: bodyType,

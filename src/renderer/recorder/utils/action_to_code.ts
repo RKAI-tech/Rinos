@@ -545,8 +545,8 @@ export function generateApiRequestCode(apiData: ApiRequestData): string {
 
     if (hasAuth) {
       const auth = apiData.auth as NonNullable<typeof apiData.auth>;
-      const tokenStorage = auth?.tokenStorages && auth.tokenStorages.length > 0 ? auth.tokenStorages[0] : undefined;
-      const basicStorage = auth?.basicAuthStorages && auth.basicAuthStorages.length > 0 ? auth.basicAuthStorages[0] : undefined;
+      const tokenStorage = auth?.token_storages && auth.token_storages.length > 0 ? auth.token_storages[0] : undefined;
+      const basicStorage = auth?.basic_auth_storages && auth.basic_auth_storages.length > 0 ? auth.basic_auth_storages[0] : undefined;
 
       if (auth.type === 'bearer') {
         // Prefer explicit token; otherwise read from configured storage
@@ -604,7 +604,7 @@ export function generateApiRequestCode(apiData: ApiRequestData): string {
     code += `  console.log('Response data:', await response.json());\n`;
     
     // Add token storage code if configured (store token from response)
-    const __ts = apiData.auth?.tokenStorages && apiData.auth.tokenStorages.length > 0 ? apiData.auth.tokenStorages[0] : undefined;
+    const __ts = apiData.auth?.token_storages && apiData.auth.token_storages.length > 0 ? apiData.auth.token_storages[0] : undefined;
     if (__ts) {
       code += `\n  // Store token for future use\n`;
       if (__ts.type === 'localStorage') {
@@ -629,7 +629,7 @@ export function generateApiRequestCode(apiData: ApiRequestData): string {
     }
 
     // Add Basic Auth storage code if configured (store provided auth)
-    const __bs = apiData.auth?.basicAuthStorages && apiData.auth.basicAuthStorages.length > 0 ? apiData.auth.basicAuthStorages[0] : undefined;
+        const __bs = apiData.auth?.basic_auth_storages && apiData.auth.basic_auth_storages.length > 0 ? apiData.auth.basic_auth_storages[0] : undefined;
     if (__bs) {
       code += `\n  // Store Basic Auth credentials for future use\n`;
       if (__bs.type === 'localStorage') {

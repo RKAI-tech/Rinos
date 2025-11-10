@@ -155,42 +155,42 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
           value: {
             value: value,
           },
-          statement: [
+          statement: query ? [
             {
               statement_id: Math.random().toString(36),
               statement_text: query,
               database_connection: connection
             }
-          ],
+          ] : undefined,
           api_request: apiRequest ? {
             apiRequestId: apiRequest.apiRequestId,
             createType: apiRequest.createType || 'system',
             url: apiRequest.url,
             method: apiRequest.method,
             params: apiRequest.params && apiRequest.params.length > 0 ? apiRequest.params.map(p => ({
-              apiRequestParamId: p.apiRequestParamId,
+              api_request_param_id: p.api_request_param_id,
               key: p.key,
               value: p.value
             })) : undefined,
             headers: apiRequest.headers && apiRequest.headers.length > 0 ? apiRequest.headers.map(h => ({
-              apiRequestHeaderId: h.apiRequestHeaderId,
+              api_request_header_id: h.api_request_header_id,
               key: h.key,
               value: h.value
             })) : undefined,
             auth: apiRequest.auth ? {
               apiRequestId: apiRequest.auth.apiRequestId,
               type: apiRequest.auth.type,
-              storageEnabled: apiRequest.auth.storageEnabled,
+              storage_enabled: apiRequest.auth.storage_enabled,
               username: apiRequest.auth.username,
               password: apiRequest.auth.password,
               token: apiRequest.auth.token,
-              tokenStorages: apiRequest.auth.tokenStorages && apiRequest.auth.tokenStorages.length > 0 ? apiRequest.auth.tokenStorages.map(ts => ({
-                apiRequestTokenStorageId: ts.apiRequestTokenStorageId,
+              token_storages: apiRequest.auth.token_storages && apiRequest.auth.token_storages.length > 0 ? apiRequest.auth.token_storages.map(ts => ({
+                api_request_token_storage_id: ts.api_request_token_storage_id,
                 type: ts.type,
                 key: ts.key
               })) : undefined,
-              basicAuthStorages: apiRequest.auth.basicAuthStorages && apiRequest.auth.basicAuthStorages.length > 0 ? apiRequest.auth.basicAuthStorages.map(bs => ({
-                apiRequestBasicAuthStorageId: bs.apiRequestBasicAuthStorageId,
+              basic_auth_storages: apiRequest.auth.basic_auth_storages && apiRequest.auth.basic_auth_storages.length > 0 ? apiRequest.auth.basic_auth_storages.map(bs => ({
+                api_request_basic_auth_storage_id: bs.api_request_basic_auth_storage_id,
                 type: bs.type,
                 usernameKey: bs.usernameKey,
                 passwordKey: bs.passwordKey,
@@ -198,11 +198,11 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
               })) : undefined
             } : undefined,
             body: apiRequest.body ? {
-              apiRequestId: apiRequest.body.apiRequestId,
+              api_request_id: apiRequest.body.api_request_id,
               type: apiRequest.body.type,
               content: apiRequest.body.content,
               formData: apiRequest.body.formData && apiRequest.body.formData.length > 0 ? apiRequest.body.formData.map(fd => ({
-                apiRequestBodyFormDataId: fd.apiRequestBodyFormDataId,
+                api_request_body_form_data_id: fd.api_request_body_form_data_id,
                 name: fd.name,
                 value: fd.value,
                 orderIndex: fd.orderIndex
