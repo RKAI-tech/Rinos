@@ -68,9 +68,11 @@ export function setAssertMode(enabled, assertType) {
     };
     
     // Override AJAX functions
-    XMLHttpRequest.prototype.open = function() {
-      // console.log('Assert mode: Prevented XMLHttpRequest.open');
-      return;
+    XMLHttpRequest.prototype.open = function(...args) {
+      // Call original open to set the request state to OPENED
+      // This allows setRequestHeader to work properly
+      originalXHROpen.apply(this, args);
+      // But we'll prevent the actual send later
     };
     XMLHttpRequest.prototype.send = function() {
       // console.log('Assert mode: Prevented XMLHttpRequest.send');

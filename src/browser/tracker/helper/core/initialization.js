@@ -129,7 +129,7 @@ function processAssertClick(e) {
 function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection_id, connection, query, DOMelement) {
   if (window.sendActionToMain) {
     const action = {
-      action_type: ActionType.assert,
+      action_type: 'assert',
       assert_type: assertType,
       elements: [{
         selectors: selector.map((selector) => ({ value: selector })),

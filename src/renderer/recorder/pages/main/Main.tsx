@@ -166,7 +166,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       setFailedActionIndex(null);
 
       // AI assert goes to modal only
-      if ((action?.type === 'assert') && (action?.assertType === 'AI')) {
+      if ((action?.action_type === 'assert') && (action?.assert_type === 'AI')) {
         const newItem = {
           id: Math.random().toString(36),
           domHtml: action.DOMelement || '',
@@ -178,7 +178,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         return;
       }
 
-      if (isAssertMode && action.type !== 'assert') return;
+      if (isAssertMode && action.action_type !== 'assert') return;
 
       setActions(prev => {
         const next = receiveActionWithInsert(testcaseId, prev, action, selectedInsertPosition);
