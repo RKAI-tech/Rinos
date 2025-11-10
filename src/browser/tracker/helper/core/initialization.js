@@ -137,14 +137,16 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
       action_datas: [
         {
           value: {
-            value: value,
+            value: value? value : undefined,
+            htmlDOM: DOMelement? DOMelement : undefined,
+            elementText: elementText? elementText : undefined,
           },
-          statement: {
+          statement: query ? {
               statement_id: Math.random().toString(36),
               statement_text: query,
               connection_id: connection_id,
               database_connection: connection
-          },
+          } : undefined,
           // api_request: [
           //   {
           //     // api configs

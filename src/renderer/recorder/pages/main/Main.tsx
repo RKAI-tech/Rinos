@@ -158,6 +158,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   // Single onAction listener: handles AI and normal actions, with optional insert position
   useEffect(() => {
     return (window as any).browserAPI?.browser?.onAction(async (action: any) => {
+      console.log("NewActionReceived", action);
+
       if (isPaused) return;
       if (!testcaseId) return;
       
@@ -169,10 +171,10 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       if ((action?.action_type === 'assert') && (action?.assert_type === 'AI')) {
         const newItem = {
           id: Math.random().toString(36),
-          domHtml: action.DOMelement || '',
+          domHtml: action.action_datas?.[0]?.value?.htmlDOM || '',
           type: 'Browser' as const,
-          selector: action.selector || [],
-          value: action.elementText || action.value || '',
+          selector: action.elements?.[0]?.selectors?.map((s: any) => s.value) || [],
+          value: action.action_datas?.[0]?.value?.elementText || '',
         };
         setAiElements(prev => [...prev, newItem]);
         return;

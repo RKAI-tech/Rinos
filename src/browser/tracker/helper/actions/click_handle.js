@@ -46,6 +46,7 @@ export function handleClickLikeBase(e, actionType, eventLabel = 'Click') {
       action_datas: [{
         value: {
           elementText: elementText,
+          htmlDOM: e?.target?.outerHTML,
         },
       }],
     });
