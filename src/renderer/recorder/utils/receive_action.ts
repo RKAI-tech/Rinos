@@ -62,7 +62,7 @@ export function createDescription(action_received: any): string {
         case ActionType.add_browser_storage:
             return `Add browser storage ${action_received.action_datas?.[0]?.browser_storage?.name}`;
         case ActionType.assert:
-            switch (action_received.assertType) {
+            switch (action_received.assert_type) {
                 case AssertType.toHaveText:
                     return `Verify the element has text ${value}`;
                 case AssertType.toContainText:
