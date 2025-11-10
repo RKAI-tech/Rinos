@@ -229,7 +229,17 @@ export function createQueryPanel(assertType, onConfirm) {
       // console.log('payload', payload);
       // window.sendActionToMain(payload);
       // console.log('onConfirm', onConfirm);
-      if (onConfirm) onConfirm(col, lastRun.connectionId || undefined, lastRun.connection || undefined, lastRun.sql);
+      console.log('[queryPanel] addSelectedCell called, calling onConfirm:', {
+        col,
+        hasConnection: !!lastRun.connection,
+        hasQuery: !!lastRun.sql
+      });
+      if (onConfirm) {
+        onConfirm(col, lastRun.connectionId || undefined, lastRun.connection || undefined, lastRun.sql, undefined);
+        console.log('[queryPanel] onConfirm called successfully');
+      } else {
+        console.warn('[queryPanel] onConfirm is not defined!');
+      }
     }
   }
 

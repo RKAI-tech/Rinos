@@ -3,6 +3,8 @@
  * Builds an API request runner panel, renders results, exposes selection to consumer
  */
 
+import { closeAssertInputModal } from '../modals/assertInputModal.js';
+
 export function createApiRequestPanel(assertType, onConfirm) {
   const panel = document.createElement('div');
   panel.style.cssText = `
@@ -976,6 +978,20 @@ export function createApiRequestPanel(assertType, onConfirm) {
       
       responseData.textContent = formatResponseData(parsedData);
 
+      // Auto scroll to response after displaying result
+      try {
+        setTimeout(() => {
+          try {
+            // Scroll within the panel container to show response section
+            if (panel && responseSection) {
+              // responseSection is a direct child of panel, so offsetTop is relative to panel
+              const responseTop = responseSection.offsetTop;
+              panel.scrollTo({ top: Math.max(0, responseTop - 10), behavior: 'smooth' });
+            }
+          } catch {}
+        }, 200);
+      } catch {}
+
       // For 2xx: provide primitive extraction via combobox
       extractWrap.style.display = 'none';
       if (status >= 200 && status < 300) {
@@ -1033,6 +1049,19 @@ export function createApiRequestPanel(assertType, onConfirm) {
       } else {
         responseData.textContent = message;
       }
+      // Auto scroll to response after displaying error
+      try {
+        setTimeout(() => {
+          try {
+            // Scroll within the panel container to show response section
+            if (panel && responseSection) {
+              // responseSection is a direct child of panel, so offsetTop is relative to panel
+              const responseTop = responseSection.offsetTop;
+              panel.scrollTo({ top: Math.max(0, responseTop - 10), behavior: 'smooth' });
+            }
+          } catch {}
+        }, 200);
+      } catch {}
       extractWrap.style.display = 'none';
       resultBox.style.display = 'none';
     }
@@ -1042,7 +1071,7 @@ export function createApiRequestPanel(assertType, onConfirm) {
     if (onConfirm) {
       const value = row && typeof row === 'object' ? row[col] : '';
       const cellValue = value === null || value === undefined ? '' : String(value);
-      onConfirm(cellValue);
+      onConfirm(cellValue, undefined, undefined, undefined, undefined);
     }
   }
 
@@ -1070,7 +1099,7 @@ export function createApiRequestPanel(assertType, onConfirm) {
     ev.stopPropagation();
     const txt = getTextResult();
     if (txt && onConfirm) {
-      onConfirm(txt);
+      onConfirm(txt, undefined, undefined, undefined, undefined);
       close();
     }
   });
@@ -1151,15 +1180,26 @@ export function createApiRequestPanel(assertType, onConfirm) {
         body,
       };
 
-      // Gửi kết quả assert giống queryPanel: (valuePath, connectionId, connection, query)
-      // Với API không có connection/query → truyền undefined cho 3 tham số sau
-      try { onConfirm(finalValue, undefined, undefined, undefined); } catch {}
-      // Close both panel and assert popup
+      // Gửi kết quả assert: (valuePath, connectionId, connection, query, apiRequest)
+      // Với API không có connection/query → truyền undefined cho 3 tham số giữa
+      console.log('[apiRequestPanel] Save button clicked, calling onConfirm:', {
+        finalValue,
+        hasApiRequest: !!apiRequest,
+        apiRequest: apiRequest
+      });
+      if (onConfirm) {
+        try { 
+          onConfirm(finalValue, undefined, undefined, undefined, apiRequest);
+          console.log('[apiRequestPanel] onConfirm called successfully');
+        } catch (e) {
+          console.error('[apiRequestPanel] Error calling onConfirm:', e);
+        }
+      } else {
+        console.warn('[apiRequestPanel] onConfirm is not defined!');
+      }
+      // Close panel and modal (same behavior as confirm button in assertInputModal)
       try { close(); } catch {}
-      try {
-        const modal = document.getElementById('rikkei-assert-input-modal');
-        if (modal && modal.parentNode) modal.parentNode.removeChild(modal);
-      } catch {}
+      try { closeAssertInputModal(); } catch {}
     }
   });
   footer.appendChild(cancelBtn);

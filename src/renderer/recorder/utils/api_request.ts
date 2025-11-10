@@ -323,30 +323,26 @@ export function getStatusDescription(status: number): string {
  */
 function getPrimaryAuth(apiData?: ApiRequestData): ApiRequestAuth | undefined {
   if (!apiData) return undefined;
-  if (apiData.auth) return apiData.auth;
-  if (apiData.auths && apiData.auths.length > 0) return apiData.auths[0];
-  return undefined;
+  return apiData.auths;
 }
 
 function getPrimaryBody(apiData?: ApiRequestData): ApiRequestBody | undefined {
   if (!apiData) return undefined;
-  if (apiData.body) return apiData.body;
-  if (apiData.bodies && apiData.bodies.length > 0) return apiData.bodies[0];
-  return undefined;
+  return apiData.body;
 }
 
-function getPrimaryTokenStorage(auth?: ApiRequestAuth, apiData?: ApiRequestData): ApiRequestTokenStorage | undefined {
+function getPrimaryTokenStorage(auth?: ApiRequestAuth): ApiRequestTokenStorage | undefined {
   if (auth?.tokenStorages && auth.tokenStorages.length > 0) {
     return auth.tokenStorages[0];
   }
-  return apiData?.tokenStorage;
+  return undefined;
 }
 
-function getPrimaryBasicAuthStorage(auth?: ApiRequestAuth, apiData?: ApiRequestData): ApiRequestBasicAuthStorage | undefined {
+function getPrimaryBasicAuthStorage(auth?: ApiRequestAuth): ApiRequestBasicAuthStorage | undefined {
   if (auth?.basicAuthStorages && auth.basicAuthStorages.length > 0) {
     return auth.basicAuthStorages[0];
   }
-  return apiData?.basicAuthStorage;
+  return undefined;
 }
 
 function mapFormDataToLegacy(formData?: ApiRequestBodyFormData[]): Array<{ key: string; value: string }> | undefined {
@@ -366,25 +362,7 @@ function mapLegacyFormToNew(formData?: Array<{ key: string; value: string }>): A
 }
 
 function ensureLegacyFields(data: ApiRequestData): ApiRequestData {
-  const primaryAuth = getPrimaryAuth(data);
-  const primaryBody = getPrimaryBody(data);
-
-  if (primaryAuth) {
-    data.auth = primaryAuth;
-    const primaryToken = getPrimaryTokenStorage(primaryAuth, data);
-    if (primaryToken) {
-      data.tokenStorage = primaryToken;
-    }
-    const primaryBasic = getPrimaryBasicAuthStorage(primaryAuth, data);
-    if (primaryBasic) {
-      data.basicAuthStorage = primaryBasic;
-    }
-  }
-
-  if (primaryBody) {
-    data.body = primaryBody;
-  }
-
+  // ApiRequestData only has auth and body fields, no legacy fields to ensure
   return data;
 }
 
@@ -417,16 +395,14 @@ export function convertApiRequestDataToOptions(apiData: ApiRequestData): ApiRequ
 export function convertApiRequestOptionsToData(options: ApiRequestOptions): ApiRequestData {
   const method = (options.method || 'GET').toLowerCase() as ApiRequestMethod;
 
-  const params: ApiRequestParam[] = (options.params || []).map((param, index) => ({
+  const params: ApiRequestParam[] = (options.params || []).map((param) => ({
     key: param.key,
     value: param.value,
-    orderIndex: index,
   }));
 
-  const headers: ApiRequestHeader[] = (options.headers || []).map((header, index) => ({
+  const headers: ApiRequestHeader[] = (options.headers || []).map((header) => ({
     key: header.key,
     value: header.value,
-    orderIndex: index,
   }));
 
   const auth: ApiRequestAuth = {
@@ -443,7 +419,6 @@ export function convertApiRequestOptionsToData(options: ApiRequestOptions): ApiR
     type: options.bodyType,
     content: options.bodyType === 'json' ? options.body ?? '' : options.bodyType === 'none' ? '' : options.body,
     formData: mapLegacyFormToNew(options.bodyForm),
-    orderIndex: 0,
   };
 
   const data: ApiRequestData = {
@@ -451,17 +426,9 @@ export function convertApiRequestOptionsToData(options: ApiRequestOptions): ApiR
     url: options.url,
     params,
     headers,
-    auths: auth.type === 'none' ? [] : [auth],
-    bodies: [body],
-    createdAt: undefined,
-    updatedAt: undefined,
-    auth,
-    body,
+    auths: auth.type === 'none' ? undefined : auth,
+    body: options.bodyType === 'none' ? undefined : body,
   };
-
-  if (auth.type === 'none') {
-    data.auth = { type: 'none' };
-  }
 
   return data;
 }

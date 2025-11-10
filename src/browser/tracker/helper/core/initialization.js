@@ -113,23 +113,39 @@ function processAssertClick(e) {
         assertType,
         defaultValue,
         rect,
-        (finalValue, connection, connection_id, query) => {
-          sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement);
+        (finalValue, connection, connection_id, query, apiRequest) => {
+          console.log('[processAssertClick] onConfirm callback called:', {
+            finalValue,
+            hasConnection: !!connection,
+            hasQuery: !!query,
+            hasApiRequest: !!apiRequest,
+            apiRequest: apiRequest
+          });
+          sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement, apiRequest);
         },
         () => {
         }
       );
     } else {
-      sendAssertAction(selector, assertType, '', elementType, elementPreview, elementText, undefined, undefined, undefined, DOMelement);
+      console.log('[processAssertClick] No modal needed, sending assert action directly');
+      sendAssertAction(selector, assertType, '', elementType, elementPreview, elementText, undefined, undefined, undefined, DOMelement, undefined);
     }
   } catch (error) {
   }
 }
 
 function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection_id, connection, query, DOMelement, apiRequest) {
+  console.log('[sendAssertAction] Called with:', {
+    assertType,
+    value,
+    hasQuery: !!query,
+    hasApiRequest: !!apiRequest,
+    apiRequest: apiRequest
+  });
+  
   if (window.sendActionToMain) {
     const action = {
-      action_type: ActionType.assert,
+      action_type: 'assert',
       assert_type: assertType,
       elements: [{
         selectors: selector.map((selector) => ({ value: selector })),
@@ -146,15 +162,61 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
               database_connection: connection
             }
           ],
-          // api_request: [
-          //   {
-          //     // api configs
-          //   }
-          // ]
+          api_request: apiRequest ? {
+            apiRequestId: apiRequest.apiRequestId,
+            createType: apiRequest.createType || 'system',
+            url: apiRequest.url,
+            method: apiRequest.method,
+            params: apiRequest.params && apiRequest.params.length > 0 ? apiRequest.params.map(p => ({
+              apiRequestParamId: p.apiRequestParamId,
+              key: p.key,
+              value: p.value
+            })) : undefined,
+            headers: apiRequest.headers && apiRequest.headers.length > 0 ? apiRequest.headers.map(h => ({
+              apiRequestHeaderId: h.apiRequestHeaderId,
+              key: h.key,
+              value: h.value
+            })) : undefined,
+            auth: apiRequest.auth ? {
+              apiRequestId: apiRequest.auth.apiRequestId,
+              type: apiRequest.auth.type,
+              storageEnabled: apiRequest.auth.storageEnabled,
+              username: apiRequest.auth.username,
+              password: apiRequest.auth.password,
+              token: apiRequest.auth.token,
+              tokenStorages: apiRequest.auth.tokenStorages && apiRequest.auth.tokenStorages.length > 0 ? apiRequest.auth.tokenStorages.map(ts => ({
+                apiRequestTokenStorageId: ts.apiRequestTokenStorageId,
+                type: ts.type,
+                key: ts.key
+              })) : undefined,
+              basicAuthStorages: apiRequest.auth.basicAuthStorages && apiRequest.auth.basicAuthStorages.length > 0 ? apiRequest.auth.basicAuthStorages.map(bs => ({
+                apiRequestBasicAuthStorageId: bs.apiRequestBasicAuthStorageId,
+                type: bs.type,
+                usernameKey: bs.usernameKey,
+                passwordKey: bs.passwordKey,
+                enabled: bs.enabled
+              })) : undefined
+            } : undefined,
+            body: apiRequest.body ? {
+              apiRequestId: apiRequest.body.apiRequestId,
+              type: apiRequest.body.type,
+              content: apiRequest.body.content,
+              formData: apiRequest.body.formData && apiRequest.body.formData.length > 0 ? apiRequest.body.formData.map(fd => ({
+                apiRequestBodyFormDataId: fd.apiRequestBodyFormDataId,
+                name: fd.name,
+                value: fd.value,
+                orderIndex: fd.orderIndex
+              })) : undefined
+            } : undefined
+          } : undefined
         }
       ]
     }
+    console.log('[sendAssertAction] Sending action to main:', action);
     window.sendActionToMain(action);
+    console.log('[sendAssertAction] Action sent successfully');
+  } else {
+    console.warn('[sendAssertAction] window.sendActionToMain is not available');
   }
 
 }

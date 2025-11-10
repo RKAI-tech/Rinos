@@ -183,7 +183,7 @@ export interface ApiRequestData {
   method?: ApiRequestMethod;
   params?: ApiRequestParam[];
   headers?: ApiRequestHeader[];
-  auth?: ApiRequestAuth;
+  auths?: ApiRequestAuth;
   body?: ApiRequestBody;
 }
 

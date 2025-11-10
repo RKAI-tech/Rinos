@@ -105,7 +105,10 @@ export function createDescription(action_received: any): string {
                     return `${action_received.description}`;
             }
         case ActionType.api_request:
-            return `API Request: ${action_received.method || 'GET'} ${action_received.url || ''}`;
+            const apiRequest = action_received.action_datas?.[0]?.api_request;
+            const method = apiRequest?.method ? apiRequest.method.toUpperCase() : 'GET';
+            const url = apiRequest?.url || '';
+            return `API Request: ${method} ${url}`;
         default:
             return `Unknown action`;
     }
