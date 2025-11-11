@@ -157,7 +157,7 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
             htmlDOM: DOMelement? DOMelement : undefined,
             elementText: elementText? elementText : undefined,
           },
-          statement: query ? {
+          
           statement: query ? {
               statement_id: Math.random().toString(36),
               statement_text: query,

@@ -7,11 +7,9 @@ export class ApiRouter {
 
   constructor() {
     this.baseUrl = config.API_BASE_URL;
-    // console.log('[ApiRouter] Initialized with base URL:', this.baseUrl);
   }
   setAuthToken(token: string | null) {
     this.token = token;
-    // console.log('[ApiRouter] Auth token set:', token ? '***' : 'null');
   }
 
   async request<T>(
@@ -29,21 +27,25 @@ export class ApiRouter {
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
-    // console.log('[ApiRouter] Token available:', this.token ? '***' : 'null');
     try {
-      // console.log('[ApiRouter] Request =>', options.method || 'GET', url);
-      // console.log('[ApiRouter] Request headers:', headers);
       if (options.body) {
-        // console.log('[ApiRouter] Request body:', options.body);
       }
       
-      const response = await fetch(url, {
-        ...options,
+      const fetchOptions: RequestInit = {
+        method: options.method || 'GET',
         headers,
-      });
-
-      // console.log('[ApiRouter] Response status:', response.status);
-      // console.log('[ApiRouter] Response headers:', response.headers);
+      };
+      
+      if (options.body) {
+        fetchOptions.body = options.body;
+      }
+      
+      // Log request for debugging
+      if (options.method === 'POST' || options.method === 'PUT' || options.method === 'PATCH') {
+        console.log('[ApiRouter] Request body:', options.body);
+      }
+      
+      const response = await fetch(url, fetchOptions);
 
       let data: unknown;
       try {

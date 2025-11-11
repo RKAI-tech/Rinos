@@ -19,7 +19,7 @@ const createDefaultApiRequest = (): ApiRequestData => ({
   params: [],
   headers: [],
   auth: { type: 'none' },
-  body: { type: 'none', content: '', formData: [] },
+  body: { type: 'none', content: '', form_data: [] },
 });
 
 interface AiElementItem {
@@ -78,6 +78,23 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
   const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>({});
   const addMenuWrapRef = useRef<HTMLDivElement | null>(null);
   const addMenuButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const getElementTypeFromDom = (html?: string): string | undefined => {
+    try {
+      const m = (html || '').match(/^\s*<\s*([a-zA-Z0-9-]+)/);
+      return m ? m[1].toLowerCase() : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  const getBrowserElementText = (item: AiElementItem): string => {
+    const raw = (item.value || '').trim();
+    if (raw) return raw;
+    const tag = getElementTypeFromDom(item.domHtml);
+    if (tag) return `<${tag}>`;
+    return '(No text available)';
+  };
 
   const toggleCollapsed = (id: string) => {
     setCollapsedMap((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -149,6 +166,9 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
       // Chỉ đóng khi onSubmit báo thành công (result === true)
       if (result === true) {
         onClose();
+      } else {
+        // Ở lại popup nếu fail hoặc không trả true
+        try { toast.error('Generate failed. Please check your inputs.'); } catch {}
       }
     } finally {
       setIsGenerating(false);
@@ -369,7 +389,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
 
                 {collapsedMap[el.id] && el.type === 'Browser' && (
                   <div className="aiam-mono aiam-mono-inline">
-                    <span className="aiam-text">Browser: {el.value ? String(el.value) : '(No text)'}</span>
+                    <span className="aiam-text">Browser: {getBrowserElementText(el)}</span>
                     <button className="aiam-close" title="Remove" onClick={() => onRemoveElement(idx)} style={{ width: 24, height: 24 }}>✕</button>
                   </div>
                 )}
@@ -387,7 +407,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                       <div className="aiam-col">
                         <div className="aiam-row">
                           <label className="aiam-sub">Element text</label>
-                          <div className="aiam-mono">{el.value || '(No text available)'}</div>
+                          <div className="aiam-mono">{getBrowserElementText(el)}</div>
                         </div>
                       </div>
                       <div className="aiam-col">

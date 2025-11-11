@@ -80,7 +80,7 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
   const [bodyType, setBodyType] = useState<'none' | 'json' | 'form'>(
     (primaryBody?.type as 'none' | 'json' | 'form') || 'none'
   );
-  const initialBodyForm = bodyType === 'form' ? toFormPairs(primaryBody?.formData) : [];
+  const initialBodyForm = bodyType === 'form' ? toFormPairs(primaryBody?.form_data) : [];
   const [bodyForm, setBodyForm] = useState<Array<{ key: string; value: string }>>(
     bodyType === 'form' ? (initialBodyForm.length > 0 ? initialBodyForm : [{ key: '', value: '' }]) : [{ key: '', value: '' }]
   );
@@ -101,8 +101,8 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
   const [basicAuthStorageType, setBasicAuthStorageType] = useState<'localStorage' | 'sessionStorage' | 'cookie'>(
     primaryBasicStorage?.type || 'localStorage'
   );
-  const [basicAuthUsernameKey, setBasicAuthUsernameKey] = useState(primaryBasicStorage?.usernameKey || '');
-  const [basicAuthPasswordKey, setBasicAuthPasswordKey] = useState(primaryBasicStorage?.passwordKey || '');
+  const [basicAuthUsernameKey, setBasicAuthUsernameKey] = useState(primaryBasicStorage?.username_key || '');
+  const [basicAuthPasswordKey, setBasicAuthPasswordKey] = useState(primaryBasicStorage?.password_key || '');
 
   const [isFetchingToken, setIsFetchingToken] = useState(false);
   const [fetchedTokenValue, setFetchedTokenValue] = useState<string | null>(null);
@@ -115,6 +115,8 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
   // Track if we're updating from internal changes to avoid sync loop
   const isInternalUpdateRef = useRef(false);
   const prevApiRequestRef = useRef<string>('');
+  // Store onChange callback in ref to avoid infinite loop
+  const onChangeRef = useRef(onChange);
 
   // Helper to create a stable string representation for comparison
   const getApiRequestKey = (req?: ApiRequestData): string => {
@@ -128,10 +130,15 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
       headers: req.headers,
       authType: auth?.type,
       tokenStorageKey: auth?.token_storages?.[0]?.key,
-      basicAuthUsernameKey: auth?.basic_auth_storages?.[0]?.usernameKey,
+      basicAuthUsernameKey: auth?.basic_auth_storages?.[0]?.username_key,
       bodyType: bodyData?.type
     });
   };
+
+  // Update onChange ref whenever it changes
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   // Sync with prop changes (only when prop actually changes from outside)
   useEffect(() => {
@@ -156,7 +163,7 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
       const nextBodyType = (nextPrimaryBody?.type as 'none' | 'json' | 'form') || 'none';
       setBodyType(nextBodyType);
       if (nextBodyType === 'form') {
-        const nextBodyForm = toFormPairs(nextPrimaryBody?.formData);
+        const nextBodyForm = toFormPairs(nextPrimaryBody?.form_data);
         setBodyForm(nextBodyForm.length > 0 ? nextBodyForm : [{ key: '', value: '' }]);
       } else {
         setBodyForm([{ key: '', value: '' }]);
@@ -170,8 +177,8 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
       const hasBasicStorage = (nextPrimaryAuth?.type === 'basic' && !!nextPrimaryBasicStorage);
       setBasicAuthStorageEnabled(hasBasicStorage);
       setBasicAuthStorageType(nextPrimaryBasicStorage?.type || 'localStorage');
-      setBasicAuthUsernameKey(nextPrimaryBasicStorage?.usernameKey || '');
-      setBasicAuthPasswordKey(nextPrimaryBasicStorage?.passwordKey || '');
+      setBasicAuthUsernameKey(nextPrimaryBasicStorage?.username_key || '');
+      setBasicAuthPasswordKey(nextPrimaryBasicStorage?.password_key || '');
 
       prevApiRequestRef.current = currentKey;
     }
@@ -216,7 +223,7 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
     const bodyEntries = bodyForm
       .filter((p) => p.key.trim())
       .map((p, index) => {
-        const existing = currentPrimaryBody?.formData?.[index];
+        const existing = currentPrimaryBody?.form_data?.[index];
         return {
           api_request_body_form_data_id: existing?.api_request_body_form_data_id,
           name: p.key.trim(),
@@ -234,7 +241,7 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
           : bodyType === 'form'
             ? undefined
             : '',
-      formData: bodyType === 'form' ? bodyEntries : undefined,
+      form_data: bodyType === 'form' ? bodyEntries : undefined,
     };
 
     const includeBearerStorage = authType === 'bearer' && tokenStorageEnabled && tokenStorageKey.trim();
@@ -252,8 +259,8 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
       ? {
           ...(currentPrimaryBasicStorage || {}),
           type: basicAuthStorageType,
-          usernameKey: basicAuthUsernameKey.trim(),
-          passwordKey: basicAuthPasswordKey.trim(),
+          username_key: basicAuthUsernameKey.trim(),
+          password_key: basicAuthPasswordKey.trim(),
         }
       : undefined;
 
@@ -291,8 +298,8 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
     isInternalUpdateRef.current = true;
     const apiDataForSave = buildApiRequestData({ forSave: true });
     prevApiRequestRef.current = getApiRequestKey(apiDataForSave);
-    onChange(apiDataForSave);
-  }, [method, url, headers, params, authType, authUsername, authPassword, authToken, body, bodyType, bodyForm, tokenStorageEnabled, tokenStorageType, tokenStorageKey, basicAuthStorageEnabled, basicAuthStorageType, basicAuthUsernameKey, basicAuthPasswordKey, onChange]);
+    onChangeRef.current(apiDataForSave);
+  }, [method, url, headers, params, authType, authUsername, authPassword, authToken, body, bodyType, bodyForm, tokenStorageEnabled, tokenStorageType, tokenStorageKey, basicAuthStorageEnabled, basicAuthStorageType, basicAuthUsernameKey, basicAuthPasswordKey]);
 
   const handleAddHeader = () => {
     setHeaders([...headers, { key: '', value: '' }]);
@@ -371,8 +378,8 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
       if (!api?.getBasicAuthFromStorage) return;
       const payload: any = {
         type: basicAuthStorageType,
-        usernameKey: basicAuthUsernameKey,
-        passwordKey: basicAuthPasswordKey
+        username_key: basicAuthUsernameKey,
+        password_key: basicAuthPasswordKey
       };
       const result = await api.getBasicAuthFromStorage(payload);
       setFetchedBasicUsername(result?.username ?? '');

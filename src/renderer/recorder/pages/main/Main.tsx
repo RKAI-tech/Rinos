@@ -465,10 +465,62 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         query: el.query || '',
       }));
 
-    const request: AiAssertRequest = {
+    // Build API requests summary from API elements (if any)
+    const apiRequests = aiElements
+      .filter(el => el.type === 'API')
+      .map(el => {
+        const url = el.apiRequest?.url || '';
+        let endpoint = url;
+        try {
+          const u = new URL(url);
+          endpoint = u.pathname || url;
+        } catch {
+          // keep raw url/path if not absolute URL
+        }
+        const method = String(el.apiRequest?.method || 'get').toUpperCase();
+        const status = el.apiResponse?.status ?? 0;
+        const headers = el.apiResponse?.headers || {};
+        
+        // Get payload from response data (preferred) or request body
+        let payload: any = undefined;
+        if (el.apiResponse?.data !== undefined && el.apiResponse?.data !== null) {
+          // Use response data as payload
+          payload = el.apiResponse.data;
+        } else if (el.apiRequest?.body) {
+          // Fallback to request body if no response data
+          const body = el.apiRequest.body;
+          if (body.type === 'json' && body.content) {
+            try {
+              payload = JSON.parse(body.content);
+            } catch {
+              payload = body.content;
+            }
+          } else if (body.type === 'form' && body.form_data) {
+            payload = body.form_data.reduce((acc: any, item) => {
+              acc[item.name] = item.value;
+              return acc;
+            }, {});
+          }
+        }
+        
+        const responseTimeHeader = headers?.['x-response-time'] ?? headers?.['X-Response-Time'];
+        const responseTime = responseTimeHeader !== undefined ? Number(responseTimeHeader) : undefined;
+        const name = (() => {
+          const parts = (endpoint || '/').split('/').filter(Boolean);
+          if (parts.length >= 2) return `${parts[parts.length - 2]}_${parts[parts.length - 1]}`;
+          if (parts.length === 1) return `${parts[0]}_api`;
+          return 'api_request';
+        })();
+
+        return { name, endpoint, method, status, headers, response_time: responseTime, payload };
+      });
+
+    const request: any = {
+      testcase_id: testcaseId || '',
       elements: HTMLElements,
       database_results: databaseElements,
       prompt: aiPrompt,
+      api_requests: apiRequests,
     };
     
     // console.log('[Main] AI assert request:', request);
@@ -476,56 +528,106 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     try {
       const response = await actionService.generateAiAssert(request);
 
-      if (response.success) {
-        const aiAction = {
-          action_type: ActionType.assert,
-          assertType: AssertType.ai,
-          description: (response as any).data.description || '',
-          elements: HTMLElements.map(el => ({
-            selectors: el.selectors
-          })),
-          action_datas: [
-            { 
-              value: { 
-                playwright_code: (response as any).data.playwright_code || ''
-              },
-              statement: databaseElements.map(db => ({
-                statement_text: db.query,
-                connection_id: db.connection?.connection_id,
-              }))
-            }
-          ]
-        };
-
-        console.log('[Main] AI action:', aiAction);
-
-        setActions(prev => {
-          const next = receiveActionWithInsert(
-            testcaseId || '',
-            prev,
-            aiAction,
-            selectedInsertPosition // chèn đúng vị trí đang chọn
-          );
-          const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
-          setSelectedInsertPosition(newPos);
-          setDisplayInsertPosition(newPos);
-          return next;
-        });
-        toast.success('Successfully generated AI assertion');
-      } else {
-        toast.error('Gemini modal is overloaded');
+      if (!response.success) {
+        const errorMessage =
+          (response as any)?.error ||
+          (response as any)?.message ||
+          'Failed to generate AI assertion';
+        console.error('[Main] generateAiAssert failed:', errorMessage, response);
+        toast.error(String(errorMessage));
+        return false;
       }
-    } catch (e) {
-      toast.error('Gemini modal is overloaded');
+
+      // Validate required fields
+      const functionCode = (response as any).data?.function_code;
+      const functionName = (response as any).data?.function_name;
+      
+      if (!functionCode || !functionCode.trim()) {
+        const errorMessage = 'function_code is required but not provided';
+        console.error('[Main] generateAiAssert validation failed:', errorMessage, response);
+        toast.error(errorMessage);
+        return false;
+      }
+      
+      if (!functionName || !functionName.trim()) {
+        const errorMessage = 'function_name is required but not provided';
+        console.error('[Main] generateAiAssert validation failed:', errorMessage, response);
+        toast.error(errorMessage);
+        return false;
+      }
+
+      // Build API request data from API elements
+      const apiRequestElements = aiElements.filter(el => el.type === 'API' && el.apiRequest);
+      const apiRequestDataList = apiRequestElements.map(el => el.apiRequest!);
+
+      // Build action_datas array
+      const actionDatas: any[] = [];
+      
+      actionDatas.push({
+        value: { 
+          function_code: functionCode,
+          function_name: functionName,
+        }
+      });
+      for (const databaseElement of databaseElements) {
+        if (databaseElement.connection?.connection_id && databaseElement.query) {
+          actionDatas.push({
+            statement: {
+              statement_text: databaseElement.query,
+              connection_id: databaseElement.connection?.connection_id,
+            }
+          });
+        }
+      }
+      for (const apiRequest of apiRequestDataList) {
+        actionDatas.push({
+          api_request: apiRequest
+        });
+      }
+      var html_element_action=[]
+      for (const htmlElement of HTMLElements) {
+        html_element_action.push({
+          selectors: htmlElement.selectors
+        });
+      }
+      const aiAction = {
+        action_type: ActionType.assert,
+        assertType: AssertType.ai,
+        description: (response as any).data.description || '',
+        elements: html_element_action,
+        action_datas: actionDatas
+      };
+
+      console.log('[Main] AI action:', aiAction);
+
+      setActions(prev => {
+        const next = receiveActionWithInsert(
+          testcaseId || '',
+          prev,
+          aiAction,
+          selectedInsertPosition // chèn đúng vị trí đang chọn
+        );
+        const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
+        setSelectedInsertPosition(newPos);
+        setDisplayInsertPosition(newPos);
+        return next;
+      });
+      toast.success('Successfully generated AI assertion');
+
+      // Reset assert state on successful generation
+      setSelectedAssert(null);
+      setIsAssertMode(false);
+      (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
+      // Inform modal to close by returning true; onClose will clear modal content
+      return true;
+    } catch (e: any) {
+      console.error('[Main] generateAiAssert exception:', e);
+      const message = e?.message || e?.error || e?.reason || e;
+      toast.error(String(message || 'Failed to generate AI assertion'));
+      return false;
     } finally {
       setIsGeneratingAi(false);
     }
-    // Reset assert state on successful generation
-    setSelectedAssert(null);
-    setIsAssertMode(false);
-    (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
-    // Inform modal to close by returning true; onClose will clear modal content
-    return true;
   };
 
   const handleUrlConfirm = (url: string) => {

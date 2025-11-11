@@ -119,14 +119,13 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         action_id: Math.random().toString(36),
         testcase_id: testcaseId,
         action_type: action_received.action_type as ActionType,
-        description: createDescription(action_received),
+        description: action_received.description || createDescription(action_received),
         elements: action_received.elements ? action_received.elements as Element[] : [],
         assert_type: action_received.assert_type? action_received.assert_type as AssertType : undefined,
         action_datas: action_received.action_datas ? action_received.action_datas as ActionData[] : [],        
     } as Action;
 
     console.log('[Action sent from browser]', action_received);
-    console.log('[Action received by recorder]', receivedAction);
 
     const last_action = action_recorded[action_recorded.length - 1];
 

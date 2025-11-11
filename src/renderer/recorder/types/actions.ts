@@ -127,42 +127,40 @@ export interface ApiRequestParam {
   api_request_param_id?: string;
   key: string;
   value: string;
-  
 }
 
 export interface ApiRequestHeader {
   api_request_header_id?: string;
   key: string;
   value: string;
- 
 }
 
 export interface ApiRequestBodyFormData {
   api_request_body_form_data_id?: string;
   name: string;
   value: string;
-  orderIndex?: number;
+  order_index?: number;
 }
 
 export interface ApiRequestBody {
   api_request_id?: string;
   type: ApiRequestBodyType;
   content?: string | null;
-  formData?: ApiRequestBodyFormData[];
-}
-
-export interface ApiRequestBasicAuthStorage {
-  api_request_basic_auth_storage_id?: string;
-  type: ApiRequestStorageType;
-  usernameKey: string;
-  passwordKey: string;
-  enabled?: boolean;
+  form_data?: ApiRequestBodyFormData[];
 }
 
 export interface ApiRequestTokenStorage {
   api_request_token_storage_id?: string;
   type: ApiRequestStorageType;
   key: string;
+}
+
+export interface ApiRequestBasicAuthStorage {
+  api_request_basic_auth_storage_id?: string;
+  type: ApiRequestStorageType;
+  username_key: string;
+  password_key: string;
+  enabled?: boolean;
 }
 
 export interface ApiRequestAuth {
@@ -173,12 +171,12 @@ export interface ApiRequestAuth {
   password?: string;
   token?: string;
   token_storages?: ApiRequestTokenStorage[];
-  basic_auth_storages?: ApiRequestBasicAuthStorage[]
+  basic_auth_storages?: ApiRequestBasicAuthStorage[];
 }
 
 export interface ApiRequestData {
   api_request_id?: string;
-  createType?: ApiCreateType;
+  create_type?: ApiCreateType;
   url?: string;
   method?: ApiRequestMethod;
   params?: ApiRequestParam[];
@@ -269,9 +267,20 @@ export interface ElementAIDatabase {
   query?: string;
 }
 
+export interface AiApiRequestSummary {
+  endpoint: string;
+  method: string;
+  status: number;
+  headers: Record<string, any>;
+  response_time?: number;
+  payload: any;
+}
+
 export interface AiAssertRequest {
+  testcase_id: string;
   elements?: ElementAICreate[];
   database_results?: ElementAIDatabase[];
+  api_requests?: AiApiRequestSummary[];
   prompt: string;
 }
 
