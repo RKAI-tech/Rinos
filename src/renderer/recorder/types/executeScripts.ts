@@ -1,4 +1,4 @@
-import { ActionBatch } from "./actions";
+import { Action, ActionBatch } from "./actions";
 
 export interface RunCodeRequest {
     code: string;
@@ -45,3 +45,10 @@ export interface ExecuteActionsResponse {
     message?: string;
     error?: string;
 }
+export interface GenerationCodeResponse{
+    code:string;
+}
+export interface GenerationCodeRequest {
+    testcase_id: string;
+    actions: Action[];
+  }

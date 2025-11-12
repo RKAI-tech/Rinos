@@ -78,6 +78,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
   const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>({});
   const addMenuWrapRef = useRef<HTMLDivElement | null>(null);
   const addMenuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   const getElementTypeFromDom = (html?: string): string | undefined => {
     try {
@@ -159,7 +160,18 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Check if there are API elements that haven't been executed (no status)
+  const hasUnrunApiElements = elements.some(el => 
+    el.type === 'API' && (!el.apiResponse || !el.apiResponse.status || el.apiResponse.status === 0)
+  );
+
   const handleGenerate = async () => {
+    // Prevent generate if there are unrun API elements
+    if (hasUnrunApiElements) {
+      toast.error('Please run API request before generate');
+      return;
+    }
+
     try {
       setIsGenerating(true);
       const result = await Promise.resolve(onSubmit());
@@ -547,7 +559,59 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
             <button className="aiam-btn" onClick={onClose} disabled={isGenerating}>Cancel</button>
           </div>
           <div className="aiam-right">
-            <button className="aiam-btn aiam-primary" disabled={isGenerating} onClick={handleGenerate}>{isGenerating ? 'Generating...' : 'Generate'}</button>
+            <div 
+              style={{ position: 'relative', display: 'inline-block' }}
+              onMouseEnter={() => hasUnrunApiElements && setShowTooltip(true)}
+              onMouseLeave={() => setShowTooltip(false)}
+            >
+              <button 
+                className="aiam-btn aiam-primary" 
+                disabled={isGenerating || hasUnrunApiElements} 
+                onClick={handleGenerate}
+                style={{ 
+                  position: 'relative',
+                  cursor: hasUnrunApiElements ? 'not-allowed' : 'pointer',
+                  opacity: hasUnrunApiElements ? 0.6 : 1
+                }}
+              >
+                {isGenerating ? 'Generating...' : 'Generate'}
+              </button>
+              {hasUnrunApiElements && showTooltip && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    marginBottom: '8px',
+                    padding: '6px 12px',
+                    backgroundColor: '#1f2937',
+                    color: '#fff',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
+                    zIndex: 1000,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  }}
+                >
+                  Run API request before generate
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: 0,
+                      height: 0,
+                      borderLeft: '6px solid transparent',
+                      borderRight: '6px solid transparent',
+                      borderTop: '6px solid #1f2937',
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
         {isGenerating && (

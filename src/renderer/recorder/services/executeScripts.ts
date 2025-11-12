@@ -8,7 +8,9 @@ import {
     FileDeleteRequest,
     FileDeleteResponse,
     ExecuteActionsResponse,
-    ExecuteActionsRequest
+    ExecuteActionsRequest,
+    GenerationCodeResponse,
+    GenerationCodeRequest
 } from '../types/executeScripts';
 import { ActionBatch } from '../types/actions';
 
@@ -43,11 +45,20 @@ export class ExecuteScriptsService {
         });
     }
 
-    async executeActions(request: ActionBatch): Promise<ApiResponse<ExecuteActionsResponse>> {
+    async executeActions(request: GenerationCodeRequest): Promise<ApiResponse<ExecuteActionsResponse>> {
         if (!request || typeof request.actions !== 'object') {
             return { success: false, error: 'actions is required' };
         }
         return await apiRouter.request<ExecuteActionsResponse>('/runcode/execute_actions', {
+            method: 'POST',
+            body: JSON.stringify(request)
+        });
+    }
+    async generateCode(request: GenerationCodeRequest): Promise<ApiResponse<GenerationCodeResponse>>{
+        if (!request || typeof request.actions !== 'object') {
+            return { success: false, error: 'actions is required' };
+        }
+        return await apiRouter.request<GenerationCodeResponse>('/runcode/generate_code', {
             method: 'POST',
             body: JSON.stringify(request)
         });

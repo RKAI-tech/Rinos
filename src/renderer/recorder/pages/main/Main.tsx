@@ -14,14 +14,13 @@ import AddActionModal from '../../components/add_action_modal/AddActionModal';
 import DatabaseExecutionModal from '../../components/database_execution_modal/DatabaseExecutionModal';
 import { ActionService } from '../../services/actions';
 import { Action, ActionBatch, ActionType, AiAssertRequest, AssertType, ApiRequestData } from '../../types/actions';
-import { actionToCode } from '../../utils/action_to_code';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
 import { receiveAction, createDescription, receiveActionWithInsert } from '../../utils/receive_action';
 import { Connection } from '../../types/actions';
 import { BasicAuthentication } from '../../types/basic_auth';
 import { BasicAuthService } from '../../services/basic_auth';
-
+import { GenerationCodeRequest } from '../../types/executeScripts';
 
 interface MainProps {
   projectId?: string | null;
@@ -80,6 +79,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   // Execution tracking states
   const [executingActionIndex, setExecutingActionIndex] = useState<number | null>(null);
   const [failedActionIndex, setFailedActionIndex] = useState<number | null>(null);
+  
+  // Code generation state
+  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
 
   useEffect(() => {
     // console.log('[Main] Setting project ID:', projectId);
@@ -592,7 +594,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       }
       const aiAction = {
         action_type: ActionType.assert,
-        assertType: AssertType.ai,
+        assert_type: AssertType.ai,
         description: (response as any).data.description || '',
         elements: html_element_action,
         action_datas: actionDatas
@@ -684,8 +686,34 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
   };
 
-  const handleTabSwitch = () => {
-    setActiveTab(prev => prev === 'actions' ? 'script' : 'actions');
+  const handleTabSwitch = async () => {
+    const newTab = activeTab === 'actions' ? 'script' : 'actions';
+    
+    // Khi chuyển sang tab script, generate code từ server
+    if (newTab === 'script' && actions.length > 0) {
+      setIsGeneratingCode(true);
+      try {
+        const request: GenerationCodeRequest = { testcase_id: testcaseId || '', actions: actions as Action[] };
+        const response = await service.generateCode(request);
+        
+        if (response.success && response.data?.code) {
+          setCustomScript(response.data.code);
+        } else {
+          // Server generation failed
+          console.error('[Main] Server code generation failed:', response.error);
+          setCustomScript('// Failed to generate code from server. Please try again.');
+          toast.error(response.error || 'Failed to generate code from server');
+        }
+      } catch (error) {
+        console.error('[Main] Error generating code:', error);
+        setCustomScript('// Error generating code. Please try again.');
+        toast.error('Error generating code from server');
+      } finally {
+        setIsGeneratingCode(false);
+      }
+    }
+    
+    setActiveTab(newTab);
   };
 
   // Reload actions from server
@@ -1209,7 +1237,12 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             projectId={projectId}
           />
         ) : (
-          <TestScriptTab script={customScript || actionToCode(actions)} runResult={runResult} onScriptChange={setCustomScript} hasActions={actions.length > 0} />
+          <TestScriptTab 
+            script={isGeneratingCode ? '// Wait for generation code...\n// Please wait while the code is being generated from the server...' : (customScript || '// No code available. Please switch to actions tab and back to generate code.')} 
+            runResult={runResult} 
+            onScriptChange={setCustomScript} 
+            hasActions={actions.length > 0} 
+          />
         )}
       </div>
       <ActionToCodeTab onConvert={handleTabSwitch} onRun={handleRunScript} activeTab={activeTab} actions={actions} />
