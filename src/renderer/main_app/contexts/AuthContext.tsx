@@ -3,7 +3,8 @@ import { authService } from '../services/auth';
 import { LoginRequest, LoginWithMicrosoftRequest } from '../types/auth';
 import { config } from '../../env.config';
 import { toast } from 'react-toastify';
-// Lưu ý: Không import tĩnh microsoftLogin trong renderer để tránh lôi Electron API vào bundle
+import { apiRouter } from '../services/baseAPIRequest';
+import { useSessionHeartbeat } from '../hooks/useSessionHeartbeat';
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -127,7 +128,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (error) {
         // console.error('[AuthContext] Error initializing auth:', error);
         await handleSessionExpired();
-        clearAuthData();
+        await clearAuthData();
       } finally {
         setIsLoading(false);
         // log('initializeAuth: end');
@@ -137,25 +138,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
   }, []);
   
-  const clearAuthData = () => {
+  const clearAuthData = async () => {
     // log('clearAuthData');
-    tokenStorage.remove(config.ACCESS_TOKEN_KEY);
-    emailStorage.remove();
+    await tokenStorage.remove(config.ACCESS_TOKEN_KEY);
+    await emailStorage.remove();
     authService.clearAuth();
     setIsAuthenticated(false);
     setUserEmail(null);
   };
   
   const handleSessionExpired = async () => {
-    clearAuthData();
+    await clearAuthData();
 
-    try {
-      await (window as any).api.closeAllWindows({ preserveSender: true });
-    } catch (error) {
-      console.error('[AuthContext] Error closing all windows:', error);
-    }
-
-    toast.error('Session expired. Please login again.');
+    // if ((window as any).api) {
+      try {
+        await (window as any).electronAPI?.window?.closeAllWindows({ preserveSender: true });
+        toast.warning('Session expired. Please login to continue.');
+      } catch (error) {
+        console.error('[AuthContext] Error closing all windows:', error);
+      }
+    // }
   };
 
   const login = async (email: string, password: string) => {
@@ -211,21 +213,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       setIsLoading(true);
-      // log('logout: start');
-      
-      // Call logout API
-      await authService.logout();
-      
-      // Clear local data
-      clearAuthData();
-      
+      await clearAuthData();
     } catch (error) {
-      // console.error('[AuthContext] Logout failed:', error);
-      // Still clear local data even if API call fails
-      clearAuthData();
+      await clearAuthData();
     } finally {
       setIsLoading(false);
-      // log('logout: end');
     }
   };
 
@@ -289,6 +281,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     microsoftLogin,
     register
   };
+
+  useSessionHeartbeat({
+    isActive: isAuthenticated,
+    intervalMs: config.SESSION_HEARTBEAT_INTERVAL,
+    retryDelayMs: config.SESSION_HEARTBEAT_RETRY,
+    pauseWhenHidden: true,
+    getToken: () => tokenStorage.get(config.ACCESS_TOKEN_KEY),
+    setToken: async (token: string) => {
+      await tokenStorage.set(config.ACCESS_TOKEN_KEY, token);
+      apiRouter.setAuthToken(token);
+    },
+    clearToken: async () => {
+      await tokenStorage.remove(config.ACCESS_TOKEN_KEY);
+      apiRouter.clearAuth();
+    },
+    onExpired: handleSessionExpired,
+  });
 
   return (
     <AuthContext.Provider value={value}>
