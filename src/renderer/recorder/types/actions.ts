@@ -234,7 +234,7 @@ export interface AiAssertElement {
   value?: string;
   query?: string;
   variable_name?: string;
-  database_connection?: AiAssertDatabaseConnection;
+  connection?: AiAssertDatabaseConnection;
 }
 
 // export interface AiAssertRequest {

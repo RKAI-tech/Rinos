@@ -384,7 +384,7 @@ export function convertApiRequestDataToOptions(apiData: ApiRequestData): ApiRequ
     bodyType: body?.type || 'none',
     bodyForm:
       body?.type === 'form'
-        ? (body.formData || []).map((item) => ({ key: item.name, value: item.value }))
+        ? (body.form_data || []).map((item) => ({ key: item.name, value: item.value }))
         : undefined,
   };
 }
@@ -418,7 +418,7 @@ export function convertApiRequestOptionsToData(options: ApiRequestOptions): ApiR
   const body: ApiRequestBody = {
     type: options.bodyType,
     content: options.bodyType === 'json' ? options.body ?? '' : options.bodyType === 'none' ? '' : options.body,
-    formData: mapLegacyFormToNew(options.bodyForm),
+    form_data: mapLegacyFormToNew(options.bodyForm),
   };
 
   const data: ApiRequestData = {

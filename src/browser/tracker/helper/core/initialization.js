@@ -162,7 +162,7 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
               statement_id: Math.random().toString(36),
               statement_text: query,
               connection_id: connection_id,
-              database_connection: connection
+              connection: connection
             } : undefined,
           api_request: apiRequest ? {
             api_request_id: apiRequest.api_request_id,
