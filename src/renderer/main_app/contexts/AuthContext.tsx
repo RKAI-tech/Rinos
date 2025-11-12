@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { authService } from '../services/auth';
 import { LoginRequest, LoginWithMicrosoftRequest } from '../types/auth';
 import { config } from '../../env.config';
+import { toast } from 'react-toastify';
 // Lưu ý: Không import tĩnh microsoftLogin trong renderer để tránh lôi Electron API vào bundle
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -95,14 +96,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   
   // Kiểm tra token có sẵn khi component mount
   useEffect(() => {
-    // log('initializeAuth: start');
     const initializeAuth = async () => {
       try {
         const token = await tokenStorage.get(config.ACCESS_TOKEN_KEY);
         const email = await emailStorage.get();
-        // log('initializeAuth: token exists =', Boolean(token));
-        // log('initializeAuth: email exists =', Boolean(email));
-        // log('initializeAuth: token =', token);
         if (token) {
           const response = await authService.validateToken(token);
           if (response.success && response.data?.access_token) {
@@ -178,31 +175,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (email: string, password: string) => {
     try {
-      setIsLoading(true);
-      // log('register: start', { email });
+      // setIsLoading(true);
       
       const payload: LoginRequest = { email, password };
       const response = await authService.register(payload);
-      // log('register: response', response);
       
       if (response.success && response.data) {
-        // Chỉ lưu token
-        await tokenStorage.set(config.ACCESS_TOKEN_KEY, response.data.access_token);
-        // Lưu email
-        await emailStorage.set(email);
-        setIsAuthenticated(true);
-        setUserEmail(email);
-        // log('register: authenticated');
+        toast.success(response.data.message || 'Registration successful!');
       } else {
         throw new Error(response.error || 'Registration failed');
       }
       
     } catch (error) {
-      // console.error('[AuthContext] Registration failed:', error);
       throw error;
     } finally {
-      setIsLoading(false);
-      log('register: end');
+      // setIsLoading(false);
     }
   };
 

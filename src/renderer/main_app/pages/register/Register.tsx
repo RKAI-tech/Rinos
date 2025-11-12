@@ -7,7 +7,7 @@ import loginImage from "../../assets/ms_logo.png"
 import { LoginRequest } from '../../types/auth';
 import { authService } from '../../services/auth';
 const Register: React.FC = () => {
-  const { microsoftLogin, isLoading } = useAuth();
+  const {register, microsoftLogin, isLoading } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,31 +15,6 @@ const Register: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const register = async (email: string, password: string) => {
-    try {
-      const payload: LoginRequest = { email, password };
-      const response = await authService.register(payload);
-      if (!response.success) {
-        throw new Error(response.error || 'Registration failed');
-      }
-
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
-      setShowPassword(false);
-      setShowConfirmPassword(false);
-
-      navigate('/login', { replace: true, state: { registeredEmail: email } });
-
-      // console.log('[Register] Response:', response);
-      const msg = response.data?.message || response.error || 'Registration successful!';
-      toast.success(msg);
-      
-    } catch (error) {
-      throw error;
-    }
-  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +53,14 @@ const Register: React.FC = () => {
       }
 
       await register(email, password);
+
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+      setShowPassword(false);
+      setShowConfirmPassword(false);
+
+      navigate('/login', { replace: true, state: { registeredEmail: email } });
       
     } catch (err: any) {
       const msg = err?.message ||  'Registration failed';
