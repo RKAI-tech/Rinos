@@ -39,6 +39,10 @@ export interface RegisterRequest {
     password: string;
 }
 
+export interface RegisterResponse {
+    message: string;
+}
+
 export interface ValidateTokenRequest {
     token: string;
 }
