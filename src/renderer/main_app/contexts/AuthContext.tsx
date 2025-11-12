@@ -119,13 +119,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               }
             }
           } else {
-            // TODO: Close all windows and redirect to login page
+            await handleSessionExpired();
           }
         } else {
-          // TODO: Close all windows and redirect to login page
+          await handleSessionExpired();
         }
       } catch (error) {
         // console.error('[AuthContext] Error initializing auth:', error);
+        await handleSessionExpired();
         clearAuthData();
       } finally {
         setIsLoading(false);
@@ -145,6 +146,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUserEmail(null);
   };
   
+  const handleSessionExpired = async () => {
+    clearAuthData();
+
+    try {
+      await (window as any).api.closeAllWindows({ preserveSender: true });
+    } catch (error) {
+      console.error('[AuthContext] Error closing all windows:', error);
+    }
+
+    toast.error('Session expired. Please login again.');
+  };
+
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);

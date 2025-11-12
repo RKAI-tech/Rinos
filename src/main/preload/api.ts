@@ -3,7 +3,7 @@ import { contextBridge, ipcRenderer } from "electron";
 // Window management API
 const windowAPI = {
   openRecorder: () => ipcRenderer.invoke("open-recorder"),
-  closeAllWindows: () => ipcRenderer.invoke("close-all-windows"),
+  closeAllWindows: (options?: { preserveSender?: boolean }) => ipcRenderer.invoke("close-all-windows", options),
   minimizeWindow: () => ipcRenderer.invoke("minimize-window"),
   toggleMaximizeWindow: () => ipcRenderer.invoke("toggle-maximize-window"),
   confirmCloseRecorder: (confirmed: boolean) => ipcRenderer.invoke("confirm-close-recorder", confirmed),
