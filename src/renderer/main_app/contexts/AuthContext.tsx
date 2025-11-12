@@ -104,11 +104,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const response = await authService.validateToken(token);
           if (response.success && response.data?.access_token) {
             setIsAuthenticated(true);
-            // Nếu có email từ storage, sử dụng nó, nếu không thì lấy từ API
             if (email) {
               setUserEmail(email);
             } else {
-              // Lấy email từ API nếu không có trong storage
               try {
                 const userResponse = await authService.getCurrentUser();
                 if (userResponse.success && (userResponse as any).data?.email) {
@@ -120,7 +118,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 // console.error('[AuthContext] Error getting user email:', error);
               }
             }
+          } else {
+            // TODO: Close all windows and redirect to login page
           }
+        } else {
+          // TODO: Close all windows and redirect to login page
         }
       } catch (error) {
         // console.error('[AuthContext] Error initializing auth:', error);
@@ -175,7 +177,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (email: string, password: string) => {
     try {
-      // setIsLoading(true);
+      setIsLoading(true);
       
       const payload: LoginRequest = { email, password };
       const response = await authService.register(payload);
@@ -189,7 +191,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       throw error;
     } finally {
-      // setIsLoading(false);
+      setIsLoading(false);
     }
   };
 

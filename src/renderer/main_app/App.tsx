@@ -15,24 +15,14 @@ import Databases from './pages/databases/Databases';
 import BrowserStorage from './pages/browser_storage/BrowserStorage';
 import ChangeLog from './pages/change_log/ChangeLog';
 import ConfirmCloseModal from '../recorder/components/confirm_close/ConfirmCloseModal';
+import LoadingScreen from './components/loading/LoadingScreen';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        fontSize: '18px',
-        color: '#666'
-      }}>
-        Loading...
-      </div>
-    );
+    return <LoadingScreen />;
   }
   
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
@@ -43,18 +33,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        fontSize: '18px',
-        color: '#666'
-      }}>
-        Loading...
-      </div>
-    );
+    return <LoadingScreen />;
   }
   
   return isAuthenticated ? <Navigate to="/dashboard" replace /> : <>{children}</>;
