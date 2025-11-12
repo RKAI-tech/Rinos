@@ -16,7 +16,6 @@ app.commandLine.appendSwitch("disable-dev-shm-usage");
 app.commandLine.appendSwitch("no-zygote");
 
 // browserWindow() => BrowserWindow
-
 app.whenReady().then(() => {
   try {
     Menu.setApplicationMenu(null);

@@ -2,13 +2,24 @@ import { BrowserWindow, app, ipcMain, screen } from "electron";
 import { MainEnv } from "./env.js";
 import path from "path";
 
-// const isDev = false;
 const isDev = true;
-// Build target is CJS, so __dirname is available; avoid import.meta to silence warnings
 const __dirnameResolved = __dirname;
-// console.log(__dirnameResolved)
+const iconFileNamePng="images/icon.png";
+const iconFileNameIco="images/icon.ico";
+const resolveIconPath = () => {
+  if (process.platform === 'win32') {
+    if (app.isPackaged) {
+      return path.join(process.resourcesPath, path.basename(iconFileNameIco));
+    }
+    return path.join(process.cwd(), iconFileNameIco);
+  }
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, iconFileNamePng);
+  }
+  return path.join(process.cwd(), iconFileNamePng);
+};
+
 async function tryLoadDevPaths(win: BrowserWindow, page: string) {
-  // console.log('tryLoadDevPaths', MainEnv.API_URL, page);
   const candidates = [
     `${MainEnv.API_URL}/${page}/index.html`,
     `${MainEnv.API_URL}/${page}.html`,
@@ -18,34 +29,31 @@ async function tryLoadDevPaths(win: BrowserWindow, page: string) {
   for (const url of candidates) {
     try {
       await win.loadURL(url);
-      // console.log("Loaded URL:", url);
       return;
     } catch (err) {
-      // console.warn("Failed to load URL:", url, err);
     }
   }
   throw new Error("Không thể load trang renderer từ Vite. Kiểm tra vite.config và đường dẫn.");
 }
 
 function createWindow(options: Electron.BrowserWindowConstructorOptions, page: string) {
-  // console.log('createWindow', options, page);
-  // console.log('__dirname', __dirnameResolved);
+
   const win = new BrowserWindow({
     ...options,
+    icon: resolveIconPath(),
     webPreferences: {
       preload: path.join(__dirnameResolved, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
     },
+
   });
 
   if (isDev) {
     win.webContents.openDevTools();
     tryLoadDevPaths(win, page).catch((err) => {
-      // console.error("Load dev URL failed:", err);
     });
   } else {
-    // console.log('__dirnameResolved', __dirnameResolved);
     win.loadFile(path.join(__dirnameResolved, `renderer/${page}/index.html`));
   }
   // win.webContents.openDevTools();
@@ -103,8 +111,10 @@ export function createRecorderWindow(testcaseId?: string, projectId?: string, te
   const recorderWindow = createWindow({ width: 500, height: 800 }, "recorder");
   childWindows.push(recorderWindow);
   if (testcaseId) {
-    const displayName = testcaseName || testcaseId || "";
-    recorderWindow.setTitle(`Record actions on a website - ${displayName}`);
+    const displayName = testcaseName || "";
+    recorderWindow.webContents.on('did-finish-load', () => {
+      recorderWindow.setTitle(`Recorder - ${displayName}`);
+    });
   } else {
     recorderWindow.setTitle('Record actions on a website');
   }

@@ -22,8 +22,8 @@ export function handleSelectChangeEvent(e) {
     try { console.log('Skipping select change recording - event is not trusted'); } catch {}
     return;
   }
-  const selectors = buildSelectors(el, { maxSelectors: 5, minScore: 300, validate: true });
-  const selectedValue = el.value || '';
+  const selectors = buildSelectors(el, { maxSelectors: 5, minScore: 100, validate: true });
+  const selectedValue = e?.target?.value || '';
   const selectedText = el.selectedOptions && el.selectedOptions[0] ? (el.selectedOptions[0].text || '') : '';
   const elementText = extractElementText(el);
 

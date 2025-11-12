@@ -13,7 +13,7 @@ const testcaseIdToWindow = new Map<string, BrowserWindow>();
 
 export function registerScreenHandlersIpc() {
   // Open (or focus) the recorder window
-  ipcMain.handle("screen:open_recorder", (_evt, testcaseId?: string, projectId?: string) => {
+  ipcMain.handle("screen:open_recorder", (_evt, testcaseId?: string, projectId?: string, testcaseName?: string) => {
     try {
       const key = testcaseId || '';
       const existing = key ? testcaseIdToWindow.get(key) : undefined;
@@ -22,7 +22,7 @@ export function registerScreenHandlersIpc() {
         return { success: true, created: false, alreadyOpen: true, testcaseId };
       }
 
-      const win: BrowserWindow = createRecorderWindow(testcaseId, projectId);
+      const win: BrowserWindow = createRecorderWindow(testcaseId, projectId, testcaseName);
       if (key) testcaseIdToWindow.set(key, win);
       if (testcaseId) {
         try { win.setTitle(`Recorder`); } catch {}
