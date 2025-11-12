@@ -693,7 +693,11 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     if (newTab === 'script' && actions.length > 0) {
       setIsGeneratingCode(true);
       try {
-        const request: GenerationCodeRequest = { testcase_id: testcaseId || '', actions: actions as Action[] };
+        const request: GenerationCodeRequest = { 
+          testcase_id: testcaseId || '', 
+          actions: actions as Action[],
+          basic_auth: basicAuth,
+        };
         const response = await service.generateCode(request);
         
         if (response.success && response.data?.code) {
@@ -972,6 +976,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       const payload = {
         actions: actions,
         testcase_id: testcaseId || '',
+        basic_auth: basicAuth,
       };
       console.log('[Main] Run script payload:', payload);
       const resp = await service.executeActions(payload);
