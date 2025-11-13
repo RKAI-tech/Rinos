@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import './EditTestcase.css';
 import '../../../../../renderer/recorder/components/action/Action.css';
 import '../../../../../renderer/recorder/components/action_tab/ActionTab.css';
@@ -31,6 +31,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
   const [isLoadingActions, setIsLoadingActions] = useState(false);
   const actionService = useMemo(() => new ActionService(), []);
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
+  const testcaseNameInputRef = useRef<HTMLInputElement>(null);
   // const [basicAuthList, setBasicAuthList] = useState<{ username: string; password: string }[]>([]); // temporarily hidden
   // const [isLoadingBasicAuth, setIsLoadingBasicAuth] = useState(false); // temporarily hidden
   // const [basicAuthError, setBasicAuthError] = useState<string | null>(null); // temporarily hidden
@@ -142,6 +143,17 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
     };
   }, [isOpen]);
 
+  // Auto-focus on first input when modal opens
+  useEffect(() => {
+    if (isOpen && testcase && testcaseNameInputRef.current) {
+      setTimeout(() => {
+        testcaseNameInputRef.current?.focus();
+        // Select all text for easy editing
+        testcaseNameInputRef.current?.select();
+      }, 100);
+    }
+  }, [isOpen, testcase]);
+
   if (!isOpen || !testcase) return null;
 
   return (
@@ -168,6 +180,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
               Testcase Name <span className="tcase-edit-required-asterisk">*</span>
             </label>
             <input
+              ref={testcaseNameInputRef}
               type="text"
               id="testcaseName"
               value={testcaseName}

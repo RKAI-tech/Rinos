@@ -1,4 +1,4 @@
-.tsuite-add-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.tsuite-add-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
 .tsuite-add-modal-container { background: #fff; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); width: 100%; max-width: 640px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
 .tsuite-add-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; }
 .tsuite-add-modal-title { font-size: 18px; font-weight: 600; color: #1a1a1a; margin: 0; }

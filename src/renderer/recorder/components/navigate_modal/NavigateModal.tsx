@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { toast } from 'react-toastify';
 
 interface NavigateModalProps {
@@ -16,9 +16,19 @@ const isLikelyUrl = (text: string): boolean => {
 
 const NavigateModal: React.FC<NavigateModalProps> = ({ isOpen, onClose, onConfirm }) => {
   const [input, setInput] = useState<string>('');
+  const urlInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) setInput('');
+  }, [isOpen]);
+
+  // Auto-focus on input when modal opens
+  useEffect(() => {
+    if (isOpen && urlInputRef.current) {
+      setTimeout(() => {
+        urlInputRef.current?.focus();
+      }, 100);
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -65,6 +75,7 @@ const NavigateModal: React.FC<NavigateModalProps> = ({ isOpen, onClose, onConfir
         <div style={{ padding: '16px 20px', boxSizing: 'border-box' }}>
           <label style={{ display: 'block', fontSize: 14, color: '#374151', marginBottom: 8 }}>URL</label>
           <input
+            ref={urlInputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}

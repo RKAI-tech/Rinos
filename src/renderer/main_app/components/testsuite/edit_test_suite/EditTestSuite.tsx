@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import './EditTestSuite.css';
 
 interface MinimalTestSuite {
@@ -17,6 +17,7 @@ interface EditTestSuiteProps {
 const EditTestSuite: React.FC<EditTestSuiteProps> = ({ isOpen, onClose, onSave, testsuite }) => {
   const [suiteName, setSuiteName] = useState('');
   const [suiteDescription, setSuiteDescription] = useState('');
+  const suiteNameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (testsuite) {
@@ -61,6 +62,17 @@ const EditTestSuite: React.FC<EditTestSuiteProps> = ({ isOpen, onClose, onSave, 
     };
   }, [isOpen]);
 
+  // Auto-focus on first input when modal opens
+  useEffect(() => {
+    if (isOpen && testsuite && suiteNameInputRef.current) {
+      setTimeout(() => {
+        suiteNameInputRef.current?.focus();
+        // Select all text for easy editing
+        suiteNameInputRef.current?.select();
+      }, 100);
+    }
+  }, [isOpen, testsuite]);
+
   if (!isOpen || !testsuite) return null;
 
   return (
@@ -84,6 +96,7 @@ const EditTestSuite: React.FC<EditTestSuiteProps> = ({ isOpen, onClose, onSave, 
               Test Suite Name <span className="tsuite-edit-required-asterisk">*</span>
             </label>
             <input
+              ref={suiteNameInputRef}
               type="text"
               id="suiteName"
               value={suiteName}

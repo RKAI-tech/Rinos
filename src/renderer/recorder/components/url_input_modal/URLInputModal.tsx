@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './URLInputModal.css';
 
 interface URLInputModalProps {
@@ -9,6 +9,7 @@ interface URLInputModalProps {
 
 const URLInputModal: React.FC<URLInputModalProps> = ({ isOpen, onClose, onConfirm }) => {
   const [url, setUrl] = useState('');
+  const urlInputRef = useRef<HTMLInputElement>(null);
 
   const handleConfirm = () => {
     if (url.trim()) {
@@ -31,6 +32,15 @@ const URLInputModal: React.FC<URLInputModalProps> = ({ isOpen, onClose, onConfir
     }
   };
 
+  // Auto-focus on input when modal opens
+  useEffect(() => {
+    if (isOpen && urlInputRef.current) {
+      setTimeout(() => {
+        urlInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -42,13 +52,13 @@ const URLInputModal: React.FC<URLInputModalProps> = ({ isOpen, onClose, onConfir
         <div className="url-input-modal-body">
           <label htmlFor="url-input">Enter URL to verify:</label>
           <input
+            ref={urlInputRef}
             id="url-input"
             type="text"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={handleKeyPress}
             placeholder="https://example.com"
-            autoFocus
           />
         </div>
         <div className="url-input-modal-footer">

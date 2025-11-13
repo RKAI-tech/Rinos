@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import './BasicAuthModal.css';
 import { BasicAuthentication } from '../../types/basic_auth';
 import { BasicAuthService } from '../../services/basic_auth';
@@ -29,6 +29,7 @@ const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onC
   const [hasAuthData, setHasAuthData] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
+  const usernameInputRef = useRef<HTMLInputElement>(null);
 
   // useEffect(() => {
   //   if (!isOpen) return;
@@ -103,7 +104,20 @@ const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onC
     setCurrentAuth(emptyItem(testcaseId));
     setShowForm(true);
     setErrors({});
+    // Focus on username input after form is shown
+    setTimeout(() => {
+      usernameInputRef.current?.focus();
+    }, 100);
   };
+
+  // Auto-focus on username input when form is shown
+  useEffect(() => {
+    if (isOpen && showForm && usernameInputRef.current) {
+      setTimeout(() => {
+        usernameInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen, showForm]);
 
   const validate = (): boolean => {
     const newErrors: { username?: string; password?: string } = {};
@@ -178,6 +192,7 @@ const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onC
               <div className="rcd-ba-field">
                 <label className="rcd-ba-label">Username</label>
                 <input
+                  ref={usernameInputRef}
                   className={`rcd-ba-input${errors.username ? ' error' : ''}`}
                   value={currentAuth.username || ''}
                   onChange={(e) => updateField('username', e.target.value)}
