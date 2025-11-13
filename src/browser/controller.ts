@@ -207,32 +207,6 @@ export class Controller {
             await new Promise((resolve) => setTimeout(resolve, 100));
         }
     }
-
-    private async executeAction(selectors: string[] | null, action: (selector: string) => Promise<void>): Promise<void> {
-        if (!selectors || selectors.length === 0) {
-            throw new Error('No selector provided');
-        }
-
-        // console.log(`[Controller] executeAction with selectors:`, selectors);
-
-        let lastError: Error | null = null;
-        for (const selector of selectors) {
-            try {
-                // console.log(`[Controller] Trying selector: ${selector}`);
-                await action(selector);
-                // console.log(`[Controller] Action succeeded with selector: ${selector}`);
-                return;
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : String(error);
-                // console.log(`[Controller] Selector "${selector}" failed:`, errorMessage);
-                lastError = error as Error;
-            }
-        }
-
-        // console.error(`[Controller] All selectors failed:`, selectors);
-        throw lastError || new Error('All selectors failed');
-    }
-
     async resolveUniqueSelector(page: Page, selectors: string[]): Promise<string> {
         if (!page || !selectors || !Array.isArray(selectors) || selectors.length === 0) {
             throw new Error('[Controller] Invalid inputs for resolveUniqueSelector');
@@ -279,8 +253,24 @@ export class Controller {
         console.error(`[Controller] No unique selector found from:`, selectors);
         throw new Error('[Controller] No matching selector found in ' + selectors.join(', '));
     }
-
-    async executeMultipleActions(page: Page, context: BrowserContext, actions: Action[]): Promise<void> {
+    //get page promt page index
+    async getPage(pageIndex: number): Promise<Page> {
+        let page:Page|null=null;
+        for (const [pageId, index] of this.browserManager?.pages_index.entries() || []) {
+            if (index === pageIndex) {
+                page = this.browserManager?.pages.get(pageId);
+                break;
+            }
+        }
+        if (!page) {
+            //create new page
+            const page = await this.browserManager?.createPage(pageIndex);
+            if (!page) throw new Error('Failed to create page');
+            return page;
+        }
+        return page;
+    }
+    async executeMultipleActions(context: BrowserContext, actions: Action[]): Promise<void> {
         if (!Array.isArray(actions) || actions.length === 0) {
             throw new Error('Actions array is required and cannot be empty');
         }
@@ -288,93 +278,125 @@ export class Controller {
        
         for (let i = 0; i < actions.length; i++) {
             const action = actions[i];
-            // console.log(`[Controller] Executing action ${i + 1}/${actions.length}: ${action.action_type}`);
-
-            // Emit executing event
+            const pageIndex = action.action_datas?.[0]?.value?.page_index || 0;
+            if (this.browserManager) {
+                let pageId:string|null=null;
+                for (const [idd, index] of this.browserManager.pages_index.entries()) {
+                    if (index === pageIndex) {
+                        pageId = idd;
+                        break;
+                    }
+                }
+                if (pageId) {
+                    this.browserManager.activePageId = pageId;
+                }else{
+                    throw new Error('Page not found');
+                }
+            }
+            // change active page id
             this.onActionExecuting?.(i);
-
             try {
                 switch (action.action_type) {
-                    case ActionType.navigate:
+
+                    case ActionType.navigate:{
                         if (!action.action_datas?.[0]?.value?.value) {
                             throw new Error('URL is required for navigate action');
                         }
-                        await this.navigate(page, action.action_datas?.[0]?.value?.value);
+                        const activePage = await this.getPage(pageIndex);
+                        await this.navigate(activePage, action.action_datas?.[0]?.value?.value);
                         break;
+                    }
                     case ActionType.reload:
-                        await page.reload();
+                    {
+                        const activePage = await this.getPage(pageIndex);
+                        await this.reload(activePage);  
                         break;
-                    case ActionType.back:
-                        await page.goBack();
+                    }
+                    case ActionType.back:{
+                        const activePage = await this.getPage(action.action_datas?.[0]?.value?.pageIndex || 0);
+                        await activePage.goBack();
                         break;
-                    case ActionType.forward:
-                        await page.goForward();
-                        break;
-                    case ActionType.add_browser_storage:
+                    }
+                    case ActionType.add_browser_storage:{
+                        const activePage = await this.getPage(pageIndex);
                         // console.log('[Controller] Action:', action);
                         if (action.action_datas?.[0]?.browser_storage) {
                             const browser_storage = action.action_datas?.[0]?.browser_storage;
                             if (browser_storage.storage_type === BrowserStorageType.COOKIE) {
-                                await this.addCookies(context, page, JSON.stringify(browser_storage.value));
+                                await this.addCookies(context, activePage, JSON.stringify(browser_storage.value));
                             } else if (browser_storage.storage_type === BrowserStorageType.LOCAL_STORAGE) {
-                                await this.addLocalStorage(page, JSON.stringify(browser_storage.value));
+                                await this.addLocalStorage(activePage, JSON.stringify(browser_storage.value));
                             } else if (browser_storage.storage_type === BrowserStorageType.SESSION_STORAGE) {
-                                await this.addSessionStorage(page, JSON.stringify(browser_storage.value));
+                                await this.addSessionStorage(activePage, JSON.stringify(browser_storage.value));
                             }
                         }
                         break;
+                    }
                     case ActionType.click:
+                        {
+                            const activePage = await this.getPage(pageIndex);
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
-                            const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
+                            const uniqueSelector = await this.resolveUniqueSelector(activePage, selectors);
                             try {
-                                await page.click(uniqueSelector, { timeout: 5000 });
+                                await activePage.click(uniqueSelector, { timeout: 5000 });
                                 // console.log(`[Controller] Clicked on unique selector: ${uniqueSelector}`);
                             } catch (error) {
                                 // console.log(`[Controller] Click failed, trying JS fallback for unique selector: ${uniqueSelector}`);
                                 const jsCode = `document.querySelector('${uniqueSelector}').click()`;
-                                await page.evaluate(jsCode);
+                                await activePage.evaluate(jsCode);
                                 // console.log(`[Controller] Clicked on unique selector: ${uniqueSelector} using JS fallback`);
                             }
                         }
                         break;
-                    case ActionType.input:
+                        }
+                    case ActionType.input:{
+                        const activePage = await this.getPage(pageIndex);
                         if (action.elements) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
-                            const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
-                            await page.fill(uniqueSelector, action.action_datas?.[0]?.value?.value || '');
+                            const uniqueSelector = await this.resolveUniqueSelector(activePage, selectors);
+                            await activePage.fill(uniqueSelector, action.action_datas?.[0]?.value?.value || '');
+                            }
+                            break;
                         }
-                        break;
-                    case ActionType.select:
+                    case ActionType.select:{
+                        const activePage = await this.getPage(pageIndex);
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
-                            const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
-                            await page.selectOption(uniqueSelector, action.action_datas?.[0]?.value?.value || '');
+                            const uniqueSelector = await this.resolveUniqueSelector(activePage, selectors);
+                            await activePage.selectOption(uniqueSelector, action.action_datas?.[0]?.value?.value || '');
+                            }
+                            break;
                         }
-                        break;
-                    case ActionType.checkbox:
+                    case ActionType.checkbox:{
+                        const activePage = await this.getPage(pageIndex);
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
-                            const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
+                            const uniqueSelector = await this.resolveUniqueSelector(activePage, selectors);
                             // console.log(uniqueSelector)
                             if (action.action_datas?.[0]?.value?.checked === 'true') {
-                                await page.check(uniqueSelector);
+                                await activePage.check(uniqueSelector);
                             } else {
-                                await page.uncheck(uniqueSelector);
+                                await activePage.uncheck(uniqueSelector);
                             }
                         }
                         break;
+                        }
                     case ActionType.keydown:
+                    {
+                        const activePage = await this.getPage(pageIndex);
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
-                            const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
-                            await page.locator(uniqueSelector).press(action.action_datas?.[0]?.value?.value || '');
+                            const uniqueSelector = await this.resolveUniqueSelector(activePage, selectors);
+                            await activePage.locator(uniqueSelector).press(action.action_datas?.[0]?.value?.value || '');
                         }
                         break;
-                    case ActionType.upload:
+                    }
+                    case ActionType.upload:{
+                        const activePage = await this.getPage(pageIndex);
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
-                            const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
+                            const uniqueSelector = await this.resolveUniqueSelector(activePage, selectors);
                             for (const action_data of action.action_datas || []) {
                                 if (action_data.file_upload) {
                                     const file = action_data.file_upload;
@@ -400,10 +422,10 @@ export class Controller {
                                     // Write the file content (base64 decoding)
                                     fs.writeFileSync(tempFilePath, Buffer.from(content || '', 'base64'));
                                     // TODO: Upload file
-                                    await page.setInputFiles(uniqueSelector, tempFilePath);
+                                    await activePage.setInputFiles(uniqueSelector, tempFilePath);
 
                                     // TODO: Wait for file upload to complete
-                                    await page.waitForFunction((selector) => {
+                                    await activePage.waitForFunction((selector) => {
                                         const input = document.querySelector(selector) as HTMLInputElement | null;
                                         return !input || (input.files && input.files.length > 0); // or other app-specific completion signal
                                     }, uniqueSelector, { timeout: 10000 });
@@ -414,22 +436,28 @@ export class Controller {
                             }
                         }
                         break;
-                    case ActionType.change:
+                    }
+                    case ActionType.change:{
+                        const activePage = await this.getPage(pageIndex);
                         if (action.elements && action.elements.length === 1) {
                             try {
                                 const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
-                                const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
+                                const uniqueSelector = await this.resolveUniqueSelector(activePage, selectors);
                                 // console.log('uniqueSelector', uniqueSelector)
-                                await page.locator(uniqueSelector).evaluate((el: HTMLElement) => el.click());
+                                await activePage.locator(uniqueSelector).evaluate((el: HTMLElement) => el.click());
                             } catch (error) {
                                 console.error('Error changing', error)
                             }
                         }
                         break;
-                    case ActionType.wait:
-                        await page.waitForTimeout(Number(action.action_datas?.[0]?.value?.value) || 0);
+                    }
+                    case ActionType.wait:{
+                        const activePage = await this.getPage(pageIndex);
+                        await activePage.waitForTimeout(Number(action.action_datas?.[0]?.value?.value) || 0);
                         break;
-                    case ActionType.drag_and_drop:
+                    }
+                    case ActionType.drag_and_drop:{
+                        const activePage = await this.getPage(pageIndex);
                         if (action.elements && action.elements.length === 2) {
                             const sourceCandidates = action.elements[0].selectors?.map(s => s.value) || [];
                             const targetCandidates = action.elements[1].selectors?.map(s => s.value) || [];
@@ -439,18 +467,20 @@ export class Controller {
                             }
 
                             // Resolve unique selectors for both source and target
-                            const source = await this.resolveUniqueSelector(page, sourceCandidates);
-                            const target = await this.resolveUniqueSelector(page, targetCandidates);
+                            const source = await this.resolveUniqueSelector(activePage, sourceCandidates);
+                            const target = await this.resolveUniqueSelector(activePage, targetCandidates);
 
                             // console.log(`[Controller] Drag and drop - source: ${source}, target: ${target}`);
 
                             // Use unique selectors for both source and target
-                            await page.dragAndDrop(source, target, { timeout: 10000 });
+                            await activePage.dragAndDrop(source, target, { timeout: 10000 });
                         } else {
                             throw new Error('Drag and drop requires exactly 2 elements (source and target)');
                         }
                         break;
-                    case ActionType.scroll:
+                    }
+                    case ActionType.scroll:{
+                        const activePage = await this.getPage(pageIndex);
                         //Format y X:,y:
                         let x = 0;
                         let y = 0;
@@ -460,20 +490,22 @@ export class Controller {
                             y = Number(match[2]);
                         }
                         const selectors = action.elements?.[0]?.selectors?.map(selector => selector.value) || [];
-                        const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
-                        await page.locator(uniqueSelector).evaluate((el, pos) => {
+                        const uniqueSelector = await this.resolveUniqueSelector(activePage, selectors);
+                        await activePage.locator(uniqueSelector).evaluate((el, pos) => {
                             const { x, y } = pos;
                             const target = (el === document.body || el === document.documentElement)
                                 ? window
                                 : el;
-                            console.log('target', target)
+                            // console.log('target', target)
                             if (target.scrollTo) {
                                 target.scrollTo({ left: x, top: y, behavior: 'instant' });
                             }
                         }, { x, y });
-                        await page.waitForLoadState('networkidle', { timeout: 10000 });
+                        await activePage.waitForLoadState('networkidle', { timeout: 10000 });
                         break;
-                    case ActionType.window_resize:
+                    }
+                    case ActionType.window_resize:{
+                        const activePage = await this.getPage(pageIndex);
                         let width = 0;
                         let height = 0;
                         const match_window_resize = action.action_datas?.[0]?.value?.value?.match(/Width\s*:\s*(\d+)\s*,\s*Height\s*:\s*(\d+)/i);
@@ -490,17 +522,20 @@ export class Controller {
                             await this.browserManager.resizeWindow(targetWidth, targetHeight);
                         }
 
-                        await page.waitForLoadState('networkidle', { timeout: 10000 });
+                        await activePage.waitForLoadState('networkidle', { timeout: 10000 });
                         break;
-                    case ActionType.api_request:
+                    }
+                    case ActionType.api_request:{
+                        const activePage = await this.getPage(pageIndex);
                         {
                             const apiData = (action.action_datas || []).find(d => (d as any).api_request)?.api_request as ApiRequestData | undefined;
                             if (apiData) {
                                 console.log('[Controller] Executing API request:', apiData);
-                                await this.executeApiRequest(page, apiData as any);
+                                await this.executeApiRequest(activePage, apiData as ApiRequestData);
                             }
                         }
                         break;
+                    }
                     default:
                         continue;
                 }

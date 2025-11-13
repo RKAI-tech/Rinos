@@ -70,6 +70,11 @@ export function handleDragEndEvent(e) {
       value: {
         elementText: elementText,
       },
+    },
+    {
+      value: {
+        page_index: window.__PAGE_INDEX__ || 0,
+      },
     }],
   });
   

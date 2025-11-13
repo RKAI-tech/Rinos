@@ -56,6 +56,12 @@ export async function handleUploadChangeEvent(e) {
         elementText: elementText,
       },
       files: fileList
-    }],
+    },
+    {
+      value: {
+        page_index: window.__PAGE_INDEX__ || 0,
+      },
+    }
+  ],
   });
 }

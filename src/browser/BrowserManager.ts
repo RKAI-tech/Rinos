@@ -9,7 +9,7 @@ import { VariableService } from "./services/variables";
 import { DatabaseService } from "./services/database";
 import { StatementService } from "./services/statements";
 import { apiRouter } from "./services/baseAPIRequest";
-
+import { randomUUID } from "crypto";
 let browsersPath: string;
 
 if (!app.isPackaged) {
@@ -33,7 +33,9 @@ const statementService = new StatementService();
 export class BrowserManager extends EventEmitter {
     private browser: Browser | null = null;
     context: BrowserContext | null = null;
-    page: Page | null = null;
+    pages: Map<string, Page> = new Map();
+    pages_index: Map<string, number> = new Map();
+    activePageId: string | null = null;
     controller: Controller | null = null;
     private isAssertMode: boolean = false;
     private assertType: AssertType | null = null;
@@ -65,6 +67,31 @@ export class BrowserManager extends EventEmitter {
                 this.emit('action-failed', { index });
             }
         );
+
+        this.on('action', (action: Action) => {
+            if (action.action_type === 'page_focus') {
+                const pageIndex = action.action_datas?.[0]?.value?.page_index;
+                if (pageIndex !== undefined && pageIndex !== null) {
+                    for (const [pageId, index] of this.pages_index.entries()) {
+                        if (index === pageIndex) {
+                            const oldActivePageId = this.activePageId;
+                            this.activePageId = pageId;
+                            
+                            // Emit event để thông báo page đã được focus
+                            this.emit('page-focused', { 
+                                pageId, 
+                                pageIndex, 
+                                previousPageId: oldActivePageId,
+                                timestamp: Date.now() 
+                            });
+                            
+                            console.log(`[BrowserManager] Page focused - ID: ${pageId}, Index: ${pageIndex}`);
+                            break;
+                        }
+                    }
+                }
+            }
+        });
 
     }
 
@@ -107,26 +134,61 @@ export class BrowserManager extends EventEmitter {
             });
 
             // Create page
-            this.page = await this.context.newPage();
-            this.page.setDefaultTimeout(0);
+            const page = await this.context.newPage();
+            const pageId = randomUUID();
+            this.pages.set(pageId, page);
+            this.pages_index.set(pageId, 0);
+            this.activePageId = pageId;
+            page.setDefaultTimeout(0);
 
             // Inject script
-            await this.injectingScript(path.join(__dirname, 'renderer', 'browser', 'tracker', 'trackingScript.js'));
+            await this.basicSetupPage(pageId);
 
-            // Track requests
-            this.controller?.trackRequests(this.page);
-
-            // Catch close event
-            this.page.on('close', () => {
-                this.emit('page-closed', { timestamp: Date.now() });
-                this.stop().catch((error) => { });// console.error('Error stopping browser:', error); });
-            });
-
-            // Catch context close event
             this.context?.on('close', () => {
                 this.emit('context-closed', { timestamp: Date.now() });
             });
-
+            this.context.on('page', async (page: Page) => {
+                const pageId = randomUUID();
+                //pageindex is always larger than max page index in pages_index
+                const newIndex = Math.max(...this.pages_index.values(), -1) + 1; 
+                this.pages.set(pageId, page);
+                this.pages_index.set(pageId, newIndex);
+                this.activePageId = pageId;
+                page.setDefaultTimeout(0);
+                await this.basicSetupPage(pageId);
+                const opener=await page.opener();
+                let openerId:string|null=null;
+                let openerIndex:number|null=null;
+                if (opener) {
+                    for (const [pageId, index] of this.pages_index.entries()) {
+                        if (opener === page) {
+                            openerId = pageId;
+                            openerIndex = index;
+                            break;
+                        }
+                    }
+                }
+                if(opener){
+                    this.emit("action", {
+                        action_type: 'page_open',
+                        elements: [],
+                        action_datas: [
+                            { value: { page_index: newIndex,  opener_index: openerIndex } }
+                        ]
+                    });
+                }
+                else{
+                    this.emit("action", {
+                        action_type: 'page_create',
+                        elements: [],
+                        action_datas: [
+                            { value: { page_index: newIndex } }
+                        ]
+                    });
+                }
+                this.emit('page-created', { pageId, index: newIndex });
+                console.log(`[BrowserManager] New page opened - ID: ${pageId}, Index: ${newIndex}`);
+            });
             this.browser?.on('disconnected', () => {
                 this.emit('browser-closed', { timestamp: Date.now() });
             });
@@ -138,11 +200,14 @@ export class BrowserManager extends EventEmitter {
 
     async stop(): Promise<void> {
         try {
-            if (this.page && !this.page.isClosed()) {
-                await this.page.close();
-                this.page = null;
+            //close all pages
+            for (const pageId of this.pages.keys()) {
+                if (this.pages.get(pageId) && !this.pages.get(pageId)?.isClosed()) {
+                    await this.pages.get(pageId)?.close();
+                    this.pages.delete(pageId);
+                    this.pages_index.delete(pageId);
+                }
             }
-
             if (this.context) {
                 await this.context.close();
                 this.context = null;
@@ -152,27 +217,27 @@ export class BrowserManager extends EventEmitter {
                 await this.browser.close();
                 this.browser = null;
             }
-
-            // console.log('Browser stopped');
-
-            // Emit stopped event to notify main process
             this.emit('browser-stopped');
         } catch (error) {
-            // console.error('Error stopping browser:', error);
             throw error;
         }
     }
-
-
-
+    public async createPage(pageIndex?: number): Promise<Page> {
+        const page = await this.context?.newPage();
+        const pageId = randomUUID();
+        if (!page) throw new Error('Failed to create page');
+        this.pages.set(pageId, page);
+        this.pages_index.set(pageId, pageIndex || this.pages.size);
+        this.activePageId = pageId;
+        page.setDefaultTimeout(0);
+        return page;
+    }
     public async resizeWindow(width: number, height: number): Promise<void> {
         try {
-            if (!this.page) return;
-            
-            // console.log(`[BrowserManager] Resizing window to ${width}x${height}`);
-            
+            if (!this.activePageId) return;
+                        
             // Use CDP to resize the actual browser window
-            const session = await (this.page.context() as any).newCDPSession(this.page);
+            const session = await (this.context as any).newCDPSession(this.pages.get(this.activePageId) as Page);
             const { windowId } = await session.send('Browser.getWindowForTarget');
             
             // Set window bounds with the exact requested size
@@ -181,29 +246,12 @@ export class BrowserManager extends EventEmitter {
                 bounds: { 
                     width, 
                     height
-                    // Don't force windowState to avoid sudden resizing
                 } 
             });
             
-            // Wait for the resize to take effect
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // Verify the resize worked
-            try {
-                const bounds = await session.send('Browser.getWindowBounds', { windowId });
-                // console.log(`[BrowserManager] Window resized successfully. Current bounds:`, bounds);
-                
-                // With viewport: null, viewport should automatically match window size
-                const viewportSize = await this.page.viewportSize();
-                // console.log(`[BrowserManager] Viewport size (should match window):`, viewportSize);
-                
-            } catch (e) {
-                // console.log(`[BrowserManager] Could not verify window bounds:`, e);
-            }
-            
         } catch (e) {
-            // console.error(`[BrowserManager] Failed to resize window:`, e);
-            // Fallback: no-op
         }
     }
  
@@ -212,26 +260,26 @@ export class BrowserManager extends EventEmitter {
         key: string,
         options?: { cookieDomainMatch?: string | RegExp }
     ): Promise<string | null> {
-        if (!this.page) {
+        if (!this.activePageId) {
             throw new Error('Page not found');
         }
 
         if (!key || typeof key !== 'string') return null;
 
         if (source === 'local') {
-            return await this.page.evaluate((k) => {
+            return await (this.pages.get(this.activePageId) as Page).evaluate((k) => {
                 try { return window.localStorage.getItem(k); } catch { return null; }
             }, key);
         }
 
         if (source === 'session') {
-            return await this.page.evaluate((k) => {
+            return await (this.pages.get(this.activePageId) as Page).evaluate((k) => {
                 try { return window.sessionStorage.getItem(k); } catch { return null; }
             }, key);
         }
 
         // cookie
-        const context = this.page.context();
+        const context = (this.pages.get(this.activePageId) as Page).context();
         const allCookies = await context.cookies();
         const domainMatch = options?.cookieDomainMatch;
         for (const c of allCookies) {
@@ -257,14 +305,14 @@ export class BrowserManager extends EventEmitter {
         passwordKey?: string,
         cookieDomainMatch?: string | RegExp
     }): Promise<{ username: string | null; password: string | null }> {
-        if (!this.page) {
+        if (!this.activePageId) {
             throw new Error('Page not found');
         }
 
         const type = options.type;
         if (type === 'localStorage' || type === 'sessionStorage') {
             const keys = { u: options.usernameKey || '', p: options.passwordKey || '' };
-            return await this.page.evaluate(({ type, keys }) => {
+            return await (this.pages.get(this.activePageId) as Page).evaluate(({ type, keys }) => {
                 try {
                     const storage = type === 'localStorage' ? window.localStorage : window.sessionStorage;
                     const username = keys.u ? storage.getItem(keys.u) : null;
@@ -277,7 +325,7 @@ export class BrowserManager extends EventEmitter {
         }
 
         if (type === 'cookie') {
-            const context = this.page.context();
+            const context = (this.pages.get(this.activePageId) as Page).context();
             const allCookies = await context.cookies();
             const domainMatch = options.cookieDomainMatch;
             const pickCookie = (name?: string | null) => {
@@ -304,75 +352,66 @@ export class BrowserManager extends EventEmitter {
         return { username: null, password: null };
     }
 
-    private async injectingScript(path: string): Promise<void> {
-        if (!this.context) {
-            throw new Error('Context not found');
-            return;
-        }
-
+    private async injectingScript(pageId: string, path: string): Promise<void> {
+        if (!this.context) throw new Error('Context not found');
+        const page = this.pages.get(pageId);
+        if (!page) throw new Error(`Page with id ${pageId} not found`);
         try {
-            await this.context.exposeFunction('sendActionToMain', (action: Action) => {
-                // console.log('[BrowserManager] Received action from page:', action);
-                this.emit('action', action);
-            });
-            
-            const script = readFileSync(path, 'utf8');
-            await this.context.addInitScript((script) => {
-                try {
-                    eval(script);
-                    // console.log('Script injected successfully');
-                } catch (error) {
-                    // console.error('Error evaluating script:', error);
-                }
-            }, script);
+          await this.context.exposeFunction('sendActionToMain', (action: Action) => {
+            this.emit('action', action);
+          });
+          const pageIndex = this.pages_index.get(pageId) || 0;
+          const script = readFileSync(path, 'utf8');
+      
+          const page = this.pages.get(pageId);
+          if (!page) throw new Error(`Page with id ${pageId} not found`);
+      
+          await page.addInitScript(
+            ({ script, pageId }) => {
+              try {
+                (window as any).__PAGE_INDEX__ = pageIndex
+                eval(script);
+              } catch (error) {
+                console.error('Inject script failed', error);
+              }
+            },
+            { script, pageId }
+          );
+          
         } catch (error) {
-            // console.error('Error injecting script:', error);
-            throw error;
+          console.error('injectingScript error', error);
+          throw error;
         }
+        
 
-        // Note: CDP navigation detection disabled - using browser_handle.js instead
-        // This prevents duplicate navigation events and allows proper type detection
-
-        await this.context.exposeFunction('getVariablesForTracker', async () => {
+     
+        await page.exposeFunction('getVariablesForTracker', async () => {
             try {
-              // Get project ID from BrowserManager instance instead of window API
               const projectId = this.projectId;
-            //   console.log('[BrowserManager] getVariablesForTracker called, projectId:', projectId);
               if (!projectId) {
-                // console.warn('No project context available for variable loading');
                 return { success: false, error: 'No project context' };
               }
-            //   console.log('[BrowserManager] Loading variables for project:', projectId);
               const resp = await variableService.getVariablesByProject(projectId);
-            //   console.log('[BrowserManager] Variables API response:', resp);
-              resp.data?.items.forEach((v: any) => {
-                // console.log('Variable object:', v);
-              })
               return resp;
             } catch (e) {
-            //   console.error('[BrowserManager] getVariablesForTracker failed:', e);
               return { success: false, error: String(e) };
             }
           });
 
-        // Expose a lightweight query runner for the assert modal query panel
-        await this.context.exposeFunction('getConnection', async () => {
+        await page.exposeFunction('getConnection', async () => {
             try {
                 const projectId = this.projectId;
                 if (!projectId) {
-                    // console.log('[BrowserManager] getConnection failed: No project context');
                     return { success: false, error: 'No project context' };
                 }
                 const resp = await databaseService.getDatabaseConnections({ project_id: projectId });
-                // console.log('[BrowserManager] getConnection response:', resp);
                 return resp;
             } catch (e) {
-                // console.log('[BrowserManager] getConnection failed:', e);
                 return { success: false, error: String(e) };
             }
         });
 
-        await this.context.exposeFunction('runQueryForTracker', async (sql: string, connectionId?: string) => {
+        await page.exposeFunction('runQueryForTracker', async (sql: string, connectionId?: string) => {
             try {
                 const projectId = this.projectId;
                 if (!projectId) {
@@ -393,17 +432,14 @@ export class BrowserManager extends EventEmitter {
                     useConnId = connections[0].connection_id;
                 }
 
-                // 2) Run query without creating a statement
                 const runResp = await statementService.runWithoutCreate({ connection_id: useConnId, query: sql.trim() });
                 return runResp;
             } catch (e) {
-                // console.error('[BrowserManager] runQueryForTracker failed:', e);
                 return { success: false, error: String(e) };
             }
         });
 
-        // Expose API request runner for tracker (bypass page's fetch restrictions)
-        await this.context.exposeFunction('runApiRequestForTracker', async (payload: {
+        await page.exposeFunction('runApiRequestForTracker', async (payload: {
             method: string,
             url: string,
             headers?: Record<string, string>,
@@ -412,7 +448,7 @@ export class BrowserManager extends EventEmitter {
             formData?: Array<{ key: string; value: string }>,
         }) => {
             try {
-                if (!this.page) {
+                if (!page) {
                     return { success: false, error: 'No page context' };
                 }
 
@@ -439,7 +475,7 @@ export class BrowserManager extends EventEmitter {
                 }
 
                 const method = (payload?.method || 'GET').toLowerCase();
-                const resp = await (this.page.request as any)[method](url, options);
+                const resp = await (page.request as any)[method](url, options);
                 const status = await resp.status();
                 let data: any = null;
                 try { data = await resp.json(); } catch { try { data = await resp.text(); } catch { data = null; } }
@@ -455,18 +491,39 @@ export class BrowserManager extends EventEmitter {
     }
 
     async setAssertMode(enabled: boolean, assertType: AssertType): Promise<void> {
-        if (!this.page) {
-            throw new Error('Page not found');
+        if (!this.pages) {
+            throw new Error('Pages not found');
         }
 
         this.isAssertMode = enabled;
         this.assertType = assertType;
-
-        await this.page.evaluate(({ isAssertMode, type } : { isAssertMode: boolean, type: AssertType }) => {
-            const global : any = globalThis as any;
-            global.setAssertMode(isAssertMode, type);
-        }, { isAssertMode: enabled, type: assertType });
+        //set for all pages
+        for (const page of this.pages.values()) {
+            await page.evaluate(({ isAssertMode, type } : { isAssertMode: boolean, type: AssertType }) => {
+                const global : any = globalThis as any;
+                global.setAssertMode(isAssertMode, type);
+            }, { isAssertMode: enabled, type: assertType });
+        }
     }
-    // get token from browser page
-    
+    private async basicSetupPage(pageId: string): Promise<void> {
+        const page = this.pages.get(pageId);
+        if (!page) throw new Error(`Page with id ${pageId} not found`);
+        await this.injectingScript(pageId, path.join(__dirname, 'renderer', 'browser', 'tracker', 'trackingScript.js'));
+        this.controller?.trackRequests(page);
+        
+        const pageIndex = this.pages_index.get(pageId) || 0;
+        
+        page.on('close', async () => {
+            this.emit("action", {
+                action_type: 'page_close',
+                elements: [],
+                action_datas: [
+                    { value: { page_index: pageIndex } }
+                ]
+            });
+            this.emit('page-closed', { pageId, timestamp: Date.now() });
+        });
+       
+        
+    }
 }

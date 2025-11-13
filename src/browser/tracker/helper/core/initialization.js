@@ -16,6 +16,7 @@ import { handleDragStartEvent, handleDragEndEvent, handleDropEvent } from '../ac
 import { handleUploadChangeEvent } from '../actions/upload_handle.js';
 import { handleScrollEvent } from '../actions/scroll_handle.js';
 import { handleWindowResizeEvent, setExecutingActionsState } from '../actions/window_resize.js';
+import { initializeAddressBarNavigationListener, initializeTabActivateListener } from '../actions/page_action_handle.js';
 
 let globalAssertMode = false;
 let browserControls = null;
@@ -135,14 +136,6 @@ function processAssertClick(e) {
 }
 
 function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection_id, connection, query, DOMelement, apiRequest) {
-  console.log('[sendAssertAction] Called with:', {
-    assertType,
-    value,
-    hasQuery: !!query,
-    hasApiRequest: !!apiRequest,
-    apiRequest: apiRequest
-  });
-  
   if (window.sendActionToMain) {
     const action = {
       action_type: 'assert',
@@ -211,12 +204,16 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
               })) : undefined
             } : undefined
           } : undefined
+        },
+        {
+          value: {
+            page_index: window.__PAGE_INDEX__ || 0,
+          },
         }
       ]
     }
     console.log('[sendAssertAction] Sending action to main:', action);
     window.sendActionToMain(action);
-    console.log('[sendAssertAction] Action sent successfully');
   } else {
     console.warn('[sendAssertAction] window.sendActionToMain is not available');
   }
@@ -317,6 +314,8 @@ export function initializeTracking() {
   initBrowserControls();
   initializeEventListeners();
   initializeHoverEffects();
+  initializeAddressBarNavigationListener();
+  initializeTabActivateListener();
 
   // Expose functions to main process
   window.setAssertMode = function (enabled, assertType) {
