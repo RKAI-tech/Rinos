@@ -69,6 +69,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [recordingFromActionIndex, setRecordingFromActionIndex] = useState<number | null>(null);
   const [isBasicAuthOpen, setIsBasicAuthOpen] = useState(false);
   const [basicAuth, setBasicAuth] = useState<BasicAuthentication>();
+  const [basicAuthStatus, setBasicAuthStatus] = useState<'idle' | 'success'>('idle');
   const [isConfirmCloseOpen, setIsConfirmCloseOpen] = useState(false);
   const [isUrlInputOpen, setIsUrlInputOpen] = useState(false);
   const [isTitleInputOpen, setIsTitleInputOpen] = useState(false);
@@ -82,10 +83,19 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   
   // Code generation state
   const [isGeneratingCode, setIsGeneratingCode] = useState(false);
+  const [isRunningScript, setIsRunningScript] = useState(false);
 
   const [isDirty, setIsDirty] = useState(false);
   const [savedActionsSnapshot, setSavedActionsSnapshot] = useState<Action[]>([]);
   const [savedBasicAuthSnapshot, setSavedBasicAuthSnapshot] = useState<BasicAuthentication | undefined>(undefined);
+  const handleOpenBasicAuth = useCallback(() => {
+    setBasicAuthStatus('idle');
+    setIsBasicAuthOpen(true);
+  }, []);
+
+  const handleBasicAuthStatusClear = useCallback(() => {
+    setBasicAuthStatus('idle');
+  }, []);
 
   const areActionsEqual = useCallback((a1: Action[], a2: Action[]): boolean => {
     if (a1.length !== a2.length) return false;
@@ -1047,8 +1057,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   };
 
   const handleRunScript = async () => {
+    if (isRunningScript) return;
+    setIsRunningScript(true);
     try {
-      const toastId = toast.loading('Running script...');
       const payload = {
         actions: actions,
         testcase_id: testcaseId || '',
@@ -1056,20 +1067,19 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       };
       console.log('[Main] Run script payload:', payload);
       const resp = await service.executeActions(payload);
-      // console.log('[Main] Run script response:', resp);
       if (resp.success) {
         setRunResult((resp as any).logs || 'Executed successfully');
-        toast.update(toastId, { render: 'Run succeeded', type: 'success', isLoading: false, autoClose: 2000 });
-      }
-      else {
+        toast.success('Run succeeded', { autoClose: 2000 });
+      } else {
         setRunResult((resp as any).logs || 'Run failed');
-        toast.update(toastId, { render: resp.error || 'Run failed', type: 'error', isLoading: false, autoClose: 3000 });
+        toast.error(resp.error || 'Run failed', { autoClose: 3000 });
       }
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Unknown error';
       setRunResult(message || 'Unknown error');
-      toast.dismiss();
       toast.error(message);
+    } finally {
+      setIsRunningScript(false);
     }
   };
 
@@ -1336,7 +1346,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             onDisplayPositionChange={setDisplayInsertPosition}
             executingActionIndex={executingActionIndex}
             failedActionIndex={failedActionIndex}
-            onOpenBasicAuth={() => setIsBasicAuthOpen(true)}
+            onOpenBasicAuth={handleOpenBasicAuth}
+            basicAuthStatus={basicAuthStatus}
+            onBasicAuthStatusClear={handleBasicAuthStatusClear}
             projectId={projectId}
           />
         ) : (
@@ -1348,7 +1360,14 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           />
         )}
       </div>
-      <ActionToCodeTab onConvert={handleTabSwitch} onRun={handleRunScript} activeTab={activeTab} actions={actions} />
+      <ActionToCodeTab 
+        onConvert={handleTabSwitch} 
+        onRun={handleRunScript} 
+        onSaveAndClose={handleSaveAndClose}
+        isRunning={isRunningScript}
+        activeTab={activeTab} 
+        actions={actions} 
+      />
       
       <DeleteAllActions
         isOpen={isDeleteAllOpen}
@@ -1395,6 +1414,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         onSaved={(auth) => {
           setBasicAuth(auth);
           setIsDirty(true);
+          setBasicAuthStatus('success');
         }}
       />
       <ConfirmCloseModal

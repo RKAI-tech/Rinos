@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import './BasicAuthModal.css';
 import { BasicAuthentication } from '../../types/basic_auth';
-import { BasicAuthService } from '../../services/basic_auth';
 import { toast } from 'react-toastify';
 
 interface BasicAuthModalProps {
@@ -22,55 +21,28 @@ const emptyItem = (testcaseId?: string | null): BasicAuthentication => ({
   password: '',
 });
 
-const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onClose, onSaved, basicAuth }) => {
-  const service = useMemo(() => new BasicAuthService(), []);
-  const [isLoading, setIsLoading] = useState(false);
+const BasicAuthModal: React.FC<BasicAuthModalProps> = ({
+  isOpen,
+  testcaseId,
+  onClose,
+  onSaved,
+  basicAuth
+}) => {
   const [currentAuth, setCurrentAuth] = useState<BasicAuthentication>(emptyItem(testcaseId));
   const [hasAuthData, setHasAuthData] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
-  const usernameInputRef = useRef<HTMLInputElement>(null);
+  const usernameInputRef = useRef<HTMLInputElement | null>(null);
 
-  // useEffect(() => {
-  //   if (!isOpen) return;
-  //   if (!testcaseId) {
-  //     setCurrentAuth(emptyItem(testcaseId));
-  //     setHasAuthData(false);
-  //     setShowForm(false);
-  //     setErrors({});
-  //     return;
-  //   }
-  //   const load = async () => {
-  //     setIsLoading(true);
-  //     try {
-  //       const resp = await service.getBasicAuthenticationByTestcaseId(testcaseId);
-  //       console.log('resp', resp);
-  //       if (resp.success && resp.data && resp.data.username) {
-  //         setCurrentAuth({
-  //           username: resp.data.username,
-  //           password: resp.data.password,
-  //         });
-  //         setHasAuthData(true);
-  //         setShowForm(true);
-  //         setErrors({});
-  //       } else {
-  //         setCurrentAuth(emptyItem(testcaseId));
-  //         setHasAuthData(false);
-  //         setShowForm(false);
-  //         setErrors({});
-  //         if (resp.error) toast.error(resp.error);
-  //       }
-  //     } catch (e) {
-  //       setCurrentAuth(emptyItem(testcaseId));
-  //       setHasAuthData(false);
-  //       setShowForm(false);
-  //       setErrors({});
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
-  //   load();
-  // }, [isOpen, testcaseId, service]);
+  
+  useEffect(() => {
+    if (!isOpen || !showForm) return;
+    const timeoutId = window.setTimeout(() => {
+      usernameInputRef.current?.focus();
+    }, 100);
+    return () => window.clearTimeout(timeoutId);
+  }, [isOpen, showForm]);
+
   useEffect(() => {
     if (!isOpen) return;
     if (basicAuth && (basicAuth.username || basicAuth.password)) {
@@ -81,7 +53,7 @@ const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onC
       setHasAuthData(true);
       setShowForm(true);
       setErrors({});
-    } else if (!testcaseId) {
+    } else {
       setCurrentAuth(emptyItem(testcaseId));
       setHasAuthData(false);
       setShowForm(false);
@@ -104,20 +76,7 @@ const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onC
     setCurrentAuth(emptyItem(testcaseId));
     setShowForm(true);
     setErrors({});
-    // Focus on username input after form is shown
-    setTimeout(() => {
-      usernameInputRef.current?.focus();
-    }, 100);
   };
-
-  // Auto-focus on username input when form is shown
-  useEffect(() => {
-    if (isOpen && showForm && usernameInputRef.current) {
-      setTimeout(() => {
-        usernameInputRef.current?.focus();
-      }, 100);
-    }
-  }, [isOpen, showForm]);
 
   const validate = (): boolean => {
     const newErrors: { username?: string; password?: string } = {};
@@ -131,7 +90,7 @@ const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onC
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!testcaseId) {
       toast.error('Missing testcase ID');
       return;
@@ -139,10 +98,8 @@ const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onC
     
     const authToSave = { ...currentAuth, testcase_id: testcaseId };
     if (!validate()) return;
-    
-    // Chỉ lưu trên UI, không gọi API
+
     setHasAuthData(true);
-    toast.success('HTTP Authentication saved');
     if (onSaved) onSaved(authToSave);
     onClose();
   };
@@ -174,9 +131,7 @@ const BasicAuthModal: React.FC<BasicAuthModalProps> = ({ isOpen, testcaseId, onC
         </div>
 
         <div className="rcd-ba-content">
-          {isLoading ? (
-            <div className="rcd-ba-empty">Loading...</div>
-          ) : !showForm ? (
+          {!showForm ? (
             <div className="rcd-ba-empty">
               <div className="rcd-ba-empty-text">No HTTP authentication configured</div>
               <button className="rcd-ba-btn" onClick={handleAddAuth}>
