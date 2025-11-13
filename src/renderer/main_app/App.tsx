@@ -41,7 +41,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 function App() {
   const [showConfirmClose, setShowConfirmClose] = useState(false);
-  const [hasUnsavedActions, setHasUnsavedActions] = useState(true);
+  const [hasUnsavedDatas, setHasUnsavedDatas] = useState(true);
 
   useEffect(() => {
     // console.log('App component mounted');
@@ -58,10 +58,19 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const handleCloseRequest = () => {
+    const handleCloseRequest = async () => {
+      console.log('[App] Close request received, getting unsaved datas flag...');
+      // Gọi main process để lấy unsaved flags từ child windows
+      try {
+        const hasUnsavedDatas = await (window as any).electronAPI?.window?.getUnsavedDatasFlag?.() || false;
+        console.log('[App] Got unsaved datas flag:', hasUnsavedDatas);
+        setHasUnsavedDatas(hasUnsavedDatas);
+      } catch (error) {
+        console.error('[App] Error getting unsaved datas flag:', error);
+        // Nếu có lỗi, giả định có unsaved data để an toàn
+        setHasUnsavedDatas(true);
+      }
       setShowConfirmClose(true);
-      // In this version, we assume there may be unsaved data in child windows
-      setHasUnsavedActions(true);
     };
     const removeListener = (window as any).electronAPI?.window?.onMainAppCloseRequested?.(handleCloseRequest);
     return () => {
@@ -144,7 +153,7 @@ function App() {
       </Router>
       <ConfirmCloseModal
         isOpen={showConfirmClose}
-        hasUnsavedActions={hasUnsavedActions}
+        hasUnsavedDatas={hasUnsavedDatas}
         onCancel={() => {
           handleConfirmClose(false, false);
         }}

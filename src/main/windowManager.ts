@@ -70,36 +70,85 @@ export function createMainAppWindow() {
   mainAppWindow.on('close', (event) => {
     event.preventDefault();
     mainAppWindow?.webContents.send('mainapp:close-requested');
-    // childWindows.forEach((win) => {
-    //   if (win && !win.isDestroyed()) {
-    //     win.destroy();
-    //   }
-    // });
-    // childWindows.length = 0;
-    // setTimeout(() => { mainAppWindow?.destroy(); }, 300);
-    // mainAppWindow = null;
+  });
+
+  // Handler để lấy unsaved flags từ tất cả child windows
+  ipcMain.handle('mainapp:get-unsaved-datas-flag', async () => {
+    console.log('[windowManager] Getting unsaved datas flag, childWindows count:', childWindows.length);
+    if (!mainAppWindow || childWindows.length === 0) {
+      console.log('[windowManager] No child windows, returning false');
+      return false;
+    }
+
+    const validWindows = childWindows.filter(win => win && !win.isDestroyed());
+    console.log('[windowManager] Valid child windows:', validWindows.length);
+
+    const promises = validWindows.map(win => 
+      new Promise<boolean>((resolve) => {
+        const requestId = `unsaved-check-${win.webContents.id}-${Date.now()}-${Math.random()}`;
+        console.log('[windowManager] Sending request to child window:', requestId);
+        
+        // Lắng nghe response với requestId để match
+        const responseHandler = (_event: any, data: { requestId: string, hasUnsaved: boolean }) => {
+          console.log('[windowManager] Received response:', data);
+          if (data.requestId === requestId) {
+            ipcMain.removeListener('window:unsaved-datas-response', responseHandler);
+            console.log('[windowManager] Matched response, hasUnsaved:', data.hasUnsaved);
+            resolve(data.hasUnsaved);
+          }
+        };
+        
+        ipcMain.on('window:unsaved-datas-response', responseHandler);
+        
+        // Gửi request với requestId
+        win.webContents.send('window:get-unsaved-datas-flag', requestId);
+        
+        // Timeout để tránh treo nếu child window không phản hồi
+        setTimeout(() => {
+          ipcMain.removeListener('window:unsaved-datas-response', responseHandler);
+          console.log('[windowManager] Timeout waiting for response from child window:', requestId);
+          resolve(false);
+        }, 2000); // Tăng timeout lên 2 giây
+      })
+    );
+
+    const results = await Promise.all(promises);
+    console.log('[windowManager] All results:', results);
+    return results.includes(true);
   });
 
   ipcMain.on('mainapp:close-result', (event: any, data: { confirm: boolean, save: boolean }) => {
-    // console.log('mainapp:close-result', data);
+    console.log('[windowManager] mainapp:close-result', data);
     if (!mainAppWindow) return;
     if (!data.confirm) return;
     try {
       if (data.save) {
         childWindows.forEach((win) => {
-          if (win && !win.isDestroyed()) { win.webContents.send('window:force-save-and-close'); }
+          if (win && !win.isDestroyed()) { 
+            console.log('[windowManager] Sending force-save-and-close to child window');
+            win.webContents.send('window:force-save-and-close'); 
+          }
         });
       } else {
+        // Khi không save, cần remove close handler trước khi destroy
         childWindows.forEach((win) => {
-          if (win && !win.isDestroyed()) { win.destroy(); }
+          if (win && !win.isDestroyed()) {
+            console.log('[windowManager] Destroying child window directly');
+            // Remove close handler để tránh prevent default
+            win.removeAllListeners('close');
+            win.destroy();
+          }
         });
       }
     } catch (error) {
-      console.error('mainapp:close-result error', error);
+      console.error('[windowManager] mainapp:close-result error', error);
     } finally {
       childWindows.length = 0;
       const win = mainAppWindow;
-      setTimeout(() => { win?.destroy(); }, 300);
+      setTimeout(() => { 
+        win?.removeAllListeners('close');
+        win?.destroy(); 
+      }, 300);
       mainAppWindow = null;
     }
   });

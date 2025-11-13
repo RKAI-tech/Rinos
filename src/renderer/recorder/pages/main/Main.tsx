@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import './Main.css';
 import ActionTab, { ActionOperationResult } from '../../components/action_tab/ActionTab';
 import ActionDetailModal from '../../components/action_detail/ActionDetailModal';
@@ -83,6 +83,29 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   // Code generation state
   const [isGeneratingCode, setIsGeneratingCode] = useState(false);
 
+  const [isDirty, setIsDirty] = useState(false);
+  const [savedActionsSnapshot, setSavedActionsSnapshot] = useState<Action[]>([]);
+  const [savedBasicAuthSnapshot, setSavedBasicAuthSnapshot] = useState<BasicAuthentication | undefined>(undefined);
+
+  const areActionsEqual = useCallback((a1: Action[], a2: Action[]): boolean => {
+    if (a1.length !== a2.length) return false;
+    
+    const normalize = (actions: Action[]) => {
+      return actions.map(action => {
+        const { action_id, ...rest } = action;
+        return JSON.stringify(rest, Object.keys(rest).sort());
+      }).sort();
+    };
+    
+    return JSON.stringify(normalize(a1)) === JSON.stringify(normalize(a2));
+  }, []);
+
+  const areBasicAuthEqual = useCallback((a1: BasicAuthentication | undefined, a2: BasicAuthentication | undefined): boolean => {
+    if (a1 === undefined && a2 === undefined) return true;
+    if (a1 === undefined || a2 === undefined) return false;
+    return JSON.stringify(a1) === JSON.stringify(a2);
+  }, []);
+
   useEffect(() => {
     // console.log('[Main] Setting project ID:', projectId);
     if (projectId) {
@@ -112,22 +135,30 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             const loaded = response.data.actions || [];
             setActions(loaded);
             setSelectedInsertPosition(loaded.length);
+            setSavedActionsSnapshot(JSON.parse(JSON.stringify(loaded)));
+            setIsDirty(false);
             // console.log('[Main] Loaded actions:', loaded);
           } else {
             // console.error('[Main] Failed to load actions:', response.error);
             setActions([]);
             setSelectedInsertPosition(0);
+            setSavedActionsSnapshot([]);
+            setIsDirty(false);
           }
         } catch (error) {
           // console.error('[Main] Error loading actions:', error);
           setActions([]);
           setSelectedInsertPosition(0);
+          setSavedActionsSnapshot([]);
+          setIsDirty(false);
         } finally {
           setIsLoading(false);
         }
       } else {
         setActions([]);
         setSelectedInsertPosition(0);
+        setSavedActionsSnapshot([]);
+        setIsDirty(false);
       }
     };
 
@@ -144,15 +175,19 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           const response = await basicAuthService.getBasicAuthenticationByTestcaseId(testcaseId);
           if (response.success && response.data) {
             setBasicAuth(response.data);
+            setSavedBasicAuthSnapshot(JSON.parse(JSON.stringify(response.data)));
           } else {
             setBasicAuth(undefined);
+            setSavedBasicAuthSnapshot(undefined);
           }
         } catch (error) {
           console.error('[Main] Error loading basic auth:', error);
           setBasicAuth(undefined);
+          setSavedBasicAuthSnapshot(undefined);
         }
       } else {
         setBasicAuth(undefined);
+        setSavedBasicAuthSnapshot(undefined);
       }
     };
 
@@ -193,6 +228,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         if (added) {
           setSelectedInsertPosition(selectedInsertPosition + 1);
         }
+        setIsDirty(true);
         return next;
       });
     });
@@ -359,14 +395,18 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         // TODO: Increase insert position by 1
         setSelectedInsertPosition(selectedInsertPosition + 1);
         setDisplayInsertPosition(selectedInsertPosition + 1);
-        setActions(prev => receiveAction(
-          testcaseId || '', 
-          prev, 
-          { 
-            action_type: ActionType.navigate, 
-            action_datas: [{ value: { value: url } }] 
-          }
-        ));
+        setActions(prev => {
+          const next = receiveAction(
+            testcaseId || '', 
+            prev, 
+            { 
+              action_type: ActionType.navigate, 
+              action_datas: [{ value: { value: url } }] 
+            }
+          );
+          setIsDirty(true);
+          return next;
+        });
         setIsPaused(false);
       }
     } catch (error) {
@@ -612,6 +652,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
         setSelectedInsertPosition(newPos);
         setDisplayInsertPosition(newPos);
+        setIsDirty(true);
         return next;
       });
       toast.success('Successfully generated AI assertion');
@@ -635,13 +676,15 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const handleUrlConfirm = (url: string) => {
     // Create action with the URL value
     setActions(prev => {
-      return receiveAction(testcaseId || '', prev, {
+      const next = receiveAction(testcaseId || '', prev, {
         type: ActionType.assert,
         assertType: AssertType.pageHasAURL,
         value: url,
         playwright_code: `await expect(page).toHaveURL('${url}');`,
         description: `Verify the page has URL ${url}`,
       });
+      setIsDirty(true);
+      return next;
     });
     
     // Reset assert state
@@ -654,13 +697,15 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const handleTitleConfirm = (title: string) => {
     // Create action with the title value
     setActions(prev => {
-      return receiveAction(testcaseId || '', prev, {
+      const next = receiveAction(testcaseId || '', prev, {
         type: ActionType.assert,
         assertType: AssertType.pageHasATitle,
         value: title,
         playwright_code: `await expect(page).toHaveTitle('${title}');`,
         description: `Verify the page has title ${title}`,
       });
+      setIsDirty(true);
+      return next;
     });
     
     // Reset assert state
@@ -741,6 +786,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         const newActions = response.data.actions || [];
         setActions(newActions);
         console.log('[Main] Reloaded actions:', newActions);
+        setSavedActionsSnapshot(JSON.parse(JSON.stringify(newActions)));
+        setIsDirty(false);
         // Sau reload, luôn đặt vị trí chèn = độ dài actions (rỗng → 0)
         const len = newActions.length;
         setSelectedInsertPosition(len);
@@ -753,6 +800,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         setActions([]);
         setSelectedInsertPosition(0);
         setDisplayInsertPosition(0);
+        setSavedActionsSnapshot([]);
+        setIsDirty(false);
         return {
           success: false,
           message: response.error || 'Failed to reload actions',
@@ -763,6 +812,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       setActions([]);
       setSelectedInsertPosition(0);
       setDisplayInsertPosition(0);
+      setSavedActionsSnapshot([]);
+      setIsDirty(false);
       const message = error instanceof Error ? error.message : 'Failed to reload actions';
       return {
         success: false,
@@ -780,6 +831,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       const removedIndex = prev.findIndex(a => a.action_id === actionId);
       if (removedIndex === -1) return prev;
       const next = prev.filter(a => a.action_id !== actionId);
+
+      setIsDirty(true);
 
       const adjust = (idx: number | null): number | null => {
         if (idx === null) return null;
@@ -820,6 +873,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       if (response.success) {
         setActions([]);
         setSelectedInsertPosition(0);
+        setSavedActionsSnapshot([]);
+        setIsDirty(false);
         toast.success('All actions deleted successfully');
       } else {
         toast.error(response.error || 'Failed to delete actions');
@@ -831,8 +886,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   };
 
   const handleReorderActions = (reorderedActions: Action[]) => {
-    // Local-only reorder (no server request)
     setActions(reorderedActions);
+    setIsDirty(true);
   };
 
   const handleSelectInsertPosition = async (position: number | null) => {
@@ -896,10 +951,13 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   };
 
   const handleUpdateAction = (updatedAction: Action) => {
-    // Local-only update (do not call API)
-    setActions(prev => prev.map(a => a.action_id === updatedAction.action_id ? { ...a, ...updatedAction } : a));
+    setActions(prev => {
+      const next = prev.map(a => a.action_id === updatedAction.action_id ? { ...a, ...updatedAction } : a);
+      setIsDirty(true);
+      return next;
+    });
     setSelectedAction(updatedAction);
-    toast.success('Action updated');
+    // toast.success('Action updated');
   };
 
   const handleSaveActions = async (): Promise<ActionOperationResult> => {
@@ -923,6 +981,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       console.log('[Main] Saving actions:', actions);
       const response = await actionService.batchCreateActions(actions);
       if (response.success) {
+        setSavedActionsSnapshot(JSON.parse(JSON.stringify(actions)));
+        setIsDirty(false);
         return {
           success: true,
           message: 'Actions saved successfully',
@@ -948,14 +1008,26 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setIsAddActionOpen(true);
   };
 
+  const handleActionsChange = useCallback((newActions: Action[] | ((prev: Action[]) => Action[])) => {
+    setActions(prev => {
+      const next = typeof newActions === 'function' ? newActions(prev) : newActions;
+      setIsDirty(true);
+      return next;
+    });
+  }, []);
+
 
   const handleSaveBasicAuth = async () => {
     try {
       const basicAuthService = new BasicAuthService();
       if (!basicAuth) {
         await basicAuthService.deleteBasicAuthentication(testcaseId || '');
+        setSavedBasicAuthSnapshot(undefined);
+        setIsDirty(false);
       } else {
         await basicAuthService.upsertBasicAuthentication(basicAuth);
+        setSavedBasicAuthSnapshot(JSON.parse(JSON.stringify(basicAuth)));
+        setIsDirty(false);
       }
     } catch (error) {
       toast.error('Failed to save basic authentication');
@@ -967,6 +1039,10 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     const response = await basicAuthService.getBasicAuthenticationByTestcaseId(testcaseId || '');
     if (response.success && response.data) {
       setBasicAuth(response.data);
+      setSavedBasicAuthSnapshot(JSON.parse(JSON.stringify(response.data)));
+    } else {
+      setBasicAuth(undefined);
+      setSavedBasicAuthSnapshot(undefined);
     }
   };
 
@@ -1071,11 +1147,33 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     }
   };
 
-  // Kiểm tra xem có actions chưa được lưu không
-  // Actions được coi là chưa lưu nếu:
-  // 1. Có actions trong danh sách
-  // 2. Và testcaseId tồn tại (có thể lưu được)
-  const hasUnsavedActions = actions.length > 0 && !!testcaseId;
+  const hasUnsavedActions = useMemo(() => {
+    if (!testcaseId) return false;
+    
+    if (!isDirty) return false;
+    
+    const actionsChanged = !areActionsEqual(actions, savedActionsSnapshot);
+    const basicAuthChanged = !areBasicAuthEqual(basicAuth, savedBasicAuthSnapshot);
+    
+    return actionsChanged || basicAuthChanged;
+  }, [isDirty, actions, savedActionsSnapshot, basicAuth, savedBasicAuthSnapshot, testcaseId, areActionsEqual, areBasicAuthEqual]);
+
+  // Listen for unsaved datas flag request from main process
+  useEffect(() => {
+    const handleGetUnsavedFlag = (requestId: string) => {
+      // Gửi response với hasUnsavedActions
+      console.log('[Main] Sending unsaved datas flag response:', requestId, hasUnsavedActions);
+      (window as any).electronAPI?.window?.sendUnsavedDatasResponse?.(requestId, hasUnsavedActions);
+    };
+    
+    const removeListener = (window as any).electronAPI?.window?.onGetUnsavedDatasFlag?.(handleGetUnsavedFlag);
+    
+    return () => {
+      if (removeListener) {
+        removeListener();
+      }
+    };
+  }, [hasUnsavedActions]);
 
   return (
     <div className="rcd-page">
@@ -1233,7 +1331,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             isAddActionOpen={isAddActionOpen}
             onCloseAddAction={() => setIsAddActionOpen(false)}
             testcaseId={testcaseId}
-            onActionsChange={setActions}
+            onActionsChange={handleActionsChange}
             onInsertPositionChange={setSelectedInsertPosition}
             onDisplayPositionChange={setDisplayInsertPosition}
             executingActionIndex={executingActionIndex}
@@ -1296,6 +1394,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         basicAuth={basicAuth}
         onSaved={(auth) => {
           setBasicAuth(auth);
+          setIsDirty(true);
         }}
       />
       <ConfirmCloseModal
@@ -1303,7 +1402,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         onConfirm={handleConfirmClose}
         onCancel={handleCancelClose}
         onSaveAndClose={handleSaveAndClose}
-        hasUnsavedActions={hasUnsavedActions}
+        hasUnsavedDatas={hasUnsavedActions}
       />
       <URLInputModal
         isOpen={isUrlInputOpen}
