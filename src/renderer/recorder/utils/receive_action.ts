@@ -103,13 +103,17 @@ export function createDescription(action_received: any): string {
                     return `Verify the page has title ${value}`;
                 case AssertType.ai:
                     return `${action_received.description}`;
-                case ActionType.page_focus:
-                    const title = action_received.action_datas?.[0]?.value?.title ||action_received.action_datas?.[0]?.value?.url ||'';
-        
-                    return `Focus on page ${title} `;
                 
                 
             }
+        case ActionType.page_focus:
+                const title = action_received.action_datas?.[0]?.value?.title ||action_received.action_datas?.[0]?.value?.url ||'';
+    
+                return `Focus on page ${title} `;
+        case ActionType.page_create:
+            return `Create page`;
+        case ActionType.page_close:
+            return `Close page`;
         case ActionType.api_request:
             const apiRequest = action_received.action_datas?.[0]?.api_request;
             const method = apiRequest?.method ? apiRequest.method.toUpperCase() : 'GET';

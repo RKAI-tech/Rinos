@@ -42,7 +42,7 @@ export class BrowserManager extends EventEmitter {
     private projectId: string | null = null;
     private isExecuting: boolean = false;
     private currentExecutingIndex: number | null = null;
-
+    private visibilityCheckInterval: NodeJS.Timeout | null = null
     constructor() {
         super();
         this.controller = new Controller();
@@ -67,32 +67,6 @@ export class BrowserManager extends EventEmitter {
                 this.emit('action-failed', { index });
             }
         );
-
-        this.on('action', (action: Action) => {
-            if (action.action_type === 'page_focus') {
-                const pageIndex = action.action_datas?.[0]?.value?.page_index;
-                if (pageIndex !== undefined && pageIndex !== null) {
-                    for (const [pageId, index] of this.pages_index.entries()) {
-                        if (index === pageIndex) {
-                            const oldActivePageId = this.activePageId;
-                            this.activePageId = pageId;
-                            
-                            // Emit event để thông báo page đã được focus
-                            this.emit('page-focused', { 
-                                pageId, 
-                                pageIndex, 
-                                previousPageId: oldActivePageId,
-                                timestamp: Date.now() 
-                            });
-                            
-                            console.log(`[BrowserManager] Page focused - ID: ${pageId}, Index: ${pageIndex}`);
-                            break;
-                        }
-                    }
-                }
-            }
-        });
-
     }
 
     setProjectId(projectId: string): void {
@@ -132,30 +106,65 @@ export class BrowserManager extends EventEmitter {
                 viewport: null,
                 httpCredentials: basicAuthentication,
             });
-
-            // Create page
-            const page = await this.context.newPage();
+            
+                  
+            // Expose function một lần ở context level (cho tất cả pages)
+            await this.context.exposeFunction('sendActionToMain', async (action: Action) => {
+                const actionPageIndex = action.action_datas?.find(ad => ad.value?.page_index !== undefined)?.value?.page_index;
+                const currentActivePageIndex = this.pages_index.get(this.activePageId || '');
+                console.log(`[BrowserManager] Action received - Type: ${action.action_type}, Action page_index: ${actionPageIndex}, pages_index: ${Array.from(this.pages_index.entries()).map(([pageId, index]) => `${pageId}:${index}`).join(', ')}, Current activePageId: ${this.activePageId}, Current activePageIndex: ${currentActivePageIndex}`);
+                
+                //not emit focus action if focus on current page
+                if (action.action_type === 'page_focus' && actionPageIndex === currentActivePageIndex) {
+                    return;
+                }
+                if (action.action_type === 'page_focus') {
+                    const pageIndex = action.action_datas?.[0]?.value?.page_index;
+                    if (pageIndex !== undefined && pageIndex !== null) {
+                        for (const [pageId, index] of this.pages_index.entries()) {
+                            if (index === pageIndex) {
+                                this.activePageId = pageId;
+                                console.log(`[BrowserManager] Bringing page to front - PageId: ${pageId}`);
+                                await this.pages.get(pageId)?.bringToFront();
+                                console.log(`[BrowserManager] Page brought to front - PageId: ${pageId}`);
+                                break;
+                            }
+                        }
+                    }
+                }
+                this.emit('action', action);
+            });
+         
+  
+                // Create page
+            const newPage = await this.context.newPage();
+            // await newPage.click("body");
             const pageId = randomUUID();
-            this.pages.set(pageId, page);
-            this.pages_index.set(pageId, 0);
+            const initialPageIndex = 0;
+            this.pages.set(pageId, newPage);
+            this.pages_index.set(pageId, initialPageIndex);
             this.activePageId = pageId;
-            page.setDefaultTimeout(0);
-
-            // Inject script
+            newPage.setDefaultTimeout(0);
             await this.basicSetupPage(pageId);
+            await newPage.waitForLoadState('domcontentloaded');
+            await newPage.goto("about:blank");
+            await newPage.waitForLoadState('domcontentloaded');
+
+            
 
             this.context?.on('close', () => {
                 this.emit('context-closed', { timestamp: Date.now() });
             });
             this.context.on('page', async (page: Page) => {
                 const pageId = randomUUID();
-                //pageindex is always larger than max page index in pages_index
                 const newIndex = Math.max(...this.pages_index.values(), -1) + 1; 
                 this.pages.set(pageId, page);
                 this.pages_index.set(pageId, newIndex);
                 this.activePageId = pageId;
-                page.setDefaultTimeout(0);
                 await this.basicSetupPage(pageId);
+                await page.goto("about:blank");
+                await page.bringToFront();
+                await page.waitForLoadState('domcontentloaded');
                 const opener=await page.opener();
                 let openerId:string|null=null;
                 let openerIndex:number|null=null;
@@ -192,6 +201,12 @@ export class BrowserManager extends EventEmitter {
             this.browser?.on('disconnected', () => {
                 this.emit('browser-closed', { timestamp: Date.now() });
             });
+            if (this.visibilityCheckInterval) {
+                clearInterval(this.visibilityCheckInterval);
+            }
+            this.visibilityCheckInterval = setInterval(() => {
+                this.checkAndLogPageVisibility();
+            }, 10000); // 5000ms = 5 giây
         } catch (error) {
             // console.error('Error starting browser:', error);
             throw error;
@@ -352,30 +367,48 @@ export class BrowserManager extends EventEmitter {
         return { username: null, password: null };
     }
 
-    private async injectingScript(pageId: string, path: string): Promise<void> {
+    private async injectingScript(pageId: string, scriptPath: string): Promise<void> {
         if (!this.context) throw new Error('Context not found');
         const page = this.pages.get(pageId);
         if (!page) throw new Error(`Page with id ${pageId} not found`);
         try {
-          await this.context.exposeFunction('sendActionToMain', (action: Action) => {
-            this.emit('action', action);
-          });
           const pageIndex = this.pages_index.get(pageId) || 0;
-          const script = readFileSync(path, 'utf8');
+          console.log(`[BrowserManager] Injecting script - PageId: ${pageId}, PageIndex: ${pageIndex}, Current activePageId: ${this.activePageId}, Current activePageIndex: ${this.pages_index.get(this.activePageId || '')}`);
       
-          const page = this.pages.get(pageId);
-          if (!page) throw new Error(`Page with id ${pageId} not found`);
-      
+          // Set page index vào context (không inject vào script)
           await page.addInitScript(
-            ({ script, pageId }) => {
-              try {
-                (window as any).__PAGE_INDEX__ = pageIndex
-                eval(script);
-              } catch (error) {
-                console.error('Inject script failed', error);
+            (pageIndex) => {
+              (window as any).__PAGE_INDEX__ = pageIndex;
+            },
+            pageIndex
+          );
+          
+          // Đọc và inject script content trực tiếp
+          const scriptContent = readFileSync(scriptPath, 'utf8');
+          await page.addInitScript(
+            (scriptContent) => {
+              // Inject script như module script
+              const script = document.createElement('script');
+              script.type = 'module';
+              script.textContent = scriptContent;
+              // Inject vào head khi có sẵn, nếu không thì đợi DOM ready
+              const injectScript = () => {
+                if (document.head) {
+                  document.head.appendChild(script);
+                } else {
+                  const head = document.createElement('head');
+                  document.documentElement.insertBefore(head, document.documentElement.firstChild);
+                  head.appendChild(script);
+                }
+              };
+              
+              if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', injectScript);
+              } else {
+                injectScript();
               }
             },
-            { script, pageId }
+            scriptContent
           );
           
         } catch (error) {
@@ -505,6 +538,78 @@ export class BrowserManager extends EventEmitter {
             }, { isAssertMode: enabled, type: assertType });
         }
     }
+    private async checkAndLogPageVisibility(): Promise<void> {
+        if (!this.context || this.pages.size === 0) {
+            return;
+        }
+    
+        console.log(`\n--- [${new Date().toLocaleTimeString()}] Kiểm tra trạng thái các trang ---`);
+    
+        const allPages = this.context.pages();
+        let trulyVisiblePageFound = false;
+    
+        // Sử dụng Promise.all để chạy các kiểm tra song song, nhanh hơn
+        const pageStates = await Promise.all(allPages.map(async (page) => {
+            // Tìm pageId và pageIndex tương ứng
+            let pageId = '';
+            let pageIndex: number | undefined;
+            for (const [id, p] of this.pages.entries()) {
+                if (p === page) {
+                    pageId = id;
+                    pageIndex = this.pages_index.get(id);
+                    break;
+                }
+            }
+    
+            if (page.isClosed()) {
+                return { pageIndex, pageId, status: 'ĐÃ ĐÓNG' };
+            }
+    
+            try {
+                // Chạy evaluate để lấy cả hai thuộc tính cùng lúc
+                const state = await page.evaluate(() => {
+                    return {
+                        visibility: document.visibilityState,
+                        hasFocus: document.hasFocus()
+                    };
+                });
+                
+                // Một trang chỉ được coi là thực sự visible nếu cả hai điều kiện đều đúng
+                // Hoặc ít nhất là visibilityState là 'visible'
+                const isTrulyVisible = state.visibility === 'visible' && state.hasFocus;
+                if(isTrulyVisible) {
+                    trulyVisiblePageFound = true;
+                }
+    
+                return {
+                    pageIndex,
+                    pageId,
+                    status: `${state.visibility.toUpperCase()} (hasFocus: ${state.hasFocus})`,
+                    isTrulyVisible
+                };
+    
+            } catch (error) {
+                return {
+                    pageIndex,
+                    pageId,
+                    status: `LỖI (${(error as Error).message})`,
+                    isTrulyVisible: false
+                };
+            }
+        }));
+    
+        // In kết quả đã thu thập
+        for (const state of pageStates) {
+            // Thêm dấu hiệu để dễ nhận biết trang đang active
+            const indicator = state.isTrulyVisible ? ' <<-- ACTIVE' : '';
+            console.log(` - Trang Index ${state.pageIndex ?? 'N/A'} (ID: ${state.pageId}): ${state.status}${indicator}`);
+        }
+    
+        if (!trulyVisiblePageFound && allPages.length > 0) {
+            console.log("   (Lưu ý: Không có trang nào đang nhận focus. Hãy thử click vào cửa sổ trình duyệt.)");
+        }
+        console.log(`-------------------------------------------------\n`);
+    }
     private async basicSetupPage(pageId: string): Promise<void> {
         const page = this.pages.get(pageId);
         if (!page) throw new Error(`Page with id ${pageId} not found`);
@@ -526,4 +631,5 @@ export class BrowserManager extends EventEmitter {
        
         
     }
+    
 }

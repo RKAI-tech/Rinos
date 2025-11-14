@@ -274,7 +274,6 @@ export class Controller {
         if (!Array.isArray(actions) || actions.length === 0) {
             throw new Error('Actions array is required and cannot be empty');
         }
-        
        
         for (let i = 0; i < actions.length; i++) {
             const action = actions[i];
@@ -536,16 +535,19 @@ export class Controller {
                         }
                         break;
                     }
+                    //nhúng script chạy ngay 1 thao tác gì đó
+                    
                     default:
                         continue;
                 }
-
+               
                 await this.waitForAppIdle();
                 // Add small delay between actions to prevent race conditions
                 if (i < actions.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, 100));
                 }
 
+    
             } catch (error) {
                 console.error(`[Controller] Error executing action ${i + 1} (${action.action_type}):`, error);
                 // Emit failed event

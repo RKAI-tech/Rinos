@@ -16,8 +16,8 @@ import { handleDragStartEvent, handleDragEndEvent, handleDropEvent } from '../ac
 import { handleUploadChangeEvent } from '../actions/upload_handle.js';
 import { handleScrollEvent } from '../actions/scroll_handle.js';
 import { handleWindowResizeEvent, setExecutingActionsState } from '../actions/window_resize.js';
-import { initializeAddressBarNavigationListener, initializeTabActivateListener } from '../actions/page_action_handle.js';
-
+import { initializeAddressBarNavigationListener } from '../actions/navigate_handle.js';
+// import { initializeTabActivateListener } from '../actions/page_focus_handle.js';
 let globalAssertMode = false;
 let browserControls = null;
 let browserHandlersDisposer = null;
@@ -269,7 +269,6 @@ export function initializeEventListeners() {
   document.addEventListener('drop', handleAssertCaptureBlocking, true);
   document.addEventListener('contextmenu', handleAssertCaptureBlocking, true);
   document.addEventListener('dblclick', handleAssertCaptureBlocking, true);
-
 }
 
 export function initializeHoverEffects() {
@@ -315,7 +314,7 @@ export function initializeTracking() {
   initializeEventListeners();
   initializeHoverEffects();
   initializeAddressBarNavigationListener();
-  initializeTabActivateListener();
+  // initializeTabActivateListener();
 
   // Expose functions to main process
   window.setAssertMode = function (enabled, assertType) {
