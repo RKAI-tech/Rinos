@@ -411,7 +411,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             prev, 
             { 
               action_type: ActionType.navigate, 
-              action_datas: [{ value: { value: url } }] 
+              action_datas: [{ value: { value: url } },{ value: { page_index: 0 } }] 
             }
           );
           setIsDirty(true);

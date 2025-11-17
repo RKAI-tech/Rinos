@@ -16,8 +16,8 @@ import { handleDragStartEvent, handleDragEndEvent, handleDropEvent } from '../ac
 import { handleUploadChangeEvent } from '../actions/upload_handle.js';
 import { handleScrollEvent } from '../actions/scroll_handle.js';
 import { handleWindowResizeEvent, setExecutingActionsState } from '../actions/window_resize.js';
-import { initializeAddressBarNavigationListener } from '../actions/navigate_handle.js';
 // import { initializeTabActivateListener } from '../actions/page_focus_handle.js';
+// import { initializeNavigateHandle } from '../actions/navigate_handle.js';
 let globalAssertMode = false;
 let browserControls = null;
 let browserHandlersDisposer = null;
@@ -315,7 +315,8 @@ export function initializeTracking() {
   initBrowserControls();
   initializeEventListeners();
   initializeHoverEffects();
-  initializeAddressBarNavigationListener();
+  // initializeNavigateHandle();
+  
   // initializeTabActivateListener();
 
   // Expose functions to main process

@@ -274,22 +274,13 @@ export class Controller {
         if (!Array.isArray(actions) || actions.length === 0) {
             throw new Error('Actions array is required and cannot be empty');
         }
-       
         for (let i = 0; i < actions.length; i++) {
             const action = actions[i];
-            const pageIndex = action.action_datas?.[0]?.value?.page_index || 0;
-            if (this.browserManager) {
-                let pageId:string|null=null;
-                for (const [idd, index] of this.browserManager.pages_index.entries()) {
-                    if (index === pageIndex) {
-                        pageId = idd;
-                        break;
-                    }
-                }
-                if (pageId) {
-                    this.browserManager.activePageId = pageId;
-                }else{
-                    throw new Error('Page not found');
+            let pageIndex = 0;
+            for (const action_data of action.action_datas || []) {
+                if (action_data.value?.page_index) {
+                    pageIndex = action_data.value?.page_index;
+                    break;
                 }
             }
             // change active page id
@@ -298,26 +289,38 @@ export class Controller {
                 switch (action.action_type) {
 
                     case ActionType.navigate:{
-                        if (!action.action_datas?.[0]?.value?.value) {
+                        let url=""
+                        for (const action_data of action.action_datas || []) {
+                            if (action_data.value?.value) {
+                                url = action_data.value?.value;
+                                break;
+                            }
+                        }
+                        if (!url) {
                             throw new Error('URL is required for navigate action');
                         }
-                        const activePage = await this.getPage(pageIndex);
-                        await this.navigate(activePage, action.action_datas?.[0]?.value?.value);
+                        const activePage = await this.getPage(pageIndex);    
+                                        
+                        await this.navigate(activePage, url);
+                        activePage.bringToFront();
                         break;
                     }
                     case ActionType.reload:
                     {
                         const activePage = await this.getPage(pageIndex);
+                        activePage.bringToFront();
                         await this.reload(activePage);  
                         break;
                     }
                     case ActionType.back:{
-                        const activePage = await this.getPage(action.action_datas?.[0]?.value?.pageIndex || 0);
+                        const activePage = await this.getPage(pageIndex);
+                        activePage.bringToFront();
                         await activePage.goBack();
                         break;
                     }
                     case ActionType.add_browser_storage:{
                         const activePage = await this.getPage(pageIndex);
+                        activePage.bringToFront();
                         // console.log('[Controller] Action:', action);
                         if (action.action_datas?.[0]?.browser_storage) {
                             const browser_storage = action.action_datas?.[0]?.browser_storage;
@@ -334,9 +337,11 @@ export class Controller {
                     case ActionType.click:
                         {
                             const activePage = await this.getPage(pageIndex);
+                            activePage.bringToFront();
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(activePage, selectors);
+                        
                             try {
                                 await activePage.click(uniqueSelector, { timeout: 5000 });
                                 // console.log(`[Controller] Clicked on unique selector: ${uniqueSelector}`);
@@ -351,29 +356,62 @@ export class Controller {
                         }
                     case ActionType.input:{
                         const activePage = await this.getPage(pageIndex);
+                        activePage.bringToFront();
+                        let value=""
+                        for (const action_data of action.action_datas || []) {
+                            if (action_data.value?.value) {
+                                value = action_data.value?.value;
+                                break;
+                            }
+                        }
+                        if (!value) {
+                            throw new Error('Value is required for input action');
+                        }
                         if (action.elements) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(activePage, selectors);
-                            await activePage.fill(uniqueSelector, action.action_datas?.[0]?.value?.value || '');
+                            await activePage.fill(uniqueSelector, value);
                             }
                             break;
                         }
                     case ActionType.select:{
                         const activePage = await this.getPage(pageIndex);
+                        activePage.bringToFront();
+                        let value=""
+                        for (const action_data of action.action_datas || []) {
+                            if (action_data.value?.value) {
+                                value = action_data.value?.value;
+                                break;
+                            }
+                        }
+                        if (!value) {
+                            throw new Error('Value is required for select action');
+                        }
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(activePage, selectors);
-                            await activePage.selectOption(uniqueSelector, action.action_datas?.[0]?.value?.value || '');
+                            await activePage.selectOption(uniqueSelector, value);
                             }
                             break;
                         }
                     case ActionType.checkbox:{
                         const activePage = await this.getPage(pageIndex);
+                        activePage.bringToFront();
+                        let value=""
+                        for (const action_data of action.action_datas || []) {
+                            if (action_data.value?.value) {
+                                value = action_data.value?.value;
+                                break;
+                            }
+                        }
+                        if (!value) {
+                            throw new Error('Value is required for checkbox action');
+                        }
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(activePage, selectors);
                             // console.log(uniqueSelector)
-                            if (action.action_datas?.[0]?.value?.checked === 'true') {
+                            if (value === 'true') {
                                 await activePage.check(uniqueSelector);
                             } else {
                                 await activePage.uncheck(uniqueSelector);
@@ -384,15 +422,24 @@ export class Controller {
                     case ActionType.keydown:
                     {
                         const activePage = await this.getPage(pageIndex);
+                        activePage.bringToFront();
+                            let value=""
+                        for (const action_data of action.action_datas || []) {
+                            if (action_data.value?.value) {
+                                value = action_data.value?.value;
+                                break;
+                            }
+                        }
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(activePage, selectors);
-                            await activePage.locator(uniqueSelector).press(action.action_datas?.[0]?.value?.value || '');
+                            await activePage.locator(uniqueSelector).press(value);
                         }
                         break;
                     }
                     case ActionType.upload:{
                         const activePage = await this.getPage(pageIndex);
+                        activePage.bringToFront();
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(activePage, selectors);
@@ -438,6 +485,14 @@ export class Controller {
                     }
                     case ActionType.change:{
                         const activePage = await this.getPage(pageIndex);
+                        activePage.bringToFront();
+                        let value=""
+                        for (const action_data of action.action_datas || []) {
+                            if (action_data.value?.value) {
+                                value = action_data.value?.value;
+                                break;
+                            }
+                        }
                         if (action.elements && action.elements.length === 1) {
                             try {
                                 const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
@@ -452,11 +507,20 @@ export class Controller {
                     }
                     case ActionType.wait:{
                         const activePage = await this.getPage(pageIndex);
-                        await activePage.waitForTimeout(Number(action.action_datas?.[0]?.value?.value) || 0);
+                        activePage.bringToFront();
+                        let value=""
+                        for (const action_data of action.action_datas || []) {
+                            if (action_data.value?.value) {
+                                value = action_data.value?.value;
+                                break;
+                            }
+                        }
+                        await activePage.waitForTimeout(Number(value) || 0);
                         break;
                     }
                     case ActionType.drag_and_drop:{
                         const activePage = await this.getPage(pageIndex);
+                        activePage.bringToFront();
                         if (action.elements && action.elements.length === 2) {
                             const sourceCandidates = action.elements[0].selectors?.map(s => s.value) || [];
                             const targetCandidates = action.elements[1].selectors?.map(s => s.value) || [];
@@ -480,10 +544,18 @@ export class Controller {
                     }
                     case ActionType.scroll:{
                         const activePage = await this.getPage(pageIndex);
+                        activePage.bringToFront();
                         //Format y X:,y:
                         let x = 0;
                         let y = 0;
-                        const match = action.action_datas?.[0]?.value?.value?.match(/X\s*:\s*(\d+)\s*,\s*Y\s*:\s*(\d+)/i);
+                        let value=""
+                        for (const action_data of action.action_datas || []) {
+                            if (action_data.value?.value) {
+                                value = action_data.value?.value;
+                                break;
+                            }
+                        }
+                        const match = value?.match(/X\s*:\s*(\d+)\s*,\s*Y\s*:\s*(\d+)/i);
                         if (match) {
                             x = Number(match[1]);
                             y = Number(match[2]);
@@ -505,9 +577,17 @@ export class Controller {
                     }
                     case ActionType.window_resize:{
                         const activePage = await this.getPage(pageIndex);
-                        let width = 0;
+                        activePage.bringToFront();
+                            let width = 0;
                         let height = 0;
-                        const match_window_resize = action.action_datas?.[0]?.value?.value?.match(/Width\s*:\s*(\d+)\s*,\s*Height\s*:\s*(\d+)/i);
+                        let value=""
+                        for (const action_data of action.action_datas || []) {
+                            if (action_data.value?.value) {
+                                value = action_data.value?.value;
+                                break;
+                            }
+                        }
+                        const match_window_resize = value?.match(/Width\s*:\s*(\d+)\s*,\s*Height\s*:\s*(\d+)/i);
                         if (match_window_resize) {
                             width = Number(match_window_resize[1]);
                             height = Number(match_window_resize[2]);
@@ -526,6 +606,7 @@ export class Controller {
                     }
                     case ActionType.api_request:{
                         const activePage = await this.getPage(pageIndex);
+                        activePage.bringToFront();
                         {
                             const apiData = (action.action_datas || []).find(d => (d as any).api_request)?.api_request as ApiRequestData | undefined;
                             if (apiData) {
@@ -535,7 +616,46 @@ export class Controller {
                         }
                         break;
                     }
-                    //nhúng script chạy ngay 1 thao tác gì đó
+                    case ActionType.page_create:{
+                        let pageIndex:number|undefined;
+                        for (const action_data of action.action_datas || []) {
+                            if (action_data.value?.page_index) {
+                                pageIndex = action_data.value?.page_index;
+                                break;
+                            }
+                        }
+                        if (!pageIndex) {
+                            throw new Error('Page index is required for page create action');
+                        }
+                        let url:string|undefined;
+                        for (const action_data of action.action_datas || []) {
+                            if (action_data.value?.value) {
+                                url = action_data.value?.value;
+                                break;
+                            }
+                        }
+                        let openerPageIndex:number|undefined;
+                        for (const action_data of action.action_datas || []) {
+                           
+                            if (action_data.value?.opener_index!==undefined) {
+                                openerPageIndex = action_data.value?.opener_index;
+                                break;
+                            }
+                        }
+                        console.log('[Controller] Opener Page Index:', openerPageIndex);
+                        if (openerPageIndex===undefined) {
+                     
+                            const activePage = await this.browserManager?.createPage(pageIndex, url);
+                            if (!activePage) throw new Error('Failed to create page');
+                            await activePage.bringToFront();
+                        }
+                        break;
+                    }
+                    case ActionType.page_close:{
+                        const activePage = await this.getPage(pageIndex);
+                        await activePage.close();
+                        break;
+                    }
                     
                     default:
                         continue;
@@ -550,16 +670,10 @@ export class Controller {
     
             } catch (error) {
                 console.error(`[Controller] Error executing action ${i + 1} (${action.action_type}):`, error);
-                // Emit failed event
                 this.onActionFailed?.(i);
-                // Don't throw error, continue with next action
-                // throw error;
+
             }
         }
-
-        // console.log(`[Controller] Finished executing ${actions.length} actions`);
-
-        // Emit execution completed event
         this.onActionExecuting?.(-1); // Use -1 to indicate all actions completed
     }
 }

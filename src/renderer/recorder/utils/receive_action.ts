@@ -111,9 +111,23 @@ export function createDescription(action_received: any): string {
     
                 return `Focus on page ${title} `;
         case ActionType.page_create:
-            return `Create page`;
+            let pageUrl = 'blank';
+            for (const action_data of action_received.action_datas || []) {
+                if (action_data.value?.value) {
+                    pageUrl = action_data.value?.value;
+                    break;
+                }
+            }
+            return `Create page ${pageUrl}`;
         case ActionType.page_close:
-            return `Close page`;
+            let pageUrlClose = 'blank';
+            for (const action_data of action_received.action_datas || []) {
+                if (action_data.value?.value) {
+                    pageUrlClose = action_data.value?.value;
+                    break;
+                }
+            }
+            return `Close page ${pageUrlClose}`;
         case ActionType.api_request:
             const apiRequest = action_received.action_datas?.[0]?.api_request;
             const method = apiRequest?.method ? apiRequest.method.toUpperCase() : 'GET';
