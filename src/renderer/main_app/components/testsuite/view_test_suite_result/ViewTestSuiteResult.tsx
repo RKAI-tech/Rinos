@@ -290,7 +290,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       if (!silent) setIsLoading(true);
       setError(null);
       const resp = await svc.getTestCasesBySuite({ test_suite_id: testSuiteId });
-      console.log('response:', resp);
+      // console.log('response:', resp);
       if (resp.success && resp.data) {
         const mapped: CaseItem[] = (resp.data.testcases || []).map((tc) => {
           // Extract screenshots - handle both array of strings and array of objects
@@ -344,7 +344,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
         }
       }
     } catch (e) {
-      console.error('Failed to fetch test suite name:', e);
+      // console.error('Failed to fetch test suite name:', e);
     }
   }, [isOpen, testSuiteId, projectId, svc]);
 

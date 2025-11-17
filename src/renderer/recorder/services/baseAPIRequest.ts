@@ -42,7 +42,7 @@ export class ApiRouter {
       
       // Log request for debugging
       if (options.method === 'POST' || options.method === 'PUT' || options.method === 'PATCH') {
-        console.log('[ApiRouter] Request body:', options.body);
+        // console.log('[ApiRouter] Request body:', options.body);
       }
       
       const response = await fetch(url, fetchOptions);

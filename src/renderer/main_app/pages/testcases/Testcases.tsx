@@ -78,7 +78,7 @@ const Testcases: React.FC = () => {
       const response = await testCaseService.getTestCases(projectData.projectId, 1000, 0);
       if (response.success && response.data) {
         const resp = response.data.testcases;
-        console.log('[MAIN_APP] Testcases', resp);       
+        // console.log('[MAIN_APP] Testcases', resp);       
         const mapped: Testcase[] = resp.map((tc: any)=> {
           return {
             testcase_id: tc.testcase_id,
@@ -105,7 +105,7 @@ const Testcases: React.FC = () => {
             },
           };
         });
-        console.log('[MAIN_APP] mapped', mapped);
+        // console.log('[MAIN_APP] mapped', mapped);
         
         setTestcasesData(mapped);
         
@@ -117,12 +117,12 @@ const Testcases: React.FC = () => {
       } else {
         setError(response.error || 'Failed to load testcases');
         // toast.error('Failed to load testcases');
-        console.error('Failed to load testcases', response.error);
+        // console.error('Failed to load testcases', response.error);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred';
       setError(message);
-      console.error('Failed to load testcases', message);
+      // console.error('Failed to load testcases', message);
       // toast.error('Failed to load testcases');
     } finally {
       setIsLoading(false);

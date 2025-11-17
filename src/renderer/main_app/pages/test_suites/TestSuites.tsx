@@ -71,7 +71,7 @@ const TestSuites: React.FC = () => {
       setError(null);
       const svc = new TestSuiteService();
       const resp = await svc.getTestSuites(projectId);
-      console.log('response:', resp);
+      // console.log('response:', resp);
       if (resp.success && resp.data) {
         const mapped: TestSuite[] = resp.data.test_suites.map(ts => ({
           id: ts.test_suite_id,

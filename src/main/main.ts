@@ -38,7 +38,7 @@ app.whenReady().then(() => {
       });
     });
   } catch (e) {
-    console.error("Error registering global shortcut:", e);
+    // console.error("Error registering global shortcut:", e);
   }
   
   app.on("activate", () => {

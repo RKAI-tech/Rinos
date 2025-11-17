@@ -43,10 +43,6 @@ const RunQuery: React.FC<RunQueryProps> = ({ isOpen, sql, queryName, items, onCl
     setVal(value);
     setIsVarOpen(true);
   };
-
-  useEffect(() => {
-    console.log('items', items);
-  }, [items]);
   
   const handleSaveVar = async () => {
     try {

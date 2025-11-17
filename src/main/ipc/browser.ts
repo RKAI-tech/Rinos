@@ -153,7 +153,7 @@ export function registerBrowserIpc() {
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
         if (!manager.page) {
-            console.error('[Browser] Cannot reload: page is null');
+            // console.error('[Browser] Cannot reload: page is null');
             return;
         }
         await manager.controller?.reload(manager.page);
@@ -164,7 +164,7 @@ export function registerBrowserIpc() {
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
         if (!manager.page) {
-            console.error('[Browser] Cannot go back: page is null');
+            // console.error('[Browser] Cannot go back: page is null');
             return;
         }
         await manager.controller?.goBack(manager.page);
@@ -175,7 +175,7 @@ export function registerBrowserIpc() {
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
         if (!manager.page) {
-            console.error('[Browser] Cannot go forward: page is null');
+            // console.error('[Browser] Cannot go forward: page is null');
             return;
         }
         await manager.controller?.goForward(manager.page);
@@ -205,9 +205,9 @@ export function registerBrowserIpc() {
     
     ipcMain.handle("browser:setAuthToken", async (event, token: string | null) => {
         const win = getWindowFromEvent(event);
-        console.log('[Browser] Setting auth token:', win);
+        // console.log('[Browser] Setting auth token:', win);
         if (!win) return;
-        console.log('[Browser] Setting auth token:', token);
+        // console.log('[Browser] Setting auth token:', token);
         const manager = getOrCreateManagerForWindow(win);
         manager.setAuthToken(token);
     });

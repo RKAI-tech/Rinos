@@ -41,10 +41,6 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
       void loadTestcaseData();
     }
   }, [isOpen, testcaseId, projectId, testcaseData]);
-
-  useEffect(() => {
-    console.log('[MAIN_APP] result', result);
-  }, [result]);
   
   const loadTestcaseData = async () => {
     if (!testcaseId) return;
