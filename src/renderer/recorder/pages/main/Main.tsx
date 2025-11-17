@@ -627,6 +627,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             statement: {
               statement_text: databaseElement.query,
               connection_id: databaseElement.connection?.connection_id,
+              connection: databaseElement.connection,
             }
           });
         }

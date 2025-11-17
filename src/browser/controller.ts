@@ -238,8 +238,6 @@ export class Controller {
             throw new Error('[Controller] Invalid inputs for resolveUniqueSelector');
         }
 
-        // console.log(`[Controller] Resolving unique selector from candidates:`, selectors);
-
         for (const raw of selectors) {
             const s = String(raw).trim();
             if (!s) continue;
@@ -247,32 +245,22 @@ export class Controller {
             try {
                 let locator;
 
-                // Handle XPath selectors
                 if (s.startsWith('xpath=') || s.startsWith('/')) {
                     const xpathExpr = s.startsWith('xpath=') ? s.substring(6) : s;
                     locator = page.locator(`xpath=${xpathExpr}`);
                 } else {
-                    // Handle CSS selectors
                     locator = page.locator(s);
                 }
 
-                // Wait for element to be attached
                 await locator.first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => { });
 
-                // Check if selector is unique
                 const count = await locator.count();
-                // console.log(`[Controller] Selector "${s}" found ${count} elements`);
 
                 if (count === 1) {
-                    // Normalize return: if original is raw XPath, prefix with 'xpath='
                     const normalized = (s.startsWith('/') || s.startsWith('(')) ? `xpath=${s}` : s;
-                    // console.log(`[Controller] Using unique selector: ${normalized}`);
                     return normalized;
                 }
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : String(error);
-                // console.log(`[Controller] Selector "${s}" failed:`, errorMessage);
-                // ignore and try next selector
             }
         }
 
@@ -342,7 +330,13 @@ export class Controller {
                         if (action.elements) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(page, selectors);
-                            await page.fill(uniqueSelector, action.action_datas?.[0]?.value?.value || '');
+                            try {
+                                await page.fill(uniqueSelector, action.action_datas?.[0]?.value?.value || '');
+                            } catch (error) {
+                                // console.error('Error filling', error)
+                                const jsCode = `document.querySelector('${uniqueSelector}').value = '${action.action_datas?.[0]?.value?.value || ''}';`;
+                                await page.evaluate(jsCode);
+                            }
                         }
                         break;
                     case ActionType.select:

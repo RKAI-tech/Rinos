@@ -135,6 +135,9 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
 
   if (!isOpen) return null;
 
+  // Get status from result or testcaseData prop
+  const testcaseStatus = result?.status || testcaseData?.status;
+
   return (
     <div className="ravt-overlay" onClick={handleClose}>
       <div className="ravt-container" onClick={(e) => e.stopPropagation()}>
@@ -152,7 +155,12 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
           style={{ zIndex: 2147483648 }}
         />
         <div className="ravt-header">
-          <h2 className="ravt-title">{testcaseName || 'View Testcase Results'}</h2>
+          <h2 className="ravt-title">
+            {testcaseStatus === 'Passed' && <span className="ravt-status-icon ravt-status-success">✓</span>}
+            {testcaseStatus === 'Failed' && <span className="ravt-status-icon ravt-status-failed">✗</span>}
+            {testcaseStatus === 'Running' && <span className="ravt-status-icon ravt-status-running">⟳</span>}
+            {testcaseName || 'View Testcase Results'}
+          </h2>
           <button className="ravt-close" onClick={handleClose} aria-label="Close">✕</button>
         </div>
 

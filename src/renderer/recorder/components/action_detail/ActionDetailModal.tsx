@@ -537,7 +537,7 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
               <div className="rcd-action-detail-section-title">Playwright</div>
               <div className="rcd-action-detail-editor">
                 <Editor
-                  value={draft.action_datas?.[0]?.value?.["playwright_code"] || ''}
+                  value={draft.action_datas?.[0]?.value?.function_code || ''}
                   language="javascript"
                   theme="vs"
                   onChange={(value) => updateActionDataPlaywrightCode(value || '')}
