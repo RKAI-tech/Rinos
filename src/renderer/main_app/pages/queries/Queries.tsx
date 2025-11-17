@@ -19,6 +19,8 @@ interface QueryItem {
   name: string;
   description?: string;
   status?: string;
+  db_name?: string;
+  db_type?: string;
 }
 
 const Queries: React.FC = () => {
@@ -68,7 +70,10 @@ const Queries: React.FC = () => {
           name: it.name,
           description: it.description,
           status: it.status,
+          db_name: it.connection?.db_name,
+          db_type: it.connection?.db_type,
         }));
+        console.log('items', items);
         setQueries(items);
       } else {
         setError(resp.error || 'Failed to load queries');
@@ -428,16 +433,18 @@ const Queries: React.FC = () => {
                         </span>
                       </span>
                     </th>
+                    <th>Database</th>
+                    <th>Type</th>
                     <th>Options</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading ? (
-                    <tr><td colSpan={4} className="qry-center">Loading...</td></tr>
+                    <tr><td colSpan={6} className="qry-center">Loading...</td></tr>
                   ) : error ? (
-                    <tr><td colSpan={4} className="qry-center qry-error">{error}</td></tr>
+                    <tr><td colSpan={6} className="qry-center qry-error">{error}</td></tr>
                   ) : currentItems.length === 0 ? (
-                    <tr><td colSpan={4} className="qry-center">No queries</td></tr>
+                    <tr><td colSpan={6} className="qry-center">No queries</td></tr>
                   ) : (
                     currentItems.map((q) => (
                       <tr key={q.id}>
@@ -450,6 +457,8 @@ const Queries: React.FC = () => {
                             </span>
                           ) : '-'}
                         </td>
+                        <td className="qry-db-name">{q.db_name || '-'}</td>
+                        <td className="qry-db-type">{q.db_type || '-'}</td>
                         <td className="qry-actions">
                           <div className="actions-container">
                             <button className="actions-btn" onClick={() => setOpenDropdownId(openDropdownId === q.id ? null : q.id)}>
@@ -467,12 +476,14 @@ const Queries: React.FC = () => {
                                     const svc = new StatementService();
                                     setSelectedQuery({ id: q.id, name: q.name });
                                     const resp = await svc.runStatementById(q.id);
+                                    console.log('resp', resp);
                                     if (resp.success) {
                                       toast.success('Query is running');
                                       // StatementRunByIdResponse does not include statement_text; keep last known
                                       setRunSql(q.name);
-                                      const items = (resp.data?.data || []).map((d: any) => ({ name: d.name, value: String(d.value) }));
-                                      setRunItems(items);
+                                      // const items = (resp.data?.data || []).map((d: any) => ({ name: d.name, value: String(d.value) }));
+                                      // setRunItems(items);
+                                      setRunItems(resp.data?.data || []);
                                       setIsRunOpen(true);
                                     } else {
                                       toast.error(resp.error || 'Failed to run query');
@@ -550,7 +561,14 @@ const Queries: React.FC = () => {
               if (projectId) {
                 const list = await svc.getStatementsByProject(projectId);
                 if (list.success && list.data) {
-                  const items: QueryItem[] = list.data.items.map(it => ({ id: it.statement_id, name: it.name, description: it.description, status: it.status }));
+                  const items: QueryItem[] = list.data.items.map(it => ({ 
+                    id: it.statement_id, 
+                    name: it.name, 
+                    description: it.description, 
+                    status: it.status,
+                    db_name: it.connection?.db_name,
+                    db_type: it.connection?.db_type,
+                  }));
                   setQueries(items);
                 }
               }
@@ -576,7 +594,14 @@ const Queries: React.FC = () => {
               if (projectId) {
                 const list = await svc.getStatementsByProject(projectId);
                 if (list.success && list.data) {
-                  const items: QueryItem[] = list.data.items.map(it => ({ id: it.statement_id, name: it.name, description: it.description, status: it.status }));
+                  const items: QueryItem[] = list.data.items.map(it => ({ 
+                    id: it.statement_id, 
+                    name: it.name, 
+                    description: it.description, 
+                    status: it.status,
+                    db_name: it.connection?.db_name,
+                    db_type: it.connection?.db_type,
+                  }));
                   setQueries(items);
                 }
               }
@@ -591,6 +616,7 @@ const Queries: React.FC = () => {
       <RunQuery
         isOpen={isRunOpen}
         sql={runSql}
+        queryName={selectedQuery?.name}
         items={runItems}
         projectId={projectId}
         statementId={selectedQuery?.id || undefined}

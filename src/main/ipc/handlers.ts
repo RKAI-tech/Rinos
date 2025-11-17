@@ -21,13 +21,21 @@ export function registerIpcHandlers() {
   });
 
   // Handler để đóng tất cả cửa sổ
-  ipcMain.handle("close-all-windows", () => {
-    BrowserWindow.getAllWindows().forEach((window: BrowserWindow) => {
-      if (!window.isDestroyed()) {
-        window.close();
-      }
-    });
-  });
+  ipcMain.handle(
+    "close-all-windows",
+    (event, options?: { preserveSender?: boolean }) => {
+      const senderId = options?.preserveSender ? event.sender.id : undefined;
+
+      BrowserWindow.getAllWindows().forEach((window) => {
+        if (options?.preserveSender && window.webContents.id === senderId) {
+          return;
+        }
+        if (!window.isDestroyed()) {
+          window.close();
+        }
+      });
+    }
+  );
 
   // Handler để minimize window
   ipcMain.handle("minimize-window", (event) => {

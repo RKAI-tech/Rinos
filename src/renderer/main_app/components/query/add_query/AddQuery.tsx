@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import './AddQuery.css';
 import { DatabaseService } from '../../../services/database';
 
@@ -26,6 +26,7 @@ const AddQuery: React.FC<AddQueryProps> = ({ isOpen, projectId, onClose, onSave 
   const [connectionId, setConnectionId] = useState('');
   const [connections, setConnections] = useState<ConnectionOption[]>([]);
   const [errors, setErrors] = useState<Partial<Record<'name' | 'statement' | 'connection', string>>>({});
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadConnections = async () => {
@@ -62,6 +63,15 @@ const AddQuery: React.FC<AddQueryProps> = ({ isOpen, projectId, onClose, onSave 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
+  }, [isOpen]);
+
+  // Auto-focus on first input when modal opens
+  useEffect(() => {
+    if (isOpen && nameInputRef.current) {
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 100);
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -107,7 +117,7 @@ const AddQuery: React.FC<AddQueryProps> = ({ isOpen, projectId, onClose, onSave 
               Query Name <span className="aq-required">*</span>
               <Tooltip text="The name of this query. Must be unique within your project." />
             </label>
-            <input id="aqName" className={`aq-form-input ${errors.name ? 'aq-error' : ''}`} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Get users"
+            <input ref={nameInputRef} id="aqName" className={`aq-form-input ${errors.name ? 'aq-error' : ''}`} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Get users"
             />
             {errors.name && <span className="aq-error-message">{errors.name}</span>}
           </div>

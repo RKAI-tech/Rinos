@@ -17,7 +17,7 @@ import { DefaultResponse } from '../types/api_responses';
 export class StatementService {
      // Statements (Queries)
      async createAndRunStatement(payload: StatementCreateRequest): Promise<ApiResponse<StatementRunResponse>> {
-        if (!payload || !payload.connection_id || !payload.statement_text || !payload.name || !payload.description) {
+        if (!payload || !payload.connection_id || !payload.statement_text || !payload.name) {
             return { success: false, error: 'connection_id and statement_text are required' };
         }
         return await apiRouter.request<StatementRunResponse>('/statements/create_and_run', {

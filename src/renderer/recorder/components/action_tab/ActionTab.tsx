@@ -46,6 +46,8 @@ interface ActionTabProps {
   failedActionIndex?: number | null;
   onOpenBasicAuth?: () => void;
   projectId?: string | null;
+  basicAuthStatus?: 'idle' | 'success';
+  onBasicAuthStatusClear?: () => void;
 }
 
 const ActionTab: React.FC<ActionTabProps> = ({
@@ -75,7 +77,9 @@ const ActionTab: React.FC<ActionTabProps> = ({
   executingActionIndex,
   failedActionIndex,
   onOpenBasicAuth,
-  projectId
+  projectId,
+  basicAuthStatus,
+  onBasicAuthStatusClear
 }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -86,6 +90,86 @@ const ActionTab: React.FC<ActionTabProps> = ({
   const [isAddBrowserStorageOpen, setIsAddBrowserStorageOpen] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const [reloadStatus, setReloadStatus] = useState<'idle' | 'loading' | 'success'>('idle');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'loading' | 'success'>('idle');
+  const reloadTimeoutRef = useRef<number | null>(null);
+  const saveTimeoutRef = useRef<number | null>(null);
+  const basicAuthTimeoutRef = useRef<number | null>(null);
+  const successDisplayDuration = 1600;
+
+  const clearReloadTimeout = () => {
+    if (reloadTimeoutRef.current != null) {
+      window.clearTimeout(reloadTimeoutRef.current);
+      reloadTimeoutRef.current = null;
+    }
+  };
+
+  const clearSaveTimeout = () => {
+    if (saveTimeoutRef.current != null) {
+      window.clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+  };
+
+  const clearBasicAuthTimeout = () => {
+    if (basicAuthTimeoutRef.current != null) {
+      window.clearTimeout(basicAuthTimeoutRef.current);
+      basicAuthTimeoutRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      clearReloadTimeout();
+      clearSaveTimeout();
+      clearBasicAuthTimeout();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (basicAuthStatus !== 'success' || !onBasicAuthStatusClear) {
+      clearBasicAuthTimeout();
+      return;
+    }
+
+    clearBasicAuthTimeout();
+    basicAuthTimeoutRef.current = window.setTimeout(() => {
+      onBasicAuthStatusClear();
+      basicAuthTimeoutRef.current = null;
+    }, successDisplayDuration);
+
+    return () => {
+      clearBasicAuthTimeout();
+    };
+  }, [basicAuthStatus, onBasicAuthStatusClear]);
+
+  const successIcon = (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="success">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+      <path d="M8 12.5L10.5 15L16 9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+
+  const shouldShowReloadSpinner = reloadStatus === 'loading' || (reloadStatus === 'idle' && !!isReloading);
+  const shouldShowSaveSpinner = saveStatus === 'loading' || (saveStatus === 'idle' && !!isSaving);
+
+  const setReloadSuccessWithTimeout = () => {
+    clearReloadTimeout();
+    setReloadStatus('success');
+    reloadTimeoutRef.current = window.setTimeout(() => {
+      setReloadStatus('idle');
+      reloadTimeoutRef.current = null;
+    }, successDisplayDuration);
+  };
+
+  const setSaveSuccessWithTimeout = () => {
+    clearSaveTimeout();
+    setSaveStatus('success');
+    saveTimeoutRef.current = window.setTimeout(() => {
+      setSaveStatus('idle');
+      saveTimeoutRef.current = null;
+    }, successDisplayDuration);
+  };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
@@ -217,34 +301,29 @@ const ActionTab: React.FC<ActionTabProps> = ({
     return result;
   };
 
-  const showResultToast = (result: ActionOperationResult, fallbackSuccess: string, fallbackError: string) => {
-    if (result.success) {
-      toast.success(result.message || fallbackSuccess);
-      return;
-    }
-
-    const level = result.level || 'error';
-    const message = result.message || fallbackError;
-
-    if (level === 'warning') {
-      toast.warning(message);
-    } else {
-      toast.error(message);
-    }
-  };
-
   const handleReloadClick = async () => {
     if (!onReload) {
       return;
     }
 
+    if (reloadStatus === 'loading' || isReloading) {
+      return;
+    }
+
+    clearReloadTimeout();
+    setReloadStatus('loading');
+
     try {
       const rawResult = await onReload();
       const normalized = normalizeResult(rawResult);
-      showResultToast(normalized, 'Actions reloaded successfully', 'Failed to reload actions');
+
+       if (normalized.success) {
+        setReloadSuccessWithTimeout();
+      } else {
+        setReloadStatus('idle');
+      }
     } catch (error) {
-      const message = error instanceof Error ? error.message : undefined;
-      toast.error(message || 'Failed to reload actions');
+      setReloadStatus('idle');
     }
   };
 
@@ -253,13 +332,24 @@ const ActionTab: React.FC<ActionTabProps> = ({
       return;
     }
 
+    if (saveStatus === 'loading' || isSaving) {
+      return;
+    }
+
+    clearSaveTimeout();
+    setSaveStatus('loading');
+
     try {
       const rawResult = await onSaveActions();
       const normalized = normalizeResult(rawResult);
-      showResultToast(normalized, 'Actions saved successfully', 'Failed to save actions');
+
+      if (normalized.success) {
+        setSaveSuccessWithTimeout();
+      } else {
+        setSaveStatus('idle');
+      }
     } catch (error) {
-      const message = error instanceof Error ? error.message : undefined;
-      toast.error(message || 'Failed to save actions');
+      setSaveStatus('idle');
     }
   };
 
@@ -588,10 +678,18 @@ const ActionTab: React.FC<ActionTabProps> = ({
           <div className="rcd-actions-insert-info">Inserting at position #{selectedInsertPosition}</div>
         </div>
         <div className="rcd-actions-buttons">
-          <button className="rcd-action-btn auth" title="Add Basic Http Authentication" onClick={() => onOpenBasicAuth && onOpenBasicAuth()}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 1C9.79086 1 8 2.79086 8 5V7H7C5.34315 7 4 8.34315 4 10V18C4 19.6569 5.34315 21 7 21H17C18.6569 21 20 19.6569 20 18V10C20 8.34315 18.6569 7 17 7H16V5C16 2.79086 14.2091 1 12 1ZM14 7V5C14 3.89543 13.1046 3 12 3C10.8954 3 10 3.89543 10 5V7H14Z" fill="currentColor" />
-            </svg>
+          <button
+            className="rcd-action-btn auth"
+            title="Add Basic Http Authentication"
+            onClick={() => onOpenBasicAuth && onOpenBasicAuth()}
+          >
+            {basicAuthStatus === 'success' ? (
+              successIcon
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 1C9.79086 1 8 2.79086 8 5V7H7C5.34315 7 4 8.34315 4 10V18C4 19.6569 5.34315 21 7 21H17C18.6569 21 20 19.6569 20 18V10C20 8.34315 18.6569 7 17 7H16V5C16 2.79086 14.2091 1 12 1ZM14 7V5C14 3.89543 13.1046 3 12 3C10.8954 3 10 3.89543 10 5V7H14Z" fill="currentColor" />
+              </svg>
+            )}
           </button>
           <div className="rcd-add-action-container">
             <button className="rcd-action-btn add" title="Add new action" onClick={() => onAddAction && onAddAction()}>
@@ -636,14 +734,22 @@ const ActionTab: React.FC<ActionTabProps> = ({
               onConfirm={handleAddBrowserStorageConfirm}
             />
           </div>
-          <button className="rcd-action-btn reset" title="Reload actions" onClick={handleReloadClick}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <polyline points="21,3 21,9 15,9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+          <button className="rcd-action-btn reset" title="Reload actions" onClick={handleReloadClick} disabled={shouldShowReloadSpinner}>
+            {reloadStatus === 'success' && !shouldShowReloadSpinner ? (
+              successIcon
+            ) : shouldShowReloadSpinner ? (
+              <span className="rcd-spinner" aria-label="reloading" />
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <polyline points="21,3 21,9 15,9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
           </button>
-          <button className="rcd-action-btn save" title="Save actions" onClick={handleSaveClick} disabled={!!isSaving || !!isReloading}>
-            {isSaving ? (
+          <button className="rcd-action-btn save" title="Save actions" onClick={handleSaveClick} disabled={shouldShowSaveSpinner || !!isReloading}>
+            {saveStatus === 'success' && !shouldShowSaveSpinner ? (
+              successIcon
+            ) : shouldShowSaveSpinner ? (
               <span className="rcd-spinner" aria-label="saving" />
             ) : (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

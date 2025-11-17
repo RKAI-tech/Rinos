@@ -65,6 +65,9 @@ export default defineConfig(({ mode }) => {
         }
       },
     },
+    esbuild: {
+      drop: mode === 'production' ? ['console', 'debugger'] : [],
+    },
     server: {
       port: 5173,
     },

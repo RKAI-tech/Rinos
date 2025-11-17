@@ -6,7 +6,6 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -23,18 +22,6 @@
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
-  animation: testcaseModalSlideIn 0.3s ease-out;
-}
-
-@keyframes testcaseModalSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 /* Testcase Modal Header */
@@ -267,13 +254,6 @@
 /* Focus Management */
 .testcase-modal-container:focus-within {
   outline: none;
-}
-
-/* Accessibility */
-@media (prefers-reduced-motion: reduce) {
-  .testcase-modal-container {
-    animation: none;
-  }
 }
 
 /* High Contrast Mode */

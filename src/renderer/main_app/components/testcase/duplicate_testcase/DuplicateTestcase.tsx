@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import './DuplicateTestcase.css';
 import '../../../../../renderer/recorder/components/action/Action.css';
 import '../../../../../renderer/recorder/components/action_tab/ActionTab.css';
@@ -34,6 +34,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
   const [isLoadingActions, setIsLoadingActions] = useState(false);
   const actionService = useMemo(() => new ActionService(), []);
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
+  const testcaseNameInputRef = useRef<HTMLInputElement>(null);
   // const [basicAuthList, setBasicAuthList] = useState<{ username: string; password: string }[]>([]); // temporarily hidden
   // const [isLoadingBasicAuth, setIsLoadingBasicAuth] = useState(false); // temporarily hidden
   // const [basicAuthError, setBasicAuthError] = useState<string | null>(null); // temporarily hidden
@@ -144,6 +145,17 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
     };
   }, [isOpen]);
 
+  // Auto-focus on first input when modal opens
+  useEffect(() => {
+    if (isOpen && testcase && testcaseNameInputRef.current) {
+      setTimeout(() => {
+        testcaseNameInputRef.current?.focus();
+        // Select all text for easy editing
+        testcaseNameInputRef.current?.select();
+      }, 100);
+    }
+  }, [isOpen, testcase]);
+
   if (!isOpen || !testcase) return null;
 
   return (
@@ -167,6 +179,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
               Testcase Name <span className="tcase-dup-required-asterisk">*</span>
             </label>
             <input
+              ref={testcaseNameInputRef}
               type="text"
               id="dupTestcaseName"
               value={testcaseName}

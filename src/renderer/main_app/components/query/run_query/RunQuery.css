@@ -8,13 +8,15 @@
 .rqr-label { font-size: 13px; color: #475569; margin-bottom: 6px; }
 .rqr-sql { width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; color: #111827; }
 .rqr-table-card { margin: 12px 20px; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-.rqr-table { width: 100%; border-collapse: collapse; }
+.rqr-table-wrapper { max-height: 360px; overflow: auto; }
+.rqr-table { border-collapse: collapse; min-width: 100%; width: max-content; }
 .rqr-table th { background: #f3f7fa; padding: 12px; text-align: left; font-size: 13px; color: #334155; border-bottom: 1px solid #e5e7eb; }
 .rqr-table td { padding: 12px; border-bottom: 1px solid #eef2f7; font-size: 14px; color: #1f2937; }
-.rqr-table th:last-child { text-align: right; }
-.rqr-options { text-align: right; }
-.rqr-add { background: none; border: none; color: #2563eb; cursor: pointer; font-weight: 600; }
+.rqr-cell { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rqr-cell-value { flex: 1; word-break: break-word; }
+.rqr-add { background: none; border: none; color: #2563eb; cursor: pointer; font-weight: 600; white-space: nowrap; }
 .rqr-add:hover { text-decoration: underline; }
+.rqr-table-empty { margin: 12px 20px; padding: 24px; text-align: center; color: #6b7280; border: 1px dashed #d1d5db; border-radius: 10px; }
 .rqr-modal-actions { display: flex; justify-content: flex-end; gap: 12px; padding: 12px 20px 20px; }
 .rqr-btn { padding: 10px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; border: 1px solid #e5e7eb; background: #fff; color: #374151; cursor: pointer; }
 .rqr-btn-close:hover { background: #f9fafb; }

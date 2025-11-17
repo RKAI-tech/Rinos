@@ -12,8 +12,17 @@ export function createVariablesPanel(onPickVariable) {
   `;
 
   const header = document.createElement('div');
-  header.textContent = 'Variables';
-  header.style.cssText = 'font-weight: 600; font-size: 12px; margin-bottom: 6px;';
+  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:12px;margin-bottom:6px;';
+  const headerTitle = document.createElement('span');
+  headerTitle.textContent = 'Variables';
+  headerTitle.style.cssText = 'display:inline-flex;align-items:center;gap:6px;';
+  const closeBtn = document.createElement('button');
+  closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+  closeBtn.title = 'Close panel';
+  closeBtn.style.cssText = 'width:20px;height:20px;border:none;border-radius:4px;background:transparent;color:#9ca3af;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;';
+  closeBtn.addEventListener('click', (ev) => { ev.stopPropagation(); close(); });
+  header.appendChild(headerTitle);
+  header.appendChild(closeBtn);
 
   const searchWrap = document.createElement('div');
   searchWrap.style.cssText = 'display:flex;align-items:center;gap:8px;margin:6px 0 8px;';

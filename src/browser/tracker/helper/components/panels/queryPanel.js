@@ -17,8 +17,17 @@ export function createQueryPanel(assertType, onConfirm) {
   panel.id = 'rikkei-query-panel';
 
   const header = document.createElement('div');
-  header.textContent = 'Queries';
-  header.style.cssText = 'font-weight:600;font-size:12px;margin-bottom:6px;';
+  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:12px;margin-bottom:6px;';
+  const headerTitle = document.createElement('span');
+  headerTitle.textContent = 'Queries';
+  headerTitle.style.cssText = 'display:inline-flex;align-items:center;gap:6px;';
+  const closeBtn = document.createElement('button');
+  closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+  closeBtn.title = 'Close panel';
+  closeBtn.style.cssText = 'width:20px;height:20px;border:none;border-radius:4px;background:transparent;color:#9ca3af;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;';
+  closeBtn.addEventListener('click', (ev) => { ev.stopPropagation(); close(); });
+  header.appendChild(headerTitle);
+  header.appendChild(closeBtn);
 
   const queryInput = document.createElement('textarea');
   queryInput.placeholder = 'Enter a SQL query…';
@@ -41,11 +50,6 @@ export function createQueryPanel(assertType, onConfirm) {
   runBtn.innerHTML = '<i class="fas fa-play"></i>';
   runBtn.title = 'Run query';
   runBtn.style.cssText = 'width:28px;height:28px;border:none;border-radius:6px;background:#10b981;color:#fff;cursor:pointer;';
-
-  const useBtn = document.createElement('button');
-  useBtn.innerHTML = '<i class="fas fa-level-down-alt"></i>';
-  useBtn.title = 'Use result';
-  useBtn.style.cssText = 'width:28px;height:28px;border:none;border-radius:6px;background:#e5e7eb;color:#111827;cursor:pointer;';
 
   const resultBox = document.createElement('div');
   resultBox.style.cssText = 'border:1px solid #e6ebee;border-radius:8px;padding:8px;min-height:48px;font-size:12px;color:#111827;background:#fafafa;';
@@ -215,25 +219,6 @@ export function createQueryPanel(assertType, onConfirm) {
   function addSelectedCell(row, col) {
     // console.log('addSelectedCell', row, col);
     if (typeof window.sendActionToMain === 'function') {
-      // const payload = {
-      //   type: 'assert',
-      //   assertType: assertType,
-      //   value: col,
-      //   query: lastRun.sql,
-      //   selector: selectors,
-      //   connection_id: lastRun.connectionId || undefined,
-      //   connection: lastRun.connection || undefined, timestamp: Date.now(),
-      //   url: window.location.href,
-      //   title: document.title
-      // }
-      // console.log('payload', payload);
-      // window.sendActionToMain(payload);
-      // console.log('onConfirm', onConfirm);
-      console.log('[queryPanel] addSelectedCell called, calling onConfirm:', {
-        col,
-        hasConnection: !!lastRun.connection,
-        hasQuery: !!lastRun.sql
-      });
       if (onConfirm) {
         onConfirm(col, lastRun.connectionId || undefined, lastRun.connection || undefined, lastRun.sql, undefined);
         console.log('[queryPanel] onConfirm called successfully');
@@ -253,11 +238,10 @@ export function createQueryPanel(assertType, onConfirm) {
   panel.appendChild(queryInput);
   actions.appendChild(connWrap);
   actions.appendChild(runBtn);
-  actions.appendChild(useBtn);
   panel.appendChild(actions);
   panel.appendChild(resultBox);
 
-  return { element: panel, open, close, isOpen, getTextResult, useBtn };
+  return { element: panel, open, close, isOpen, getTextResult };
 }
 
 

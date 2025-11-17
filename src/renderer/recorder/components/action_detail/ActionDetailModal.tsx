@@ -50,6 +50,70 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
     });
   };
 
+  const updateActionDataValue = (value: string) => {
+    setDraft(prev => {
+      if (!prev) return prev;
+      const next = { ...prev } as Action;
+      const existingData = next.action_datas?.[0] || {};
+      next.action_datas = [{
+        ...existingData,
+        value: {
+          ...(existingData.value || {}),
+          value
+        }
+      }];
+      return next;
+    });
+  };
+
+  const updateActionDataSelectedValue = (selectedValue: string) => {
+    setDraft(prev => {
+      if (!prev) return prev;
+      const next = { ...prev } as Action;
+      const existingData = next.action_datas?.[0] || {};
+      next.action_datas = [{
+        ...existingData,
+        value: {
+          ...(existingData.value || {}),
+          selected_value: selectedValue
+        }
+      }];
+      return next;
+    });
+  };
+
+  const updateActionDataChecked = (checked: boolean) => {
+    setDraft(prev => {
+      if (!prev) return prev;
+      const next = { ...prev } as Action;
+      const existingData = next.action_datas?.[0] || {};
+      next.action_datas = [{
+        ...existingData,
+        value: {
+          ...(existingData.value || {}),
+          checked
+        }
+      }];
+      return next;
+    });
+  };
+
+  const updateActionDataPlaywrightCode = (playwrightCode: string) => {
+    setDraft(prev => {
+      if (!prev) return prev;
+      const next = { ...prev } as Action;
+      const existingData = next.action_datas?.[0] || {};
+      next.action_datas = [{
+        ...existingData,
+        value: {
+          ...(existingData.value || {}),
+          playwright_code: playwrightCode
+        }
+      }];
+      return next;
+    });
+  };
+
   const handleSave = () => {
     if (draft && onSave) {
       const normalized = normalizeActionForSave(draft);
@@ -151,16 +215,16 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
         return { ...base, requiresValue: false };
       // text/value assertions - need value
       case AssertType.toContainText:
-      case AssertType.toHaveAccessibleDescription:
-      case AssertType.toHaveAccessibleName:
+      // case AssertType.toHaveAccessibleDescription:
+      // case AssertType.toHaveAccessibleName:
       case AssertType.toHaveText:
       case AssertType.toHaveValue:
       case AssertType.toHaveValues:
         return { ...base, requiresValue: true, valueLabel: 'Expected', valueInputType: 'text', valuePlaceholder: (t === AssertType.toHaveValues ? 'Comma-separated values' : undefined) };
-      case AssertType.toHaveCount:
-        return { ...base, requiresValue: true, valueLabel: 'Count', valueInputType: 'number' };
-      case AssertType.toHaveRole:
-        return { ...base, requiresValue: true, valueLabel: 'Role', showAccessibleName: true };
+      // case AssertType.toHaveCount:
+      //   return { ...base, requiresValue: true, valueLabel: 'Count', valueInputType: 'number' };
+      // case AssertType.toHaveRole:
+      //   return { ...base, requiresValue: true, valueLabel: 'Role', showAccessibleName: true };
       // page-level assertions - no selector
       case AssertType.pageHasATitle:
         return { ...base, showSelectors: false, requiresValue: true, valueLabel: 'Title', valueInputType: 'text' };
@@ -273,13 +337,13 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
       case AssertType.toBeHidden: return 'Assert element is hidden';
       case AssertType.toBeVisible: return 'Assert element is visible';
       case AssertType.toContainText: return `Assert element contains text "${expected}"`;
-      case AssertType.toHaveAccessibleDescription: return `Assert element has accessible description "${expected}"`;
-      case AssertType.toHaveAccessibleName: return `Assert element has accessible name "${expected}"`;
+      // case AssertType.toHaveAccessibleDescription: return `Assert element has accessible description "${expected}"`;
+      // case AssertType.toHaveAccessibleName: return `Assert element has accessible name "${expected}"`;
       case AssertType.toHaveText: return `Assert element has text "${expected}"`;
       case AssertType.toHaveValue: return `Assert element has value "${expected}"`;
       case AssertType.toHaveValues: return `Assert element has values "${expected}"`;
-      case AssertType.toHaveCount: return `Assert element count equals ${expected}`;
-      case AssertType.toHaveRole: return `Assert element has role "${expected}"`;
+      // case AssertType.toHaveCount: return `Assert element count equals ${expected}`;
+      // case AssertType.toHaveRole: return `Assert element has role "${expected}"`;
       case AssertType.pageHasATitle: return `Assert page title equals "${expected}"`;
       case AssertType.pageHasAURL: return `Assert page URL equals "${expected}"`;
       default: return 'Assert';
@@ -416,7 +480,7 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
                   type={assertConfig ? assertConfig.valueInputType : 'text'}
                   className="rcd-action-detail-input"
                   value={draft.action_datas?.[0]?.value?.["value"] || ''}
-                  onChange={(e) => updateField('action_datas', e.target.value)}
+                  onChange={(e) => updateActionDataValue(e.target.value)}
                   placeholder={assertConfig && assertConfig.valuePlaceholder ? assertConfig.valuePlaceholder : `Enter ${(assertConfig ? assertConfig.valueLabel : visibility.valueLabel).toLowerCase()}`}
                   required={draft.action_type === ActionType.assert}
                 />
@@ -429,7 +493,7 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
                 <input
                   className="rcd-action-detail-input"
                   value={draft.action_datas?.[0]?.value?.["selected_value"] || ''}
-                  onChange={(e) => updateField('action_datas', e.target.value)}
+                  onChange={(e) => updateActionDataSelectedValue(e.target.value)}
                   placeholder="Enter accessible name"
                 />
               </div>
@@ -442,7 +506,7 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
                     <input
                       className="rcd-action-detail-input"
                       value={draft.action_datas?.[0]?.value?.["selected_value"] || ''}
-                      onChange={(e) => updateField('action_datas', e.target.value)}
+                      onChange={(e) => updateActionDataSelectedValue(e.target.value)}
                       placeholder="Enter selected value"
                     />
                   </div>
@@ -454,7 +518,7 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
                       <input
                         type="checkbox"
                         checked={Boolean(draft.action_datas?.[0]?.value?.["checked"])}
-                        onChange={(e) => updateField('action_datas', e.target.checked)}
+                        onChange={(e) => updateActionDataChecked(e.target.checked)}
                         style={{ marginRight: '8px' }}
                       />
                       {draft.action_datas?.[0]?.value?.["checked"] ? 'Yes' : 'No'}
@@ -476,7 +540,7 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
                   value={draft.action_datas?.[0]?.value?.["playwright_code"] || ''}
                   language="javascript"
                   theme="vs"
-                  onChange={(value) => updateField('action_datas', value || '')}
+                  onChange={(value) => updateActionDataPlaywrightCode(value || '')}
                   options={{
                     minimap: { enabled: false },
                     fontSize: 13,

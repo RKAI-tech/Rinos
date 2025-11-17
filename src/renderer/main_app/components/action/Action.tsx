@@ -1,6 +1,6 @@
 import React from 'react';
 import './Action.css';
-import { ActionGetResponse } from '../../types/actions';
+import { Action as ActionGetResponse } from '../../types/actions';
 
 interface MAActionProps {
   action: ActionGetResponse;
@@ -24,7 +24,7 @@ const MAAction: React.FC<MAActionProps> = ({ action, onEdit, onDelete }) => {
       <div className="ma-action-icon">?</div>
       <div className="ma-action-body">
         <div className="ma-action-title">{action.description || formatActionType(String(action.action_type))}</div>
-        {formatValue(action.value) && <div className="ma-action-value">{formatValue(action.value)}</div>}
+        {formatValue(action.action_datas?.[0]?.value?.["value"]) && <div className="ma-action-value">{formatValue(action.action_datas?.[0]?.value?.["value"])}</div>}
       </div>
       <div className="ma-action-actions">
         <button type="button" className="ma-action-btn" title="Edit" onClick={(e) => { e.stopPropagation(); onEdit && onEdit(action); }}>

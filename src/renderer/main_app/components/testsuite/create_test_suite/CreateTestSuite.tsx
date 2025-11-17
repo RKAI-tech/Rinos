@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './CreateTestSuite.css';
 
 interface CreateTestSuiteProps {
@@ -11,6 +11,7 @@ interface CreateTestSuiteProps {
 const CreateTestSuite: React.FC<CreateTestSuiteProps> = ({ isOpen, onClose, onSave, projectId = '' }) => {
   const [suiteName, setSuiteName] = useState('');
   const [suiteDescription, setSuiteDescription] = useState('');
+  const suiteNameInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +55,15 @@ const CreateTestSuite: React.FC<CreateTestSuiteProps> = ({ isOpen, onClose, onSa
     };
   }, [isOpen]);
 
+  // Auto-focus on first input when modal opens
+  useEffect(() => {
+    if (isOpen && suiteNameInputRef.current) {
+      setTimeout(() => {
+        suiteNameInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -85,6 +95,7 @@ const CreateTestSuite: React.FC<CreateTestSuiteProps> = ({ isOpen, onClose, onSa
               </div>
             </label>
             <input
+              ref={suiteNameInputRef}
               type="text"
               id="suiteName"
               value={suiteName}

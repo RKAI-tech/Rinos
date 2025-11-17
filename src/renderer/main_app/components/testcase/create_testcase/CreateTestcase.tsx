@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './CreateTestcase.css';
 
 interface CreateTestcaseProps {
@@ -11,6 +11,7 @@ interface CreateTestcaseProps {
 const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave, projectId = '' }) => {
   const [testcaseName, setTestcaseName] = useState('');
   const [testcaseTag, setTestcaseTag] = useState('');
+  const testcaseNameInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +55,15 @@ const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave
     };
   }, [isOpen]);
 
+  // Auto-focus on first input when modal opens
+  useEffect(() => {
+    if (isOpen && testcaseNameInputRef.current) {
+      setTimeout(() => {
+        testcaseNameInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -89,6 +99,7 @@ const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave
               </div>
             </label>
             <input
+              ref={testcaseNameInputRef}
               type="text"
               id="testcaseName"
               value={testcaseName}

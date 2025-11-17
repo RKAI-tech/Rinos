@@ -74,100 +74,100 @@ export class Controller {
         await page.goForward();
     }
 
-  private async executeApiRequest(page: Page, apiData: ApiRequestData): Promise<void> {
-    // Build URL with params (schema mới)
-    let url = apiData.url || '';
-    try {
-      const params = apiData.params || [];
-      if (params.length > 0) {
-        const valid = params.filter(p => p.key && String(p.key).trim() && p.value != null && String(p.value).trim());
-        if (valid.length > 0) {
-          const search = new URLSearchParams();
-          valid.forEach(p => search.append(String(p.key).trim(), String(p.value).trim()))
-          const sep = url.includes('?') ? '&' : '?'
-          url = `${url}${sep}${search.toString()}`;
-        }
-      }
-    } catch {}
-
-    // Prepare headers
-    const headers: Record<string, string> = {};
-    try {
-      const hdrs = apiData.headers || [];
-      if (hdrs.length > 0) {
-        hdrs.forEach(h => {
-          if (h.key && String(h.key).trim() && h.value != null && String(h.value).trim()) {
-            headers[String(h.key).trim()] = String(h.value).trim();
-          }
-        })
-      }
-    } catch {}
-
-    // Authorization from explicit values or storage
-    try {
-      const auth = apiData.auth;
-      if (auth && auth.type === 'bearer') {
-        if (auth.token && String(auth.token).trim()) {
-          headers['Authorization'] = `Bearer ${String(auth.token).trim()}`;
-        } else {
-          const ts = auth.token_storages && auth.token_storages.length > 0 ? auth.token_storages[0] : undefined;
-          if (ts && ts.key && ts.type) {
-            let bearer = '';
-            if (ts.type === 'localStorage') {
-              bearer = await page.evaluate(({ k }) => localStorage.getItem(k) || '', { k: ts.key });
-            } else if (ts.type === 'sessionStorage') {
-              bearer = await page.evaluate(({ k }) => sessionStorage.getItem(k) || '', { k: ts.key });
-            } else if (ts.type === 'cookie') {
-              bearer = await page.evaluate(({ name }) => { const m = document.cookie.split('; ').find(r => r.startsWith(name + '=')); return m ? decodeURIComponent(m.split('=')[1]) : ''; }, { name: ts.key });
+    private async executeApiRequest(page: Page, apiData: ApiRequestData): Promise<void> {
+        // Build URL with params (schema mới)
+        let url = apiData.url || '';
+        try {
+            const params = apiData.params || [];
+            if (params.length > 0) {
+                const valid = params.filter(p => p.key && String(p.key).trim() && p.value != null && String(p.value).trim());
+                if (valid.length > 0) {
+                    const search = new URLSearchParams();
+                    valid.forEach(p => search.append(String(p.key).trim(), String(p.value).trim()))
+                    const sep = url.includes('?') ? '&' : '?'
+                    url = `${url}${sep}${search.toString()}`;
+                }
             }
-            if (bearer) headers['Authorization'] = `Bearer ${bearer}`;
-          }
-        }
-      } else if (auth && auth.type === 'basic') {
-        if (auth.username && auth.password) {
-          headers['Authorization'] = 'Basic ' + Buffer.from(`${auth.username}:${auth.password}`).toString('base64');
-        } else {
-          const bs = auth.basic_auth_storages && auth.basic_auth_storages.length > 0 ? auth.basic_auth_storages[0] : undefined;
-          if (bs && bs.type && bs.usernameKey && bs.passwordKey) {
-            let creds: { u: string; p: string } = { u: '', p: '' };
-            if (bs.type === 'localStorage') {
-              creds = await page.evaluate(({ uk, pk }) => ({ u: localStorage.getItem(uk) || '', p: localStorage.getItem(pk) || '' }), { uk: bs.usernameKey, pk: bs.passwordKey });
-            } else if (bs.type === 'sessionStorage') {
-              creds = await page.evaluate(({ uk, pk }) => ({ u: sessionStorage.getItem(uk) || '', p: sessionStorage.getItem(pk) || '' }), { uk: bs.usernameKey, pk: bs.passwordKey });
-            } else if (bs.type === 'cookie') {
-              creds = await page.evaluate(({ uk, pk }) => { const getC = (n: string) => { const m = document.cookie.split('; ').find(r => r.startsWith(n + '=')); return m ? decodeURIComponent(m.split('=')[1]) : ''; }; return { u: getC(uk), p: getC(pk) }; }, { uk: bs.usernameKey, pk: bs.passwordKey });
+        } catch { }
+
+        // Prepare headers
+        const headers: Record<string, string> = {};
+        try {
+            const hdrs = apiData.headers || [];
+            if (hdrs.length > 0) {
+                hdrs.forEach(h => {
+                    if (h.key && String(h.key).trim() && h.value != null && String(h.value).trim()) {
+                        headers[String(h.key).trim()] = String(h.value).trim();
+                    }
+                })
             }
-            if (creds.u && creds.p) headers['Authorization'] = 'Basic ' + Buffer.from(`${creds.u}:${creds.p}`).toString('base64');
-          }
-        }
-      }
-    } catch { try { console.log('[Controller][API] Resolve auth error'); } catch {} }
+        } catch { }
 
-    // Prepare request options
-    const options: any = { headers };
-    try {
-      const body = apiData.body;
-      if (body && body.type !== 'none') {
-        if (body.type === 'json') {
-          options.data = body.content;
-        } else if (body.type === 'form' && body.formData) {
-          const formBody: Record<string, string> = {};
-          body.formData
-            .filter(p => p.name && String(p.name).trim())
-            .forEach(p => { formBody[String(p.name).trim()] = String(p.value ?? ''); });
-          options.data = formBody;
-        }
-      }
-    } catch { try { console.log('[Controller][API] Build options error'); } catch {} }
+        // Authorization from explicit values or storage
+        try {
+            const auth = apiData.auth;
+            if (auth && auth.type === 'bearer') {
+                if (auth.token && String(auth.token).trim()) {
+                    headers['Authorization'] = `Bearer ${String(auth.token).trim()}`;
+                } else {
+                    const ts = auth.token_storages && auth.token_storages.length > 0 ? auth.token_storages[0] : undefined;
+                    if (ts && ts.key && ts.type) {
+                        let bearer = '';
+                        if (ts.type === 'localStorage') {
+                            bearer = await page.evaluate(({ k }) => localStorage.getItem(k) || '', { k: ts.key });
+                        } else if (ts.type === 'sessionStorage') {
+                            bearer = await page.evaluate(({ k }) => sessionStorage.getItem(k) || '', { k: ts.key });
+                        } else if (ts.type === 'cookie') {
+                            bearer = await page.evaluate(({ name }) => { const m = document.cookie.split('; ').find(r => r.startsWith(name + '=')); return m ? decodeURIComponent(m.split('=')[1]) : ''; }, { name: ts.key });
+                        }
+                        if (bearer) headers['Authorization'] = `Bearer ${bearer}`;
+                    }
+                }
+            } else if (auth && auth.type === 'basic') {
+                if (auth.username && auth.password) {
+                    headers['Authorization'] = 'Basic ' + Buffer.from(`${auth.username}:${auth.password}`).toString('base64');
+                } else {
+                    const bs = auth.basic_auth_storages && auth.basic_auth_storages.length > 0 ? auth.basic_auth_storages[0] : undefined;
+                    if (bs && bs.type && bs.usernameKey && bs.passwordKey) {
+                        let creds: { u: string; p: string } = { u: '', p: '' };
+                        if (bs.type === 'localStorage') {
+                            creds = await page.evaluate(({ uk, pk }) => ({ u: localStorage.getItem(uk) || '', p: localStorage.getItem(pk) || '' }), { uk: bs.usernameKey, pk: bs.passwordKey });
+                        } else if (bs.type === 'sessionStorage') {
+                            creds = await page.evaluate(({ uk, pk }) => ({ u: sessionStorage.getItem(uk) || '', p: sessionStorage.getItem(pk) || '' }), { uk: bs.usernameKey, pk: bs.passwordKey });
+                        } else if (bs.type === 'cookie') {
+                            creds = await page.evaluate(({ uk, pk }) => { const getC = (n: string) => { const m = document.cookie.split('; ').find(r => r.startsWith(n + '=')); return m ? decodeURIComponent(m.split('=')[1]) : ''; }; return { u: getC(uk), p: getC(pk) }; }, { uk: bs.usernameKey, pk: bs.passwordKey });
+                        }
+                        if (creds.u && creds.p) headers['Authorization'] = 'Basic ' + Buffer.from(`${creds.u}:${creds.p}`).toString('base64');
+                    }
+                }
+            }
+        } catch { try { console.log('[Controller][API] Resolve auth error'); } catch { } }
 
-    // Execute
-    const method = ((apiData.method as any) || 'get').toLowerCase();
-    try { console.log('[Controller][API] Sending request', { method, url, hasHeaders: Object.keys(headers).length > 0 }); } catch {}
-    const resp = await (page.request as any)[method](url, options);
-    try { console.log('[Controller][API] Response status:', await resp.status()); } catch {}
-   
-      
-  }
+        // Prepare request options
+        const options: any = { headers };
+        try {
+            const body = apiData.body;
+            if (body && body.type !== 'none') {
+                if (body.type === 'json') {
+                    options.data = body.content;
+                } else if (body.type === 'form' && body.formData) {
+                    const formBody: Record<string, string> = {};
+                    body.formData
+                        .filter(p => p.name && String(p.name).trim())
+                        .forEach(p => { formBody[String(p.name).trim()] = String(p.value ?? ''); });
+                    options.data = formBody;
+                }
+            }
+        } catch { try { console.log('[Controller][API] Build options error'); } catch { } }
+
+        // Execute
+        const method = ((apiData.method as any) || 'get').toLowerCase();
+        try { console.log('[Controller][API] Sending request', { method, url, hasHeaders: Object.keys(headers).length > 0 }); } catch { }
+        const resp = await (page.request as any)[method](url, options);
+        try { console.log('[Controller][API] Response status:', await resp.status()); } catch { }
+
+
+    }
 
     trackRequests(page: Page): void {
         page.on('request', (request: Request) => {
@@ -284,8 +284,8 @@ export class Controller {
         if (!Array.isArray(actions) || actions.length === 0) {
             throw new Error('Actions array is required and cannot be empty');
         }
-        
-       
+
+
         for (let i = 0; i < actions.length; i++) {
             const action = actions[i];
             // console.log(`[Controller] Executing action ${i + 1}/${actions.length}: ${action.action_type}`);

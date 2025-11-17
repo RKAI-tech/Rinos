@@ -2,13 +2,24 @@ import { BrowserWindow, app, ipcMain, screen } from "electron";
 import { MainEnv } from "./env.js";
 import path from "path";
 
-// const isDev = false;
 const isDev = true;
-// Build target is CJS, so __dirname is available; avoid import.meta to silence warnings
 const __dirnameResolved = __dirname;
-// console.log(__dirnameResolved)
+const iconFileNamePng="images/icon.png";
+const iconFileNameIco="images/icon.ico";
+const resolveIconPath = () => {
+  if (process.platform === 'win32') {
+    if (app.isPackaged) {
+      return path.join(process.resourcesPath, path.basename(iconFileNameIco));
+    }
+    return path.join(process.cwd(), iconFileNameIco);
+  }
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, iconFileNamePng);
+  }
+  return path.join(process.cwd(), iconFileNamePng);
+};
+
 async function tryLoadDevPaths(win: BrowserWindow, page: string) {
-  // console.log('tryLoadDevPaths', MainEnv.API_URL, page);
   const candidates = [
     `${MainEnv.API_URL}/${page}/index.html`,
     `${MainEnv.API_URL}/${page}.html`,
@@ -18,34 +29,31 @@ async function tryLoadDevPaths(win: BrowserWindow, page: string) {
   for (const url of candidates) {
     try {
       await win.loadURL(url);
-      // console.log("Loaded URL:", url);
       return;
     } catch (err) {
-      // console.warn("Failed to load URL:", url, err);
     }
   }
   throw new Error("Không thể load trang renderer từ Vite. Kiểm tra vite.config và đường dẫn.");
 }
 
 function createWindow(options: Electron.BrowserWindowConstructorOptions, page: string) {
-  // console.log('createWindow', options, page);
-  // console.log('__dirname', __dirnameResolved);
+
   const win = new BrowserWindow({
     ...options,
+    icon: resolveIconPath(),
     webPreferences: {
       preload: path.join(__dirnameResolved, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
     },
+
   });
 
   if (isDev) {
     win.webContents.openDevTools();
     tryLoadDevPaths(win, page).catch((err) => {
-      // console.error("Load dev URL failed:", err);
     });
   } else {
-    // console.log('__dirnameResolved', __dirnameResolved);
     win.loadFile(path.join(__dirnameResolved, `renderer/${page}/index.html`));
   }
   // win.webContents.openDevTools();
@@ -62,36 +70,85 @@ export function createMainAppWindow() {
   mainAppWindow.on('close', (event) => {
     event.preventDefault();
     mainAppWindow?.webContents.send('mainapp:close-requested');
-    // childWindows.forEach((win) => {
-    //   if (win && !win.isDestroyed()) {
-    //     win.destroy();
-    //   }
-    // });
-    // childWindows.length = 0;
-    // setTimeout(() => { mainAppWindow?.destroy(); }, 300);
-    // mainAppWindow = null;
+  });
+
+  // Handler để lấy unsaved flags từ tất cả child windows
+  ipcMain.handle('mainapp:get-unsaved-datas-flag', async () => {
+    console.log('[windowManager] Getting unsaved datas flag, childWindows count:', childWindows.length);
+    if (!mainAppWindow || childWindows.length === 0) {
+      console.log('[windowManager] No child windows, returning false');
+      return false;
+    }
+
+    const validWindows = childWindows.filter(win => win && !win.isDestroyed());
+    console.log('[windowManager] Valid child windows:', validWindows.length);
+
+    const promises = validWindows.map(win => 
+      new Promise<boolean>((resolve) => {
+        const requestId = `unsaved-check-${win.webContents.id}-${Date.now()}-${Math.random()}`;
+        console.log('[windowManager] Sending request to child window:', requestId);
+        
+        // Lắng nghe response với requestId để match
+        const responseHandler = (_event: any, data: { requestId: string, hasUnsaved: boolean }) => {
+          console.log('[windowManager] Received response:', data);
+          if (data.requestId === requestId) {
+            ipcMain.removeListener('window:unsaved-datas-response', responseHandler);
+            console.log('[windowManager] Matched response, hasUnsaved:', data.hasUnsaved);
+            resolve(data.hasUnsaved);
+          }
+        };
+        
+        ipcMain.on('window:unsaved-datas-response', responseHandler);
+        
+        // Gửi request với requestId
+        win.webContents.send('window:get-unsaved-datas-flag', requestId);
+        
+        // Timeout để tránh treo nếu child window không phản hồi
+        setTimeout(() => {
+          ipcMain.removeListener('window:unsaved-datas-response', responseHandler);
+          console.log('[windowManager] Timeout waiting for response from child window:', requestId);
+          resolve(false);
+        }, 2000); // Tăng timeout lên 2 giây
+      })
+    );
+
+    const results = await Promise.all(promises);
+    console.log('[windowManager] All results:', results);
+    return results.includes(true);
   });
 
   ipcMain.on('mainapp:close-result', (event: any, data: { confirm: boolean, save: boolean }) => {
-    // console.log('mainapp:close-result', data);
+    console.log('[windowManager] mainapp:close-result', data);
     if (!mainAppWindow) return;
     if (!data.confirm) return;
     try {
       if (data.save) {
         childWindows.forEach((win) => {
-          if (win && !win.isDestroyed()) { win.webContents.send('window:force-save-and-close'); }
+          if (win && !win.isDestroyed()) { 
+            console.log('[windowManager] Sending force-save-and-close to child window');
+            win.webContents.send('window:force-save-and-close'); 
+          }
         });
       } else {
+        // Khi không save, cần remove close handler trước khi destroy
         childWindows.forEach((win) => {
-          if (win && !win.isDestroyed()) { win.destroy(); }
+          if (win && !win.isDestroyed()) {
+            console.log('[windowManager] Destroying child window directly');
+            // Remove close handler để tránh prevent default
+            win.removeAllListeners('close');
+            win.destroy();
+          }
         });
       }
     } catch (error) {
-      console.error('mainapp:close-result error', error);
+      console.error('[windowManager] mainapp:close-result error', error);
     } finally {
       childWindows.length = 0;
       const win = mainAppWindow;
-      setTimeout(() => { win?.destroy(); }, 300);
+      setTimeout(() => { 
+        win?.removeAllListeners('close');
+        win?.destroy(); 
+      }, 300);
       mainAppWindow = null;
     }
   });
@@ -103,8 +160,10 @@ export function createRecorderWindow(testcaseId?: string, projectId?: string, te
   const recorderWindow = createWindow({ width: 500, height: 800 }, "recorder");
   childWindows.push(recorderWindow);
   if (testcaseId) {
-    const displayName = testcaseName || testcaseId || "";
-    recorderWindow.setTitle(`Record actions on a website - ${displayName}`);
+    const displayName = testcaseName || "";
+    recorderWindow.webContents.on('did-finish-load', () => {
+      recorderWindow.setTitle(`Recorder - ${displayName}`);
+    });
   } else {
     recorderWindow.setTitle('Record actions on a website');
   }

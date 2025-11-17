@@ -6,7 +6,7 @@ interface ConfirmCloseModalProps {
   onConfirm: () => void;
   onCancel: () => void;
   onSaveAndClose: () => void;
-  hasUnsavedActions: boolean;
+  hasUnsavedDatas: boolean;
 }
 
 const ConfirmCloseModal: React.FC<ConfirmCloseModalProps> = ({
@@ -14,7 +14,7 @@ const ConfirmCloseModal: React.FC<ConfirmCloseModalProps> = ({
   onConfirm,
   onCancel,
   onSaveAndClose,
-  hasUnsavedActions
+  hasUnsavedDatas
 }) => {
   if (!isOpen) return null;
 
@@ -25,8 +25,8 @@ const ConfirmCloseModal: React.FC<ConfirmCloseModalProps> = ({
           <h3>Confirm Close Window</h3>
         </div>
         <div className="confirm-close-content">
-          <p>Are you sure you want to close the recorder window?</p>
-          {hasUnsavedActions && (
+          <p>Are you sure you want to close this window?</p>
+          {hasUnsavedDatas && (
             <p className="confirm-close-warning">
               All unsaved data will be lost.
             </p>
@@ -39,7 +39,7 @@ const ConfirmCloseModal: React.FC<ConfirmCloseModalProps> = ({
           >
             Cancel
           </button>
-          {hasUnsavedActions && (
+          {hasUnsavedDatas && (
             <button
               className="confirm-close-btn confirm-close-save"
               onClick={onSaveAndClose}

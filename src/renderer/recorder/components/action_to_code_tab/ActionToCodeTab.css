@@ -41,6 +41,9 @@
   cursor: pointer;
   font-weight: 600;
   font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .rcd-run-test:hover {
@@ -55,4 +58,42 @@
 
 .rcd-run-test.disabled:hover {
   background: #9ca3af;
+}
+
+.rcd-run-test.loading {
+  background: #4ade80;
+  cursor: not-allowed;
+}
+
+.rcd-loading-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: rcd-spin 0.8s linear infinite;
+}
+
+@keyframes rcd-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rcd-save-close {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.rcd-save-close:hover {
+  background: #2563eb;
 }

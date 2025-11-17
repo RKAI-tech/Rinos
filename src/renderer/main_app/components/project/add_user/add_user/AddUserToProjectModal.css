@@ -9,13 +9,11 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 20px;
-  will-change: transform;
 }
 
 /* Modal Container */
@@ -27,19 +25,6 @@
   max-width: 700px;
   max-height: 600px;
   overflow-y: auto;
-  animation: addUserModalSlideIn 0.2s ease-out;
-  will-change: transform, opacity;
-}
-
-@keyframes addUserModalSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 /* Modal Header */
@@ -279,13 +264,6 @@
 /* Focus Management */
 .add-user-modal-container:focus-within {
   outline: none;
-}
-
-/* Accessibility */
-@media (prefers-reduced-motion: reduce) {
-  .add-user-modal-container {
-    animation: none;
-  }
 }
 
 /* High Contrast Mode */
