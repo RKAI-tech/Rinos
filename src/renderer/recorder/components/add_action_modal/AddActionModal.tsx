@@ -69,8 +69,8 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
     },
     {
       value: 'add_browser_storage',
-      label: 'Add Cookies',
-      description: 'Select and add cookies from project list'
+      label: 'Add Browser Storage',
+      description: 'Select and add browser storage from project list'
     },
     {
       value: 'api_request',
