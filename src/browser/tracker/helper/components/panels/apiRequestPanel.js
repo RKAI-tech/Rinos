@@ -1197,10 +1197,10 @@ export function createApiRequestPanel(assertType, onConfirm) {
       // Gửi kết quả assert: (valuePath, connectionId, connection, query, apiRequest)
       // Với API không có connection/query → truyền undefined cho 3 tham số giữa
       // console.log('[apiRequestPanel] Save button clicked, calling onConfirm:', {
-        finalValue,
-        hasApiRequest: !!apiRequest,
-        apiRequest: apiRequest
-      });
+      //   finalValue,
+      //   hasApiRequest: !!apiRequest,
+      //   apiRequest: apiRequest
+      // });
       if (onConfirm) {
         try { 
           onConfirm(finalValue, undefined, undefined, undefined, apiRequest);
