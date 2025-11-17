@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'react-toastify';
 import './CreateConnection.css';
 
@@ -70,6 +70,7 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<'db_name' | 'host' | 'port' | 'username' | 'password', string>>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const dbNameInputRef = useRef<HTMLInputElement>(null);
 
   const isFormValid = useMemo(() => {
     const parsedPort = Number(port);
@@ -113,6 +114,15 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
+  }, [isOpen]);
+
+  // Auto-focus on first input when modal opens
+  useEffect(() => {
+    if (isOpen && dbNameInputRef.current) {
+      setTimeout(() => {
+        dbNameInputRef.current?.focus();
+      }, 100);
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -221,7 +231,7 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
                 Database Name <span className="cc-required">*</span>
                 <Tooltip text="The name of the database you want to connect to. This field is required." />
               </label>
-              <input id="dbName" type="text" className={`cc-form-input ${errors.db_name ? 'cc-error' : ''}`} value={dbName} onChange={(e) => setDbName(e.target.value)} placeholder="e.g. app_db" />
+              <input ref={dbNameInputRef} id="dbName" type="text" className={`cc-form-input ${errors.db_name ? 'cc-error' : ''}`} value={dbName} onChange={(e) => setDbName(e.target.value)} placeholder="e.g. app_db" />
               {errors.db_name && <span className="cc-error-message">{errors.db_name}</span>}
             </div>
           </div>

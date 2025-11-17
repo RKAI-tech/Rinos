@@ -3,7 +3,6 @@
   position: fixed; 
   inset: 0; 
   background: rgba(0,0,0,0.5); 
-  backdrop-filter: blur(2px); 
   display: flex; 
   align-items: center; 
   justify-content: center; 
@@ -542,7 +541,6 @@
   background: rgba(0, 0, 0, 0.7);
   padding: 8px 16px;
   border-radius: 8px;
-  backdrop-filter: blur(4px);
   z-index: 10;
   pointer-events: auto;
 }

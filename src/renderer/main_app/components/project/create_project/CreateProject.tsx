@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './CreateProject.css';
 
 interface CreateProjectProps {
@@ -10,6 +10,7 @@ interface CreateProjectProps {
 const CreateProject: React.FC<CreateProjectProps> = ({ isOpen, onClose, onSave }) => {
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
+  const projectNameInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +54,16 @@ const CreateProject: React.FC<CreateProjectProps> = ({ isOpen, onClose, onSave }
     };
   }, [isOpen, handleClose]);
 
+  // Auto-focus on first input when modal opens
+  useEffect(() => {
+    if (isOpen && projectNameInputRef.current) {
+      // Small delay to ensure modal is fully rendered
+      setTimeout(() => {
+        projectNameInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -82,6 +93,7 @@ const CreateProject: React.FC<CreateProjectProps> = ({ isOpen, onClose, onSave }
               Project Name <span className="required-asterisk">*</span>
             </label>
             <input
+              ref={projectNameInputRef}
               type="text"
               id="projectName"
               value={projectName}

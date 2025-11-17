@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import './AddUserToProjectModal.css';
 import { UserService } from '../../../../services/user';
 import { ProjectService } from '../../../../services/projects';
@@ -20,6 +20,7 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
   const [selectedUsers, setSelectedUsers] = useState<Record<string, Permission>>({});
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<'add' | 'manage'>('add');
+  const userSearchInputRef = useRef<HTMLInputElement>(null);
 
   // Manage tab state
   const [members, setMembers] = useState<UserInProject[]>([]);
@@ -97,6 +98,15 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
+
+  // Auto-focus on search input when modal opens
+  useEffect(() => {
+    if (isOpen && activeTab === 'add' && userSearchInputRef.current) {
+      setTimeout(() => {
+        userSearchInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen, activeTab]);
 
   const filteredUsers = useMemo(() => {
     const q = userSearchTerm.trim().toLowerCase();
@@ -265,6 +275,7 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
                 <div className="add-user-form-group">
                   <label className="add-user-form-label">Search users</label>
                   <input
+                    ref={userSearchInputRef}
                     type="text"
                     placeholder="Search users by email..."
                     value={userSearchTerm}

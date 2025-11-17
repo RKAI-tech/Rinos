@@ -29,24 +29,24 @@ export function createApiRequestPanel(assertType, onConfirm) {
   } catch {}
 
   const header = document.createElement('div');
-  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;';
-  const headerTitle = document.createElement('div');
+  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:12px;margin-bottom:6px;';
+  const headerTitle = document.createElement('span');
   headerTitle.textContent = 'API Request';
-  headerTitle.style.cssText = 'font-weight:600;font-size:12px;';
+  headerTitle.style.cssText = 'display:inline-flex;align-items:center;gap:6px;';
   const headerClose = document.createElement('button');
-  headerClose.textContent = '×';
-  headerClose.title = 'Close';
-  headerClose.style.cssText = 'width:24px;height:24px;border:none;border-radius:4px;background:#f3f4f6;color:#374151;cursor:pointer;display:flex;align-items:center;justify-content:center;';
+  headerClose.innerHTML = '<i class="fas fa-times"></i>';
+  headerClose.title = 'Close panel';
+  headerClose.style.cssText = 'width:20px;height:20px;border:none;border-radius:4px;background:transparent;color:#9ca3af;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;';
   headerClose.addEventListener('click', (ev) => { ev.stopPropagation(); close(); });
   header.appendChild(headerTitle);
   header.appendChild(headerClose);
 
   // Method and URL Section
   const methodUrlWrap = document.createElement('div');
-  methodUrlWrap.style.cssText = 'display:flex;gap:8px;margin-bottom:12px;border:1px solid #d1d5db;border-radius:8px;overflow:hidden;background:#fff;';
+  methodUrlWrap.style.cssText = 'display:flex;gap:8px;margin-bottom:8px;border:1px solid #e6ebee;border-radius:8px;overflow:hidden;background:#fff;';
   
   const methodSelect = document.createElement('select');
-  methodSelect.style.cssText = 'padding:10px 8px;border:none;border-right:1px solid #d1d5db;font-size:14px;background:#fff;min-width:80px;width:80px;cursor:pointer;outline:none;';
+  methodSelect.style.cssText = 'padding:6px 8px;border:none;border-right:1px solid #e6ebee;font-size:12px;background:#fff;min-width:70px;width:70px;cursor:pointer;outline:none;';
   ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'].forEach(m => {
     const opt = document.createElement('option');
     opt.value = m;
@@ -58,12 +58,12 @@ export function createApiRequestPanel(assertType, onConfirm) {
   urlInput.type = 'text';
   urlInput.placeholder = 'https://api.example.com/endpoint';
   urlInput.value = 'https://';
-  urlInput.style.cssText = 'flex:1;padding:10px 12px;border:none;font-size:14px;background:#fff;outline:none;';
+  urlInput.style.cssText = 'flex:1;padding:6px 10px;border:none;font-size:12px;background:#fff;outline:none;';
 
   const sendBtn = document.createElement('button');
   sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
   sendBtn.title = 'Send request';
-  sendBtn.style.cssText = 'padding:10px 16px;background:#8b5cf6;color:#fff;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s ease;min-width:80px;white-space:nowrap;';
+  sendBtn.style.cssText = 'width:28px;height:28px;border:none;border-radius:6px;background:#8b5cf6;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;';
   sendBtn.onmouseover = () => { sendBtn.style.background = '#7c3aed'; };
   sendBtn.onmouseout = () => { sendBtn.style.background = '#8b5cf6'; };
 
@@ -78,19 +78,19 @@ export function createApiRequestPanel(assertType, onConfirm) {
   
   // Authorization Section
   const authSection = document.createElement('div');
-  authSection.style.cssText = 'margin-bottom:12px;';
+  authSection.style.cssText = 'margin-bottom:8px;';
   const authHeader = document.createElement('div');
-  authHeader.style.cssText = 'margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;';
+  authHeader.style.cssText = 'margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;';
   const authTitle = document.createElement('span');
   authTitle.textContent = 'Authorization';
-  authTitle.style.cssText = 'font-size:14px;font-weight:600;color:#374151;';
+  authTitle.style.cssText = 'font-size:12px;font-weight:600;color:#374151;';
   authHeader.appendChild(authTitle);
   // Token storage toggle (right side)
   const storageToggleWrap = document.createElement('label');
-  storageToggleWrap.style.cssText = 'display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:#374151;';
+  storageToggleWrap.style.cssText = 'display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#374151;';
   const storageToggle = document.createElement('input');
   storageToggle.type = 'checkbox';
-  storageToggle.style.cssText = 'width:16px;height:16px;cursor:pointer;';
+  storageToggle.style.cssText = 'width:14px;height:14px;cursor:pointer;';
   const storageToggleText = document.createElement('span');
   storageToggleText.textContent = 'Enable storage';
   storageToggleWrap.appendChild(storageToggle);
@@ -98,7 +98,7 @@ export function createApiRequestPanel(assertType, onConfirm) {
   authHeader.appendChild(storageToggleWrap);
   
   const authSelect = document.createElement('select');
-  authSelect.style.cssText = 'width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:#fff;cursor:pointer;box-sizing:border-box;margin-bottom:8px;';
+  authSelect.style.cssText = 'width:100%;padding:6px 8px;border:1px solid #e6ebee;border-radius:6px;font-size:12px;background:#fff;cursor:pointer;box-sizing:border-box;margin-bottom:6px;';
   ['none', 'basic', 'bearer'].forEach(t => {
     const opt = document.createElement('option');
     opt.value = t;
@@ -115,17 +115,17 @@ export function createApiRequestPanel(assertType, onConfirm) {
   const authUsernameInput = document.createElement('input');
   authUsernameInput.type = 'text';
   authUsernameInput.placeholder = 'Username';
-  authUsernameInput.style.cssText = 'flex:1;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:#fff;box-sizing:border-box;';
+  authUsernameInput.style.cssText = 'flex:1;padding:6px 10px;border:1px solid #e6ebee;border-radius:6px;font-size:12px;background:#fff;box-sizing:border-box;';
   
   const authPasswordInput = document.createElement('input');
   authPasswordInput.type = 'password';
   authPasswordInput.placeholder = 'Password';
-  authPasswordInput.style.cssText = 'flex:1;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:#fff;box-sizing:border-box;';
+  authPasswordInput.style.cssText = 'flex:1;padding:6px 10px;border:1px solid #e6ebee;border-radius:6px;font-size:12px;background:#fff;box-sizing:border-box;';
   
   const authTokenInput = document.createElement('input');
   authTokenInput.type = 'text';
   authTokenInput.placeholder = 'Token';
-  authTokenInput.style.cssText = 'flex:1;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:#fff;box-sizing:border-box;display:none;';
+  authTokenInput.style.cssText = 'flex:1;padding:6px 10px;border:1px solid #e6ebee;border-radius:6px;font-size:12px;background:#fff;box-sizing:border-box;display:none;';
 
   authSelect.addEventListener('change', () => {
     const val = authSelect.value;
@@ -153,27 +153,27 @@ export function createApiRequestPanel(assertType, onConfirm) {
 
   // Token Storage Section (only when enabled and bearer)
   const tokenStorageSection = document.createElement('div');
-  tokenStorageSection.style.cssText = 'margin-top:12px;padding:12px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;display:none;';
+  tokenStorageSection.style.cssText = 'margin-top:8px;padding:8px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;display:none;';
   const tokenStorageTypeWrap = document.createElement('div');
-  tokenStorageTypeWrap.style.cssText = 'margin-bottom:10px;';
+  tokenStorageTypeWrap.style.cssText = 'margin-bottom:8px;';
   const tokenStorageTypeLabel = document.createElement('label');
   tokenStorageTypeLabel.innerHTML = 'Storage Type <span style="color:#dc2626">*</span>';
-  tokenStorageTypeLabel.style.cssText = 'display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;';
+  tokenStorageTypeLabel.style.cssText = 'display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;';
   const tokenStorageTypeSelect = document.createElement('select');
-  tokenStorageTypeSelect.style.cssText = 'width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;background:#fff;';
+  tokenStorageTypeSelect.style.cssText = 'width:100%;padding:6px 8px;border:1px solid #e6ebee;border-radius:6px;font-size:12px;background:#fff;';
   ;['localStorage','sessionStorage','cookie'].forEach(t=>{const opt=document.createElement('option');opt.value=t;opt.textContent=t==='cookie'?'Cookie':(t==='localStorage'?'Local Storage':'Session Storage');tokenStorageTypeSelect.appendChild(opt);});
   tokenStorageTypeWrap.appendChild(tokenStorageTypeLabel);
   tokenStorageTypeWrap.appendChild(tokenStorageTypeSelect);
 
   const tokenKeyWrap = document.createElement('div');
-  tokenKeyWrap.style.cssText = 'margin-bottom:10px;';
+  tokenKeyWrap.style.cssText = 'margin-bottom:8px;';
   const tokenKeyLabel = document.createElement('label');
   tokenKeyLabel.innerHTML = 'Storage Key <span style="color:#dc2626">*</span>';
-  tokenKeyLabel.style.cssText = 'display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;';
+  tokenKeyLabel.style.cssText = 'display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;';
   const tokenKeyInput = document.createElement('input');
   tokenKeyInput.type = 'text';
   tokenKeyInput.placeholder = 'e.g., auth_token, access_token';
-  tokenKeyInput.style.cssText = 'width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;background:#fff;';
+  tokenKeyInput.style.cssText = 'width:100%;padding:6px 8px;border:1px solid #e6ebee;border-radius:6px;font-size:12px;background:#fff;';
   tokenKeyWrap.appendChild(tokenKeyLabel);
   tokenKeyWrap.appendChild(tokenKeyInput);
 
@@ -181,7 +181,7 @@ export function createApiRequestPanel(assertType, onConfirm) {
   tokenActions.style.cssText = 'display:flex;align-items:center;gap:8px;';
   const tokenFetchBtn = document.createElement('button');
   tokenFetchBtn.textContent = 'SEND';
-  tokenFetchBtn.style.cssText = 'background:none;border:none;color:#8b5cf6;cursor:pointer;font-size:13px;font-weight:600;padding:6px 10px;border-radius:6px;';
+  tokenFetchBtn.style.cssText = 'background:none;border:none;color:#8b5cf6;cursor:pointer;font-size:12px;font-weight:600;padding:4px 8px;border-radius:6px;';
   tokenFetchBtn.onmouseover = () => { tokenFetchBtn.style.background = '#f3f4f6'; };
   tokenFetchBtn.onmouseout = () => { tokenFetchBtn.style.background = 'transparent'; };
   tokenActions.appendChild(tokenFetchBtn);
@@ -191,7 +191,7 @@ export function createApiRequestPanel(assertType, onConfirm) {
   tokenValueOutput.placeholder = 'Stored value';
   tokenValueOutput.readOnly = true;
   tokenValueOutput.tabIndex = -1;
-  tokenValueOutput.style.cssText = 'width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;background:#f3f4f6;color:#6b7280;cursor:not-allowed;margin-top:8px;';
+  tokenValueOutput.style.cssText = 'width:100%;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;background:#f3f4f6;color:#6b7280;cursor:not-allowed;margin-top:6px;';
 
   tokenStorageSection.appendChild(tokenStorageTypeWrap);
   tokenStorageSection.appendChild(tokenKeyWrap);
@@ -201,15 +201,15 @@ export function createApiRequestPanel(assertType, onConfirm) {
 
   // Basic Auth Storage Section
   const basicStorageSection = document.createElement('div');
-  basicStorageSection.style.cssText = 'margin-top:12px;padding:12px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;display:none;';
+  basicStorageSection.style.cssText = 'margin-top:8px;padding:8px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;display:none;';
 
   const basicStorageTypeWrap = document.createElement('div');
-  basicStorageTypeWrap.style.cssText = 'margin-bottom:10px;';
+  basicStorageTypeWrap.style.cssText = 'margin-bottom:8px;';
   const basicStorageTypeLabel = document.createElement('label');
   basicStorageTypeLabel.innerHTML = 'Storage Type <span style="color:#dc2626">*</span>';
-  basicStorageTypeLabel.style.cssText = 'display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;';
+  basicStorageTypeLabel.style.cssText = 'display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;';
   const basicStorageTypeSelect = document.createElement('select');
-  basicStorageTypeSelect.style.cssText = 'width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;background:#fff;';
+  basicStorageTypeSelect.style.cssText = 'width:100%;padding:6px 8px;border:1px solid #e6ebee;border-radius:6px;font-size:12px;background:#fff;';
   ;['localStorage','sessionStorage','cookie'].forEach(t=>{const opt=document.createElement('option');opt.value=t;opt.textContent=t==='cookie'?'Cookie':(t==='localStorage'?'Local Storage':'Session Storage');basicStorageTypeSelect.appendChild(opt);});
   basicStorageTypeWrap.appendChild(basicStorageTypeLabel);
   basicStorageTypeWrap.appendChild(basicStorageTypeSelect);
@@ -220,22 +220,22 @@ export function createApiRequestPanel(assertType, onConfirm) {
   const basicUsernameKeyWrap = document.createElement('div');
   const basicUsernameKeyLabel = document.createElement('label');
   basicUsernameKeyLabel.innerHTML = 'Username Key <span style="color:#dc2626">*</span>';
-  basicUsernameKeyLabel.style.cssText = 'display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;';
+  basicUsernameKeyLabel.style.cssText = 'display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;';
   const basicUsernameKeyInput = document.createElement('input');
   basicUsernameKeyInput.type = 'text';
   basicUsernameKeyInput.placeholder = 'e.g., basic_username, auth_username';
-  basicUsernameKeyInput.style.cssText = 'width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;background:#fff;';
+  basicUsernameKeyInput.style.cssText = 'width:100%;padding:6px 8px;border:1px solid #e6ebee;border-radius:6px;font-size:12px;background:#fff;';
   basicUsernameKeyWrap.appendChild(basicUsernameKeyLabel);
   basicUsernameKeyWrap.appendChild(basicUsernameKeyInput);
 
   const basicPasswordKeyWrap = document.createElement('div');
   const basicPasswordKeyLabel = document.createElement('label');
   basicPasswordKeyLabel.innerHTML = 'Password Key <span style="color:#dc2626">*</span>';
-  basicPasswordKeyLabel.style.cssText = 'display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;';
+  basicPasswordKeyLabel.style.cssText = 'display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;';
   const basicPasswordKeyInput = document.createElement('input');
   basicPasswordKeyInput.type = 'text';
   basicPasswordKeyInput.placeholder = 'e.g., basic_password, auth_password';
-  basicPasswordKeyInput.style.cssText = 'width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;background:#fff;';
+  basicPasswordKeyInput.style.cssText = 'width:100%;padding:6px 8px;border:1px solid #e6ebee;border-radius:6px;font-size:12px;background:#fff;';
   basicPasswordKeyWrap.appendChild(basicPasswordKeyLabel);
   basicPasswordKeyWrap.appendChild(basicPasswordKeyInput);
 
@@ -243,28 +243,28 @@ export function createApiRequestPanel(assertType, onConfirm) {
   basicKeysWrap.appendChild(basicPasswordKeyWrap);
 
   const basicActions = document.createElement('div');
-  basicActions.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:8px;';
+  basicActions.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:6px;';
   const basicFetchBtn = document.createElement('button');
   basicFetchBtn.textContent = 'SEND';
-  basicFetchBtn.style.cssText = 'background:none;border:none;color:#8b5cf6;cursor:pointer;font-size:13px;font-weight:600;padding:6px 10px;border-radius:6px;';
+  basicFetchBtn.style.cssText = 'background:none;border:none;color:#8b5cf6;cursor:pointer;font-size:12px;font-weight:600;padding:4px 8px;border-radius:6px;';
   basicFetchBtn.onmouseover = () => { basicFetchBtn.style.background = '#f3f4f6'; };
   basicFetchBtn.onmouseout = () => { basicFetchBtn.style.background = 'transparent'; };
   basicActions.appendChild(basicFetchBtn);
 
   const basicOutputs = document.createElement('div');
-  basicOutputs.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;';
+  basicOutputs.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;';
   const basicUsernameOutput = document.createElement('input');
   basicUsernameOutput.type = 'text';
   basicUsernameOutput.placeholder = 'Username value';
   basicUsernameOutput.readOnly = true;
   basicUsernameOutput.tabIndex = -1;
-  basicUsernameOutput.style.cssText = 'width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;background:#f3f4f6;color:#6b7280;cursor:not-allowed;';
+  basicUsernameOutput.style.cssText = 'width:100%;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;background:#f3f4f6;color:#6b7280;cursor:not-allowed;';
   const basicPasswordOutput = document.createElement('input');
   basicPasswordOutput.type = 'text';
   basicPasswordOutput.placeholder = 'Password value';
   basicPasswordOutput.readOnly = true;
   basicPasswordOutput.tabIndex = -1;
-  basicPasswordOutput.style.cssText = 'width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;background:#f3f4f6;color:#6b7280;cursor:not-allowed;';
+  basicPasswordOutput.style.cssText = 'width:100%;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;background:#f3f4f6;color:#6b7280;cursor:not-allowed;';
 
   basicOutputs.appendChild(basicUsernameOutput);
   basicOutputs.appendChild(basicPasswordOutput);
@@ -444,16 +444,16 @@ export function createApiRequestPanel(assertType, onConfirm) {
 
   // Body Section
   const bodySection = document.createElement('div');
-  bodySection.style.cssText = 'margin-bottom:12px;';
+  bodySection.style.cssText = 'margin-bottom:8px;';
   const bodyHeader = document.createElement('div');
-  bodyHeader.style.cssText = 'margin-bottom:8px;';
+  bodyHeader.style.cssText = 'margin-bottom:6px;';
   const bodyTitle = document.createElement('span');
   bodyTitle.textContent = 'Body';
-  bodyTitle.style.cssText = 'font-size:14px;font-weight:600;color:#374151;';
+  bodyTitle.style.cssText = 'font-size:12px;font-weight:600;color:#374151;';
   bodyHeader.appendChild(bodyTitle);
   
   const bodyTypeSelect = document.createElement('select');
-  bodyTypeSelect.style.cssText = 'width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:#fff;cursor:pointer;box-sizing:border-box;margin-bottom:8px;';
+  bodyTypeSelect.style.cssText = 'width:100%;padding:6px 8px;border:1px solid #e6ebee;border-radius:6px;font-size:12px;background:#fff;cursor:pointer;box-sizing:border-box;margin-bottom:6px;';
   ['none', 'json', 'form'].forEach(t => {
     const opt = document.createElement('option');
     opt.value = t;
@@ -466,7 +466,7 @@ export function createApiRequestPanel(assertType, onConfirm) {
 
   const bodyTextarea = document.createElement('textarea');
   bodyTextarea.placeholder = '{"key": "value"}';
-  bodyTextarea.style.cssText = 'width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:Monaco,Menlo,Ubuntu Mono,monospace;background:#fff;resize:vertical;min-height:100px;box-sizing:border-box;display:none;';
+  bodyTextarea.style.cssText = 'width:100%;padding:8px;border:1px solid #e6ebee;border-radius:6px;font-size:12px;font-family:Monaco,Menlo,Ubuntu Mono,monospace;background:#fff;resize:vertical;min-height:80px;box-sizing:border-box;display:none;';
   
   const bodyFormSection = createKeyValueSection('', 'arm-form');
   bodyFormSection.element.style.cssText = 'display:none;margin-bottom:0;';
@@ -489,22 +489,22 @@ export function createApiRequestPanel(assertType, onConfirm) {
 
   // Response Section
   const responseSection = document.createElement('div');
-  responseSection.style.cssText = 'margin-bottom:12px;display:none;';
+  responseSection.style.cssText = 'margin-bottom:8px;display:none;';
   const responseHeader = document.createElement('div');
-  responseHeader.style.cssText = 'margin-bottom:8px;';
+  responseHeader.style.cssText = 'margin-bottom:6px;';
   const responseTitle = document.createElement('span');
   responseTitle.textContent = 'Response';
-  responseTitle.style.cssText = 'font-size:14px;font-weight:600;color:#374151;';
+  responseTitle.style.cssText = 'font-size:12px;font-weight:600;color:#374151;';
   responseHeader.appendChild(responseTitle);
   
   const responseStatus = document.createElement('div');
-  responseStatus.style.cssText = 'padding:12px 16px;border-bottom:1px solid #f3f4f6;font-size:14px;font-weight:600;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px 8px 0 0;';
+  responseStatus.style.cssText = 'padding:8px 10px;border-bottom:1px solid #f3f4f6;font-size:12px;font-weight:600;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px 8px 0 0;';
   
   const responseContent = document.createElement('div');
   responseContent.style.cssText = 'background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;';
   
   const responseData = document.createElement('pre');
-  responseData.style.cssText = 'margin:0;padding:16px;font-family:Monaco,Menlo,Ubuntu Mono,monospace;font-size:13px;line-height:1.5;color:#374151;white-space:pre-wrap;word-wrap:break-word;max-height:300px;overflow:auto;background:#f9fafb;';
+  responseData.style.cssText = 'margin:0;padding:10px;font-family:Monaco,Menlo,Ubuntu Mono,monospace;font-size:12px;line-height:1.5;color:#374151;white-space:pre-wrap;word-wrap:break-word;max-height:260px;overflow:auto;background:#f9fafb;';
   
   responseContent.appendChild(responseData);
   responseSection.appendChild(responseHeader);
@@ -513,7 +513,7 @@ export function createApiRequestPanel(assertType, onConfirm) {
 
   // Result Box for table display
   const resultBox = document.createElement('div');
-  resultBox.style.cssText = 'border:1px solid #e6ebee;border-radius:8px;padding:8px;min-height:48px;font-size:12px;color:#111827;background:#fafafa;margin-top:12px;display:none;';
+  resultBox.style.cssText = 'border:1px solid #e6ebee;border-radius:8px;padding:8px;min-height:48px;font-size:12px;color:#111827;background:#fafafa;margin-top:8px;display:none;';
   resultBox.setAttribute('data-empty', 'true');
   resultBox.textContent = 'Result will appear here…';
 
@@ -548,41 +548,41 @@ export function createApiRequestPanel(assertType, onConfirm) {
 
   function createKeyValueSection(title, className) {
     const section = document.createElement('div');
-    section.style.cssText = 'margin-bottom:12px;';
+    section.style.cssText = 'margin-bottom:8px;';
     
     if (title) {
       const sectionHeader = document.createElement('div');
-      sectionHeader.style.cssText = 'margin-bottom:8px;';
+      sectionHeader.style.cssText = 'margin-bottom:6px;';
       const sectionTitle = document.createElement('span');
       sectionTitle.textContent = title;
-      sectionTitle.style.cssText = 'font-size:14px;font-weight:600;color:#374151;';
+      sectionTitle.style.cssText = 'font-size:12px;font-weight:600;color:#374151;';
       sectionHeader.appendChild(sectionTitle);
       section.appendChild(sectionHeader);
     }
     
     const container = document.createElement('div');
     container.className = className + '-container';
-    container.style.cssText = 'border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;';
+    container.style.cssText = 'border:1px solid #e6ebee;border-radius:8px;overflow:hidden;';
     
     const items = [];
     
     function addItem() {
       const row = document.createElement('div');
-      row.style.cssText = 'display:flex;gap:8px;padding:12px 10px;border-bottom:1px solid #f3f4f6;align-items:center;min-height:48px;';
+      row.style.cssText = 'display:flex;gap:8px;padding:8px;border-bottom:1px solid #f3f4f6;align-items:center;min-height:44px;';
       
       const keyInput = document.createElement('input');
       keyInput.type = 'text';
       keyInput.placeholder = 'Key';
-      keyInput.style.cssText = 'flex:1;padding:10px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;background:#fff;box-sizing:border-box;min-width:0;';
+      keyInput.style.cssText = 'flex:1;padding:6px 8px;border:1px solid #e6ebee;border-radius:6px;font-size:12px;background:#fff;box-sizing:border-box;min-width:0;';
       
       const valueInput = document.createElement('input');
       valueInput.type = 'text';
       valueInput.placeholder = 'Value';
-      valueInput.style.cssText = 'flex:2;padding:10px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;background:#fff;box-sizing:border-box;min-width:0;';
+      valueInput.style.cssText = 'flex:2;padding:6px 8px;border:1px solid #e6ebee;border-radius:6px;font-size:12px;background:#fff;box-sizing:border-box;min-width:0;';
       
       const removeBtn = document.createElement('button');
       removeBtn.innerHTML = '✕';
-      removeBtn.style.cssText = 'width:28px;height:28px;border:none;background:#fef2f2;color:#dc2626;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all 0.2s ease;flex-shrink:0;';
+      removeBtn.style.cssText = 'width:24px;height:24px;border:none;background:#fef2f2;color:#dc2626;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all 0.2s ease;flex-shrink:0;';
       removeBtn.onmouseover = () => { removeBtn.style.background = '#fee2e2'; };
       removeBtn.onmouseout = () => { removeBtn.style.background = '#fef2f2'; };
       removeBtn.addEventListener('click', () => {
@@ -600,10 +600,10 @@ export function createApiRequestPanel(assertType, onConfirm) {
     }
     
     const addBtnWrap = document.createElement('div');
-    addBtnWrap.style.cssText = 'padding:8px;border-top:1px dashed #d1d5db;text-align:center;';
+    addBtnWrap.style.cssText = 'padding:6px;border-top:1px dashed #e6ebee;text-align:center;';
     const addBtn = document.createElement('button');
     addBtn.textContent = '+ ADD ' + (title.toUpperCase() || 'ITEM');
-    addBtn.style.cssText = 'background:none;border:none;color:#8b5cf6;cursor:pointer;font-size:13px;font-weight:500;padding:4px 8px;border-radius:4px;transition:all 0.2s ease;';
+    addBtn.style.cssText = 'background:none;border:none;color:#8b5cf6;cursor:pointer;font-size:12px;font-weight:500;padding:4px 8px;border-radius:4px;transition:all 0.2s ease;';
     addBtn.onmouseover = () => { addBtn.style.background = '#f3f4f6'; };
     addBtn.onmouseout = () => { addBtn.style.background = 'transparent'; };
     addBtn.addEventListener('click', () => addItem());
@@ -1123,11 +1123,11 @@ export function createApiRequestPanel(assertType, onConfirm) {
   footer.style.cssText = 'display:flex;justify-content:flex-end;gap:8px;margin-top:8px;';
   const cancelBtn = document.createElement('button');
   cancelBtn.textContent = 'Cancel';
-  cancelBtn.style.cssText = 'padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;color:#374151;cursor:pointer;';
+  cancelBtn.style.cssText = 'height:28px;padding:0 10px;border:1px solid #e6ebee;border-radius:6px;background:#fff;color:#374151;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;';
   cancelBtn.addEventListener('click', (ev) => { ev.stopPropagation(); close(); });
   const saveBtn = document.createElement('button');
   saveBtn.textContent = 'Save';
-  saveBtn.style.cssText = 'padding:6px 10px;border:none;border-radius:6px;background:#3b82f6;color:#fff;font-weight:600;cursor:pointer;';
+  saveBtn.style.cssText = 'height:28px;padding:0 12px;border:none;border-radius:6px;background:#3b82f6;color:#fff;font-weight:600;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;';
   saveBtn.disabled = true;
   saveBtn.style.opacity = '0.6';
   saveBtn.style.cursor = 'not-allowed';

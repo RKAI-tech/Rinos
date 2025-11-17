@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { toast } from 'react-toastify';
 
 interface WaitModalProps {
@@ -9,10 +9,21 @@ interface WaitModalProps {
 
 const WaitModal: React.FC<WaitModalProps> = ({ isOpen, onClose, onConfirm }) => {
   const [ms, setMs] = useState<string>('1000');
+  const msInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       setMs('1000');
+    }
+  }, [isOpen]);
+
+  // Auto-focus on input when modal opens
+  useEffect(() => {
+    if (isOpen && msInputRef.current) {
+      setTimeout(() => {
+        msInputRef.current?.focus();
+        msInputRef.current?.select();
+      }, 100);
     }
   }, [isOpen]);
 
@@ -72,6 +83,7 @@ const WaitModal: React.FC<WaitModalProps> = ({ isOpen, onClose, onConfirm }) => 
         <div style={{ padding: '16px 20px', boxSizing: 'border-box' }}>
           <label style={{ display: 'block', fontSize: 14, color: '#374151', marginBottom: 8 }}>Milliseconds</label>
           <input
+            ref={msInputRef}
             type="text"
             value={ms}
             onChange={(e) => setMs(e.target.value)}

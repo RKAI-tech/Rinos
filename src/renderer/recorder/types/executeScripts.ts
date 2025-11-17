@@ -1,4 +1,5 @@
 import { Action, ActionBatch } from "./actions";
+import { BasicAuthentication } from "./basic_auth";
 
 export interface RunCodeRequest {
     code: string;
@@ -38,8 +39,8 @@ export interface FileDeleteResponse {
 
 export interface ExecuteActionsRequest {
     actions: ActionBatch;
+    basic_auth?: BasicAuthentication;
 }
-
 export interface ExecuteActionsResponse {
     success?: boolean;
     message?: string;
@@ -51,4 +52,5 @@ export interface GenerationCodeResponse{
 export interface GenerationCodeRequest {
     testcase_id: string;
     actions: Action[];
-  }
+    basic_auth?: BasicAuthentication;
+}

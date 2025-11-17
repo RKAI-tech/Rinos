@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Project } from '../../../types/projects';
 import './EditProject.css';
 
@@ -12,6 +12,7 @@ interface EditProjectProps {
 const EditProject: React.FC<EditProjectProps> = ({ isOpen, onClose, onSave, project }) => {
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
+  const projectNameInputRef = useRef<HTMLInputElement>(null);
 
   // Populate form when project data is available
   useEffect(() => {
@@ -66,6 +67,18 @@ const EditProject: React.FC<EditProjectProps> = ({ isOpen, onClose, onSave, proj
     };
   }, [isOpen, handleClose]);
 
+  // Auto-focus on first input when modal opens
+  useEffect(() => {
+    if (isOpen && project && projectNameInputRef.current) {
+      // Small delay to ensure modal is fully rendered
+      setTimeout(() => {
+        projectNameInputRef.current?.focus();
+        // Select all text for easy editing
+        projectNameInputRef.current?.select();
+      }, 100);
+    }
+  }, [isOpen, project]);
+
   if (!isOpen || !project) return null;
 
   return (
@@ -95,6 +108,7 @@ const EditProject: React.FC<EditProjectProps> = ({ isOpen, onClose, onSave, proj
               Project Name <span className="required-asterisk">*</span>
             </label>
             <input
+              ref={projectNameInputRef}
               type="text"
               id="projectName"
               value={projectName}

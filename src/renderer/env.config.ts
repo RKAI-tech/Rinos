@@ -19,4 +19,8 @@ export const config = {
   ACCESS_TOKEN_KEY: env.VITE_ACCESS_TOKEN_KEY || 'access_token',
   USER_DATA_KEY: env.VITE_USER_DATA_KEY || 'user_data',
   REFRESH_TOKEN_KEY: env.VITE_REFRESH_TOKEN_KEY || 'refresh_token',
+
+  // Session Heartbeat Configuration
+  SESSION_HEARTBEAT_INTERVAL: Number(env.VITE_SESSION_HEARTBEAT_INTERVAL || 10 * 60_000), // default 5 minutes
+  SESSION_HEARTBEAT_RETRY: Number(env.VITE_SESSION_HEARTBEAT_RETRY || 30_000), // default 30 seconds
 };

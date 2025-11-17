@@ -5,11 +5,13 @@ import { Action } from '../../types/actions';
 interface ActionToCodeTabProps {
   onConvert?: () => void;
   onRun?: () => void;
+  onSaveAndClose?: () => void;
   activeTab?: 'actions' | 'script';
   actions?: Action[];
+  isRunning?: boolean;
 }
 
-const ActionToCodeTab: React.FC<ActionToCodeTabProps> = ({ onConvert, onRun, activeTab = 'actions', actions = [] }) => {
+const ActionToCodeTab: React.FC<ActionToCodeTabProps> = ({ onConvert, onRun, onSaveAndClose, activeTab = 'actions', actions = [], isRunning = false }) => {
   const [isConverting, setIsConverting] = useState(false);
 
   const handleConvert = () => {
@@ -58,11 +60,25 @@ describe('Admin Login Test', () => {
           )}
         </button>
         <button 
-          className={`rcd-run-test ${actions.length === 0 ? 'disabled' : ''}`}
-          onClick={() => onRun && onRun()}
-          disabled={actions.length === 0}
+          className={`rcd-run-test ${actions.length === 0 ? 'disabled' : ''} ${isRunning ? 'loading' : ''}`}
+          onClick={() => !isRunning && onRun && onRun()}
+          disabled={actions.length === 0 || isRunning}
         >
-          Run Test
+          {isRunning ? (
+            <>
+              <span className="rcd-loading-spinner" />
+              Running..
+            </>
+          ) : (
+            'Run Test'
+          )}
+        </button>
+        <button
+          className="rcd-save-close"
+          onClick={() => onSaveAndClose && onSaveAndClose()}
+          title="Save changes and close recorder"
+        >
+          Save&Close
         </button>
       </div>
     </div>

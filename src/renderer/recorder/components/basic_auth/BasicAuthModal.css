@@ -138,10 +138,4 @@
   border-color: #b91c1c;
 }
 
-.rcd-ba-btn.danger:disabled {
-  background: #fca5a5;
-  border-color: #fca5a5;
-  cursor: not-allowed;
-}
-
 

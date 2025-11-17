@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import './ActionDetailModal.css';
 import { Action as ActionGetResponse, ActionType, AssertType, Action, Element, Selector } from '../../types/actions';
 import Editor from '@monaco-editor/react';
+import { CreateType } from '../../types/actions';
 
 interface Props {
   isOpen: boolean;
@@ -15,20 +16,9 @@ const mapFromResponse = (src: ActionGetResponse): Action => ({
   testcase_id: src.testcase_id,
   action_type: src.action_type as any,
   description: src.description,
-  playwright_code: src.playwright_code,
+  action_datas: src.action_datas,
   elements: (src.elements || []) as any,
-  assert_type: src.assert_type as any,
-  value: src.value,
-  selected_value: src.selected_value,
-  checked: src.checked,
-  // Preserve database-related fields to avoid losing them on save
-  connection_id: (src as any).connection_id,
-  connection: (src as any).connection,
-  statement_id: (src as any).statement_id,
-  statement: (src as any).statement,
-  variable_name: (src as any).variable_name,
-  order_index: (src as any).order_index,
-  file_upload: (src as any).file_upload,
+  assert_type: src.assert_type as any
 });
 
 const mapToResponse = (src: Action): ActionGetResponse => ({
@@ -36,19 +26,9 @@ const mapToResponse = (src: Action): ActionGetResponse => ({
   testcase_id: src.testcase_id,
   action_type: src.action_type,
   description: src.description || '',
-  playwright_code: src.playwright_code || '',
+  action_datas: src.action_datas,
   elements: (src.elements || []) as any,
   assert_type: (src.assert_type as any) || undefined,
-  value: src.value || '',
-  selected_value: src.selected_value,
-  checked: src.checked,
-  connection_id: src.connection_id,
-  connection: src.connection,
-  statement_id: src.statement_id,
-  statement: src.statement,
-  variable_name: src.variable_name,
-  order_index: src.order_index,
-  file_upload: src.file_upload,
 });
 
 const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave }) => {
@@ -74,7 +54,27 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
     setDraft(prev => {
       if (!prev) return prev;
       const next = { ...prev } as Action;
-      next.statement = { ...(next.statement || { statement_id: '', query: '' }), query: sql };
+      next.action_datas = (next.action_datas || []).map(ad => ({
+        ...ad,
+        statement: { ...(ad.statement || { statement_id: '', query: '', create_type: CreateType.system }), query: sql },
+      }));
+      return next;
+    });
+  };
+
+  const updateActionDataValue = (value: string) => {
+    setDraft(prev => {
+      if (!prev) return prev;
+      const next = { ...prev } as Action;
+      next.action_datas = (next.action_datas || []).map((ad, idx) => 
+        idx === 0 
+          ? { ...ad, value: { ...(ad.value || {}), value } }
+          : ad
+      );
+      // Ensure at least one action_data exists
+      if (!next.action_datas || next.action_datas.length === 0) {
+        next.action_datas = [{ value: { value } }];
+      }
       return next;
     });
   };
@@ -228,7 +228,7 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
     setDraft(prev => {
       if (!prev) return prev;
       const next: Action = { ...prev, assert_type: nextType } as any;
-      next.description = generateAssertDescription(nextType, next.value || '');
+      next.description = generateAssertDescription(nextType, next.action_datas?.[0]?.value?.["value"] || '');
       return next;
     });
   };
@@ -257,7 +257,12 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
         AssertType.toBeVisible,
       ];
       if (cloned.assert_type && (noValueAsserts as any).includes(cloned.assert_type)) {
-        cloned.value = '';
+        cloned.action_datas = (cloned.action_datas || []).map(ad => ({
+          ...ad,
+          value: {
+            value: '',
+          },
+        }));
       }
     }
     return cloned;
@@ -320,7 +325,7 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
               {(draft.action_type === ActionType.assert ? Boolean((assertConfig as any)?.requiresValue) : visibility.showValue) && (
                 <div className="rcd-action-detail-kv">
                   <label className="rcd-action-detail-kv-label">{assertConfig ? (assertConfig as any).valueLabel : visibility.valueLabel}</label>
-                  <input className="rcd-action-detail-input" value={draft.value || ''} onChange={(e) => updateField('value', e.target.value)} placeholder={`Enter ${(assertConfig ? (assertConfig as any).valueLabel : visibility.valueLabel).toLowerCase()}`} />
+                  <input className="rcd-action-detail-input" value={draft.action_datas?.[0]?.value?.["value"] || ''} onChange={(e) => updateActionDataValue(e.target.value)} placeholder={`Enter ${(assertConfig ? (assertConfig as any).valueLabel : visibility.valueLabel).toLowerCase()}`} />
                 </div>
               )}
             </div>
@@ -361,15 +366,15 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
             </div>
           )}
 
-          {(draft.action_type !== ActionType.database_execution && draft.playwright_code) && (
+          {(draft.action_type !== ActionType.database_execution && draft.action_datas?.[0]?.value?.["playwright_code"]) && (
             <div className="rcd-action-detail-section">
               <div className="rcd-action-detail-section-title">Playwright</div>
               <div className="rcd-action-detail-editor">
                 <Editor
-                  value={draft.playwright_code || ''}
+                  value={draft.action_datas?.[0]?.value?.["playwright_code"] || ''}
                   language="javascript"
                   theme="vs"
-                  onChange={(value) => updateField('playwright_code', value || '')}
+                  onChange={(value) => updateField('action_datas', value || '')}
                   options={{
                     minimap: { enabled: false },
                     fontSize: 13,
@@ -392,7 +397,7 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
                 <textarea
                   className="rcd-action-detail-input"
                   style={{ minHeight: '120px', fontFamily: 'monospace' }}
-                  value={(draft.statement?.query || '')}
+                  value={(draft.action_datas?.[0]?.statement?.query || '')}
                   onChange={(e) => updateStatementQuery(e.target.value)}
                   placeholder="SELECT * FROM table_name;"
                 />

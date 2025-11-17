@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './TitleInputModal.css';
 
 interface TitleInputModalProps {
@@ -9,6 +9,7 @@ interface TitleInputModalProps {
 
 const TitleInputModal: React.FC<TitleInputModalProps> = ({ isOpen, onClose, onConfirm }) => {
   const [title, setTitle] = useState('');
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const handleConfirm = () => {
     if (title.trim()) {
@@ -31,6 +32,15 @@ const TitleInputModal: React.FC<TitleInputModalProps> = ({ isOpen, onClose, onCo
     }
   };
 
+  // Auto-focus on input when modal opens
+  useEffect(() => {
+    if (isOpen && titleInputRef.current) {
+      setTimeout(() => {
+        titleInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -42,13 +52,13 @@ const TitleInputModal: React.FC<TitleInputModalProps> = ({ isOpen, onClose, onCo
         <div className="title-input-modal-body">
           <label htmlFor="title-input">Enter title to verify:</label>
           <input
+            ref={titleInputRef}
             id="title-input"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={handleKeyPress}
             placeholder="Page Title"
-            autoFocus
           />
         </div>
         <div className="title-input-modal-footer">

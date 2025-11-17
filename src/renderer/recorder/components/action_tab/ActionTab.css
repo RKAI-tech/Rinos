@@ -38,24 +38,32 @@
 
 .rcd-actions-buttons {
   display: flex;
-  gap: 6px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
 .rcd-action-btn {
   background: #f3f4f6;
   border: 1px solid #d1d5db;
-  border-radius: 6px;
-  padding: 4px;
+  border-radius: 8px;
+  padding: 6px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   color: #6b7280;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
+  min-width: 32px;
+  min-height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
   transition: all 0.2s ease-in-out;
+}
+
+.rcd-action-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .rcd-action-btn:hover {
@@ -106,12 +114,18 @@
 
 /* Spinner */
 .rcd-spinner {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  max-width: 18px;
+  max-height: 18px;
+  box-sizing: border-box;
   border: 2px solid currentColor;
   border-top-color: transparent;
   border-radius: 50%;
   display: inline-block;
+  flex: 0 0 auto;
   animation: rcd-spin 0.8s linear infinite;
 }
 

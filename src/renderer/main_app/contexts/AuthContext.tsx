@@ -2,7 +2,9 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { authService } from '../services/auth';
 import { LoginRequest, LoginWithMicrosoftRequest } from '../types/auth';
 import { config } from '../../env.config';
-// Lưu ý: Không import tĩnh microsoftLogin trong renderer để tránh lôi Electron API vào bundle
+import { toast } from 'react-toastify';
+import { apiRouter } from '../services/baseAPIRequest';
+import { useSessionHeartbeat } from '../hooks/useSessionHeartbeat';
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -95,23 +97,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   
   // Kiểm tra token có sẵn khi component mount
   useEffect(() => {
-    // log('initializeAuth: start');
     const initializeAuth = async () => {
       try {
         const token = await tokenStorage.get(config.ACCESS_TOKEN_KEY);
         const email = await emailStorage.get();
-        // log('initializeAuth: token exists =', Boolean(token));
-        // log('initializeAuth: email exists =', Boolean(email));
-        // log('initializeAuth: token =', token);
         if (token) {
           const response = await authService.validateToken(token);
           if (response.success && response.data?.access_token) {
             setIsAuthenticated(true);
-            // Nếu có email từ storage, sử dụng nó, nếu không thì lấy từ API
             if (email) {
               setUserEmail(email);
             } else {
-              // Lấy email từ API nếu không có trong storage
               try {
                 const userResponse = await authService.getCurrentUser();
                 if (userResponse.success && (userResponse as any).data?.email) {
@@ -123,11 +119,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 // console.error('[AuthContext] Error getting user email:', error);
               }
             }
+          } else {
+            await handleSessionExpired();
           }
+        } else {
+          await handleSessionExpired();
         }
       } catch (error) {
         // console.error('[AuthContext] Error initializing auth:', error);
-        clearAuthData();
+        await handleSessionExpired();
+        await clearAuthData();
       } finally {
         setIsLoading(false);
         // log('initializeAuth: end');
@@ -137,15 +138,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
   }, []);
   
-  const clearAuthData = () => {
+  const clearAuthData = async () => {
     // log('clearAuthData');
-    tokenStorage.remove(config.ACCESS_TOKEN_KEY);
-    emailStorage.remove();
+    await tokenStorage.remove(config.ACCESS_TOKEN_KEY);
+    await emailStorage.remove();
     authService.clearAuth();
     setIsAuthenticated(false);
     setUserEmail(null);
   };
   
+  const handleSessionExpired = async () => {
+    await clearAuthData();
+
+    // if ((window as any).api) {
+      try {
+        await (window as any).electronAPI?.window?.closeAllWindows({ preserveSender: true });
+        toast.warning('Session expired. Please login to continue.');
+      } catch (error) {
+        console.error('[AuthContext] Error closing all windows:', error);
+      }
+    // }
+  };
+
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
@@ -179,51 +193,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      // log('register: start', { email });
       
       const payload: LoginRequest = { email, password };
       const response = await authService.register(payload);
-      // log('register: response', response);
       
       if (response.success && response.data) {
-        // Chỉ lưu token
-        await tokenStorage.set(config.ACCESS_TOKEN_KEY, response.data.access_token);
-        // Lưu email
-        await emailStorage.set(email);
-        setIsAuthenticated(true);
-        setUserEmail(email);
-        // log('register: authenticated');
+        toast.success(response.data.message || 'Registration successful!');
       } else {
         throw new Error(response.error || 'Registration failed');
       }
       
     } catch (error) {
-      // console.error('[AuthContext] Registration failed:', error);
       throw error;
     } finally {
       setIsLoading(false);
-      log('register: end');
     }
   };
 
   const logout = async () => {
     try {
       setIsLoading(true);
-      // log('logout: start');
-      
-      // Call logout API
-      await authService.logout();
-      
-      // Clear local data
-      clearAuthData();
-      
+      await clearAuthData();
     } catch (error) {
-      // console.error('[AuthContext] Logout failed:', error);
-      // Still clear local data even if API call fails
-      clearAuthData();
+      await clearAuthData();
     } finally {
       setIsLoading(false);
-      // log('logout: end');
     }
   };
 
@@ -287,6 +281,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     microsoftLogin,
     register
   };
+
+  useSessionHeartbeat({
+    isActive: isAuthenticated,
+    intervalMs: config.SESSION_HEARTBEAT_INTERVAL,
+    retryDelayMs: config.SESSION_HEARTBEAT_RETRY,
+    pauseWhenHidden: true,
+    getToken: () => tokenStorage.get(config.ACCESS_TOKEN_KEY),
+    setToken: async (token: string) => {
+      await tokenStorage.set(config.ACCESS_TOKEN_KEY, token);
+      apiRouter.setAuthToken(token);
+    },
+    clearToken: async () => {
+      await tokenStorage.remove(config.ACCESS_TOKEN_KEY);
+      apiRouter.clearAuth();
+    },
+    onExpired: handleSessionExpired,
+  });
 
   return (
     <AuthContext.Provider value={value}>

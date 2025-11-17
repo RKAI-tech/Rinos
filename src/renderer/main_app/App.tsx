@@ -15,24 +15,14 @@ import Databases from './pages/databases/Databases';
 import BrowserStorage from './pages/browser_storage/BrowserStorage';
 import ChangeLog from './pages/change_log/ChangeLog';
 import ConfirmCloseModal from '../recorder/components/confirm_close/ConfirmCloseModal';
+import LoadingScreen from './components/loading/LoadingScreen';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        fontSize: '18px',
-        color: '#666'
-      }}>
-        Loading...
-      </div>
-    );
+    return <LoadingScreen />;
   }
   
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
@@ -43,18 +33,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        fontSize: '18px',
-        color: '#666'
-      }}>
-        Loading...
-      </div>
-    );
+    return <LoadingScreen />;
   }
   
   return isAuthenticated ? <Navigate to="/dashboard" replace /> : <>{children}</>;
@@ -62,7 +41,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 function App() {
   const [showConfirmClose, setShowConfirmClose] = useState(false);
-  const [hasUnsavedActions, setHasUnsavedActions] = useState(true);
+  const [hasUnsavedDatas, setHasUnsavedDatas] = useState(true);
 
   useEffect(() => {
     // console.log('App component mounted');
@@ -79,10 +58,19 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const handleCloseRequest = () => {
+    const handleCloseRequest = async () => {
+      console.log('[App] Close request received, getting unsaved datas flag...');
+      // Gọi main process để lấy unsaved flags từ child windows
+      try {
+        const hasUnsavedDatas = await (window as any).electronAPI?.window?.getUnsavedDatasFlag?.() || false;
+        console.log('[App] Got unsaved datas flag:', hasUnsavedDatas);
+        setHasUnsavedDatas(hasUnsavedDatas);
+      } catch (error) {
+        console.error('[App] Error getting unsaved datas flag:', error);
+        // Nếu có lỗi, giả định có unsaved data để an toàn
+        setHasUnsavedDatas(true);
+      }
       setShowConfirmClose(true);
-      // In this version, we assume there may be unsaved data in child windows
-      setHasUnsavedActions(true);
     };
     const removeListener = (window as any).electronAPI?.window?.onMainAppCloseRequested?.(handleCloseRequest);
     return () => {
@@ -165,7 +153,7 @@ function App() {
       </Router>
       <ConfirmCloseModal
         isOpen={showConfirmClose}
-        hasUnsavedActions={hasUnsavedActions}
+        hasUnsavedDatas={hasUnsavedDatas}
         onCancel={() => {
           handleConfirmClose(false, false);
         }}

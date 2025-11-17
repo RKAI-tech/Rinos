@@ -180,13 +180,6 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
     }
   }
 
-  queryPanel.useBtn.addEventListener('click', (ev) => {
-    ev.stopPropagation();
-    const txt = queryPanel.getTextResult();
-    if (txt) input.value = txt;
-    queryPanel.close();
-  });
-  
   const confirmBtn = document.createElement('button');
   confirmBtn.innerHTML = '<i class="fas fa-check"></i>';
   confirmBtn.title = 'Confirm';

@@ -89,14 +89,14 @@ export function createDescription(action_received: any): string {
                     return `Verify the element is editable`;
                 case AssertType.toBeReadOnly:
                     return `Verify the element is read only`;
-                case AssertType.toHaveAccessibleDescription:
-                    return `Verify the element has accessible description ${value}`;
-                case AssertType.toHaveAccessibleName:
-                    return `Verify the element has accessible name ${value}`;
-                case AssertType.toHaveCount:
-                    return `Verify the element has count ${value}`;
-                case AssertType.toHaveRole:
-                    return `Verify the element has role ${value}`;
+                // case AssertType.toHaveAccessibleDescription:
+                //     return `Verify the element has accessible description ${value}`;
+                // case AssertType.toHaveAccessibleName:
+                //     return `Verify the element has accessible name ${value}`;
+                // case AssertType.toHaveCount:
+                //     return `Verify the element has count ${value}`;
+                // case AssertType.toHaveRole:
+                //     return `Verify the element has role ${value}`;
                 case AssertType.pageHasAURL:
                     return `Verify the page has URL ${value}`;
                 case AssertType.pageHasATitle:

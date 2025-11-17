@@ -38,10 +38,14 @@ export enum ActionType {
 }
 
 export enum AssertType {
-  toBeVisible = "toBeVisible",
   toHaveText = "toHaveText",
   toContainText = "toContainText",
   toHaveValue = "toHaveValue",
+  toHaveValues = "toHaveValues",
+  pageHasATitle = "pageHasATitle",
+  pageHasAURL = "pageHasAURL",
+  ai = "AI",
+  toBeVisible = "toBeVisible",
   toBeEnabled = "toBeEnabled",
   toBeDisabled = "toBeDisabled",
   toBeChecked = "toBeChecked",
@@ -50,15 +54,11 @@ export enum AssertType {
   toBeHidden = "toBeHidden",
   toBeEditable = "toBeEditable",
   toBeReadOnly = "toBeReadOnly",
-  toBeEmpty = "toBeEmpty",
-  toHaveCount = "toHaveCount",
-  toHaveRole = "toHaveRole",
-  toHaveAccessibleName = "toHaveAccessibleName",
-  toHaveAccessibleDescription = "toHaveAccessibleDescription",
-  toHaveValues = "toHaveValues",
-  pageHasATitle = "pageHasATitle",
-  pageHasAURL = "pageHasAURL",
-  ai = "AI"
+  toBeEmpty = "toBeEmpty"
+  // toHaveCount = "toHaveCount",
+  // toHaveRole = "toHaveRole",
+  // toHaveAccessibleName = "toHaveAccessibleName",
+  // toHaveAccessibleDescription = "toHaveAccessibleDescription",
 }
 
 export enum CreateType {

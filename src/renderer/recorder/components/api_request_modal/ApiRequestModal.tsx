@@ -97,7 +97,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       setAuthToken(initialData.auth?.token || '');
       setBody(initialData.body?.content || '');
       setBodyType(initialData.body?.type || 'none');
-      setBodyForm(initialData.body?.formData ? initialData.body.formData.map((fd: any) => ({ key: fd.name, value: fd.value })) : [{ key: '', value: '' }]);
+      setBodyForm(initialData.body?.form_data ? initialData.body.form_data.map((fd: any) => ({ key: fd.name, value: fd.value })) : [{ key: '', value: '' }]);
       setResponse(null);
     }
   }, [isOpen, initialData]);
@@ -198,7 +198,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       body: {
         type: bodyType,
         content: body,
-        formData: bodyType === 'form' ? bodyForm.map((p, i) => ({ name: p.key, value: p.value, orderIndex: i })) : undefined,
+        form_data: bodyType === 'form' ? bodyForm.map((p, i) => ({ name: p.key, value: p.value, orderIndex: i })) : undefined,
       },
     };
 
@@ -246,7 +246,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
 
     const basicAuthStorages = !tokenStorageEnabled || authType !== 'basic' || !basicAuthUsernameKey.trim() || !basicAuthPasswordKey.trim()
       ? []
-      : [{ type: basicAuthStorageType, usernameKey: basicAuthUsernameKey, passwordKey: basicAuthPasswordKey }];
+      : [{ type: basicAuthStorageType, username_key: basicAuthUsernameKey, password_key: basicAuthPasswordKey }];
 
     const data: ApiRequestData = {
       method: (method || 'GET').toLowerCase() as any,
@@ -265,7 +265,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       body: {
         type: bodyType,
         content: bodyType === 'json' ? body : bodyType === 'form' ? undefined : '',
-        formData: bodyType === 'form'
+        form_data: bodyType === 'form'
           ? bodyForm
               .filter(p => p.key.trim())
               .map((p, i) => ({ name: p.key.trim(), value: p.value, orderIndex: i }))

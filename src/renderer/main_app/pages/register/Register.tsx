@@ -4,8 +4,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import './Register.css';
 import loginImage from "../../assets/ms_logo.png"
+import { LoginRequest } from '../../types/auth';
+import { authService } from '../../services/auth';
 const Register: React.FC = () => {
-  const { register, microsoftLogin, isLoading } = useAuth();
+  const {register, microsoftLogin, isLoading } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,7 +15,7 @@ const Register: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -51,12 +53,17 @@ const Register: React.FC = () => {
       }
 
       await register(email, password);
-      toast.success('Registration successful! Redirecting to Dashboard...');
-      
-      // AuthContext sẽ tự động chuyển hướng thông qua ProtectedRoute
+
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+      setShowPassword(false);
+      setShowConfirmPassword(false);
+
+      navigate('/login', { replace: true, state: { registeredEmail: email } });
       
     } catch (err: any) {
-      const msg = err?.message || 'Registration failed';
+      const msg = err?.message ||  'Registration failed';
       setError(msg);
       toast.error(msg);
     }

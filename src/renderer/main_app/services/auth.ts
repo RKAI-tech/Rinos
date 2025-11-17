@@ -6,7 +6,8 @@ import {
   LoginResponse, 
   RegisterRequest,
   AuthMeResponse,
-  ValidateTokenRequest
+  ValidateTokenRequest,
+  RegisterResponse
 } from '../types/auth';
 
 export class AuthService {
@@ -46,7 +47,7 @@ export class AuthService {
     return response;
   }
 
-  async register(credentials: RegisterRequest): Promise<ApiResponse<LoginResponse>> {
+  async register(credentials: RegisterRequest): Promise<ApiResponse<RegisterResponse>> {
     // Input validation
     if (!credentials.email || !credentials.password) {
       return {
@@ -55,17 +56,11 @@ export class AuthService {
       };
     }
 
-    const response = await apiRouter.request<LoginResponse>('/auth/register', {
+    const response = await apiRouter.request<RegisterResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
     
-    // console.log('[AuthService] Register response:', response);
-    if (response.success && response.data && response.data.access_token) {
-      apiRouter.setAuthToken(response.data.access_token);
-      // console.log('[AuthService] Register successful, token set');
-    }
-
     return response;
   }
 

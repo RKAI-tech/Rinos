@@ -212,8 +212,10 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
         }
       ]
     }
-    console.log('[sendAssertAction] Sending action to main:', action);
+    // console.log('[sendAssertAction] Sending action to main:', action);
     window.sendActionToMain(action);
+    closeAssertInputModal();
+    // console.log('[sendAssertAction] Action sent successfully');
   } else {
     console.warn('[sendAssertAction] window.sendActionToMain is not available');
   }

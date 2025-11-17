@@ -29,6 +29,7 @@ interface TestSuite {
   failed?: number;
   createdAt: string;
   updated?: string;
+  progress?: number;
 }
 
 const TestSuites: React.FC = () => {
@@ -44,7 +45,7 @@ const TestSuites: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
-  const [sortBy, setSortBy] = useState<'name' | 'description' | 'passRate' | 'testcases' | 'passed' | 'failed' | 'createdAt' | 'updatedAt'>('createdAt');
+  const [sortBy, setSortBy] = useState<'name' | 'description' | 'passRate' | 'testcases' | 'passed' | 'failed' | 'createdAt' | 'updatedAt' | 'progress'>('updatedAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [itemsPerPage, setItemsPerPage] = useState('10 rows/page');
   const [currentPage, setCurrentPage] = useState(1);
@@ -82,6 +83,7 @@ const TestSuites: React.FC = () => {
           failed: ts.test_failed ? parseFloat(String(ts.test_failed)) : undefined,
           createdAt: ts.created_at,
           updated: ts.updated_at || ts.created_at, // Use updated_at if available, otherwise created_at
+          progress: ts.progress ? parseFloat(String(ts.progress)) : undefined,
         }));
         setTestSuites(mapped);
       } else {
@@ -192,6 +194,7 @@ const TestSuites: React.FC = () => {
           const t = it.updated ? new Date(it.updated).getTime() : 0;
           return isNaN(t) ? 0 : t;
         }
+        case 'progress': return it.progress ?? -1;
         default: return 0;
       }
     };
@@ -211,7 +214,7 @@ const TestSuites: React.FC = () => {
     return copy;
   }, [filteredSuites, sortBy, sortOrder]);
 
-  const handleSort = (col: 'name' | 'description' | 'passRate' | 'testcases' | 'passed' | 'failed' | 'createdAt' | 'updatedAt') => {
+  const handleSort = (col: 'name' | 'description' | 'passRate' | 'testcases' | 'passed' | 'failed' | 'createdAt' | 'updatedAt' | 'progress') => {
     if (sortBy === col) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     else { setSortBy(col); setSortOrder('asc'); }
     setCurrentPage(1);
@@ -474,6 +477,9 @@ const TestSuites: React.FC = () => {
                     <th className={`sortable ${sortBy === 'passRate' ? 'sorted' : ''}`} onClick={() => handleSort('passRate')}>
                       <span className="th-content"><span className="th-text">Passed Rate</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'passRate' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'passRate' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                     </th>
+                    <th className={`sortable ${sortBy === 'progress' ? 'sorted' : ''}`} onClick={() => handleSort('progress')}>
+                      <span className="th-content"><span className="th-text">Progress</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'progress' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'progress' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    </th>
                     <th className={`sortable ${sortBy === 'createdAt' ? 'sorted' : ''}`} onClick={() => handleSort('createdAt')}>
                       <span className="th-content"><span className="th-text">Updated</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'createdAt' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'createdAt' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                     </th>
@@ -494,6 +500,21 @@ const TestSuites: React.FC = () => {
                       <td className="testsuite-passed">{suite.passed ?? '-'}</td>
                       <td className="testsuite-failed">{suite.failed ?? '-'}</td>
                       <td className="testsuite-passrate">{suite.passRate != null ? `${suite.passRate}%` : '-'}</td>
+                      <td className="testsuite-progress">
+                        <div className="progress-cell">
+                          <div className="progress-bar-container">
+                            <div 
+                              className="progress-bar-fill" 
+                              style={{ width: `${Math.min(100, Math.max(0, suite.progress ?? 0))}%` }}
+                              role="progressbar"
+                              aria-valuemin={0}
+                              aria-valuemax={100}
+                              aria-valuenow={suite.progress ?? 0}
+                            />
+                          </div>
+                          <span className="progress-percentage">{suite.progress != null ? suite.progress : 0}%</span>
+                        </div>
+                      </td>
                       <td className="testsuite-created">{suite.createdAt? suite.createdAt : '-'}</td>
                       <td className="testsuite-actions">
                         <div className="actions-container">

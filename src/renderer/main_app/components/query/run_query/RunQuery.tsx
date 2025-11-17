@@ -1,33 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './RunQuery.css';
 import { VariableService } from '../../../services/variables';
 import { toast } from 'react-toastify';
 
-interface ResultItem { name: string; value: string }
-
 interface RunQueryProps {
   isOpen: boolean;
   sql?: string;
-  items: ResultItem[];
+  queryName?: string;
+  items: Array<Record<string, unknown>>;
   onClose: () => void;
   projectId?: string;
   statementId?: string;
 }
 
-const RunQuery: React.FC<RunQueryProps> = ({ isOpen, sql, items, onClose, projectId, statementId }) => {
+const RunQuery: React.FC<RunQueryProps> = ({ isOpen, sql, queryName, items, onClose, projectId, statementId }) => {
   if (!isOpen) return null;
   const [isVarOpen, setIsVarOpen] = useState(false);
   const [origName, setOrigName] = useState('');
   const [customName, setCustomName] = useState('');
   const [val, setVal] = useState('');
 
+  const formatDisplayValue = (value: unknown) => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'object') {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return '[object Object]';
+      }
+    }
+    return String(value);
+  };
+
+  const headers = useMemo(() => {
+    if (!items?.length) return [];
+    return Object.keys(items[0]);
+  }, [items]);
+
   const openAddVar = (name: string, value: string) => {
     setOrigName(name);
-    setCustomName(name);
+    setCustomName('');
     setVal(value);
     setIsVarOpen(true);
   };
 
+  useEffect(() => {
+    console.log('items', items);
+  }, [items]);
+  
   const handleSaveVar = async () => {
     try {
       if (!projectId || !statementId) {
@@ -78,7 +98,7 @@ const RunQuery: React.FC<RunQueryProps> = ({ isOpen, sql, items, onClose, projec
     <div className="rqr-modal-overlay" onClick={onClose}>
       <div className="rqr-modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="rqr-modal-header">
-          <h2 className="rqr-modal-title">Results: select query</h2>
+          <h2 className="rqr-modal-title">{queryName || 'Run query results'}</h2>
           <button className="rqr-modal-close-btn" onClick={onClose} aria-label="Close">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -92,26 +112,46 @@ const RunQuery: React.FC<RunQueryProps> = ({ isOpen, sql, items, onClose, projec
           <input className="rqr-sql" value={sql || ''} readOnly />
         </div>
 
-        <div className="rqr-table-card">
-          <table className="rqr-table">
-            <thead>
-              <tr>
-                <th>NAME</th>
-                <th>VALUE</th>
-                <th>OPTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((it, idx) => (
-                <tr key={idx}>
-                  <td>{it.name}</td>
-                  <td>{it.value}</td>
-                  <td className="rqr-options"><button className="rqr-add" onClick={() => openAddVar(it.name, it.value)}>+ Add</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {headers.length ? (
+          <div className="rqr-table-card">
+            <div className="rqr-table-wrapper">
+              <table className="rqr-table">
+                <thead>
+                  <tr>
+                    {headers.map((header) => (
+                      <th key={header}>{header}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((row, rowIdx) => (
+                    <tr key={rowIdx}>
+                      {headers.map((header) => {
+                        const cellValue = row[header];
+                        const displayValue = formatDisplayValue(cellValue);
+                        return (
+                          <td key={header}>
+                            <div className="rqr-cell">
+                              <span className="rqr-cell-value">{displayValue}</span>
+                              <button
+                                className="rqr-add"
+                                onClick={() => openAddVar(header, displayValue)}
+                              >
+                                + Add
+                              </button>
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="rqr-table-empty">No data to display</div>
+        )}
 
         <div className="rqr-modal-actions">
           <button className="rqr-btn rqr-btn-close" onClick={onClose}>Close</button>
