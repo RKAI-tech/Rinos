@@ -178,7 +178,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
     if (!isOpen || !testSuiteId || !hasProcessingCases) return;
     const intervalId = window.setInterval(() => {
       fetchResults(true);
-    }, 15000);
+    }, 60000);
     return () => {
       window.clearInterval(intervalId);
     };

@@ -9,6 +9,7 @@ export interface TestSuite {
     test_failed: string;
     created_at: string;
     updated_at?: string;
+    progress?: number;
 }
 
 export interface TestSuiteGetAllResponse {

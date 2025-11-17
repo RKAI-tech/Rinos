@@ -33,7 +33,8 @@ const Header: React.FC = () => {
   }, [userEmail]);
 
   const userEmailShort = useMemo(() => {
-    const email = localUserEmail || userEmail || '';
+    let email = localUserEmail || userEmail || '';
+    email = email.split('@')[0];
     if (!email) return '';
     return email.length > 16 ? `${email.slice(0, 14)}...` : email;
   }, [localUserEmail, userEmail]);
