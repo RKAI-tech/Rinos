@@ -191,7 +191,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             setSavedBasicAuthSnapshot(undefined);
           }
         } catch (error) {
-          console.error('[Main] Error loading basic auth:', error);
+          // console.error('[Main] Error loading basic auth:', error);
           setBasicAuth(undefined);
           setSavedBasicAuthSnapshot(undefined);
         }
@@ -207,7 +207,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   // Single onAction listener: handles AI and normal actions, with optional insert position
   useEffect(() => {
     return (window as any).browserAPI?.browser?.onAction(async (action: any) => {
-      console.log("NewActionReceived", action);
+      // console.log("NewActionReceived", action);
 
       if (isPaused) return;
       if (!testcaseId) return;
@@ -218,7 +218,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
 
       // AI assert goes to modal only
       if ((action?.action_type === 'assert') && (action?.assert_type === 'AI')) {
-        console.log('[Main] AI action:', action);
+        // console.log('[Main] AI action:', action);
         const newItem = {
           id: Math.random().toString(36),
           domHtml: action.action_datas?.[0]?.value?.htmlDOM || '',
@@ -482,7 +482,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   };
 
   const handleAiSubmit = async () => {
-    console.log('[Main] AI elements:', aiElements);
+    // console.log('[Main] AI elements:', aiElements);
     // Validation
     if (!aiPrompt || !aiPrompt.trim()) {
       toast.error('Prompt is required');
@@ -585,7 +585,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           (response as any)?.error ||
           (response as any)?.message ||
           'Failed to generate AI assertion';
-        console.error('[Main] generateAiAssert failed:', errorMessage, response);
+        // console.error('[Main] generateAiAssert failed:', errorMessage, response);
         toast.error(String(errorMessage));
         return false;
       }
@@ -596,14 +596,14 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       
       if (!functionCode || !functionCode.trim()) {
         const errorMessage = 'function_code is required but not provided';
-        console.error('[Main] generateAiAssert validation failed:', errorMessage, response);
+        // console.error('[Main] generateAiAssert validation failed:', errorMessage, response);
         toast.error(errorMessage);
         return false;
       }
       
       if (!functionName || !functionName.trim()) {
         const errorMessage = 'function_name is required but not provided';
-        console.error('[Main] generateAiAssert validation failed:', errorMessage, response);
+        // console.error('[Main] generateAiAssert validation failed:', errorMessage, response);
         toast.error(errorMessage);
         return false;
       }
@@ -651,7 +651,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         action_datas: actionDatas
       };
 
-      console.log('[Main] AI action:', aiAction);
+      // console.log('[Main] AI action:', aiAction);
 
       setActions(prev => {
         const next = receiveActionWithInsert(
@@ -675,7 +675,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       // Inform modal to close by returning true; onClose will clear modal content
       return true;
     } catch (e: any) {
-      console.error('[Main] generateAiAssert exception:', e);
+      // console.error('[Main] generateAiAssert exception:', e);
       const message = e?.message || e?.error || e?.reason || e;
       toast.error(String(message || 'Failed to generate AI assertion'));
       return false;
@@ -760,12 +760,12 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           setCustomScript(response.data.code);
         } else {
           // Server generation failed
-          console.error('[Main] Server code generation failed:', response.error);
+          // console.error('[Main] Server code generation failed:', response.error);
           setCustomScript('// Failed to generate code from server. Please try again.');
           toast.error(response.error || 'Failed to generate code from server');
         }
       } catch (error) {
-        console.error('[Main] Error generating code:', error);
+        // console.error('[Main] Error generating code:', error);
         setCustomScript('// Error generating code. Please try again.');
         toast.error('Error generating code from server');
       } finally {
@@ -796,7 +796,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       if (response.success && response.data) {
         const newActions = response.data.actions || [];
         setActions(newActions);
-        console.log('[Main] Reloaded actions:', newActions);
+        // console.log('[Main] Reloaded actions:', newActions);
         setSavedActionsSnapshot(JSON.parse(JSON.stringify(newActions)));
         setIsDirty(false);
         // Sau reload, luôn đặt vị trí chèn = độ dài actions (rỗng → 0)
@@ -989,7 +989,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     }
 
     try {
-      console.log('[Main] Saving actions:', actions);
+      // console.log('[Main] Saving actions:', actions);
       const response = await actionService.batchCreateActions(actions);
       if (response.success) {
         setSavedActionsSnapshot(JSON.parse(JSON.stringify(actions)));
@@ -1066,7 +1066,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         testcase_id: testcaseId || '',
         basic_auth: basicAuth,
       };
-      console.log('[Main] Run script payload:', payload);
+      // console.log('[Main] Run script payload:', payload);
       const resp = await service.executeActions(payload);
       if (resp.success) {
         setRunResult((resp as any).logs || 'Executed successfully');
@@ -1173,7 +1173,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   useEffect(() => {
     const handleGetUnsavedFlag = (requestId: string) => {
       // Gửi response với hasUnsavedActions
-      console.log('[Main] Sending unsaved datas flag response:', requestId, hasUnsavedActions);
+      // console.log('[Main] Sending unsaved datas flag response:', requestId, hasUnsavedActions);
       (window as any).electronAPI?.window?.sendUnsavedDatasResponse?.(requestId, hasUnsavedActions);
     };
     

@@ -73,7 +73,7 @@ const Queries: React.FC = () => {
           db_name: it.connection?.db_name,
           db_type: it.connection?.db_type,
         }));
-        console.log('items', items);
+        // console.log('items', items);
         setQueries(items);
       } else {
         setError(resp.error || 'Failed to load queries');

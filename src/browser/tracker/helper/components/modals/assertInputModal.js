@@ -116,7 +116,7 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
   insertDropdownWrap.appendChild(insertMenu);
   
   const variablesPanel = createVariablesPanel((variablePayload) => {
-    console.log('[assertInputModal] variablesPanel onConfirm called:', variablePayload);
+    // console.log('[assertInputModal] variablesPanel onConfirm called:', variablePayload);
     if (typeof onConfirm === 'function') {
       onConfirm(variablePayload, undefined, undefined, undefined, undefined);
     }
@@ -196,7 +196,7 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
   confirmBtn.addEventListener('click', (ev) => {
     ev.stopPropagation();
     const val = (input.value || '').trim();
-    console.log('[assertInputModal] confirmBtn clicked, value:', val);
+    // console.log('[assertInputModal] confirmBtn clicked, value:', val);
     if (onConfirm) {
       onConfirm(val, undefined, undefined, undefined, undefined);
     }
@@ -264,7 +264,7 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
     if (ev.key === 'Enter') {
       ev.preventDefault();
       const val = (input.value || '').trim();
-      console.log('[assertInputModal] Enter key pressed, value:', val);
+      // console.log('[assertInputModal] Enter key pressed, value:', val);
       if (onConfirm) {
         onConfirm(val, undefined, undefined, undefined, undefined);
       }

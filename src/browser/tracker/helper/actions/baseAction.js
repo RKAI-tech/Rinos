@@ -84,9 +84,9 @@ export function sendAction(action) {
     try {
       window.sendActionToMain(action);
     } catch (error) {
-      console.error('[BaseAction] Error sending action:', error);
+      // console.error('[BaseAction] Error sending action:', error);
     }
   } else {
-    console.error('[BaseAction] sendActionToMain function not available');
+    // console.error('[BaseAction] sendActionToMain function not available');
   }
 }

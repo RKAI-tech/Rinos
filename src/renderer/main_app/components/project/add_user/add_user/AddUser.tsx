@@ -162,10 +162,10 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
         }
         if (onSuccess) await onSuccess();
       } else {
-        toast.error(resp.error || 'Failed to remove user');
+        toast.error('Failed to remove user. Please try again.');
       }
     } catch (error) {
-      toast.error('Failed to remove user');
+      toast.error('Failed to remove user. Please try again.');
     } finally {
       setRemovingUser(false);
       setShowRemoveConfirm(false);

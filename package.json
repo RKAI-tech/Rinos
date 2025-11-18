@@ -1,5 +1,5 @@
 {
-  "name": "AutomationTestPlatform",
+  "name": "automation-test-execution",
   "version": "2.0.0",
   "type": "module",
   "main": "dist/main.cjs",

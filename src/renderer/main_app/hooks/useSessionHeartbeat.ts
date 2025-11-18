@@ -75,12 +75,12 @@ export function useSessionHeartbeat({
         return;
       }
 
-      console.warn('[SessionHeartbeat] Token validation failed, expiring session.');
+      // console.warn('[SessionHeartbeat] Token validation failed, expiring session.');
       await clearToken();
       apiRouter.clearAuth();
       await onExpired();
     } catch (error) {
-      console.error('[SessionHeartbeat] Heartbeat error, scheduling retry.', error);
+      // console.error('[SessionHeartbeat] Heartbeat error, scheduling retry.', error);
       scheduleNext(retryDelayMs);
     } finally {
       runningRef.current = false;

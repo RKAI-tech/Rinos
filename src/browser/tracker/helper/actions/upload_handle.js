@@ -29,7 +29,7 @@ export async function handleUploadChangeEvent(e) {
     return;
   }
   if (!e.isTrusted) {
-    console.debug('Skipping upload — untrusted event');
+    // console.debug('Skipping upload — untrusted event');
     return;
   }
   const selectors = buildSelectors(el);

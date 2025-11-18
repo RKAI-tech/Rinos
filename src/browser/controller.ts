@@ -141,7 +141,9 @@ export class Controller {
                     }
                 }
             }
-        } catch { try { console.log('[Controller][API] Resolve auth error'); } catch { } }
+        } catch { try { 
+            // console.log('[Controller][API] Resolve auth error'); 
+        } catch { } }
 
         // Prepare request options
         const options: any = { headers };
@@ -158,13 +160,19 @@ export class Controller {
                     options.data = formBody;
                 }
             }
-        } catch { try { console.log('[Controller][API] Build options error'); } catch { } }
+        } catch { try { 
+            // console.log('[Controller][API] Build options error'); 
+        } catch { } }
 
         // Execute
         const method = ((apiData.method as any) || 'get').toLowerCase();
-        try { console.log('[Controller][API] Sending request', { method, url, hasHeaders: Object.keys(headers).length > 0 }); } catch { }
+        try { 
+            // console.log('[Controller][API] Sending request', { method, url, hasHeaders: Object.keys(headers).length > 0 }); 
+        } catch { }
         const resp = await (page.request as any)[method](url, options);
-        try { console.log('[Controller][API] Response status:', await resp.status()); } catch { }
+        try { 
+            // console.log('[Controller][API] Response status:', await resp.status()); 
+        } catch { }
 
 
     }
@@ -264,7 +272,7 @@ export class Controller {
             }
         }
 
-        console.error(`[Controller] No unique selector found from:`, selectors);
+        // console.error(`[Controller] No unique selector found from:`, selectors);
         throw new Error('[Controller] No matching selector found in ' + selectors.join(', '));
     }
 
@@ -416,7 +424,7 @@ export class Controller {
                                 // console.log('uniqueSelector', uniqueSelector)
                                 await page.locator(uniqueSelector).evaluate((el: HTMLElement) => el.click());
                             } catch (error) {
-                                console.error('Error changing', error)
+                                // console.error('Error changing', error)
                             }
                         }
                         break;
@@ -460,7 +468,7 @@ export class Controller {
                             const target = (el === document.body || el === document.documentElement)
                                 ? window
                                 : el;
-                            console.log('target', target)
+                            // console.log('target', target)
                             if (target.scrollTo) {
                                 target.scrollTo({ left: x, top: y, behavior: 'instant' });
                             }
@@ -490,7 +498,7 @@ export class Controller {
                         {
                             const apiData = (action.action_datas || []).find(d => (d as any).api_request)?.api_request as ApiRequestData | undefined;
                             if (apiData) {
-                                console.log('[Controller] Executing API request:', apiData);
+                                // console.log('[Controller] Executing API request:', apiData);
                                 await this.executeApiRequest(page, apiData as any);
                             }
                         }
@@ -506,7 +514,7 @@ export class Controller {
                 }
 
             } catch (error) {
-                console.error(`[Controller] Error executing action ${i + 1} (${action.action_type}):`, error);
+                // console.error(`[Controller] Error executing action ${i + 1} (${action.action_type}):`, error);
                 // Emit failed event
                 this.onActionFailed?.(i);
                 // Don't throw error, continue with next action

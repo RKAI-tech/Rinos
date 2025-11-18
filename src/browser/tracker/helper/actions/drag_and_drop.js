@@ -19,7 +19,9 @@ export function handleDragStartEvent(e) {
     return;
   }
   if (e && e.isTrusted === false) {
-    try { console.log('Skipping drag start recording - event is not trusted'); } catch {}
+    try { 
+      // console.log('Skipping drag start recording - event is not trusted'); 
+    } catch {}
     return;
   }
 

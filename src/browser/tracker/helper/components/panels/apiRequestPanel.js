@@ -1196,20 +1196,20 @@ export function createApiRequestPanel(assertType, onConfirm) {
 
       // Gửi kết quả assert: (valuePath, connectionId, connection, query, apiRequest)
       // Với API không có connection/query → truyền undefined cho 3 tham số giữa
-      console.log('[apiRequestPanel] Save button clicked, calling onConfirm:', {
-        finalValue,
-        hasApiRequest: !!apiRequest,
-        apiRequest: apiRequest
-      });
+      // console.log('[apiRequestPanel] Save button clicked, calling onConfirm:', {
+      //   finalValue,
+      //   hasApiRequest: !!apiRequest,
+      //   apiRequest: apiRequest
+      // });
       if (onConfirm) {
         try { 
           onConfirm(finalValue, undefined, undefined, undefined, apiRequest);
-          console.log('[apiRequestPanel] onConfirm called successfully');
+          // console.log('[apiRequestPanel] onConfirm called successfully');
         } catch (e) {
-          console.error('[apiRequestPanel] Error calling onConfirm:', e);
+          // console.error('[apiRequestPanel] Error calling onConfirm:', e);
         }
       } else {
-        console.warn('[apiRequestPanel] onConfirm is not defined!');
+        // console.warn('[apiRequestPanel] onConfirm is not defined!');
       }
       // Close panel and modal (same behavior as confirm button in assertInputModal)
       try { close(); } catch {}

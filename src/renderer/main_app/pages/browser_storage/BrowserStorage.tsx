@@ -218,10 +218,10 @@ const BrowserStorage: React.FC = () => {
           }
         }
       } else {
-        toast.error(resp.error || 'Failed to delete browser storage');
+        toast.error('Failed to delete browser storage. Please try again.');
       }
     } catch (e) {
-      toast.error('Failed to delete browser storage');
+      toast.error('Failed to delete browser storage. Please try again.');
     } finally {
       setOpenDropdownId(null);
     }
@@ -327,10 +327,10 @@ const BrowserStorage: React.FC = () => {
         handleCloseEdit();
         await reloadList();
       } else {
-        toast.error(resp.error || 'Failed to update browser storage');
+        toast.error('Failed to update browser storage. Please try again.');
       }
     } catch (e) {
-      toast.error('Failed to update browser storage');
+      toast.error('Failed to update browser storage. Please try again.');
     } finally {
       setIsUpdating(false);
     }
@@ -359,7 +359,7 @@ const BrowserStorage: React.FC = () => {
         handleCloseCreate();
         await reloadList();
       } else {
-        toast.error(resp.error || 'Failed to create browser storage');
+        toast.error('Failed to create browser storage. Please try again.');
       }
     } catch (e) {
       toast.error('Failed to create browser storage');

@@ -206,10 +206,10 @@ const Dashboard: React.FC = () => {
         // Reload projects to ensure data consistency
         await reloadProjects();
       } else {
-        toast.error(response.error || 'Failed to update project');
+        toast.error('Failed to update project. Please try again.');
       }
     } catch (err) {
-      toast.error('Failed to update project');
+      toast.error('Failed to update project. Please try again.');
       // console.error('Error updating project:', err);
     }
   };
@@ -228,10 +228,10 @@ const Dashboard: React.FC = () => {
         // Reload projects to ensure data consistency
         await reloadProjects();
       } else {
-        toast.error(response.error || 'Failed to delete project');
+        toast.error('Failed to delete project. Please try again.');
       }
     } catch (err) {
-      toast.error('Failed to delete project');
+      toast.error('Failed to delete project. Please try again.');
       // console.error('Error deleting project:', err);
     }
   };

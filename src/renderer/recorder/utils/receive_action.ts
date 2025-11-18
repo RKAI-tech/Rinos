@@ -125,7 +125,7 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
         action_datas: action_received.action_datas ? action_received.action_datas as ActionData[] : [],        
     } as Action;
 
-    console.log('[Action sent from browser]', action_received);
+    // console.log('[Action sent from browser]', action_received);
 
     const last_action = action_recorded[action_recorded.length - 1];
 
@@ -225,7 +225,7 @@ export function receiveAction(testcaseId: string, action_recorded: Action[], act
     //         return action_recorded;
     //     }
     // }
-    console.log('[Received action]', receivedAction);
+    // console.log('[Received action]', receivedAction);
     return [...action_recorded, receivedAction];
 }
 

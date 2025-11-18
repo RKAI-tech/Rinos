@@ -20,12 +20,14 @@ interface AppAPI {
     platform: string;
     versions: NodeJS.ProcessVersions;
     isDev: boolean;
+    appVersion: string;
   }>;
 }
 
 interface SystemAPI {
   platform: string;
   versions: NodeJS.ProcessVersions;
+  openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 interface ElectronAPI {

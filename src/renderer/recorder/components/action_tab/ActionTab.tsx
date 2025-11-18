@@ -481,7 +481,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
     }
     
     onActionsChange(prev => {
-      console.log("Previous actions:", prev);
+      // console.log("Previous actions:", prev);
       const next = receiveActionWithInsert(
         testcaseId,
         prev,
@@ -489,7 +489,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
         selectedInsertPosition || 0
       );
 
-      console.log("Next actions:", next);
+      // console.log("Next actions:", next);
 
       const added = next.length > prev.length;
       if (added) {
@@ -511,7 +511,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
 
     // For database_execution, it's handled by modal, so don't add to list here
     if (actionType === 'database_execution') {
-      console.log("Database execution handled by modal, not adding to list");
+      // console.log("Database execution handled by modal, not adding to list");
       return;
     }
 
@@ -548,13 +548,13 @@ const ActionTab: React.FC<ActionTabProps> = ({
           const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
           onInsertPositionChange(newPos);
           onDisplayPositionChange(newPos);
-          console.log("Updated insert position to:", newPos);
+          // console.log("Updated insert position to:", newPos);
         }
         return next;
       });
       // toast.success(`Added ${actionType} action`);
     } else {
-      console.error("Failed to create action for type:", actionType);
+      // console.error("Failed to create action for type:", actionType);
     }
   };
 
@@ -573,7 +573,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
           action_type: ActionType.reload,
           description: 'Reload current page',
         } as any;
-        console.log("Created reload action:", reloadAction);
+        // console.log("Created reload action:", reloadAction);
         await (window as any).browserAPI?.browser?.reload();
         return reloadAction;
 
@@ -583,7 +583,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
           action_type: ActionType.back,
           description: 'Go back to previous page',
         } as any;
-        console.log("Created back action:", backAction);
+        // console.log("Created back action:", backAction);
         await (window as any).browserAPI?.browser?.goBack();
         return backAction;
 
@@ -593,19 +593,19 @@ const ActionTab: React.FC<ActionTabProps> = ({
           action_type: ActionType.forward,
           description: 'Go forward to next page',
         } as any;
-        console.log("Created forward action:", forwardAction);
+        // console.log("Created forward action:", forwardAction);
         await (window as any).browserAPI?.browser?.goForward();
         return forwardAction;
       
       case 'database_execution':
         // This will be handled by the modal
-        console.log("Database execution will be handled by modal");
+        // console.log("Database execution will be handled by modal");
         handleSelectDatabaseExecution();
         return null;
       
       case 'api_request':
         // This will be handled by the modal
-        console.log("API request will be handled by modal");
+        // console.log("API request will be handled by modal");
         handleSelectApiRequest();
         return null;
       
@@ -618,12 +618,12 @@ const ActionTab: React.FC<ActionTabProps> = ({
           playwright_code: 'await page.goto("https://example.com");',
           description: 'Navigate to URL',
         };
-        console.log("Created visit_url action:", visitAction);
+        // console.log("Created visit_url action:", visitAction);
         await (window as any).browserAPI?.browser?.navigate(visitAction.value as string);
         return visitAction;
       
       default:
-        console.error('Unknown action type:', actionType);
+        // console.error('Unknown action type:', actionType);
         return null;
     }
   };

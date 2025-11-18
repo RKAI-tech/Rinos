@@ -29,7 +29,7 @@ const AddBrowserStorageModal: React.FC<AddBrowserStorageModalProps> = ({ isOpen,
       try {
         const resp = await browserStorageService.getBrowserStoragesByProject(projectId);
         if (resp.success && resp.data) {
-          console.log(resp.data.items);
+          // console.log(resp.data.items);
           setBrowserStorages(resp.data.items || []);
         } else {
           setBrowserStorages([]);

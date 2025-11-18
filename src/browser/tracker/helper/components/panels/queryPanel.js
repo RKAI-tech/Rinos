@@ -221,9 +221,9 @@ export function createQueryPanel(assertType, onConfirm) {
     if (typeof window.sendActionToMain === 'function') {
       if (onConfirm) {
         onConfirm(col, lastRun.connectionId || undefined, lastRun.connection || undefined, lastRun.sql, undefined);
-        console.log('[queryPanel] onConfirm called successfully');
+        // console.log('[queryPanel] onConfirm called successfully');
       } else {
-        console.warn('[queryPanel] onConfirm is not defined!');
+        // console.warn('[queryPanel] onConfirm is not defined!');
       }
     }
   }
