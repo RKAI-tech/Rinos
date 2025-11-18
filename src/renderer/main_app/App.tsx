@@ -16,6 +16,8 @@ import BrowserStorage from './pages/browser_storage/BrowserStorage';
 import ChangeLog from './pages/change_log/ChangeLog';
 import ConfirmCloseModal from '../recorder/components/confirm_close/ConfirmCloseModal';
 import LoadingScreen from './components/loading/LoadingScreen';
+import VersionUpdateModal from './components/version/VersionUpdateModal';
+import { versionCheckService } from './services/versionCheck';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -42,6 +44,14 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 function App() {
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [hasUnsavedDatas, setHasUnsavedDatas] = useState(true);
+  
+  // Version check state
+  const [showVersionModal, setShowVersionModal] = useState(false);
+  const [versionInfo, setVersionInfo] = useState<{
+    is_latest: boolean;
+    latestVersion: string;
+  } | null>(null);
+  const [currentVersion, setCurrentVersion] = useState<string | null>(null);
 
   useEffect(() => {
     // console.log('App component mounted');
@@ -52,6 +62,17 @@ function App() {
         if (token) {
           const { apiRouter } = await import('./services/baseAPIRequest');
           apiRouter.setAuthToken(token);
+        }
+      } catch {}
+    })();
+
+    // Get app version
+    (async () => {
+      try {
+        const appInfo = await (window as any).electronAPI?.app?.getAppInfo?.();
+        if (appInfo?.appVersion) {
+          console.log('appInfo.appVersion', appInfo.appVersion);
+          setCurrentVersion(appInfo.appVersion);
         }
       } catch {}
     })();
@@ -83,6 +104,48 @@ function App() {
   const handleConfirmClose = (confirm: boolean, save: boolean) => {
     setShowConfirmClose(false);
     (window as any).electronAPI?.window?.sendMainAppCloseResult?.({ confirm, save });
+  };
+
+  // Version check on app start
+  useEffect(() => {
+    const checkVersion = async () => {
+      try {
+        const response = await versionCheckService.checkVersion(currentVersion || '');
+        
+        if (response.success && response.data) {
+          const { is_latest,latest_version } = response.data;
+          
+          // So sánh version (so sánh đơn giản, có thể nâng cấp dùng semver sau)
+          if (latest_version !== currentVersion) {
+            setVersionInfo({
+              is_latest: is_latest,
+              latestVersion: latest_version
+            });
+            setShowVersionModal(true);
+          }
+        }
+      } catch (error) {
+        // Silent fail - không hiển thị lỗi nếu check version thất bại
+        // console.error('Version check failed:', error);
+      }
+    };
+
+    // Delay một chút để app load xong và có currentVersion
+    if (currentVersion) {
+      const timer = setTimeout(() => {
+        checkVersion();
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentVersion]);
+
+  const handleDownloadClick = async () => {
+    try {
+      await (window as any).electronAPI?.system?.openExternalUrl?.('https://automation-test.rikkei.org/download');
+    } catch (error) {
+      console.error('Failed to open download URL:', error);
+    }
   };
 
   return (
@@ -163,6 +226,13 @@ function App() {
         onConfirm={() => {
           handleConfirmClose(true, false);
         }}
+      />
+      <VersionUpdateModal
+        isOpen={showVersionModal}
+        currentVersion={currentVersion || ''}
+        latestVersion={versionInfo?.latestVersion || ''}
+        onClose={() => setShowVersionModal(false)}
+        onDownload={handleDownloadClick}
       />
     </AuthProvider>
   );

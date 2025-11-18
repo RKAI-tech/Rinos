@@ -45,6 +45,7 @@ const appAPI = {
 const systemAPI = {
   platform: process.platform,
   versions: process.versions,
+  openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
 };
 
 // Expose APIs to renderer

@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow } from "electron";
+import { ipcMain, BrowserWindow, shell, app } from "electron";
 import { registerTokenIpc } from "./token.js";
 import { createRecorderWindow } from "../windowManager.js";
 
@@ -16,7 +16,8 @@ export function registerIpcHandlers() {
     return {
       platform: process.platform,
       versions: process.versions,
-      isDev: !process.env.NODE_ENV || process.env.NODE_ENV === "development"
+      isDev: !process.env.NODE_ENV || process.env.NODE_ENV === "development",
+      appVersion: app.getVersion()
     };
   });
 
@@ -66,6 +67,20 @@ export function registerIpcHandlers() {
         window.destroy();
       }
       // Nếu không xác nhận, không làm gì (cửa sổ vẫn mở)
+    }
+  });
+
+  // Handler để mở URL bên ngoài trong browser
+  ipcMain.handle('open-external-url', async (_event, url: string) => {
+    try {
+      await shell.openExternal(url);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to open external URL:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
     }
   });
 }
