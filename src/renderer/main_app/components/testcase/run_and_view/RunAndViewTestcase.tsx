@@ -60,12 +60,12 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
           });
         }
       } else {
-        toast.error(response.error || 'Failed to load testcase data', {
+        toast.error('Disconnect from the server. Please try again.', {
           containerId: 'modal-toast-container'
         });
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'An error occurred while loading testcase', {
+      toast.error('Disconnect from the server. Please try again.', {
         containerId: 'modal-toast-container'
       });
     } finally {
@@ -92,12 +92,12 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
         // Then reload testcase data to get updated logs
         await loadTestcaseData();
       } else {
-        toast.error(resp.error || 'Failed to execute testcase', {
+        toast.error('Failed to execute testcase. Please try again.', {
           containerId: 'modal-toast-container'
         });
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'An error occurred during execution', {
+      toast.error('Disconnect from the server. Please try again.', {
         containerId: 'modal-toast-container'
       });
     } finally {

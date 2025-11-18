@@ -66,10 +66,10 @@ const RunQuery: React.FC<RunQueryProps> = ({ isOpen, sql, queryName, items, onCl
         toast.success('Variable saved');
         setIsVarOpen(false);
       } else {
-        toast.error(resp.error || 'Failed to save variable');
+        toast.error('Failed to save variable. Please try again.');
       }
     } catch (e) {
-      toast.error('Failed to save variable');
+      toast.error('Failed to save variable. Please try again.');
     }
   };
 

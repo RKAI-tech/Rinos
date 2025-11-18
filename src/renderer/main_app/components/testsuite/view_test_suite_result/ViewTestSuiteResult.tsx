@@ -323,11 +323,11 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
         setCases(mapped);
       } else {
         setCases([]);
-        toast.error(resp.error || 'Failed to load results');
+        toast.error('Disconnect from the server. Please try again.');
       }
     } catch (e) {
       setCases([]);
-      toast.error(e instanceof Error ? e.message : 'An error occurred');
+      toast.error('Disconnect from the server. Please try again.');
     } finally {
       if (!silent) setIsLoading(false);
     }
@@ -372,10 +372,10 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       if (resp.success) {
         toast.success('Test suite execution started');
       } else {
-        toast.error(resp.error || 'Failed to execute test suite');
+        toast.error('Failed to execute test suite. Please try again.');
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to execute test suite');
+      toast.error('Failed to execute test suite. Please try again.');
     } finally {
       setIsRetryingAll(false);
       await fetchResults();
@@ -506,7 +506,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       const response = await svc.exportTestSuite({ test_suite_id: testSuiteId });
       
       if (!response.success) {
-        toast.error(response.error || 'Failed to export test suite');
+        toast.error('Failed to export test suite. Please try again.');
         return;
       }
 
@@ -524,7 +524,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
         toast.error('No file received from server');
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Export failed');
+      toast.error('Export failed. Please try again.');
     }
   };
 

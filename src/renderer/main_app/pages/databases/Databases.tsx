@@ -405,10 +405,10 @@ const Databases: React.FC = () => {
                 }
               }
             } else {
-              toast.error(resp.error || 'Failed to delete connection');
+              toast.error('Failed to delete connection. Please try again.');
             }
           } catch (e) {
-            toast.error('Failed to delete connection');
+            toast.error('Failed to delete connection. Please try again.');
           }
         }}
       />

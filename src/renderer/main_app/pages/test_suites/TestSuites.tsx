@@ -303,10 +303,10 @@ const TestSuites: React.FC = () => {
         setSelectedSuite(testSuites.find(s => s.id === id) || null);
         setIsViewResultOpen(true);
       } else {
-        toast.error(resp.error || 'Failed to run test suite');
+        toast.error('Failed to run test suite. Please try again.');
       }
     } catch (e) {
-      toast.error('Failed to run test suite');
+      toast.error('Failed to run test suite. Please try again.');
     } finally {
       setOpenDropdownId(null);
       setRunningSuiteIds(prev => {
@@ -339,10 +339,10 @@ const TestSuites: React.FC = () => {
         setIsCreateOpen(false);
         await fetchSuites();
       } else {
-        toast.error(resp.error || 'Failed to create test suite');
+        toast.error('Failed to create test suite. Please try again.');
       }
     } catch (e) {
-      toast.error('Failed to create test suite');
+      toast.error('Failed to create test suite. Please try again.');
     }
   };
 
@@ -356,10 +356,10 @@ const TestSuites: React.FC = () => {
         handleCloseEditSuite();
         await fetchSuites();
       } else {
-        toast.error(resp.error || 'Failed to update test suite');
+        toast.error('Failed to update test suite. Please try again.');
       }
     } catch (e) {
-      toast.error('Failed to update test suite');
+      toast.error('Failed to update test suite. Please try again.');
     }
   };
 
@@ -372,10 +372,10 @@ const TestSuites: React.FC = () => {
         handleCloseDeleteSuite();
         await fetchSuites();
       } else {
-        toast.error(resp.error || 'Failed to delete test suite');
+        toast.error('Failed to delete test suite. Please try again.');
       }
     } catch (e) {
-      toast.error('Failed to delete test suite');
+      toast.error('Failed to delete test suite. Please try again.');
     }
   };
 
@@ -688,10 +688,10 @@ const TestSuites: React.FC = () => {
               setIsAddOpen(false);
               await fetchSuites();
             } else {
-              toast.error(resp.error || 'Failed to add testcases');
+              toast.error('Failed to add testcases. Please try again.');
             }
           } catch (e) {
-            toast.error('Failed to add testcases');
+            toast.error('Failed to add testcases. Please try again.');
           }
         }}
       />
@@ -715,7 +715,7 @@ const TestSuites: React.FC = () => {
             setIsRemoveOpen(false);
             await fetchSuites();
           } catch (e) {
-            toast.error('Failed to remove testcases');
+            toast.error('Failed to remove testcases. Please try again.');
           }
         }}
       />
