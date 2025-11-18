@@ -1,5 +1,5 @@
 {
-  "name": "Automation Test Execution",
+  "name": "AutomationTestPlatform",
   "version": "2.0.0",
   "type": "module",
   "main": "dist/main.cjs",
@@ -129,7 +129,7 @@
           ]
         }
       ],
-      "icon": "images/icon.ico",
+      "icon": "images/icon.png",
       "category": "Development",
       "synopsis": "Automation Test Execution",
       "maintainer": "Rikkeisoft Corporation <pr@rikkeisoft.com>"
