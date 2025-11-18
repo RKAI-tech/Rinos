@@ -75,6 +75,13 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   const [isTitleInputOpen, setIsTitleInputOpen] = useState(false);
   const [isAddActionOpen, setIsAddActionOpen] = useState(false);
   const [isDatabaseExecutionOpen, setIsDatabaseExecutionOpen] = useState(false);
+  // State để track các modal trong ActionTab
+  const [isActionTabWaitOpen, setIsActionTabWaitOpen] = useState(false);
+  const [isActionTabNavigateOpen, setIsActionTabNavigateOpen] = useState(false);
+  const [isActionTabApiRequestOpen, setIsActionTabApiRequestOpen] = useState(false);
+  const [isActionTabAddBrowserStorageOpen, setIsActionTabAddBrowserStorageOpen] = useState(false);
+  // State để track page đã chọn cho WaitModal
+  const [waitSelectedPageInfo, setWaitSelectedPageInfo] = useState<{ page_index: number; page_url: string; page_title: string } | null>(null);
   const service = new ExecuteScriptsService();
   
   // Execution tracking states
@@ -204,6 +211,35 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     loadBasicAuth();
   }, [testcaseId]);
 
+  // Computed state để track xem có modal/popup nào đang mở không
+  const isAnyModalOpen = useMemo(() => {
+    return isAddActionOpen || 
+           isDatabaseExecutionOpen || 
+           isAiModalOpen || 
+           isUrlInputOpen || 
+           isTitleInputOpen || 
+           isBasicAuthOpen || 
+           isDetailOpen ||
+           isConfirmCloseOpen ||
+           isActionTabWaitOpen ||
+           isActionTabNavigateOpen ||
+           isActionTabApiRequestOpen ||
+           isActionTabAddBrowserStorageOpen;
+  }, [
+    isAddActionOpen, 
+    isDatabaseExecutionOpen, 
+    isAiModalOpen, 
+    isUrlInputOpen, 
+    isTitleInputOpen, 
+    isBasicAuthOpen, 
+    isDetailOpen, 
+    isConfirmCloseOpen,
+    isActionTabWaitOpen,
+    isActionTabNavigateOpen,
+    isActionTabApiRequestOpen,
+    isActionTabAddBrowserStorageOpen
+  ]);
+
   // Single onAction listener: handles AI and normal actions, with optional insert position
   useEffect(() => {
     return (window as any).browserAPI?.browser?.onAction(async (action: any) => {
@@ -211,6 +247,39 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
 
       if (isPaused) return;
       if (!testcaseId) return;
+      
+      // Nếu WaitModal đang mở, luôn bắt click event để lấy/cập nhật page info
+      if (isActionTabWaitOpen && action?.action_type === 'click') {
+        console.log('[Main] Click event received while WaitModal is open:', action);
+        let pageInfo = null;
+        if (action?.action_datas && Array.isArray(action.action_datas)) {
+          for (const ad of action.action_datas) {
+            if (ad.value?.page_index !== undefined) {
+              pageInfo = ad.value;
+              break;
+            }
+          }
+        }
+        
+        if (pageInfo) {
+          const pageData = {
+            page_index: pageInfo.page_index || 0,
+            page_url: pageInfo.page_url || '',
+            page_title: pageInfo.page_title || '',
+          };
+          console.log('[Main] Page selected/updated for WaitModal:', pageData);
+          setWaitSelectedPageInfo(pageData);
+          return; // Không thêm action click vào danh sách
+        } else {
+          console.warn('[Main] No page info found in click action. action_datas:', action?.action_datas);
+        }
+      }
+      
+      // Bỏ qua action nếu có modal/popup đang mở
+      if (isAnyModalOpen) {
+        console.log('[Main] Skipping action - modal is open');
+        return;
+      }
       
       // Reset execution effects when new action is recorded
       setExecutingActionIndex(null);
@@ -233,16 +302,19 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       if (isAssertMode && action.action_type !== 'assert') return;
 
       setActions(prev => {
-        const next = receiveActionWithInsert(testcaseId, prev, action, selectedInsertPosition);
+        const next = receiveActionWithInsert(testcaseId, prev, action, selectedInsertPosition, isAnyModalOpen);
         const added = next.length > prev.length;
         if (added) {
-          setSelectedInsertPosition(selectedInsertPosition + 1);
+          setSelectedInsertPosition(currentInsertPosition =>{
+            const newPos = Math.min(currentInsertPosition + 1, next.length);
+            return newPos;
+          });
         }
         setIsDirty(true);
         return next;
       });
     });
-  }, [testcaseId, isPaused, selectedInsertPosition, isAssertMode]);
+  }, [testcaseId, isPaused, selectedInsertPosition, isAssertMode, isAnyModalOpen, isActionTabWaitOpen, waitSelectedPageInfo]);
 
   // Đồng bộ nhãn vị trí chèn với độ dài actions khi không chọn vị trí cụ thể
   useEffect(() => {
@@ -364,9 +436,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   };
 
   const startBrowser = async (url: string, executeUntilIndex?: number | null) => {
-    // Prevent multiple simultaneous starts
     if (isBrowserOpen) {
-      // console.log('[Main] Browser already open, skipping start');
+
       return;
     }
 
@@ -482,7 +553,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
   };
 
   const handleAiSubmit = async () => {
-    console.log('[Main] AI elements:', aiElements);
     // Validation
     if (!aiPrompt || !aiPrompt.trim()) {
       toast.error('Prompt is required');
@@ -1350,6 +1420,33 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             basicAuthStatus={basicAuthStatus}
             onBasicAuthStatusClear={handleBasicAuthStatusClear}
             projectId={projectId}
+            waitSelectedPageInfo={waitSelectedPageInfo}
+            onWaitPageInfoChange={(pageInfo) => {
+              setWaitSelectedPageInfo(pageInfo);
+            }}
+            onModalStateChange={(modalType: 'wait' | 'navigate' | 'api_request' | 'add_browser_storage' | 'database_execution', isOpen: boolean) => {
+              switch (modalType) {
+                case 'wait':
+                  setIsActionTabWaitOpen(isOpen);
+                  if (!isOpen) {
+                    // Reset page info khi modal đóng
+                    setWaitSelectedPageInfo(null);
+                  }
+                  break;
+                case 'navigate':
+                  setIsActionTabNavigateOpen(isOpen);
+                  break;
+                case 'api_request':
+                  setIsActionTabApiRequestOpen(isOpen);
+                  break;
+                case 'add_browser_storage':
+                  setIsActionTabAddBrowserStorageOpen(isOpen);
+                  break;
+                case 'database_execution':
+                  setIsDatabaseExecutionOpen(isOpen);
+                  break;
+              }
+            }}
           />
         ) : (
           <TestScriptTab 

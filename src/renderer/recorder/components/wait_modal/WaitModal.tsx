@@ -1,13 +1,27 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { toast } from 'react-toastify';
 
+export interface SelectedPageInfo {
+  page_index: number;
+  page_url: string;
+  page_title: string;
+}
+
 interface WaitModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (milliseconds: number) => void;
+  onConfirm: (milliseconds: number, pageInfo?: SelectedPageInfo) => void;
+  selectedPageInfo?: SelectedPageInfo | null;
+  onClearPage?: () => void;
 }
 
-const WaitModal: React.FC<WaitModalProps> = ({ isOpen, onClose, onConfirm }) => {
+const WaitModal: React.FC<WaitModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  selectedPageInfo,
+  onClearPage
+}) => {
   const [ms, setMs] = useState<string>('1000');
   const msInputRef = useRef<HTMLInputElement>(null);
 
@@ -16,6 +30,13 @@ const WaitModal: React.FC<WaitModalProps> = ({ isOpen, onClose, onConfirm }) => 
       setMs('1000');
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (selectedPageInfo) {
+      console.log('[WaitModal] Page info received:', selectedPageInfo);
+      toast.success('Page selected successfully');
+    }
+  }, [selectedPageInfo]);
 
   // Auto-focus on input when modal opens
   useEffect(() => {
@@ -32,18 +53,29 @@ const WaitModal: React.FC<WaitModalProps> = ({ isOpen, onClose, onConfirm }) => 
   const msTrimmed = (ms ?? '').toString().trim();
   const isIntegerString = /^\d+$/.test(msTrimmed);
   const parsed = isIntegerString ? parseInt(msTrimmed, 10) : NaN;
-  const disabled = !isIntegerString;
+  const hasValidMs = isIntegerString;
+  const hasSelectedPage = !!selectedPageInfo;
+  // Disable confirm nếu chưa nhập thời gian hoặc chưa chọn page
+  const disabled = !hasValidMs || !hasSelectedPage;
 
   const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (disabled) {
+      if (!hasValidMs) {
         toast.warning('Please enter a valid non-negative integer milliseconds');
         return;
       }
-      onConfirm(parsed);
+      if (!hasSelectedPage) {
+        toast.warning('Please select a page first');
+        return;
+      }
+      onConfirm(parsed, selectedPageInfo || undefined);
       onClose();
     }
+  };
+
+  const handleClearPage = () => {
+    onClearPage?.();
   };
 
   return (
@@ -81,33 +113,97 @@ const WaitModal: React.FC<WaitModalProps> = ({ isOpen, onClose, onConfirm }) => 
           </button>
         </div>
         <div style={{ padding: '16px 20px', boxSizing: 'border-box' }}>
-          <label style={{ display: 'block', fontSize: 14, color: '#374151', marginBottom: 8 }}>Milliseconds</label>
-          <input
-            ref={msInputRef}
-            type="text"
-            value={ms}
-            onChange={(e) => setMs(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="e.g. 1000"
-            style={{ 
-              width: '100%', 
-              padding: '10px 12px', 
-              border: '1px solid #d1d5db', 
-              borderRadius: 8, 
-              fontSize: 14,
-              boxSizing: 'border-box'
-            }}
-          />
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontSize: 14, color: '#374151', marginBottom: 8 }}>Page</label>
+            {!selectedPageInfo && (
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#fef3c7',
+                border: '1px solid #fbbf24',
+                borderRadius: 8,
+                marginBottom: 8,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="#f59e0b" strokeWidth="2"/>
+                  <path d="M12 8v4M12 16h.01" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                <span style={{ fontSize: 13, color: '#92400e' }}>
+                  Please click on an element on the screen to select the page
+                </span>
+              </div>
+            )}
+            {selectedPageInfo ? (
+              <div style={{ 
+                border: '1px solid #d1d5db', 
+                borderRadius: 8, 
+                padding: '12px',
+                backgroundColor: '#f9fafb',
+                marginBottom: 8
+              }}>
+                <div style={{ fontSize: 13, color: '#111827', fontWeight: 500, marginBottom: 4 }}>
+                  {selectedPageInfo.page_title || 'Untitled Page'}
+                </div>
+                <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, wordBreak: 'break-all' }}>
+                  {selectedPageInfo.page_url}
+                </div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>
+                  Page Index: {selectedPageInfo.page_index}
+                </div>
+                <button
+                  onClick={handleClearPage}
+                  style={{
+                    marginTop: 8,
+                    background: 'none',
+                    border: '1px solid #d1d5db',
+                    borderRadius: 6,
+                    padding: '4px 8px',
+                    fontSize: 12,
+                    color: '#6b7280',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+            ) : null}
+          </div>
+          
+          <div>
+            <label style={{ display: 'block', fontSize: 14, color: '#374151', marginBottom: 8 }}>Milliseconds</label>
+            <input
+              ref={msInputRef}
+              type="text"
+              value={ms}
+              onChange={(e) => setMs(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="e.g. 1000"
+              style={{ 
+                width: '100%', 
+                padding: '10px 12px', 
+                border: '1px solid #d1d5db', 
+                borderRadius: 8, 
+                fontSize: 14,
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
         </div>
         <div style={{ padding: '12px 20px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: 8, background: '#f9fafb' }}>
           <button onClick={onClose} style={{ background: 'none', border: '1px solid #d1d5db', borderRadius: 8, padding: '8px 12px', color: '#6b7280', cursor: 'pointer' }}>Cancel</button>
           <button
             onClick={() => {
-              if (disabled) {
+              if (!hasValidMs) {
                 toast.warning('Please enter a valid non-negative integer milliseconds');
                 return;
               }
-              onConfirm(parsed);
+              if (!hasSelectedPage) {
+                toast.warning('Please select a page first');
+                return;
+              }
+              onConfirm(parsed, selectedPageInfo || undefined);
               onClose();
             }}
             disabled={disabled}

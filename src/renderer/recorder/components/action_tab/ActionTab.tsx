@@ -3,7 +3,7 @@ import './ActionTab.css';
 import RenderedAction from '../action/Action';
 import AddActionModal from '../add_action_modal/AddActionModal';
 import DatabaseExecutionModal from '../database_execution_modal/DatabaseExecutionModal';
-import WaitModal from '../wait_modal/WaitModal';
+import WaitModal, { SelectedPageInfo } from '../wait_modal/WaitModal';
 import NavigateModal from '../navigate_modal/NavigateModal';
 import ApiRequestModal from '../api_request_modal/ApiRequestModal';
 import { Action, ActionType, AssertType, Connection, ApiRequestData } from '../../types/actions';
@@ -48,6 +48,9 @@ interface ActionTabProps {
   projectId?: string | null;
   basicAuthStatus?: 'idle' | 'success';
   onBasicAuthStatusClear?: () => void;
+  onModalStateChange?: (modalType: 'wait' | 'navigate' | 'api_request' | 'add_browser_storage' | 'database_execution', isOpen: boolean) => void;
+  waitSelectedPageInfo?: SelectedPageInfo | null;
+  onWaitPageInfoChange?: (pageInfo: SelectedPageInfo | null) => void;
 }
 
 const ActionTab: React.FC<ActionTabProps> = ({
@@ -79,7 +82,10 @@ const ActionTab: React.FC<ActionTabProps> = ({
   onOpenBasicAuth,
   projectId,
   basicAuthStatus,
-  onBasicAuthStatusClear
+  onBasicAuthStatusClear,
+  onModalStateChange,
+  waitSelectedPageInfo: propWaitSelectedPageInfo,
+  onWaitPageInfoChange
 }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -88,6 +94,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
   const [isNavigateOpen, setIsNavigateOpen] = useState(false);
   const [isApiRequestOpen, setIsApiRequestOpen] = useState(false);
   const [isAddBrowserStorageOpen, setIsAddBrowserStorageOpen] = useState(false);
+  const [waitSelectedPageInfo, setWaitSelectedPageInfo] = useState<SelectedPageInfo | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [reloadStatus, setReloadStatus] = useState<'idle' | 'loading' | 'success'>('idle');
@@ -238,10 +245,12 @@ const ActionTab: React.FC<ActionTabProps> = ({
   // Add action handlers
   const handleSelectDatabaseExecution = () => {
     setIsDatabaseExecutionOpen(true);
+    onModalStateChange?.('database_execution', true);
   };
 
   const handleSelectApiRequest = () => {
     setIsApiRequestOpen(true);
+    onModalStateChange?.('api_request', true);
   };
 
   const handleApiRequestConfirm = (apiData: ApiRequestData) => {
@@ -280,18 +289,22 @@ const ActionTab: React.FC<ActionTabProps> = ({
     });
 
     setIsApiRequestOpen(false);
+    onModalStateChange?.('api_request', false);
   };
 
   const handleSelectWait = () => {
     setIsWaitOpen(true);
+    onModalStateChange?.('wait', true);
   };
 
   const handleSelectNavigate = () => {
     setIsNavigateOpen(true);
+    onModalStateChange?.('navigate', true);
   };
 
   const handleSelectAddBrowserStorage = () => {
     setIsAddBrowserStorageOpen(true);
+    onModalStateChange?.('add_browser_storage', true);
   };
 
   const normalizeResult = (result?: ActionOperationResult | void): ActionOperationResult => {
@@ -384,24 +397,37 @@ const ActionTab: React.FC<ActionTabProps> = ({
       return next;
     });
     setIsNavigateOpen(false);
+    onModalStateChange?.('navigate', false);
     await(window as any).browserAPI?.browser.navigate(url);
     // toast.success('Added navigate action');
   }
 
-  const handleWaitConfirm = async (ms: any) => {
+  const handleWaitConfirm = async (ms: any, pageInfo?: SelectedPageInfo) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+    const actionDatas: any[] = [
+      {
+        value: {
+          value: String(ms),
+        },
+      }
+    ];
+    
+    if (pageInfo) {
+      actionDatas.push({
+        value: {
+          page_index: pageInfo.page_index,
+          page_url: pageInfo.page_url,
+          page_title: pageInfo.page_title,
+        }
+      });
+    }
+    
     const newAction = {
       testcase_id: testcaseId,
       action_id: Math.random().toString(36),
       action_type: ActionType.wait,
-      action_datas: [
-        {
-          value: {
-            value: String(ms),
-          },
-        }
-      ],
-      description: `Wait for ${ms} ms`,
+      action_datas: actionDatas,
+      description: pageInfo ? `Wait for ${ms} ms on page ${pageInfo.page_title || pageInfo.page_url}` : `Wait for ${ms} ms`,
     };
     onActionsChange(prev => {
       const next = receiveActionWithInsert(
@@ -419,8 +445,19 @@ const ActionTab: React.FC<ActionTabProps> = ({
       return next;
     });
     setIsWaitOpen(false);
+    setWaitSelectedPageInfo(null);
+    onModalStateChange?.('wait', false);
+    onWaitPageInfoChange?.(null);
     // toast.success('Added wait action');
   }
+
+  // Reset page info khi modal đóng
+  useEffect(() => {
+    if (!isWaitOpen) {
+      setWaitSelectedPageInfo(null);
+      onWaitPageInfoChange?.(null);
+    }
+  }, [isWaitOpen, onWaitPageInfoChange]);
 
   const handleAddBrowserStorageConfirm = async (selectedBrowserStorage: BrowserStorageResponse) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
@@ -458,6 +495,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
       return next;
     });
     setIsAddBrowserStorageOpen(false);
+    onModalStateChange?.('add_browser_storage', false);
     await (window as any).browserAPI?.browser?.addBrowserStorage(selectedBrowserStorage.storage_type, JSON.stringify(selectedBrowserStorage.value));
     // toast.success('Added cookies action');
   }
@@ -499,6 +537,9 @@ const ActionTab: React.FC<ActionTabProps> = ({
       }
       return next;
     });
+    
+    setIsDatabaseExecutionOpen(false);
+    onModalStateChange?.('database_execution', false);
     // toast.success('Added database execution action');
 
   };
@@ -709,28 +750,50 @@ const ActionTab: React.FC<ActionTabProps> = ({
             />
             <ApiRequestModal
               isOpen={isApiRequestOpen}
-              onClose={() => setIsApiRequestOpen(false)}
+              onClose={() => {
+                setIsApiRequestOpen(false);
+                onModalStateChange?.('api_request', false);
+              }}
               onConfirm={handleApiRequestConfirm}
             />
             <DatabaseExecutionModal
               isOpen={isDatabaseExecutionOpen}
-              onClose={() => setIsDatabaseExecutionOpen(false)}
+              onClose={() => {
+                setIsDatabaseExecutionOpen(false);
+                onModalStateChange?.('database_execution', false);
+              }}
               onConfirm={handleDatabaseExecutionConfirm}
             />
             <WaitModal
               isOpen={isWaitOpen}
-              onClose={() => setIsWaitOpen(false)}
+              onClose={() => {
+                setIsWaitOpen(false);
+                setWaitSelectedPageInfo(null);
+                onModalStateChange?.('wait', false);
+                onWaitPageInfoChange?.(null);
+              }}
               onConfirm={handleWaitConfirm}
+              selectedPageInfo={propWaitSelectedPageInfo || waitSelectedPageInfo}
+              onClearPage={() => {
+                setWaitSelectedPageInfo(null);
+                onWaitPageInfoChange?.(null);
+              }}
             />
             <NavigateModal
               isOpen={isNavigateOpen}
-              onClose={() => setIsNavigateOpen(false)}
+              onClose={() => {
+                setIsNavigateOpen(false);
+                onModalStateChange?.('navigate', false);
+              }}
               onConfirm={handleNavigateConfirm}
             />
             <AddBrowserStorageModal
               isOpen={isAddBrowserStorageOpen}
               projectId={projectId || ''}
-              onClose={() => setIsAddBrowserStorageOpen(false)}
+              onClose={() => {
+                setIsAddBrowserStorageOpen(false);
+                onModalStateChange?.('add_browser_storage', false);
+              }}
               onConfirm={handleAddBrowserStorageConfirm}
             />
           </div>

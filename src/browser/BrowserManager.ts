@@ -38,6 +38,7 @@ export class BrowserManager extends EventEmitter {
     activePageId: string | null = null;
     controller: Controller | null = null;
     private isClosingContext=false;
+    private pagesClosingWithContext: Set<string> = new Set();
     private isAssertMode: boolean = false;
     private assertType: AssertType | null = null;
     private projectId: string | null = null;
@@ -102,17 +103,15 @@ export class BrowserManager extends EventEmitter {
                     '--no-zygote'
                 ],
             });
-
             // Create context
             this.context = await this.browser.newContext({
                 viewport: null,
                 httpCredentials: basicAuthentication,
             });
-            
+            this.isClosingContext = false;
                   
             // Expose function một lần ở context level (cho tất cả pages)
             await this.context.exposeFunction('sendActionToMain', async (action: Action) => {
-                console.log('sendActionToMain', action);
                 this.emit('action', action);
             });
             await this.ensureContextScripts();
@@ -126,8 +125,13 @@ export class BrowserManager extends EventEmitter {
             await newPage.waitForLoadState('domcontentloaded');
             await this.basicSetupPage(pageId)
             await newPage.waitForLoadState('domcontentloaded');
-            this.context?.on('close', () => {
+            this.context?.on('close', async () => {
+                this.isClosingContext = true;
+                for (const pageId of this.pages.keys()) {
+                    await this.pages.get(pageId)?.close();
+                }
                 this.emit('context-closed', { timestamp: Date.now() });
+                this.stop();
             });
             this.context.on('page', async (page: Page) => {
                 const pageId = randomUUID();
@@ -190,15 +194,13 @@ export class BrowserManager extends EventEmitter {
     async stop(): Promise<void> {
         try {
             this.isClosingContext = true;
+            this.contextScriptsPrepared = false;
             //close all pages
-            for (const pageId of this.pages.keys()) {
-                if (this.pages.get(pageId) && !this.pages.get(pageId)?.isClosed()) {
-                    await this.pages.get(pageId)?.close();
-                    this.pages.delete(pageId);
-                    this.pages_index.delete(pageId);
-                }
-            }
+            
             if (this.context) {
+                for (const pageId of this.pages.keys()) {
+                    await this.pages.get(pageId)?.close();
+                }
                 await this.context.close();
                 this.context = null;
             }
@@ -207,8 +209,10 @@ export class BrowserManager extends EventEmitter {
                 await this.browser.close();
                 this.browser = null;
             }
-            this.isClosingContext = false;
-            this.emit('browser-stopped');
+            this.pages.clear();
+            this.pages_index.clear();
+            this.activePageId = null;
+            this.pagesClosingWithContext.clear();
         } catch (error) {
             throw error;
         }
@@ -579,9 +583,9 @@ export class BrowserManager extends EventEmitter {
         this.controller?.trackRequests(page);
         
         const pageIndex = this.pages_index.get(pageId) || 0;
-        
         page.on('close', async () => {
-            if (!this.isClosingContext){
+            const contextIsClosing = this.isClosingContext || this.pagesClosingWithContext.has(pageId);
+            if (!contextIsClosing){
                 this.emit("action", {
                     action_type: 'page_close',
                     elements: [],
@@ -591,7 +595,7 @@ export class BrowserManager extends EventEmitter {
                     ]
                 });
             }
-           
+            this.pagesClosingWithContext.delete(pageId);
             this.emit('page-closed', { pageId, timestamp: Date.now() });
         });
        

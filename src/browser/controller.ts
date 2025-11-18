@@ -255,22 +255,29 @@ export class Controller {
     }
     //get page promt page index
     async getPage(pageIndex: number): Promise<Page> {
-        let page:Page|null=null;
-        for (const [pageId, index] of this.browserManager?.pages_index.entries() || []) {
-            if (index === pageIndex) {
-                page = this.browserManager?.pages.get(pageId);
-                break;
+        if (!this.browserManager) {
+            throw new Error('Browser manager not available');
+        }
+
+        for (const [pageId, index] of this.browserManager.pages_index.entries()) {
+            if (index !== pageIndex) continue;
+            const page = this.browserManager.pages.get(pageId);
+            if (page && !page.isClosed()) {
+                return page;
             }
+            // remove stale references
+            this.browserManager.pages.delete(pageId);
+            this.browserManager.pages_index.delete(pageId);
         }
-        if (!page) {
-            //create new page
-            const page = await this.browserManager?.createPage(pageIndex);
-            if (!page) throw new Error('Failed to create page');
-            return page;
-        }
-        return page;
+
+        const newPage = await this.browserManager.createPage(pageIndex);
+        if (!newPage) throw new Error('Failed to create page');
+        return newPage;
     }
     async executeMultipleActions(context: BrowserContext, actions: Action[]): Promise<void> {
+        if (!context) {
+            throw new Error('Context is required');
+        }
         if (!Array.isArray(actions) || actions.length === 0) {
             throw new Error('Actions array is required and cannot be empty');
         }
