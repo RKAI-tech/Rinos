@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './AiAssertModal.css';
-import { StatementService } from '../../services/statements';
-import { apiRouter } from '../../services/baseAPIRequest';
+import { StatementService } from '../../../services/statements';
+import { apiRouter } from '../../../services/baseAPIRequest';
 import QueryResultTable from './QueryResultTable';
 import ApiElementPanel from './api_model/ApiElementPanel';
-import { Connection, ApiRequestData } from '../../types/actions';
+import { Connection, ApiRequestData } from '../../../types/actions';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { executeApiRequest, validateApiRequest, convertApiRequestDataToOptions } from '../../utils/api_request';
+import { executeApiRequest, validateApiRequest, convertApiRequestDataToOptions } from '../../../utils/api_request';
 import { toast } from 'react-toastify';
 import { useRef } from 'react';
 const statementService = new StatementService();

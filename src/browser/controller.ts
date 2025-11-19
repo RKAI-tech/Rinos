@@ -3,6 +3,7 @@ import { ApiRequestData } from "./types/api_request";
 import { BrowserContext, Page, Request } from "playwright";
 import { BasicAuthentication } from "../renderer/recorder/types/basic_auth";
 import { FileService } from "./services/files";
+import { StatementService } from "./services/statements";
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
@@ -17,6 +18,7 @@ export enum BrowserStorageType {
 export class Controller {
     private pendingRequests: number;
     private fileService: FileService;
+    private statementService: StatementService;
     private onActionExecuting?: (index: number) => void;
     private onActionFailed?: (index: number) => void;
     public browserManager?: any; // Reference to BrowserManager for window operations
@@ -24,6 +26,7 @@ export class Controller {
     constructor() {
         this.pendingRequests = 0;
         this.fileService = new FileService();
+        this.statementService = new StatementService();
     }
 
     setExecutionCallbacks(onExecuting?: (index: number) => void, onFailed?: (index: number) => void) {
@@ -141,6 +144,7 @@ export class Controller {
                     }
                 }
             }
+            
         } catch { try { console.log('[Controller][API] Resolve auth error'); } catch { } }
 
         // Prepare request options
@@ -269,10 +273,7 @@ export class Controller {
             this.browserManager.pages.delete(pageId);
             this.browserManager.pages_index.delete(pageId);
         }
-
-        const newPage = await this.browserManager.createPage(pageIndex);
-        if (!newPage) throw new Error('Failed to create page');
-        return newPage;
+        throw new Error(`Page with index ${pageIndex} not found`);
     }
     async executeMultipleActions(context: BrowserContext, actions: Action[]): Promise<void> {
         if (!context) {
@@ -323,6 +324,12 @@ export class Controller {
                         const activePage = await this.getPage(pageIndex);
                         activePage.bringToFront();
                         await activePage.goBack();
+                        break;
+                    }
+                    case ActionType.forward:{
+                        const activePage = await this.getPage(pageIndex);
+                        activePage.bringToFront();
+                        await activePage.goForward();
                         break;
                     }
                     case ActionType.add_browser_storage:{
@@ -623,6 +630,37 @@ export class Controller {
                         }
                         break;
                     }
+                    case ActionType.database_execution:
+                    {
+                        const statementData = (action.action_datas || []).find(d => d.statement)?.statement;
+                        if (!statementData) {
+                            throw new Error('Statement is required for database execution action');
+                        }
+
+                        const connectionId = statementData.connection?.connection_id;
+                        if (!connectionId) {
+                            throw new Error('connection_id is required for database execution action');
+                        }
+
+                        const query = (statementData as any).statement_text || statementData.query;
+                        if (!query) {
+                            throw new Error('Query is required for database execution action');
+                        }
+
+                        const response = await this.statementService.runWithoutCreate({
+                            connection_id: connectionId,
+                            query: query
+                        });
+
+                        if (!response.success) {
+                            throw new Error(response.error || 'Database execution failed');
+                        }
+                        // Nếu có lỗi trong response data, log warning
+                        if (response.data?.error) {
+                            console.warn('[Controller] Database execution warning:', response.data.error);
+                        }
+                    }
+                        break;
                     case ActionType.page_create:{
                         let pageIndex:number|undefined;
                         for (const action_data of action.action_datas || []) {

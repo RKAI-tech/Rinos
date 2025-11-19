@@ -34,9 +34,12 @@ function getOrCreateManagerForWindow(win: BrowserWindow): BrowserManager {
     });
     manager.on('browser-stopped', () => {
         if (!win.isDestroyed()) {
+            //reset browser manager
+            windowIdToManager.delete(id);
             win.webContents.send('browser:stopped');
         }
     });
+
     manager.on('action-executing', (data: { index: number }) => {
         if (!win.isDestroyed()) {
             win.webContents.send('browser:action-executing', data);
@@ -146,7 +149,7 @@ export function registerBrowserIpc() {
         }
     });
 
-    ipcMain.handle("browser:addBrowserStorage", async (event, storageType: BrowserStorageType, value: any) => {
+    ipcMain.handle("browser:addBrowserStorage", async (event, storageType: BrowserStorageType, value: any, page_index?: number) => {
         const win = getWindowFromEvent(event);
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
@@ -155,7 +158,21 @@ export function registerBrowserIpc() {
             console.error('[Browser] Cannot add browser storage: active page is null');
             return;
         }
-        const currentPage = manager.pages.get(manager.activePageId);
+        let pageId = null;
+        for (const [idd, index] of manager.pages_index.entries()) {
+            if (index === page_index) {
+                pageId = idd;
+                break;
+            }
+        }
+        if (!pageId) {
+            pageId = manager.activePageId;
+        }
+        if (!pageId) {
+            console.error('[Browser] Cannot add browser storage: page is null');
+            return;
+        }
+        const currentPage = manager.pages.get(pageId);
         if (!currentPage) {
             console.error('[Browser] Cannot add browser storage: current page is null');
             return;
@@ -197,6 +214,7 @@ export function registerBrowserIpc() {
             console.error('[Browser] Cannot navigate: current page is null');
             return;
         }
+        await currentPage.bringToFront();
         await manager.controller?.navigate(currentPage, url);
     });
 
@@ -228,6 +246,7 @@ export function registerBrowserIpc() {
             return;
         }
 
+        await currentPage.bringToFront();
         await manager.controller?.reload(currentPage);
     });
 
@@ -258,6 +277,7 @@ export function registerBrowserIpc() {
             console.error('[Browser] Cannot go back: page is null');
             return;
         }
+        await currentPage.bringToFront();
         await manager.controller?.goBack(currentPage);
     });
 
@@ -279,6 +299,17 @@ export function registerBrowserIpc() {
         if (!pageId) {
             pageId = manager.activePageId;
         }
+        if (!pageId) {
+            console.error('[Browser] Cannot go forward: page is null');
+            return;
+        }
+        const currentPage = manager.pages.get(pageId);
+        if (!currentPage) {
+            console.error('[Browser] Cannot go forward: page is null');
+            return;
+        }
+        await currentPage.bringToFront();
+        await manager.controller?.goForward(currentPage);
     });
 
     ipcMain.handle("browser:setAssertMode", async (event, enabled: boolean, assertType: AssertType) => {
@@ -327,9 +358,10 @@ export function registerBrowserIpc() {
         type: 'localStorage' | 'sessionStorage' | 'cookie',
         usernameKey?: string,
         passwordKey?: string,
+        page_index?: number,
         cookieDomainMatch?: string,
         cookieDomainRegex?: string,
-        page_index?: number,
+        
     }) => {
         const win = getWindowFromEvent(event);
         if (!win) return { username: null, password: null };

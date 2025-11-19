@@ -127,6 +127,7 @@ export class BrowserManager extends EventEmitter {
             await newPage.waitForLoadState('domcontentloaded');
             this.context?.on('close', async () => {
                 this.isClosingContext = true;
+                console.log('[BrowserManager] Closing context');
                 for (const pageId of this.pages.keys()) {
                     await this.pages.get(pageId)?.close();
                 }
@@ -134,6 +135,13 @@ export class BrowserManager extends EventEmitter {
                 this.stop();
             });
             this.context.on('page', async (page: Page) => {
+                for (const [pageId, p] of this.pages.entries()) {
+                    if (p === page) {
+                        console.log('[BrowserManager] Page already in pages', pageId, page.url());
+                        return;
+                    }
+                }
+
                 const pageId = randomUUID();
                 const newIndex = Math.max(...this.pages_index.values(), -1) + 1; 
                 this.pages.set(pageId, page);
@@ -180,7 +188,8 @@ export class BrowserManager extends EventEmitter {
                 this.emit('page-created', { pageId, index: newIndex });
             });
             this.browser?.on('disconnected', () => {
-                this.emit('browser-closed', { timestamp: Date.now() });
+                console.log('[BrowserManager] Browser disconnected');
+                this.emit('browser-closed');
             });
             if (this.visibilityCheckInterval) {
                 clearInterval(this.visibilityCheckInterval);
@@ -195,8 +204,10 @@ export class BrowserManager extends EventEmitter {
         try {
             this.isClosingContext = true;
             this.contextScriptsPrepared = false;
+            console.log('[BrowserManager] Stopping browser');
             //close all pages
-            
+            this.emit('browser-stopped');
+
             if (this.context) {
                 for (const pageId of this.pages.keys()) {
                     await this.pages.get(pageId)?.close();
@@ -222,13 +233,9 @@ export class BrowserManager extends EventEmitter {
            
             await this.ensureContextScripts();
             const page = await this.context?.newPage();
-            const pageId = randomUUID();
-            if (!page) throw new Error('Failed to create page');
-            this.pages.set(pageId, page);
-            this.pages_index.set(pageId, pageIndex || this.pages.size);
-            this.activePageId = pageId;
-            page.setDefaultTimeout(0);
-            await this.basicSetupPage(pageId)
+            if (!page) {
+                throw new Error('Failed to create page');
+            }
             await page.waitForLoadState('domcontentloaded');
             if (url) {
                 console.log('goto', url);
@@ -585,6 +592,11 @@ export class BrowserManager extends EventEmitter {
         const pageIndex = this.pages_index.get(pageId) || 0;
         page.on('close', async () => {
             const contextIsClosing = this.isClosingContext || this.pagesClosingWithContext.has(pageId);
+            this.pages.delete(pageId);
+            //print all pages
+            if (this.pages.size === 0) {
+                this.emit('browser-stopped');
+            }
             if (!contextIsClosing){
                 this.emit("action", {
                     action_type: 'page_close',

@@ -1,21 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { executeApiRequest, validateApiRequest, ApiRequestOptions, formatResponseData, getStatusColorClass, getStatusDescription, convertApiRequestDataToOptions } from '../../utils/api_request';
-import { ApiRequestData } from '../../types/actions';
+import { executeApiRequest, validateApiRequest, ApiRequestOptions, formatResponseData, getStatusColorClass, getStatusDescription, convertApiRequestDataToOptions } from '../../../utils/api_request';
+import { ApiRequestData } from '../../../types/actions';
 import './ApiRequestModal.css';
+
+export interface SelectedPageInfo {
+  page_index: number;
+  page_url: string;
+  page_title: string;
+}
 
 interface ApiRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (data: ApiRequestData) => void;
+  onConfirm: (data: ApiRequestData, pageInfo?: SelectedPageInfo) => void;
   initialData?: Partial<ApiRequestData>;
+  selectedPageInfo?: SelectedPageInfo | null;
+  onClearPage?: () => void;
 }
 
 const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
-  initialData
+  initialData,
+  selectedPageInfo,
+  onClearPage
 }) => {
   const [method, setMethod] = useState<string>(initialData?.method || 'GET');
   const [url, setUrl] = useState<string>(initialData?.url || 'https://');
@@ -59,6 +69,13 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
   const [basicAuthPasswordAttribute, setBasicAuthPasswordAttribute] = useState('');
 
   const httpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
+
+  useEffect(() => {
+    if (selectedPageInfo) {
+      console.log('[ApiRequestModal] Page info received:', selectedPageInfo);
+      toast.success('Page selected successfully');
+    }
+  }, [selectedPageInfo]);
 
   useEffect(() => {
     if (isOpen && !initialData) {
@@ -145,13 +162,13 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       const api = (window as any)?.browserAPI?.browser;
       
       // Fetch token if storage is enabled for bearer
-      if (tokenStorageEnabled && authType === 'bearer' && tokenStorageKey.trim() && api?.getAuthValue) {
+      if (tokenStorageEnabled && authType === 'bearer' && tokenStorageKey.trim() && api?.getAuthValue && selectedPageInfo) {
         const source = tokenStorageType === 'localStorage'
           ? 'local'
           : tokenStorageType === 'sessionStorage'
           ? 'session'
           : 'cookie';
-        const fetchedToken = await api.getAuthValue(source, tokenStorageKey);
+        const fetchedToken = await api.getAuthValue(source, tokenStorageKey, selectedPageInfo.page_index);
         if (typeof fetchedToken === 'string' && fetchedToken) {
           currentToken = fetchedToken;
           setAuthToken(fetchedToken);
@@ -160,11 +177,12 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       }
 
       // Fetch basic auth if storage is enabled for basic
-      if (tokenStorageEnabled && authType === 'basic' && basicAuthUsernameKey.trim() && basicAuthPasswordKey.trim() && api?.getBasicAuthFromStorage) {
+      if (tokenStorageEnabled && authType === 'basic' && basicAuthUsernameKey.trim() && basicAuthPasswordKey.trim() && api?.getBasicAuthFromStorage && selectedPageInfo) {
         const payload: any = {
           type: basicAuthStorageType,
           usernameKey: basicAuthUsernameKey,
-          passwordKey: basicAuthPasswordKey
+          passwordKey: basicAuthPasswordKey,
+          page_index: selectedPageInfo.page_index
         };
         const result = await api.getBasicAuthFromStorage(payload);
         if (result?.username) {
@@ -236,6 +254,12 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
   };
 
   const handleSave = () => {
+    // Kiểm tra nếu enable storage thì phải chọn page
+    if (tokenStorageEnabled && authType !== 'none' && !selectedPageInfo) {
+      toast.warning('Please select a page first when storage is enabled');
+      return;
+    }
+
     // Nếu dùng storage thì KHÔNG lưu giá trị thật của token/username/password
     const hideBearer = tokenStorageEnabled && authType === 'bearer';
     const hideBasic = tokenStorageEnabled && authType === 'basic';
@@ -273,8 +297,14 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       },
     };
     
-    onConfirm(data);
+    // Chỉ truyền pageInfo nếu storage được enable
+    const pageInfoToPass = tokenStorageEnabled && authType !== 'none' ? selectedPageInfo : undefined;
+    onConfirm(data, pageInfoToPass || undefined);
     handleClose();
+  };
+
+  const handleClearPage = () => {
+    onClearPage?.();
   };
 
   const handleFetchToken = async () => {
@@ -285,6 +315,10 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       }
       if (!tokenStorageKey || !tokenStorageKey.trim()) {
         toast.error('Please enter a token key');
+        return;
+      }
+      if (!selectedPageInfo) {
+        toast.error('Please select a page first');
         return;
       }
       setIsFetchingToken(true);
@@ -300,7 +334,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
         setIsFetchingToken(false);
         return;
       }
-      const val = await api.getAuthValue(source, tokenStorageKey);
+      const val = await api.getAuthValue(source, tokenStorageKey, selectedPageInfo.page_index);
       if (typeof val === 'string') {
         setAuthToken(val);
         setFetchedTokenValue(val);
@@ -322,18 +356,25 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       if (authType !== 'basic') return;
       // validate config: require both keys
       if (!basicAuthUsernameKey.trim() || !basicAuthPasswordKey.trim()) return;
+      if (!selectedPageInfo) {
+        toast.error('Please select a page first');
+        return;
+      }
       setIsFetchingBasic(true);
       const api = (window as any)?.browserAPI?.browser;
       if (!api?.getBasicAuthFromStorage) return;
       const payload: any = {
         type: basicAuthStorageType,
         usernameKey: basicAuthUsernameKey,
-        passwordKey: basicAuthPasswordKey
+        passwordKey: basicAuthPasswordKey,
+        page_index: selectedPageInfo.page_index
       };
       const result = await api.getBasicAuthFromStorage(payload);
       setFetchedBasicUsername(result?.username ?? '');
       setFetchedBasicPassword(result?.password ?? '');
     } catch (e) {
+      console.error('Fetch basic auth failed:', e);
+      toast.error('Fetch basic auth failed');
     } finally {
       setIsFetchingBasic(false);
     }
@@ -515,7 +556,54 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
               </div>
             )}
           </div>
-
+  {/* Page Selection - chỉ hiển thị khi storage enabled, đặt sau các phần storage */}
+  {tokenStorageEnabled && authType !== 'none' && (
+            <div className="arm-section">
+              <div className="arm-section-header">
+                <span className="arm-section-title">Page <span style={{ color: '#ef4444' }}>*</span></span>
+              </div>
+              {selectedPageInfo ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#ffffff', borderRadius: '4px', border: '1px solid #d1d5db' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: '500', color: '#111827', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {selectedPageInfo.page_title || `Page ${selectedPageInfo.page_index + 1}`}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {selectedPageInfo.page_url}
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleClearPage}
+                    style={{
+                      marginLeft: '8px',
+                      padding: '4px 8px',
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      backgroundColor: 'transparent',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f3f4f6';
+                      e.currentTarget.style.color = '#374151';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = '#6b7280';
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+              ) : (
+                <div style={{ padding: '12px', backgroundColor: '#fef3c7', borderRadius: '4px', border: '1px solid #fbbf24', fontSize: '13px', color: '#92400e' }}>
+                  Please click on a page in the browser to select it
+                </div>
+              )}
+            </div>
+          )}
           {/* Token Storage Section - show inline when enabled */}
           {tokenStorageEnabled && authType === 'bearer' && (
             <div className="arm-section">
@@ -699,6 +787,8 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
               </div>
             </div>
           )}
+
+        
 
           {/* Body Section */}
           <div className="arm-section">
