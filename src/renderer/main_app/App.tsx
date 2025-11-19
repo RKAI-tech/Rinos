@@ -16,6 +16,7 @@ import BrowserStorage from './pages/browser_storage/BrowserStorage';
 import ChangeLog from './pages/change_log/ChangeLog';
 import ConfirmCloseModal from '../recorder/components/confirm_close/ConfirmCloseModal';
 import LoadingScreen from './components/loading/LoadingScreen';
+import { VersionProvider } from './contexts/VersionContext';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -42,7 +43,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 function App() {
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [hasUnsavedDatas, setHasUnsavedDatas] = useState(true);
-
+  
   useEffect(() => {
     // console.log('App component mounted');
     // Sync token from electron store to apiRouter if available
@@ -59,14 +60,14 @@ function App() {
 
   useEffect(() => {
     const handleCloseRequest = async () => {
-      console.log('[App] Close request received, getting unsaved datas flag...');
+      // console.log('[App] Close request received, getting unsaved datas flag...');
       // Gọi main process để lấy unsaved flags từ child windows
       try {
         const hasUnsavedDatas = await (window as any).electronAPI?.window?.getUnsavedDatasFlag?.() || false;
-        console.log('[App] Got unsaved datas flag:', hasUnsavedDatas);
+        // console.log('[App] Got unsaved datas flag:', hasUnsavedDatas);
         setHasUnsavedDatas(hasUnsavedDatas);
       } catch (error) {
-        console.error('[App] Error getting unsaved datas flag:', error);
+        // console.error('[App] Error getting unsaved datas flag:', error);
         // Nếu có lỗi, giả định có unsaved data để an toàn
         setHasUnsavedDatas(true);
       }
@@ -87,83 +88,85 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          } />
-          <Route path="/register" element={
-            <PublicRoute>
-              <Register />
-            </PublicRoute>
-          } />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/testcases/:projectId" element={
-            <ProtectedRoute>
-              <Testcases />
-            </ProtectedRoute>
-          } />
-          <Route path="/test-suites/:projectId" element={
-            <ProtectedRoute>
-              <TestSuites />
-            </ProtectedRoute>
-          } />
-          <Route path="/browser-storage/:projectId" element={
-            <ProtectedRoute>
-              <BrowserStorage />
-            </ProtectedRoute>
-          } />
-          <Route path="/databases/:projectId" element={
-            <ProtectedRoute>
-              <Databases />
-            </ProtectedRoute>
-          } />
-          <Route path="/queries/:projectId" element={
-            <ProtectedRoute>
-              <Queries />
-            </ProtectedRoute>
-          } />
-          <Route path="/variables/:projectId" element={
-            <ProtectedRoute>
-              <Variables />
-            </ProtectedRoute>
-          } />
-          <Route path="/change-log/:projectId" element={
-            <ProtectedRoute>
-              <ChangeLog />
-            </ProtectedRoute>
-          } />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          newestOnTop
-          closeOnClick
-          pauseOnHover
-          theme="colored"
-          style={{ zIndex: 2147483648 }}
+      <VersionProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            } />
+            <Route path="/register" element={
+              <PublicRoute>
+                <Register />
+              </PublicRoute>
+            } />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/testcases/:projectId" element={
+              <ProtectedRoute>
+                <Testcases />
+              </ProtectedRoute>
+            } />
+            <Route path="/test-suites/:projectId" element={
+              <ProtectedRoute>
+                <TestSuites />
+              </ProtectedRoute>
+            } />
+            <Route path="/browser-storage/:projectId" element={
+              <ProtectedRoute>
+                <BrowserStorage />
+              </ProtectedRoute>
+            } />
+            <Route path="/databases/:projectId" element={
+              <ProtectedRoute>
+                <Databases />
+              </ProtectedRoute>
+            } />
+            <Route path="/queries/:projectId" element={
+              <ProtectedRoute>
+                <Queries />
+              </ProtectedRoute>
+            } />
+            <Route path="/variables/:projectId" element={
+              <ProtectedRoute>
+                <Variables />
+              </ProtectedRoute>
+            } />
+            <Route path="/change-log/:projectId" element={
+              <ProtectedRoute>
+                <ChangeLog />
+              </ProtectedRoute>
+            } />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            newestOnTop
+            closeOnClick
+            pauseOnHover
+            theme="colored"
+            style={{ zIndex: 2147483648 }}
+          />
+        </Router>
+        <ConfirmCloseModal
+          isOpen={showConfirmClose}
+          hasUnsavedDatas={hasUnsavedDatas}
+          onCancel={() => {
+            handleConfirmClose(false, false);
+          }}
+          onSaveAndClose={() => {
+            handleConfirmClose(true, true);
+          }}
+          onConfirm={() => {
+            handleConfirmClose(true, false);
+          }}
         />
-      </Router>
-      <ConfirmCloseModal
-        isOpen={showConfirmClose}
-        hasUnsavedDatas={hasUnsavedDatas}
-        onCancel={() => {
-          handleConfirmClose(false, false);
-        }}
-        onSaveAndClose={() => {
-          handleConfirmClose(true, true);
-        }}
-        onConfirm={() => {
-          handleConfirmClose(true, false);
-        }}
-      />
+      </VersionProvider>
     </AuthProvider>
   );
 }

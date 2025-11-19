@@ -115,20 +115,20 @@ function processAssertClick(e) {
         defaultValue,
         rect,
         (finalValue, connection, connection_id, query, apiRequest) => {
-          console.log('[processAssertClick] onConfirm callback called:', {
-            finalValue,
-            hasConnection: !!connection,
-            hasQuery: !!query,
-            hasApiRequest: !!apiRequest,
-            apiRequest: apiRequest
-          });
+          // console.log('[processAssertClick] onConfirm callback called:', {
+          //   finalValue,
+          //   hasConnection: !!connection,
+          //   hasQuery: !!query,
+          //   hasApiRequest: !!apiRequest,
+          //   apiRequest: apiRequest
+          // });
           sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement, apiRequest);
         },
         () => {
         }
       );
     } else {
-      console.log('[processAssertClick] No modal needed, sending assert action directly');
+      // console.log('[processAssertClick] No modal needed, sending assert action directly');
       sendAssertAction(selector, assertType, '', elementType, elementPreview, elementText, undefined, undefined, undefined, DOMelement, undefined);
     }
   } catch (error) {
@@ -217,7 +217,7 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
     closeAssertInputModal();
     // console.log('[sendAssertAction] Action sent successfully');
   } else {
-    console.warn('[sendAssertAction] window.sendActionToMain is not available');
+    // console.warn('[sendAssertAction] window.sendActionToMain is not available');
   }
 
 }

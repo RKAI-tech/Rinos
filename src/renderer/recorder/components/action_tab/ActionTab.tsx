@@ -667,7 +667,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
         selectedInsertPosition || 0
       );
 
-      console.log("Next actions:", next);
+      // console.log("Next actions:", next);
 
       const added = next.length > prev.length;
       if (added) {
@@ -690,7 +690,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
 
 
     if (actionType === 'database_execution') {
-      console.log("Database execution handled by modal, not adding to list");
+      // console.log("Database execution handled by modal, not adding to list");
       return;
     }
     if (actionType === 'wait') {
@@ -766,13 +766,13 @@ const ActionTab: React.FC<ActionTabProps> = ({
       
       case 'database_execution':
         // This will be handled by the modal
-        console.log("Database execution will be handled by modal");
+        // console.log("Database execution will be handled by modal");
         handleSelectDatabaseExecution();
         return null;
       
       case 'api_request':
         // This will be handled by the modal
-        console.log("API request will be handled by modal");
+        // console.log("API request will be handled by modal");
         handleSelectApiRequest();
         return null;
       
@@ -785,12 +785,12 @@ const ActionTab: React.FC<ActionTabProps> = ({
           playwright_code: 'await page.goto("https://example.com");',
           description: 'Navigate to URL',
         };
-        console.log("Created visit_url action:", visitAction);
+        // console.log("Created visit_url action:", visitAction);
         await (window as any).browserAPI?.browser?.navigate(visitAction.value as string);
         return visitAction;
       
       default:
-        console.error('Unknown action type:', actionType);
+        // console.error('Unknown action type:', actionType);
         return null;
     }
   };

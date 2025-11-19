@@ -80,7 +80,7 @@ export function generateSelector(element, options = {}) {
   
       return '/' + segments.join('/');
     } catch (e) {
-      console.warn('XPath generation failed:', e);
+      // console.warn('XPath generation failed:', e);
       return '';
     }
   }

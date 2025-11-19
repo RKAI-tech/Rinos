@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import authService from '../../services/auth';
+import { useVersion } from '../../contexts/VersionContext';
 import './Header.css';
 import image from '../../assets/logo_user.png';
 import rikkeiLogo from '../../assets/logoRikkeisoft.png';
 const Header: React.FC = () => {
   const { logout, isLoading, userEmail } = useAuth();
+  const { currentVersion, hasUpdate, openVersionModal } = useVersion();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [localUserEmail, setLocalUserEmail] = useState<string>('');
 
@@ -67,8 +69,23 @@ const Header: React.FC = () => {
           </div>
         </div>
 
-        {/* Right side - User Profile */}
+        {/* Right side - Version Badge & User Profile */}
         <div className="header-right">
+          <button
+            className={`version-pill ${hasUpdate ? 'version-pill--active' : ''}`}
+            disabled={!hasUpdate}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (hasUpdate) {
+                openVersionModal();
+              }
+            }}
+          >
+            <span className="version-pill-text">
+              VERSION {currentVersion || '--'}
+            </span>
+            {hasUpdate && <span className="version-pill-indicator" aria-label="New version available" />}
+          </button>
           <div className="user-profile" onClick={toggleUserDropdown}>
             <div className="user-avatar">
               <img 

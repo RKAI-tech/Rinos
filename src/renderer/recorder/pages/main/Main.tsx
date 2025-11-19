@@ -261,7 +261,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           toast.error(response.error || 'Failed to generate code from server');
         }
       } catch (error) {
-        console.error('[Main] Error generating code:', error);
+        // console.error('[Main] Error generating code:', error);
         setCustomScript('// Error generating code. Please try again.');
         toast.error('Error generating code from server');
       } finally {

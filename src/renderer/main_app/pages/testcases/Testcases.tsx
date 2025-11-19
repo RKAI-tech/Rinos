@@ -78,7 +78,7 @@ const Testcases: React.FC = () => {
       const response = await testCaseService.getTestCases(projectData.projectId, 1000, 0);
       if (response.success && response.data) {
         const resp = response.data.testcases;
-        console.log('[MAIN_APP] Testcases', resp);       
+        // console.log('[MAIN_APP] Testcases', resp);       
         const mapped: Testcase[] = resp.map((tc: any)=> {
           return {
             testcase_id: tc.testcase_id,
@@ -105,7 +105,7 @@ const Testcases: React.FC = () => {
             },
           };
         });
-        console.log('[MAIN_APP] mapped', mapped);
+        // console.log('[MAIN_APP] mapped', mapped);
         
         setTestcasesData(mapped);
         
@@ -117,12 +117,12 @@ const Testcases: React.FC = () => {
       } else {
         setError(response.error || 'Failed to load testcases');
         // toast.error('Failed to load testcases');
-        console.error('Failed to load testcases', response.error);
+        // console.error('Failed to load testcases', response.error);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred';
       setError(message);
-      console.error('Failed to load testcases', message);
+      // console.error('Failed to load testcases', message);
       // toast.error('Failed to load testcases');
     } finally {
       setIsLoading(false);
@@ -365,10 +365,10 @@ const Testcases: React.FC = () => {
         setIsCreateModalOpen(false);
         await reloadTestcases();
       } else {
-        toast.error(resp.error || 'Failed to create testcase');
+        toast.error('Failed to create testcase. Please try again.');
       }
     } catch (err) {
-      toast.error('Failed to create testcase');
+      toast.error('Failed to create testcase. Please try again.');
       // console.error(err);
     }
   };
@@ -430,7 +430,7 @@ const Testcases: React.FC = () => {
       // }
 
     } catch (err) {
-      toast.error('Failed to execute testcase');
+      toast.error('Failed to execute testcase. Please try again.');
     }
     finally {
       setRunningTestcases(prev => prev.filter(testcaseId => testcaseId !== id));
@@ -489,7 +489,7 @@ const Testcases: React.FC = () => {
     const payload = { project_id: effectiveProjectId, name, tag: tag || undefined } as any;
     const resp = await testCaseService.createTestCase(payload);
     if (!resp.success) {
-      toast.error(resp.error || 'Failed to create testcase');
+      toast.error('Failed to create testcase. Please try again.');
       return undefined;
     }
     // Some backends may not return the id; attempt to extract if available
@@ -513,7 +513,7 @@ const Testcases: React.FC = () => {
     } as any;
     const resp = await testCaseService.createTestCaseWithActions(payload);
     if (!resp.success) {
-      toast.error(resp.error || 'Failed to create testcase with actions');
+      toast.error('Disconnect from the server. Please try again.');
       return false;
     }
     return true;
@@ -558,10 +558,10 @@ const Testcases: React.FC = () => {
         handleCloseEditModal();
         await reloadTestcases();
       } else {
-        toast.error(resp.error || 'Failed to update testcase');
+        toast.error('Disconnect from the server. Please try again.');
       }
     } catch (err) {
-      toast.error('Failed to update testcase');
+      toast.error('Disconnect from the server. Please try again.');
     }
   };
 
@@ -580,10 +580,10 @@ const Testcases: React.FC = () => {
         handleCloseDeleteModal();
         await reloadTestcases();
       } else {
-        toast.error(resp.error || 'Failed to delete testcase');
+        toast.error('Failed to delete testcase. Please try again.');
       }
     } catch (err) {
-      toast.error('Failed to delete testcase');
+      toast.error('Failed to delete testcase. Please try again.');
     }
   };
 

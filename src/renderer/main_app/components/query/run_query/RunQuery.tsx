@@ -43,10 +43,6 @@ const RunQuery: React.FC<RunQueryProps> = ({ isOpen, sql, queryName, items, onCl
     setVal(value);
     setIsVarOpen(true);
   };
-
-  useEffect(() => {
-    console.log('items', items);
-  }, [items]);
   
   const handleSaveVar = async () => {
     try {
@@ -70,10 +66,10 @@ const RunQuery: React.FC<RunQueryProps> = ({ isOpen, sql, queryName, items, onCl
         toast.success('Variable saved');
         setIsVarOpen(false);
       } else {
-        toast.error(resp.error || 'Failed to save variable');
+        toast.error('Failed to save variable. Please try again.');
       }
     } catch (e) {
-      toast.error('Failed to save variable');
+      toast.error('Failed to save variable. Please try again.');
     }
   };
 

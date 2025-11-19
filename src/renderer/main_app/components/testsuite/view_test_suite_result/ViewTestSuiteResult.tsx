@@ -22,6 +22,7 @@ interface CaseItem {
   status?: string;
   output?: string; // placeholder for terminal-like logs
   url?: string;
+  screenshots?: string[];
 }
 
 interface LogModalProps {
@@ -30,11 +31,28 @@ interface LogModalProps {
   testcaseName: string;
   logs: string;
   videoUrl?: string;
+  screenshots?: string[];
+  status?: string;
 }
 
 // Log Modal Component
-const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, testcaseName, logs, videoUrl }) => {
-  const [activeTab, setActiveTab] = useState<'logs' | 'video'>('logs');
+const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, testcaseName, logs, videoUrl, screenshots, status }) => {
+  const [activeTab, setActiveTab] = useState<'logs' | 'video' | 'screenshots'>('logs');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [showControls, setShowControls] = useState<boolean>(false);
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedImage(null);
+      setCurrentImageIndex(0);
+      setIsFullscreen(false);
+      setShowControls(false);
+      setActiveTab('logs');
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -42,7 +60,18 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, testcaseName, logs
     <div className="vtsr-log-overlay" onClick={(e) => e.stopPropagation()}>
       <div className="vtsr-log-tabbed" onClick={(e) => e.stopPropagation()}>
         <div className="vtsr-log-header">
-          <h3 className="vtsr-log-title">{testcaseName}</h3>
+          <h3 className="vtsr-log-title">
+            {status?.toLowerCase() === 'passed' || status?.toLowerCase() === 'success' ? (
+              <span className="vtsr-log-status-icon vtsr-log-status-success">✓</span>
+            ) : null}
+            {status?.toLowerCase() === 'failed' || status?.toLowerCase() === 'error' ? (
+              <span className="vtsr-log-status-icon vtsr-log-status-failed">✗</span>
+            ) : null}
+            {status?.toLowerCase() === 'running' ? (
+              <span className="vtsr-log-status-icon vtsr-log-status-running">⟳</span>
+            ) : null}
+            {testcaseName}
+          </h3>
           <button className="vtsr-log-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
         
@@ -60,6 +89,12 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, testcaseName, logs
             >
               🎥 Video
             </button>
+            <button 
+              className={`vtsr-log-tab-btn ${activeTab === 'screenshots' ? 'active' : ''}`}
+              onClick={() => setActiveTab('screenshots')}
+            >
+              📸 Screenshots
+            </button>
           </div>
           
           <div className="vtsr-log-tab-content">
@@ -69,7 +104,7 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, testcaseName, logs
                   <span className="dot red" />
                   <span className="dot yellow" />
                   <span className="dot green" />
-                  <span className="vtsr-term-title">Execution Logs</span>
+                  {/* <span className="vtsr-term-title">Terminal</span> */}
                 </div>
                 <div className="vtsr-term-content">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -91,6 +126,131 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, testcaseName, logs
                 )}
               </div>
             )}
+            
+            {activeTab === 'screenshots' && (
+              <div className="vtsr-log-screenshots-container">
+                {screenshots && screenshots.length > 0 ? (
+                  <div className="vtsr-log-screenshots-list">
+                    {screenshots.map((screenshotUrl: string, index: number) => {
+                      // Extract image name from URL pattern: after code and _ prefix, before .png
+                      const urlParts = screenshotUrl.split('/');
+                      const fileName = urlParts[urlParts.length - 1];
+                      let imageName = fileName;
+                      
+                      // Try to extract name from pattern: code_name.png
+                      if (fileName.includes('_')) {
+                        const parts = fileName.split('_');
+                        if (parts.length > 1) {
+                          // Remove the code part (first part) and .png extension
+                          let part1 = parts[1] || '';
+                          let part2 = parts[2] || '';
+                          if (part2.includes('.png')) {
+                            part2 = part2.split('.png')[0];
+                          }
+                          imageName = [part1, part2].filter(Boolean).join('_');
+                        }
+                      } else {
+                        // Fallback: remove extension
+                        imageName = `screenshot_${index + 1}`;
+                      }
+                      
+                      return (
+                        <div key={index} className="vtsr-log-screenshot-item">
+                          <button 
+                            className="vtsr-log-screenshot-btn"
+                            onClick={() => {
+                              setSelectedImage(screenshotUrl);
+                              setCurrentImageIndex(index);
+                            }}
+                          >
+                            📸 {imageName}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="vtsr-log-no-screenshots">
+                    <div className="vtsr-log-no-screenshots-icon">📸</div>
+                    <div className="vtsr-log-no-screenshots-text">No verification screenshots available for this testcase.</div>
+                  </div>
+                )}
+                
+                {/* Image display modal */}
+                {selectedImage && screenshots && screenshots.length > 0 && (
+                  <div className="vtsr-log-image-modal-overlay" onClick={() => {
+                    setSelectedImage(null);
+                    setIsFullscreen(false);
+                  }}>
+                    <div 
+                      className={`vtsr-log-image-modal ${isFullscreen ? 'vtsr-log-image-modal-fullscreen' : ''}`} 
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="vtsr-log-image-modal-content">
+                        <img 
+                          src={selectedImage} 
+                          alt="Screenshot"
+                          className="vtsr-log-image-display"
+                        />
+                      </div>
+                      
+                      {/* Navigation controls - positioned below image */}
+                      <div 
+                        className={`vtsr-log-image-controls ${isFullscreen ? 'vtsr-log-image-controls-fullscreen' : ''} ${isFullscreen || showControls || !isFullscreen ? 'vtsr-log-image-controls-visible' : 'vtsr-log-image-controls-hidden'}`}
+                      >
+                        <button 
+                          className="vtsr-log-image-nav-btn"
+                          onClick={() => {
+                            if (screenshots.length <= 1) return;
+                            const prevIndex = currentImageIndex > 0 ? currentImageIndex - 1 : screenshots.length - 1;
+                            setCurrentImageIndex(prevIndex);
+                            setSelectedImage(screenshots[prevIndex] || null);
+                          }}
+                          disabled={screenshots.length <= 1}
+                          title="Previous image"
+                        >
+                          ◀
+                        </button>
+                        
+                        <button 
+                          className="vtsr-log-image-nav-btn"
+                          onClick={() => {
+                            if (screenshots.length <= 1) return;
+                            const nextIndex = currentImageIndex < screenshots.length - 1 ? currentImageIndex + 1 : 0;
+                            setCurrentImageIndex(nextIndex);
+                            setSelectedImage(screenshots[nextIndex] || null);
+                          }}
+                          disabled={screenshots.length <= 1}
+                          title="Next image"
+                        >
+                          ▶
+                        </button>
+                        
+                        <button 
+                          className="vtsr-log-image-nav-btn"
+                          onClick={() => setIsFullscreen(!isFullscreen)}
+                          title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                        >
+                          {isFullscreen ? '⤡' : '⤢'}
+                        </button>
+                        
+                        <button 
+                          className="vtsr-log-image-close"
+                          onClick={() => {
+                            setSelectedImage(null);
+                            setIsFullscreen(false);
+                            setShowControls(false);
+                          }}
+                          title="Close"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
         
@@ -107,7 +267,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cases, setCases] = useState<CaseItem[]>([]);
-  const [selectedLog, setSelectedLog] = useState<{ name: string; logs: string; url?: string } | null>(null);
+  const [selectedLog, setSelectedLog] = useState<{ name: string; logs: string; url?: string; screenshots?: string[]; status?: string } | null>(null);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'status'>('name');
@@ -130,24 +290,44 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       if (!silent) setIsLoading(true);
       setError(null);
       const resp = await svc.getTestCasesBySuite({ test_suite_id: testSuiteId });
-      console.log('response:', resp);
+      // console.log('response:', resp);
       if (resp.success && resp.data) {
-        const mapped: CaseItem[] = (resp.data.testcases || []).map((tc) => ({
-          id: tc.testcase_id,
-          name: tc.name,
-          description: (tc as any).description || '',
-          status: (tc as any).status,
-          output: tc.logs || '',
-          url: (tc as any).url_video
-        }));
+        const mapped: CaseItem[] = (resp.data.testcases || []).map((tc) => {
+          // Extract screenshots - handle both array of strings and array of objects
+          let screenshots: string[] = [];
+          const rawScreenshots = (tc as any).evidence?.screenshots || (tc as any).screenshots || [];
+          if (Array.isArray(rawScreenshots)) {
+            screenshots = rawScreenshots.map((item: any) => {
+              // If it's already a string, return it
+              if (typeof item === 'string') {
+                return item;
+              }
+              // If it's an object with url property, extract the url
+              if (item && typeof item === 'object' && item.url) {
+                return item.url;
+              }
+              return null;
+            }).filter((url: string | null): url is string => url !== null);
+          }
+          
+          return {
+            id: tc.testcase_id,
+            name: tc.name,
+            description: (tc as any).description || '',
+            status: (tc as any).status,
+            output: tc.logs || '',
+            url: (tc as any).url_video,
+            screenshots
+          };
+        });
         setCases(mapped);
       } else {
         setCases([]);
-        toast.error(resp.error || 'Failed to load results');
+        toast.error('Disconnect from the server. Please try again.');
       }
     } catch (e) {
       setCases([]);
-      toast.error(e instanceof Error ? e.message : 'An error occurred');
+      toast.error('Disconnect from the server. Please try again.');
     } finally {
       if (!silent) setIsLoading(false);
     }
@@ -164,7 +344,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
         }
       }
     } catch (e) {
-      console.error('Failed to fetch test suite name:', e);
+      // console.error('Failed to fetch test suite name:', e);
     }
   }, [isOpen, testSuiteId, projectId, svc]);
 
@@ -192,10 +372,10 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       if (resp.success) {
         toast.success('Test suite execution started');
       } else {
-        toast.error(resp.error || 'Failed to execute test suite');
+        toast.error('Failed to execute test suite. Please try again.');
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to execute test suite');
+      toast.error('Failed to execute test suite. Please try again.');
     } finally {
       setIsRetryingAll(false);
       await fetchResults();
@@ -203,7 +383,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
   };
 
   const handleCaseClick = (caseItem: CaseItem) => {
-    setSelectedLog({ name: caseItem.name, logs: caseItem.output || '', url: caseItem.url });
+    setSelectedLog({ name: caseItem.name, logs: caseItem.output || '', url: caseItem.url, screenshots: caseItem.screenshots, status: caseItem.status });
     setIsLogModalOpen(true);
   };
 
@@ -326,7 +506,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       const response = await svc.exportTestSuite({ test_suite_id: testSuiteId });
       
       if (!response.success) {
-        toast.error(response.error || 'Failed to export test suite');
+        toast.error('Failed to export test suite. Please try again.');
         return;
       }
 
@@ -344,7 +524,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
         toast.error('No file received from server');
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Export failed');
+      toast.error('Export failed. Please try again.');
     }
   };
 
@@ -371,12 +551,19 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
             <h2 className="vtsr-title">{testSuiteName || 'Test Suite Results'}</h2>
             <div style={{ display: 'flex', gap: 8 }}>
               <button 
-                className="vtsr-btn vtsr-btn-rerun" 
+                className={`vtsr-btn vtsr-btn-rerun ${(isRetryingAll || hasProcessingCases) ? 'running' : ''}`}
                 onClick={(e) => { e.stopPropagation(); handleRetryAll(); }}
-                disabled={isRetryingAll || isLoading || !canEditPermission || cases.length === 0}
+                disabled={isRetryingAll || isLoading || !canEditPermission || cases.length === 0 || hasProcessingCases}
                 aria-label="Retry All Test Cases"
               >
-                {isRetryingAll ? 'Running...' : 'Rerun'}
+                {(isRetryingAll || hasProcessingCases) ? (
+                  <span className="vtsr-loading-inline">
+                    <span className="vtsr-spinner" />
+                    Running...
+                  </span>
+                ) : (
+                  'Run Again'
+                )}
               </button>
               <button
                 className="vtsr-btn vtsr-btn-export" 
@@ -575,6 +762,8 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
         testcaseName={selectedLog?.name || ''}
         logs={selectedLog?.logs || ''}
         videoUrl={selectedLog?.url}
+        screenshots={selectedLog?.screenshots}
+        status={selectedLog?.status}
       />
     </>
   );

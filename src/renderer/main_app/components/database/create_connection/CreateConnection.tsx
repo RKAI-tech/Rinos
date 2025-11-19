@@ -156,8 +156,8 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
       try {
         response = await Promise.resolve(onSave(payload));
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to create database connection';
-        toast.error(message);
+        const message = 'Failed to create database connection. Please check your connection details and try again.';
+        toast.warning(message);
         shouldClose = false;
         return;
       }
@@ -168,13 +168,13 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
         if (response.success) {
           toast.success('Database connection created successfully');
         } else {
-          const errorMessage = response?.error || 'Failed to create database connection';
+          const errorMessage = 'Failed to create database connection. Please check your connection details and try again.';
           toast.error(errorMessage);
           shouldClose = false;
         }
       } else {
         // Không có cấu trúc success → coi như thất bại để tránh đóng modal ngoài ý muốn
-        toast.error('Failed to create database connection');
+        toast.error('Failed to create database connection. Please check your connection details and try again.');
         shouldClose = false;
       }
     } finally {

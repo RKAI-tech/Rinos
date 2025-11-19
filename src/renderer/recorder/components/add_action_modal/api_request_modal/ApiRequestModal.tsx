@@ -197,7 +197,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
         }
       }
     } catch (error) {
-      console.error('Failed to fetch auth from storage:', error);
+      // console.error('Failed to fetch auth from storage:', error);
       // Continue with existing values if fetch fails
     }
 
@@ -246,7 +246,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
         toast.error(`Request failed! Status: ${response.status}${response.error ? ` - ${response.error}` : ''}`);
       }
     } catch (error) {
-      console.error('Request failed:', error);
+      // console.error('Request failed:', error);
       toast.error('Request failed: ' + (error as Error).message);
     } finally {
       setIsSending(false);
@@ -343,7 +343,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
         toast.warn('Token not found');
       }
     } catch (e) {
-      console.error('Fetch token failed:', e);
+      // console.error('Fetch token failed:', e);
       toast.error('Fetch token failed');
     } finally {
       setIsFetchingToken(false);

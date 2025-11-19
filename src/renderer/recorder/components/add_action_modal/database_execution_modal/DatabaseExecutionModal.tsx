@@ -94,7 +94,7 @@ const DatabaseExecutionModal: React.FC<DatabaseExecutionModalProps> = ({
         setQueryStatus('Query executed successfully. No rows returned.');
       }
     } catch (error) {
-      console.error('Query execution failed:', error);
+      // console.error('Query execution failed:', error);
       setQueryResultData([]);
       setQueryResultPreview('');
       setQueryError(error instanceof Error ? error.message : 'Query execution failed');

@@ -162,13 +162,19 @@ export class Controller {
                     options.data = formBody;
                 }
             }
-        } catch { try { console.log('[Controller][API] Build options error'); } catch { } }
+        } catch { try { 
+            // console.log('[Controller][API] Build options error'); 
+        } catch { } }
 
         // Execute
         const method = ((apiData.method as any) || 'get').toLowerCase();
-        try { console.log('[Controller][API] Sending request', { method, url, hasHeaders: Object.keys(headers).length > 0 }); } catch { }
+        try { 
+            // console.log('[Controller][API] Sending request', { method, url, hasHeaders: Object.keys(headers).length > 0 }); 
+        } catch { }
         const resp = await (page.request as any)[method](url, options);
-        try { console.log('[Controller][API] Response status:', await resp.status()); } catch { }
+        try { 
+            // console.log('[Controller][API] Response status:', await resp.status()); 
+        } catch { }
 
 
     }
@@ -216,8 +222,6 @@ export class Controller {
             throw new Error('[Controller] Invalid inputs for resolveUniqueSelector');
         }
 
-        // console.log(`[Controller] Resolving unique selector from candidates:`, selectors);
-
         for (const raw of selectors) {
             const s = String(raw).trim();
             if (!s) continue;
@@ -225,36 +229,26 @@ export class Controller {
             try {
                 let locator;
 
-                // Handle XPath selectors
                 if (s.startsWith('xpath=') || s.startsWith('/')) {
                     const xpathExpr = s.startsWith('xpath=') ? s.substring(6) : s;
                     locator = page.locator(`xpath=${xpathExpr}`);
                 } else {
-                    // Handle CSS selectors
                     locator = page.locator(s);
                 }
 
-                // Wait for element to be attached
                 await locator.first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => { });
 
-                // Check if selector is unique
                 const count = await locator.count();
-                // console.log(`[Controller] Selector "${s}" found ${count} elements`);
 
                 if (count === 1) {
-                    // Normalize return: if original is raw XPath, prefix with 'xpath='
                     const normalized = (s.startsWith('/') || s.startsWith('(')) ? `xpath=${s}` : s;
-                    // console.log(`[Controller] Using unique selector: ${normalized}`);
                     return normalized;
                 }
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : String(error);
-                // console.log(`[Controller] Selector "${s}" failed:`, errorMessage);
-                // ignore and try next selector
             }
         }
 
-        console.error(`[Controller] No unique selector found from:`, selectors);
+        // console.error(`[Controller] No unique selector found from:`, selectors);
         throw new Error('[Controller] No matching selector found in ' + selectors.join(', '));
     }
     //get page promt page index
@@ -384,7 +378,14 @@ export class Controller {
                         if (action.elements) {
                             const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
                             const uniqueSelector = await this.resolveUniqueSelector(activePage, selectors);
-                            await activePage.fill(uniqueSelector, value);
+                            try {
+                                await activePage.fill(uniqueSelector, value);
+                            } catch (error) {
+                                // console.log(`[Controller] Fill failed, trying JS fallback for unique selector: ${uniqueSelector}`);
+                                const jsCode = `document.querySelector('${uniqueSelector}').value = '${value}'`;
+                                await activePage.evaluate(jsCode);
+                                // console.log(`[Controller] Filled on unique selector: ${uniqueSelector} using JS fallback`);
+                            }
                             }
                             break;
                         }
@@ -514,7 +515,7 @@ export class Controller {
                                 // console.log('uniqueSelector', uniqueSelector)
                                 await activePage.locator(uniqueSelector).evaluate((el: HTMLElement) => el.click());
                             } catch (error) {
-                                console.error('Error changing', error)
+                                // console.error('Error changing', error)
                             }
                         }
                         break;
@@ -714,7 +715,8 @@ export class Controller {
 
     
             } catch (error) {
-                console.error(`[Controller] Error executing action ${i + 1} (${action.action_type}):`, error);
+                // console.error(`[Controller] Error executing action ${i + 1} (${action.action_type}):`, error);
+                // Emit failed event
                 this.onActionFailed?.(i);
 
             }

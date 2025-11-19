@@ -20,7 +20,9 @@ function getScrollableTarget(e) {
 
 function dispatchScroll(e) {
   if (e && e.isTrusted === false) {
-    try { console.log('Skipping scroll recording - event is not trusted'); } catch {}
+    try { 
+      // console.log('Skipping scroll recording - event is not trusted');
+    } catch {}
     return;
   }
   

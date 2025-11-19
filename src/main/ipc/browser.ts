@@ -336,9 +336,9 @@ export function registerBrowserIpc() {
     
     ipcMain.handle("browser:setAuthToken", async (event, token: string | null) => {
         const win = getWindowFromEvent(event);
-        console.log('[Browser] Setting auth token:', win);
+        // console.log('[Browser] Setting auth token:', win);
         if (!win) return;
-        console.log('[Browser] Setting auth token:', token);
+        // console.log('[Browser] Setting auth token:', token);
         const manager = getOrCreateManagerForWindow(win);
         manager.setAuthToken(token);
     });

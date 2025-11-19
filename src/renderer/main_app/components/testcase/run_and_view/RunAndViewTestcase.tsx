@@ -41,10 +41,6 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
       void loadTestcaseData();
     }
   }, [isOpen, testcaseId, projectId, testcaseData]);
-
-  useEffect(() => {
-    console.log('[MAIN_APP] result', result);
-  }, [result]);
   
   const loadTestcaseData = async () => {
     if (!testcaseId) return;
@@ -64,12 +60,12 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
           });
         }
       } else {
-        toast.error(response.error || 'Failed to load testcase data', {
+        toast.error('Disconnect from the server. Please try again.', {
           containerId: 'modal-toast-container'
         });
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'An error occurred while loading testcase', {
+      toast.error('Disconnect from the server. Please try again.', {
         containerId: 'modal-toast-container'
       });
     } finally {
@@ -96,12 +92,12 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
         // Then reload testcase data to get updated logs
         await loadTestcaseData();
       } else {
-        toast.error(resp.error || 'Failed to execute testcase', {
+        toast.error('Failed to execute testcase. Please try again.', {
           containerId: 'modal-toast-container'
         });
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'An error occurred during execution', {
+      toast.error('Disconnect from the server. Please try again.', {
         containerId: 'modal-toast-container'
       });
     } finally {
@@ -135,6 +131,9 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
 
   if (!isOpen) return null;
 
+  // Get status from result or testcaseData prop
+  const testcaseStatus = result?.status || testcaseData?.status;
+
   return (
     <div className="ravt-overlay" onClick={handleClose}>
       <div className="ravt-container" onClick={(e) => e.stopPropagation()}>
@@ -152,7 +151,12 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
           style={{ zIndex: 2147483648 }}
         />
         <div className="ravt-header">
-          <h2 className="ravt-title">{testcaseName || 'View Testcase Results'}</h2>
+          <h2 className="ravt-title">
+            {testcaseStatus === 'Passed' && <span className="ravt-status-icon ravt-status-success">✓</span>}
+            {testcaseStatus === 'Failed' && <span className="ravt-status-icon ravt-status-failed">✗</span>}
+            {testcaseStatus === 'Running' && <span className="ravt-status-icon ravt-status-running">⟳</span>}
+            {testcaseName || 'View Testcase Results'}
+          </h2>
           <button className="ravt-close" onClick={handleClose} aria-label="Close">✕</button>
         </div>
 

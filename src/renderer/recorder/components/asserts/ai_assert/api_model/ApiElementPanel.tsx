@@ -361,7 +361,7 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
         toast.warn('Token not found');
       }
     } catch (e) {
-      console.error('Fetch token failed:', e);
+      // console.error('Fetch token failed:', e);
       toast.error('Fetch token failed');
     } finally {
       setIsFetchingToken(false);
@@ -421,7 +421,7 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
         toast.error(`Request failed! Status: ${response.status}${response.error ? ` - ${response.error}` : ''}`);
       }
     } catch (error) {
-      console.error('Request failed:', error);
+      // console.error('Request failed:', error);
       toast.error('Request failed: ' + (error as Error).message);
     }
   };

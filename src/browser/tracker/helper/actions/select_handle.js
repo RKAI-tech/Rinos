@@ -19,7 +19,9 @@ export function handleSelectChangeEvent(e) {
     return;
   }
   if (e && e.isTrusted === false) {
-    try { console.log('Skipping select change recording - event is not trusted'); } catch {}
+    try { 
+      // console.log('Skipping select change recording - event is not trusted');
+    } catch {}
     return;
   }
   const selectors = buildSelectors(el, { maxSelectors: 5, minScore: 100, validate: true });
