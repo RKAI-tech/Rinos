@@ -14,6 +14,7 @@ export const usePageSelection = () => {
   const [apiRequestSelectedPageInfo, setApiRequestSelectedPageInfo] = useState<PageInfo | null>(null);
   const [urlInputSelectedPageInfo, setUrlInputSelectedPageInfo] = useState<PageInfo | null>(null);
   const [titleInputSelectedPageInfo, setTitleInputSelectedPageInfo] = useState<PageInfo | null>(null);
+  const [aiAssertSelectedPageInfo, setAiAssertSelectedPageInfo] = useState<PageInfo | null>(null);
 
   return {
     waitSelectedPageInfo,
@@ -30,6 +31,8 @@ export const usePageSelection = () => {
     setUrlInputSelectedPageInfo,
     titleInputSelectedPageInfo,
     setTitleInputSelectedPageInfo,
+    aiAssertSelectedPageInfo,
+    setAiAssertSelectedPageInfo,
   };
 };
 

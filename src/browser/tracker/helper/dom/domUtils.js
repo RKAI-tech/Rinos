@@ -58,29 +58,51 @@ export function previewNode(node) {
  * Extract meaningful text from element
  * Trích xuất text có ý nghĩa từ element
  */
-export function extractElementText(element) {
-  if (!element) return '';
-  
-  // Try to get accessible name first (most meaningful)
-  const accessibleName = getAccessibleName(element);
-  if (accessibleName) {
-    return accessibleName.replace(/[\r\n]+/g, ' ').replace(/['"]/g, '');
+export function extractElementText(el) {
+  if (!el) return "";
+
+  // 1. Accessible name (ưu tiên cao nhất)
+  const name = getAccessibleName(el);
+  if (name?.trim()) {
+    return cleanText(name);
   }
-  
-  // Try to get text content
-  const textContent = element.textContent?.trim();
-  if (textContent && textContent.length > 1 && textContent.length < 100) {
-    return textContent.replace(/[\r\n]+/g, ' ').replace(/['"]/g, '');
+
+  // 2. aria-label
+  const ariaLabel = el.getAttribute("aria-label");
+  if (ariaLabel?.trim()) {
+    return cleanText(ariaLabel);
   }
-  
-  // Try to get inner text
-  const innerText = element.innerText?.trim();
-  if (innerText && innerText.length > 1 && innerText.length < 100) {
-    return innerText.replace(/[\r\n]+/g, ' ').replace(/['"]/g, '');
+
+  // 3. input / textarea value
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    if (el.value?.trim()) return cleanText(el.value);
+    if (el.placeholder?.trim()) return cleanText(el.placeholder);
   }
-  
-  return '';
+
+  // 4. img alt text
+  if (el instanceof HTMLImageElement) {
+    if (el.alt?.trim()) return cleanText(el.alt);
+  }
+
+  // 5. textContent (đã trim)
+  const textContent = el.textContent?.trim();
+  if (textContent) return cleanText(textContent);
+
+  // 6. title attribute (tooltip)
+  const title = el.getAttribute("title");
+  if (title?.trim()) return cleanText(title);
+
+  return "";
 }
+
+function cleanText(text) {
+  return text
+    .replace(/[\r\n]+/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/['"]/g, "")
+    .trim();
+}
+
 
 /**
  * Get accessible name following ARIA standards

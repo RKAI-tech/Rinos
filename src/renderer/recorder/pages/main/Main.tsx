@@ -118,6 +118,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setIsDirty: (dirty) => actionsHook.setIsDirty(dirty),
     setSelectedAssert: assertHook.setSelectedAssert,
     setIsAssertMode: assertHook.setIsAssertMode,
+    selectedPageInfo: pageSelection.aiAssertSelectedPageInfo,
   });
 
   const unsavedChanges = useUnsavedChanges({
@@ -201,6 +202,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     isActionTabApiRequestOpen: modals.isActionTabApiRequestOpen,
     isUrlInputOpen: modals.isUrlInputOpen,
     isTitleInputOpen: modals.isTitleInputOpen,
+    isAiAssertOpen: modals.isAiModalOpen,
     setWaitSelectedPageInfo: pageSelection.setWaitSelectedPageInfo,
     setNavigateSelectedPageInfo: pageSelection.setNavigateSelectedPageInfo,
     setBrowserActionSelectedPageInfo: pageSelection.setBrowserActionSelectedPageInfo,
@@ -208,6 +210,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setApiRequestSelectedPageInfo: pageSelection.setApiRequestSelectedPageInfo,
     setUrlInputSelectedPageInfo: pageSelection.setUrlInputSelectedPageInfo,
     setTitleInputSelectedPageInfo: pageSelection.setTitleInputSelectedPageInfo,
+    aiAssertSelectedPageInfo: pageSelection.aiAssertSelectedPageInfo,
+    setAiAssertSelectedPageInfo: pageSelection.setAiAssertSelectedPageInfo,
     setAiElements: aiAssertHook.setAiElements,
   });
 
@@ -660,6 +664,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           assertHook.setIsAssertMode(false);
           assertHook.setIsAssertDropdownOpen(false);
           assertHook.setAssertSearch('');
+          pageSelection.setAiAssertSelectedPageInfo(null);
           await (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
         }}
         onSubmit={aiAssertHook.handleAiSubmit}
@@ -667,6 +672,10 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         onAddDatabaseElement={aiAssertHook.handleAiAddDatabaseElement}
         onAddApiElement={aiAssertHook.handleAiAddApiElement}
         onBrowserElementClear={aiAssertHook.handleAiClearBrowserElement}
+        selectedPageInfo={pageSelection.aiAssertSelectedPageInfo}
+        onClearPage={() => {
+          pageSelection.setAiAssertSelectedPageInfo(null);
+        }}
       />
       <BasicAuthModal
         isOpen={modals.isBasicAuthOpen}

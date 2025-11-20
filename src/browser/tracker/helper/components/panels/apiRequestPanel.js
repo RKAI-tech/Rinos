@@ -8,7 +8,7 @@ import { closeAssertInputModal } from '../modals/assertInputModal.js';
 export function createApiRequestPanel(assertType, onConfirm) {
   const panel = document.createElement('div');
   panel.style.cssText = `
-    position: absolute; top: 44px; right: 10px; z-index: 100003; background: #fff; border: 1px solid rgba(0,0,0,0.1);
+    position: absolute; z-index: 100003; background: #fff; border: 1px solid rgba(0,0,0,0.1);
     box-shadow: 0 8px 24px rgba(0,0,0,0.15); border-radius: 8px; padding: 10px; min-width: 360px; display: none;
     max-height: 320px; overflow: auto;
   `;
@@ -193,10 +193,15 @@ export function createApiRequestPanel(assertType, onConfirm) {
   tokenValueOutput.tabIndex = -1;
   tokenValueOutput.style.cssText = 'width:100%;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;background:#f3f4f6;color:#6b7280;cursor:not-allowed;margin-top:6px;';
 
+  const tokenWarning = document.createElement('div');
+  tokenWarning.textContent = 'Token not found in storage';
+  tokenWarning.style.cssText = 'display:none;font-size:11px;color:#dc2626;margin-top:4px;';
+
   tokenStorageSection.appendChild(tokenStorageTypeWrap);
   tokenStorageSection.appendChild(tokenKeyWrap);
   tokenStorageSection.appendChild(tokenActions);
   tokenStorageSection.appendChild(tokenValueOutput);
+  tokenStorageSection.appendChild(tokenWarning);
   authSection.appendChild(tokenStorageSection);
 
   // Basic Auth Storage Section
@@ -269,10 +274,15 @@ export function createApiRequestPanel(assertType, onConfirm) {
   basicOutputs.appendChild(basicUsernameOutput);
   basicOutputs.appendChild(basicPasswordOutput);
 
+  const basicWarning = document.createElement('div');
+  basicWarning.textContent = 'Username or password not found in storage';
+  basicWarning.style.cssText = 'display:none;font-size:11px;color:#dc2626;margin-top:4px;';
+
   basicStorageSection.appendChild(basicStorageTypeWrap);
   basicStorageSection.appendChild(basicKeysWrap);
   basicStorageSection.appendChild(basicActions);
   basicStorageSection.appendChild(basicOutputs);
+  basicStorageSection.appendChild(basicWarning);
   authSection.appendChild(basicStorageSection);
 
   function syncTokenStorageVisibility() {
@@ -335,9 +345,18 @@ export function createApiRequestPanel(assertType, onConfirm) {
   authSelect.addEventListener('change', () => { updateTokenSendState(); updateBasicSendState(); });
   tokenStorageTypeSelect.addEventListener('change', updateTokenSendState);
   tokenKeyInput.addEventListener('input', updateTokenSendState);
-  basicStorageTypeSelect.addEventListener('change', updateBasicSendState);
-  basicUsernameKeyInput.addEventListener('input', updateBasicSendState);
-  basicPasswordKeyInput.addEventListener('input', updateBasicSendState);
+  basicStorageTypeSelect.addEventListener('change', () => {
+    updateBasicSendState();
+    basicWarning.style.display = 'none'; // Ẩn cảnh báo khi thay đổi storage type
+  });
+  basicUsernameKeyInput.addEventListener('input', () => {
+    updateBasicSendState();
+    basicWarning.style.display = 'none'; // Ẩn cảnh báo khi thay đổi username key
+  });
+  basicPasswordKeyInput.addEventListener('input', () => {
+    updateBasicSendState();
+    basicWarning.style.display = 'none'; // Ẩn cảnh báo khi thay đổi password key
+  });
 
   // Initialize states
   setTimeout(() => { updateTokenSendState(); updateBasicSendState(); syncTokenStorageVisibility(); }, 0);
@@ -366,6 +385,9 @@ export function createApiRequestPanel(assertType, onConfirm) {
     tokenValueOutput.value = val;
     if (val) {
       authTokenInput.value = val; // fill token input for immediate use
+      tokenWarning.style.display = 'none'; // Ẩn cảnh báo nếu lấy được giá trị
+    } else {
+      tokenWarning.style.display = 'block'; // Hiển thị cảnh báo nếu không lấy được giá trị
     }
   }
   tokenFetchBtn.addEventListener('click', (ev) => { ev.stopPropagation(); fetchTokenFromStorage(); });
@@ -387,6 +409,11 @@ export function createApiRequestPanel(assertType, onConfirm) {
   // Adjust token label based on type
   tokenStorageTypeSelect.addEventListener('change', () => {
     tokenKeyLabel.textContent = tokenStorageTypeSelect.value === 'cookie' ? 'Cookie Name' : 'Storage Key';
+    tokenWarning.style.display = 'none'; // Ẩn cảnh báo khi thay đổi storage type
+  });
+  // Ẩn cảnh báo khi người dùng thay đổi key
+  tokenKeyInput.addEventListener('input', () => {
+    tokenWarning.style.display = 'none';
   });
   // Also keep save state in sync with endpoint edits
   urlInput.addEventListener('input', updateSaveState);
@@ -422,6 +449,12 @@ export function createApiRequestPanel(assertType, onConfirm) {
     basicPasswordOutput.value = pVal;
     if (uVal) authUsernameInput.value = uVal;
     if (pVal) authPasswordInput.value = pVal;
+    // Hiển thị cảnh báo nếu không lấy được username hoặc password
+    if (!uVal || !pVal) {
+      basicWarning.style.display = 'block';
+    } else {
+      basicWarning.style.display = 'none';
+    }
   }
   basicFetchBtn.addEventListener('click', (ev) => { ev.stopPropagation(); fetchBasicAuthFromStorage(); });
   // Allow Enter to trigger basic auth fetch when enabled and valid
@@ -1222,33 +1255,149 @@ export function createApiRequestPanel(assertType, onConfirm) {
   function open() {
     panel.style.display = 'block';
     try {
-      const margin = 10;
+      // Tìm assert input modal container (parent của panel)
+      // Find assert input modal container (parent of panel)
+      const assertModal = panel.parentElement;
+      if (!assertModal || assertModal.id !== 'rikkei-assert-input-modal') {
+        // Fallback: sử dụng vị trí cố định nếu không tìm thấy modal
+        // Fallback: use fixed position if modal not found
+        panel.style.top = '44px';
+        panel.style.right = '10px';
+        panel.style.left = 'auto';
+        return;
+      }
+
+      const margin = 8;
+      const gap = 8; // Khoảng cách giữa panel và assert modal
       const vw = window.innerWidth || document.documentElement.clientWidth;
       const vh = window.innerHeight || document.documentElement.clientHeight;
-      const rect = panel.getBoundingClientRect();
-      let top = rect.top;
-      let left = rect.left;
 
-      // Ensure within right/bottom bounds
-      if (rect.right > vw - margin) {
-        left = Math.max(margin, vw - rect.width - margin);
-        panel.style.left = left + 'px';
-        panel.style.right = 'auto';
+      // Lấy vị trí của assert input modal (relative to viewport)
+      // Get position of assert input modal (relative to viewport)
+      const assertModalRect = assertModal.getBoundingClientRect();
+      const assertModalTop = assertModalRect.top;
+      const assertModalBottom = assertModalRect.bottom;
+      const assertModalLeft = assertModalRect.left;
+      const assertModalRight = assertModalRect.right;
+
+      // Đo kích thước panel sau khi hiển thị
+      // Measure panel size after displaying
+      const panelRect = panel.getBoundingClientRect();
+      const panelWidth = panelRect.width;
+      const panelHeight = panelRect.height;
+
+      // Tính toán không gian có sẵn ở mỗi hướng
+      // Calculate available space in each direction
+      const spaceBelow = vh - assertModalBottom - margin;
+      const spaceAbove = assertModalTop - margin;
+      const spaceRight = vw - assertModalRight - margin;
+      const spaceLeft = assertModalLeft - margin;
+
+      // Kiểm tra xem có đủ không gian ở mỗi hướng không
+      // Check if there's enough space in each direction
+      const canFitBelow = spaceBelow >= panelHeight;
+      const canFitAbove = spaceAbove >= panelHeight;
+      const canFitRight = spaceRight >= panelWidth;
+      const canFitLeft = spaceLeft >= panelWidth;
+
+      let finalTop, finalLeft;
+      let position = 'below'; // Mặc định: dưới
+
+      // Tính toán vị trí relative với container (assert modal)
+      // Calculate position relative to container (assert modal)
+      // Panel được append vào container, nên position absolute sẽ relative với container
+      // Panel is appended to container, so absolute position will be relative to container
+
+      // Ưu tiên: dưới > trên > phải > trái
+      // Priority: below > above > right > left
+      if (canFitBelow) {
+        // Đặt ở phía dưới, căn trái với assert modal (relative to container)
+        // Position below, align left with assert modal (relative to container)
+        finalTop = assertModalRect.height + gap;
+        finalLeft = 0;
+        position = 'below';
+      } else if (canFitAbove) {
+        // Đặt ở phía trên, căn trái với assert modal (relative to container)
+        // Position above, align left with assert modal (relative to container)
+        finalTop = -panelHeight - gap;
+        finalLeft = 0;
+        position = 'above';
+      } else if (canFitRight) {
+        // Đặt ở bên phải, căn trên với assert modal (relative to container)
+        // Position right, align top with assert modal (relative to container)
+        finalTop = 0;
+        finalLeft = assertModalRect.width + gap;
+        position = 'right';
+      } else if (canFitLeft) {
+        // Đặt ở bên trái, căn trên với assert modal (relative to container)
+        // Position left, align top with assert modal (relative to container)
+        finalTop = 0;
+        finalLeft = -panelWidth - gap;
+        position = 'left';
+      } else {
+        // Không đủ không gian ở bất kỳ hướng nào, đặt ở vị trí tốt nhất có thể
+        // Not enough space in any direction, place at best possible position
+        if (spaceBelow >= spaceAbove && spaceBelow >= spaceRight && spaceBelow >= spaceLeft) {
+          finalTop = assertModalRect.height + gap;
+          finalLeft = 0;
+          position = 'below';
+        } else if (spaceAbove >= spaceRight && spaceAbove >= spaceLeft) {
+          finalTop = -panelHeight - gap;
+          finalLeft = 0;
+          position = 'above';
+        } else if (spaceRight >= spaceLeft) {
+          finalTop = 0;
+          finalLeft = assertModalRect.width + gap;
+          position = 'right';
+        } else {
+          finalTop = 0;
+          finalLeft = -panelWidth - gap;
+          position = 'left';
+        }
       }
-      if (rect.left < margin) {
-        left = margin;
-        panel.style.left = left + 'px';
-        panel.style.right = 'auto';
+
+      // Điều chỉnh để đảm bảo panel luôn nằm trong viewport
+      // Adjust to ensure panel stays within viewport
+      // Tính toán vị trí cuối cùng của panel trong viewport
+      // Calculate final position of panel in viewport
+      const panelViewportTop = assertModalRect.top + finalTop;
+      const panelViewportLeft = assertModalRect.left + finalLeft;
+      const panelViewportBottom = panelViewportTop + panelHeight;
+      const panelViewportRight = panelViewportLeft + panelWidth;
+
+      if (position === 'below' || position === 'above') {
+        // Căn chỉnh ngang: điều chỉnh left nếu panel tràn ra ngoài viewport
+        // Horizontal alignment: adjust left if panel overflows viewport
+        if (panelViewportRight > vw - margin) {
+          finalLeft = vw - margin - assertModalRect.left - panelWidth;
+        }
+        if (panelViewportLeft < margin) {
+          finalLeft = margin - assertModalRect.left;
+        }
+      } else {
+        // Căn chỉnh dọc: điều chỉnh top nếu panel tràn ra ngoài viewport
+        // Vertical alignment: adjust top if panel overflows viewport
+        if (panelViewportBottom > vh - margin) {
+          finalTop = vh - margin - assertModalRect.top - panelHeight;
+        }
+        if (panelViewportTop < margin) {
+          finalTop = margin - assertModalRect.top;
+        }
       }
-      if (rect.bottom > vh - margin) {
-        top = Math.max(margin, vh - rect.height - margin);
-        panel.style.top = top + 'px';
-      }
-      if (rect.top < margin) {
-        top = margin;
-        panel.style.top = top + 'px';
-      }
-    } catch {}
+
+      // Áp dụng vị trí tính toán (relative to container)
+      // Apply calculated position (relative to container)
+      panel.style.position = 'absolute';
+      panel.style.top = `${finalTop}px`;
+      panel.style.left = `${finalLeft}px`;
+      panel.style.right = 'auto';
+    } catch (e) {
+      // Fallback: sử dụng vị trí cố định nếu có lỗi
+      // Fallback: use fixed position if error occurs
+      panel.style.top = '44px';
+      panel.style.right = '10px';
+      panel.style.left = 'auto';
+    }
   }
 
   function close() {

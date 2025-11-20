@@ -35,6 +35,8 @@ interface AiElementItem {
 
 interface ConnectionOption { id: string; label: string }
 
+import { SelectedPageInfo } from './api_model/ApiElementPanel';
+
 interface AiAssertModalProps {
   isOpen: boolean;
   testcaseId?: string | null;
@@ -50,6 +52,8 @@ interface AiAssertModalProps {
   onAddDatabaseElement: () => void;
   onAddApiElement: () => void;
   onBrowserElementClear: (elementId: string) => void;
+  selectedPageInfo?: SelectedPageInfo | null;
+  onClearPage?: () => void;
 }
 
 const AiAssertModal: React.FC<AiAssertModalProps> = ({
@@ -66,6 +70,8 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
   onAddDatabaseElement,
   onAddApiElement,
   onBrowserElementClear,
+  selectedPageInfo,
+  onClearPage,
 }) => {
   const [connections, setConnections] = useState<ConnectionOption[]>([]);
   const [connectionMap, setConnectionMap] = useState<Record<string, Connection>>({});
@@ -92,7 +98,12 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
         !el.query.trim() ||
         !el.queryResultData )
   );
-  const shouldBlockNewElement = hasIncompleteBrowserElement || hasIncompleteDatabaseElement;
+  const hasIncompleteApiElement = elements.some(
+    (el) =>
+      el.type === 'API' &&
+      (!el.apiResponse || !el.apiResponse.status || el.apiResponse.status === 0)
+  );
+  const shouldBlockNewElement = hasIncompleteBrowserElement || hasIncompleteDatabaseElement || hasIncompleteApiElement;
 
   useEffect(() => {
     if (!isAddMenuOpen) return;
@@ -148,10 +159,10 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                 <label className="aiam-sub">Element text</label>
                 <div className="aiam-mono">{getBrowserElementText(el)}</div>
               </div>
-              {typeof el.pageIndex === 'number' && (
+              {el.pageTitle && (
                 <div className="aiam-row" style={{ marginTop: 8 }}>
-                  <label className="aiam-sub">Page index</label>
-                  <div className="aiam-mono">{el.pageIndex}</div>
+                  <label className="aiam-sub">Page</label>
+                  <div className="aiam-mono">{el.pageTitle}</div>
                 </div>
               )}
             </div>
@@ -282,10 +293,39 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
     el.type === 'API' && (!el.apiResponse || !el.apiResponse.status || el.apiResponse.status === 0)
   );
 
+  // Validation: prompt and elements are required
+  const isValidPrompt = prompt && prompt.trim().length > 0;
+  const hasElements = elements && elements.length > 0;
+  // Kiểm tra tất cả elements đã đủ thông tin (không có incomplete element nào)
+  const allElementsComplete = !hasIncompleteBrowserElement && !hasIncompleteDatabaseElement && !hasIncompleteApiElement;
+  const canGenerate = isValidPrompt && hasElements && allElementsComplete;
+
   const handleGenerate = async () => {
-    // Prevent generate if there are unrun API elements
-    if (hasUnrunApiElements) {
-      toast.error('Please run API request before generate');
+    // Validate prompt
+    if (!isValidPrompt) {
+      toast.error('Prompt is required');
+      return;
+    }
+
+    // Validate elements
+    if (!hasElements) {
+      toast.error('Please add at least one element');
+      return;
+    }
+
+    // Validate all elements are complete
+    if (hasIncompleteBrowserElement) {
+      toast.error('Please capture the pending browser element before generating');
+      return;
+    }
+
+    if (hasIncompleteDatabaseElement) {
+      toast.error('Please complete the pending database element before generating');
+      return;
+    }
+
+    if (hasIncompleteApiElement) {
+      toast.error('Please run the pending API element before generating');
       return;
     }
 
@@ -383,12 +423,12 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
 
         <div className="aiam-body">
           <div className="aiam-field">
-            <label className="aiam-label">Prompt</label>
+            <label className="aiam-label">Prompt <span style={{ color: 'red' }}>*</span></label>
             <textarea className="aiam-input" rows={3} placeholder="Describe what to assert..." value={prompt} onChange={(e) => onChangePrompt(e.target.value)} />
           </div>
 
           <div className="aiam-elements-header">
-            <div className="aiam-elements-title">Elements</div>
+            <div className="aiam-elements-title">Elements <span style={{ color: 'red' }}>*</span></div>
             <div className="aiam-elements-actions" style={{ position: 'relative' }} ref={addMenuWrapRef}>
               <button
                 className="aiam-btn"
@@ -422,9 +462,14 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                         }
                         if (hasIncompleteDatabaseElement) {
                           toast.warn('Please complete the pending database element before adding new ones.');
-                        setIsAddMenuOpen(false);
-                        return;
-                      }
+                          setIsAddMenuOpen(false);
+                          return;
+                        }
+                        if (hasIncompleteApiElement) {
+                          toast.warn('Please run the pending API element before adding new ones.');
+                          setIsAddMenuOpen(false);
+                          return;
+                        }
                       setIsAddMenuOpen(false);
                       onAddBrowserElement();
                     }}
@@ -442,9 +487,14 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                         }
                         if (hasIncompleteDatabaseElement) {
                           toast.warn('Please complete the pending database element before adding new ones.');
-                        setIsAddMenuOpen(false);
-                        return;
-                      }
+                          setIsAddMenuOpen(false);
+                          return;
+                        }
+                        if (hasIncompleteApiElement) {
+                          toast.warn('Please run the pending API element before adding new ones.');
+                          setIsAddMenuOpen(false);
+                          return;
+                        }
                       setIsAddMenuOpen(false);
                       onAddDatabaseElement();
                     }}
@@ -462,9 +512,14 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                         }
                         if (hasIncompleteDatabaseElement) {
                           toast.warn('Please complete the pending database element before adding new ones.');
-                        setIsAddMenuOpen(false);
-                        return;
-                      }
+                          setIsAddMenuOpen(false);
+                          return;
+                        }
+                        if (hasIncompleteApiElement) {
+                          toast.warn('Please run the pending API element before adding new ones.');
+                          setIsAddMenuOpen(false);
+                          return;
+                        }
                       setIsAddMenuOpen(false);
                       onAddApiElement();
                     }}
@@ -625,6 +680,8 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                       onChange={(data) => onChangeElement(idx, (old) => ({ ...old, apiRequest: data }))}
                       onSendRequest={async (data, response) => await handleSendApiRequest(idx, data, response)}
                       isSending={isSendingApiIdx === idx}
+                      selectedPageInfo={selectedPageInfo}
+                      onClearPage={onClearPage}
                     />
                   ) : null
                 )}
@@ -640,22 +697,22 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
           <div className="aiam-right">
             <div 
               style={{ position: 'relative', display: 'inline-block' }}
-              onMouseEnter={() => hasUnrunApiElements && setShowTooltip(true)}
+              onMouseEnter={() => !canGenerate && setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
             >
               <button 
                 className="aiam-btn aiam-primary" 
-                disabled={isGenerating || hasUnrunApiElements} 
+                disabled={isGenerating || !canGenerate} 
                 onClick={handleGenerate}
                 style={{ 
                   position: 'relative',
-                  cursor: hasUnrunApiElements ? 'not-allowed' : 'pointer',
-                  opacity: hasUnrunApiElements ? 0.6 : 1
+                  cursor: canGenerate ? 'pointer' : 'not-allowed',
+                  opacity: canGenerate ? 1 : 0.6
                 }}
               >
                 {isGenerating ? 'Generating...' : 'Generate'}
               </button>
-              {hasUnrunApiElements && showTooltip && (
+              {!canGenerate && showTooltip && (
                 <div
                   style={{
                     position: 'absolute',
@@ -674,7 +731,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                     boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                   }}
                 >
-                  Run API request before generate
+                  {!isValidPrompt ? 'Prompt is required' : !hasElements ? 'Please add at least one element' : hasIncompleteBrowserElement ? 'Please capture the pending browser element' : hasIncompleteDatabaseElement ? 'Please complete the pending database element' : 'Please run the pending API element'}
                   <div
                     style={{
                       position: 'absolute',

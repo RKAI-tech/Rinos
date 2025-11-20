@@ -4,6 +4,7 @@ import { Action, ActionType, AssertType, ApiRequestData } from '../../../types/a
 import { Connection } from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
 import { receiveActionWithInsert } from '../../../utils/receive_action';
+import { PageInfo } from './usePageSelection';
 
 export interface AiElement {
   id: string;
@@ -32,6 +33,7 @@ interface UseAiAssertProps {
   setIsDirty: (dirty: boolean) => void;
   setSelectedAssert: (assert: string | null) => void;
   setIsAssertMode: (mode: boolean) => void;
+  selectedPageInfo?: PageInfo | null;
 }
 
 const createDefaultApiRequest = (): ApiRequestData => ({
@@ -52,6 +54,7 @@ export const useAiAssert = ({
   setIsDirty,
   setSelectedAssert,
   setIsAssertMode,
+  selectedPageInfo,
 }: UseAiAssertProps) => {
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
@@ -126,10 +129,14 @@ export const useAiAssert = ({
       selectors: item.el.selector?.map(s => ({ value: s })) || [],
     }));
 
-    const elementOrderIndexes = browserElements.map(item => item.originalIndex);
-    const elementPageIndexes = browserElements.map(item =>
-      typeof item.el.pageIndex === 'number' ? item.el.pageIndex : null
-    );
+    // element_index: số thứ tự chỉ trong browser elements (0, 1, 2...)
+    // page_index: page mà element được chọn (từ el.pageIndex)
+    const browserElementData = browserElements.map((item, browserIndex) => ({
+      element_index: browserIndex, // Index chỉ trong browser elements
+      page_index: typeof item.el.pageIndex === 'number' ? item.el.pageIndex : null,
+      page_url: item.el.pageUrl || null,
+      page_title: item.el.pageTitle || null,
+    }));
 
     const databaseElements = aiElements
       .filter(el => el.type === 'Database')
@@ -237,11 +244,13 @@ export const useAiAssert = ({
           function_name: functionName,
         }
       });
-      for (const element_order_index of elementOrderIndexes) {
+      for (const browserData of browserElementData) {
         actionDatas.push({
           value: {
-            element_index: element_order_index,
-            page_index: elementPageIndexes[element_order_index],
+            element_index: browserData.element_index,
+            page_index: browserData.page_index,
+            ...(browserData.page_url && { page_url: browserData.page_url }),
+            ...(browserData.page_title && { page_title: browserData.page_title }),
           }
         });
       }
@@ -256,9 +265,16 @@ export const useAiAssert = ({
         }
       }
       for (const apiRequest of apiRequestDataList) {
-        actionDatas.push({
+        const actionData: any = {
           api_request: apiRequest
-        });
+        };
+        // Thêm page_index vào action data nếu có selectedPageInfo và API có storage enabled
+        if (selectedPageInfo && apiRequest.auth?.storage_enabled === true) {
+          actionData.value = {
+            page_index: selectedPageInfo.page_index,
+          };
+        }
+        actionDatas.push(actionData);
       }
       var html_element_action = []
       for (const htmlElement of HTMLElements) {
@@ -301,7 +317,7 @@ export const useAiAssert = ({
     } finally {
       setIsGeneratingAi(false);
     }
-  }, [aiPrompt, aiElements, testcaseId, selectedInsertPosition, setSelectedInsertPosition, setDisplayInsertPosition, setActions, setIsDirty, setSelectedAssert, setIsAssertMode]);
+  }, [aiPrompt, aiElements, testcaseId, selectedInsertPosition, setSelectedInsertPosition, setDisplayInsertPosition, setActions, setIsDirty, setSelectedAssert, setIsAssertMode, selectedPageInfo]);
 
   const resetAiAssert = useCallback(() => {
     setAiPrompt('');

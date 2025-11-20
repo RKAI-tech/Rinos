@@ -16,7 +16,6 @@ import { toast } from 'react-toastify';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { ActionService } from '../../services/actions';
 import { Action } from '../../types/actions';
-import { actionToCode } from '../../../recorder/utils/action_to_code';
 import { canEdit } from '../../hooks/useProjectPermissions';
 import { Evidence } from '../../types/testcases';
 

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { Action } from '../../../types/actions';
 import { receiveActionWithInsert } from '../../../utils/receive_action';
@@ -25,6 +25,7 @@ interface UseActionListenerProps {
   isActionTabApiRequestOpen: boolean;
   isUrlInputOpen: boolean;
   isTitleInputOpen: boolean;
+  isAiAssertOpen: boolean;
   setWaitSelectedPageInfo: (info: PageInfo | null) => void;
   setNavigateSelectedPageInfo: (info: PageInfo | null) => void;
   setBrowserActionSelectedPageInfo: (info: PageInfo | null) => void;
@@ -32,6 +33,8 @@ interface UseActionListenerProps {
   setApiRequestSelectedPageInfo: (info: PageInfo | null) => void;
   setUrlInputSelectedPageInfo: (info: PageInfo | null) => void;
   setTitleInputSelectedPageInfo: (info: PageInfo | null) => void;
+  aiAssertSelectedPageInfo: PageInfo | null;
+  setAiAssertSelectedPageInfo: (info: PageInfo | null) => void;
   // AI Assert
   setAiElements: React.Dispatch<React.SetStateAction<AiElement[]>>;
 }
@@ -55,6 +58,7 @@ export const useActionListener = ({
   isActionTabApiRequestOpen,
   isUrlInputOpen,
   isTitleInputOpen,
+  isAiAssertOpen,
   setWaitSelectedPageInfo,
   setNavigateSelectedPageInfo,
   setBrowserActionSelectedPageInfo,
@@ -62,8 +66,13 @@ export const useActionListener = ({
   setApiRequestSelectedPageInfo,
   setUrlInputSelectedPageInfo,
   setTitleInputSelectedPageInfo,
+  aiAssertSelectedPageInfo,
+  setAiAssertSelectedPageInfo,
   setAiElements,
 }: UseActionListenerProps) => {
+  // Ref để tránh duplicate toast
+  const lastPageInfoUpdateRef = useRef<{ pageIndex: number | null; timestamp: number } | null>(null);
+  
   useEffect(() => {
     return (window as any).browserAPI?.browser?.onAction(async (action: any) => {
       console.log("NewActionReceived", action);
@@ -282,6 +291,11 @@ export const useActionListener = ({
           return;
         }
 
+        // Chỉ xử lý khi AI Assert modal đang mở
+        if (!isAiAssertOpen) {
+          return;
+        }
+
         setAiElements(prev => {
           const placeholderIdx = prev.findIndex(
             el =>
@@ -290,7 +304,45 @@ export const useActionListener = ({
               !(el.domHtml && el.domHtml.trim())
           );
           if (placeholderIdx === -1) {
-            toast.warn('Please add a browser element first.');
+            // Không có browser element placeholder, kiểm tra xem có API element nào cần page info không
+            // Kiểm tra dựa vào storage_enabled flag (khi user click enable storage)
+            const hasApiWithStorage = prev.some(
+              el => el.type === 'API' && 
+              el.apiRequest?.auth && 
+              el.apiRequest.auth.type !== 'none' &&
+              el.apiRequest.auth.storage_enabled === true
+            );
+            
+            // Chỉ cập nhật nếu chưa có page info
+            if (hasApiWithStorage && pageIndex !== null && !aiAssertSelectedPageInfo) {
+              // Kiểm tra xem có phải duplicate action không (cùng pageIndex trong vòng 500ms)
+              const now = Date.now();
+              const lastUpdate = lastPageInfoUpdateRef.current;
+              const isDuplicate = lastUpdate && 
+                lastUpdate.pageIndex === pageIndex && 
+                (now - lastUpdate.timestamp) < 500;
+              
+              if (!isDuplicate) {
+                // Có API element cần page info và chưa có page info, cập nhật page info (sử dụng setTimeout để tránh setState trong render)
+                lastPageInfoUpdateRef.current = { pageIndex, timestamp: now };
+                setTimeout(() => {
+                  const pageData: PageInfo = {
+                    page_index: pageIndex,
+                    page_url: pageUrl || '',
+                    page_title: pageTitle || '',
+                  };
+                  setAiAssertSelectedPageInfo(pageData);
+                  toast.success('Page selected for API elements');
+                }, 0);
+              }
+            } else if (!hasApiWithStorage) {
+              // Chỉ hiển thị warning nếu không có API element nào cần page info
+              setTimeout(() => {
+                toast.warn('Please add a browser element first.');
+              }, 0);
+            }else{
+              toast.warn('Please add a browser element first.');
+            }
             return prev;
           }
           const next = [...prev];
@@ -346,6 +398,7 @@ export const useActionListener = ({
     isActionTabApiRequestOpen,
     isUrlInputOpen,
     isTitleInputOpen,
+    isAiAssertOpen,
     setWaitSelectedPageInfo,
     setNavigateSelectedPageInfo,
     setBrowserActionSelectedPageInfo,
@@ -353,7 +406,8 @@ export const useActionListener = ({
     setApiRequestSelectedPageInfo,
     setUrlInputSelectedPageInfo,
     setTitleInputSelectedPageInfo,
-    setTitleInputSelectedPageInfo,
+    aiAssertSelectedPageInfo,
+    setAiAssertSelectedPageInfo,
     setActions,
     setSelectedInsertPosition,
     setIsDirty,

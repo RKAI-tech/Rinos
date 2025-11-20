@@ -106,7 +106,7 @@ export class BrowserManager extends EventEmitter {
             // Create context
             this.context = await this.browser.newContext({
                 viewport: null,
-                httpCredentials: basicAuthentication,
+                // httpCredentials: basicAuthentication,
             });
             this.isClosingContext = false;
                   
