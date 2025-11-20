@@ -11,6 +11,9 @@ export interface AiElement {
   selector?: string[];
   value?: string;
   domHtml?: string;
+  pageIndex?: number | null;
+  pageUrl?: string | null;
+  pageTitle?: string | null;
   connectionId?: string;
   connection?: Connection;
   query?: string;
@@ -31,6 +34,15 @@ interface UseAiAssertProps {
   setIsAssertMode: (mode: boolean) => void;
 }
 
+const createDefaultApiRequest = (): ApiRequestData => ({
+  method: 'get',
+  url: 'https://',
+  params: [],
+  headers: [],
+  auth: { type: 'none' },
+  body: { type: 'none', content: '', form_data: [] },
+});
+
 export const useAiAssert = ({
   testcaseId,
   selectedInsertPosition,
@@ -46,11 +58,46 @@ export const useAiAssert = ({
   const [aiElements, setAiElements] = useState<AiElement[]>([]);
   const actionService = new ActionService();
 
-  const handleAiAddElement = useCallback(() => {
+  const handleAiAddBrowserElement = useCallback(() => {
     setAiElements(prev => [
       ...prev,
-      { id: Math.random().toString(36), type: 'Database' as const, selector: [] }
+      {
+        id: Math.random().toString(36),
+        type: 'Browser' as const,
+        selector: [],
+        value: '',
+        domHtml: '',
+        pageIndex: null,
+      },
     ]);
+  }, []);
+
+  const handleAiAddDatabaseElement = useCallback(() => {
+    setAiElements(prev => [
+      ...prev,
+      { id: Math.random().toString(36), type: 'Database' as const, selector: [] },
+    ]);
+  }, []);
+
+  const handleAiAddApiElement = useCallback(() => {
+    setAiElements(prev => [
+      ...prev,
+      {
+        id: Math.random().toString(36),
+        type: 'API' as const,
+        apiRequest: createDefaultApiRequest(),
+      },
+    ]);
+  }, []);
+
+  const handleAiClearBrowserElement = useCallback((elementId: string) => {
+    setAiElements(prev =>
+      prev.map(el =>
+        el.id === elementId && el.type === 'Browser'
+          ? { ...el, selector: [], value: '', domHtml: '', pageIndex: null }
+          : el
+      )
+    );
   }, []);
 
   const handleAiSubmit = useCallback(async (): Promise<boolean> => {
@@ -70,12 +117,19 @@ export const useAiAssert = ({
       return false;
     }
     
-    const HTMLElements = aiElements
-      .filter(el => el.type === 'Browser')
-      .map(el => ({
-        domHtml: el.domHtml || '',
-        selectors: el.selector?.map(s => ({ value: s })) || [],
-      }));
+    const browserElements = aiElements
+      .map((el, originalIndex) => ({ el, originalIndex }))
+      .filter(item => item.el.type === 'Browser');
+
+    const HTMLElements = browserElements.map(item => ({
+      domHtml: item.el.domHtml || '',
+      selectors: item.el.selector?.map(s => ({ value: s })) || [],
+    }));
+
+    const elementOrderIndexes = browserElements.map(item => item.originalIndex);
+    const elementPageIndexes = browserElements.map(item =>
+      typeof item.el.pageIndex === 'number' ? item.el.pageIndex : null
+    );
 
     const databaseElements = aiElements
       .filter(el => el.type === 'Database')
@@ -183,6 +237,14 @@ export const useAiAssert = ({
           function_name: functionName,
         }
       });
+      for (const element_order_index of elementOrderIndexes) {
+        actionDatas.push({
+          value: {
+            element_index: element_order_index,
+            page_index: elementPageIndexes[element_order_index],
+          }
+        });
+      }
       for (const databaseElement of databaseElements) {
         if (databaseElement.connection?.connection_id && databaseElement.query) {
           actionDatas.push({
@@ -252,7 +314,10 @@ export const useAiAssert = ({
     setAiPrompt,
     aiElements,
     setAiElements,
-    handleAiAddElement,
+    handleAiAddBrowserElement,
+    handleAiAddDatabaseElement,
+    handleAiAddApiElement,
+    handleAiClearBrowserElement,
     handleAiSubmit,
     resetAiAssert,
   };

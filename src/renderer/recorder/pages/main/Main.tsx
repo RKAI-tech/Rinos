@@ -663,7 +663,10 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           await (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
         }}
         onSubmit={aiAssertHook.handleAiSubmit}
-        onAddElement={aiAssertHook.handleAiAddElement}
+        onAddBrowserElement={aiAssertHook.handleAiAddBrowserElement}
+        onAddDatabaseElement={aiAssertHook.handleAiAddDatabaseElement}
+        onAddApiElement={aiAssertHook.handleAiAddApiElement}
+        onBrowserElementClear={aiAssertHook.handleAiClearBrowserElement}
       />
       <BasicAuthModal
         isOpen={modals.isBasicAuthOpen}

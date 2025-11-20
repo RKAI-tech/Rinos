@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { Action } from '../../../types/actions';
 import { receiveActionWithInsert } from '../../../utils/receive_action';
 import { PageInfo } from './usePageSelection';
@@ -257,6 +258,57 @@ export const useActionListener = ({
         }
       }
       
+      // AI assert goes to modal only
+      if ((action?.action_type === 'assert') && (action?.assert_type === 'AI')) {
+        let pageIndex: number | null = null;
+        let pageUrl: string | null = null;
+        let pageTitle: string | null = null;
+        if (Array.isArray(action?.action_datas)) {
+          for (const ad of action.action_datas) {
+            if (ad?.value?.page_index !== undefined && ad?.value?.page_index !== null) {
+              pageIndex = Number(ad.value.page_index);
+              pageUrl = ad.value.page_url || null;
+              pageTitle = ad.value.page_title || null;
+              break;
+            }
+          }
+        }
+        const selectors = action.elements?.[0]?.selectors?.map((s: any) => s.value) || [];
+        const domHtml = action.action_datas?.[0]?.value?.htmlDOM || '';
+        const elementText = action.action_datas?.[0]?.value?.elementText || '';
+
+        if (!selectors.length && !domHtml) {
+          toast.warn('Failed to capture element. Please click again.');
+          return;
+        }
+
+        setAiElements(prev => {
+          const placeholderIdx = prev.findIndex(
+            el =>
+              el.type === 'Browser' &&
+              (!el.selector || el.selector.length === 0) &&
+              !(el.domHtml && el.domHtml.trim())
+          );
+          if (placeholderIdx === -1) {
+            toast.warn('Please add a browser element first.');
+            return prev;
+          }
+          const next = [...prev];
+          const target = next[placeholderIdx];
+          next[placeholderIdx] = {
+            ...target,
+            selector: selectors,
+            domHtml,
+            value: elementText,
+            pageIndex,
+            pageUrl: pageUrl || null,
+            pageTitle: pageTitle || null,
+          };
+          return next;
+        });
+        return;
+      }
+
       // Skip action if any modal is open
       if (isAnyModalOpen) {
         console.log('[useActionListener] Skipping action - modal is open');
@@ -266,20 +318,6 @@ export const useActionListener = ({
       // Reset execution effects when new action is recorded
       setExecutingActionIndex(null);
       setFailedActionIndex(null);
-
-      // AI assert goes to modal only
-      if ((action?.action_type === 'assert') && (action?.assert_type === 'AI')) {
-        console.log('[useActionListener] AI action:', action);
-        const newItem: AiElement = {
-          id: Math.random().toString(36),
-          domHtml: action.action_datas?.[0]?.value?.htmlDOM || '',
-          type: 'Browser' as const,
-          selector: action.elements?.[0]?.selectors?.map((s: any) => s.value) || [],
-          value: action.action_datas?.[0]?.value?.elementText || '',
-        };
-        setAiElements(prev => [...prev, newItem]);
-        return;
-      }
 
       if (isAssertMode && action.action_type !== 'assert') return;
 

@@ -64,6 +64,9 @@ const TitleInputModal: React.FC<TitleInputModalProps> = ({ isOpen, onClose, onCo
   useEffect(() => {
     if (selectedPageInfo) {
       toast.success('Page selected successfully');
+      if (selectedPageInfo.page_title && title === '' ) {
+        setTitle(selectedPageInfo.page_title);
+      }
     }
   }, [selectedPageInfo]);
 

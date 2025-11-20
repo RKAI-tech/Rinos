@@ -24,6 +24,9 @@ const URLInputModal: React.FC<URLInputModalProps> = ({ isOpen, onClose, onConfir
     if (selectedPageInfo) {
       console.log('[URLInputModal] Page info received:', selectedPageInfo);
       toast.success('Page selected successfully');
+      if (selectedPageInfo.page_url && url === '' ) {
+        setUrl(selectedPageInfo.page_url);
+      }
     }
   }, [selectedPageInfo]);
 

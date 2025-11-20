@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StatementService } from '../../../services/statements';
 import { apiRouter } from '../../../services/baseAPIRequest';
-import QueryResultTable from '../../ai_assert/QueryResultTable';
+import QueryResultTable from '../../asserts/ai_assert/QueryResultTable';
 import { Connection } from '../../../types/actions';
 
 const statementService = new StatementService();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
-import { executeApiRequest, validateApiRequest, ApiRequestOptions, formatResponseData, getStatusColorClass, getStatusDescription, convertApiRequestDataToOptions } from '../../../utils/api_request';
-import { ApiRequestData, ApiRequestTokenStorage, ApiRequestBasicAuthStorage, ApiRequestBody, ApiRequestMethod, ApiRequestAuth } from '../../../types/actions';
+import { executeApiRequest, validateApiRequest, ApiRequestOptions, formatResponseData, getStatusColorClass, getStatusDescription, convertApiRequestDataToOptions } from '../../../../utils/api_request';
+import { ApiRequestData, ApiRequestTokenStorage, ApiRequestBasicAuthStorage, ApiRequestBody, ApiRequestMethod, ApiRequestAuth } from '../../../../types/actions';
 import './ApiElementPanel.css';
 
 interface ApiElementPanelProps {
@@ -430,6 +430,7 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
 
   return (
     <div className="aiam-db-box" style={{ padding: '12px' }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 12 }}>API Element</div>
       {/* Method and URL */}
       <div className="aep-method-url">
         <select 
