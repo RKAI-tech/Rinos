@@ -495,9 +495,10 @@ export function validateAndImproveSelector(selectors, element, options = {}) {
         return { selector, isValid: false, elementCount: count, isUnique: false };
       } else {
         // Handle CSS selector
+        console.log("[Validate selector]", selector)
         const matches = doc.querySelectorAll(selector);
         const count = matches.length;
-        
+        console.log("[Matched]", matches)    
         // Only accept if exactly 1 element and it's our target element
         if (count === 1 && matches[0] === element) {
           return { selector, isValid: true, elementCount: count, isUnique: true };

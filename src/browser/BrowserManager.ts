@@ -106,10 +106,9 @@ export class BrowserManager extends EventEmitter {
             // Create context
             this.context = await this.browser.newContext({
                 viewport: null,
-                // httpCredentials: basicAuthentication,
+                httpCredentials: basicAuthentication,
             });
             this.isClosingContext = false;
-                  
             // Expose function một lần ở context level (cho tất cả pages)
             await this.context.exposeFunction('sendActionToMain', async (action: Action) => {
                 this.emit('action', action);

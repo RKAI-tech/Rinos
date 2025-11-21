@@ -182,6 +182,68 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     browserHook.isRunningScript,
   ]);
 
+  // Hàm generate code (tách riêng để có thể tái sử dụng)
+  // Function to generate code (extracted for reusability)
+  const generateCode = useCallback(async () => {
+    if (actionsHook.actions.length === 0) {
+      return;
+    }
+    
+    setBrowserIsGeneratingCode(true);
+    try {
+      const request: GenerationCodeRequest = { 
+        testcase_id: testcaseId || '', 
+        actions: actionsHook.actions as Action[],
+        basic_auth: basicAuthHook.basicAuth,
+      };
+      const response = await service.generateCode(request);
+      
+      if (response.success && response.data?.code) {
+        setCustomScript(response.data.code);
+      } else {
+        console.error('[Main] Server code generation failed:', response.error);
+        setCustomScript('// Failed to generate code from server. Please try again.');
+        toast.error(response.error || 'Failed to generate code from server');
+      }
+    } catch (error) {
+      // console.error('[Main] Error generating code:', error);
+      setCustomScript('// Error generating code. Please try again.');
+      toast.error('Error generating code from server');
+    } finally {
+      setBrowserIsGeneratingCode(false);
+    }
+  }, [actionsHook.actions, testcaseId, basicAuthHook.basicAuth]);
+
+  const handleTabSwitch = async () => {
+    const newTab = activeTab === 'actions' ? 'script' : 'actions';
+    
+    if (newTab === 'script' && actionsHook.actions.length > 0) {
+      await generateCode();
+    }
+    
+    setActiveTab(newTab);
+  };
+
+  // Tự động chuyển sang tab code sau khi test hoàn thành (dù pass hay fail)
+  // Auto switch to code tab after test completes (whether pass or fail)
+  const prevIsRunningScript = useRef(browserIsRunningScript);
+  useEffect(() => {
+    // Kiểm tra khi test chuyển từ đang chạy sang đã hoàn thành
+    // Check when test transitions from running to completed
+    if (prevIsRunningScript.current === true && browserIsRunningScript === false) {
+      // Test đã hoàn thành, generate code và chuyển sang tab code nếu có kết quả
+      // Test completed, generate code and switch to code tab if there's a result
+      if (browserRunResult && browserRunResult.trim() !== '') {
+        // Generate code trước khi chuyển tab
+        // Generate code before switching tab
+        generateCode().then(() => {
+          setActiveTab('script');
+        });
+      }
+    }
+    prevIsRunningScript.current = browserIsRunningScript;
+  }, [browserIsRunningScript, browserRunResult, generateCode]);
+
   // Action listener
   useActionListener({
     testcaseId,
@@ -244,38 +306,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     };
   }, [modals]);
 
-  const handleTabSwitch = async () => {
-    const newTab = activeTab === 'actions' ? 'script' : 'actions';
-    
-    if (newTab === 'script' && actionsHook.actions.length > 0) {
-      setBrowserIsGeneratingCode(true);
-      try {
-        const request: GenerationCodeRequest = { 
-          testcase_id: testcaseId || '', 
-          actions: actionsHook.actions as Action[],
-          basic_auth: basicAuthHook.basicAuth,
-        };
-        const response = await service.generateCode(request);
-        
-        if (response.success && response.data?.code) {
-          setCustomScript(response.data.code);
-        } else {
-          console.error('[Main] Server code generation failed:', response.error);
-          setCustomScript('// Failed to generate code from server. Please try again.');
-          toast.error(response.error || 'Failed to generate code from server');
-        }
-      } catch (error) {
-        // console.error('[Main] Error generating code:', error);
-        setCustomScript('// Error generating code. Please try again.');
-        toast.error('Error generating code from server');
-      } finally {
-        setBrowserIsGeneratingCode(false);
-      }
-    }
-    
-    setActiveTab(newTab);
-  };
-
   const reloadAll = async (): Promise<ActionOperationResult> => {
     const result = await actionsHook.reloadActions();
     await basicAuthHook.reloadBasicAuth();
@@ -305,6 +335,11 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
 
   const handleAddAction = () => {
     modals.setIsAddActionOpen(true);
+  };
+
+  const handleOpenBasicAuth = () => {
+    basicAuthHook.handleOpenBasicAuth();
+    modals.setIsBasicAuthOpen(true);
   };
 
   const handleDeleteAllActions = () => {
@@ -554,7 +589,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
             onDisplayPositionChange={actionsHook.setDisplayInsertPosition}
             executingActionIndex={browserExecutingActionIndex}
             failedActionIndex={browserFailedActionIndex}
-            onOpenBasicAuth={basicAuthHook.handleOpenBasicAuth}
+            onOpenBasicAuth={handleOpenBasicAuth}
             basicAuthStatus={basicAuthHook.basicAuthStatus}
             onBasicAuthStatusClear={basicAuthHook.handleBasicAuthStatusClear}
             projectId={projectId}

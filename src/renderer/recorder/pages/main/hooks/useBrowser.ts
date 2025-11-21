@@ -173,6 +173,9 @@ export const useBrowser = ({
   const handleRunScript = useCallback(async () => {
     if (isRunningScript) return;
     setIsRunningScript(true);
+    // Clear log cũ khi bắt đầu run test mới
+    // Clear old log when starting new test run
+    setRunResult('');
     try {
       const { ExecuteScriptsService } = await import('../../../services/executeScripts');
       const service = new ExecuteScriptsService();
