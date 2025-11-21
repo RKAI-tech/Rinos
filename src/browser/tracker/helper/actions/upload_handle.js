@@ -35,10 +35,10 @@ export async function handleUploadChangeEvent(e) {
   const selectors = buildSelectors(el);
   const fileList = await Promise.all(
     Array.from(el.files || []).map(async f => ({
-      name: f.name,
-      size: f.size,
+      file_name: f.name,
       type: f.type,
-      content: await readFileContent(f) // data: URL
+      file_path: undefined,
+      file_content: await readFileContent(f) // data: URL
     }))
   );
 
@@ -50,12 +50,13 @@ export async function handleUploadChangeEvent(e) {
     elements: [{
       selectors: selectors.map((selector) => ({ value: selector })),
     }],
-    action_datas: [{
-      value: {
-        value: value,
-        elementText: elementText,
-      },
-      files: fileList
-    }],
+    // action_datas: [{
+    //   value: {
+    //     value: value,
+    //     elementText: elementText,
+    //   },
+    //   files: fileList
+    // }],
+    action_datas: fileList.map(file => ({file_upload: file})),
   });
 }

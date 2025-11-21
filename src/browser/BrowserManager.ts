@@ -103,6 +103,7 @@ export class BrowserManager extends EventEmitter {
             // Create context
             this.context = await this.browser.newContext({
                 viewport: null,
+                // viewport: { width: 1920, height: 1080 },
                 httpCredentials: basicAuthentication,
             });
 
@@ -112,6 +113,8 @@ export class BrowserManager extends EventEmitter {
 
             // Inject script
             await this.injectingScript(path.join(__dirname, 'renderer', 'browser', 'tracker', 'trackingScript.js'));
+
+            console.log('injecting script success');
 
             // Track requests
             this.controller?.trackRequests(this.page);

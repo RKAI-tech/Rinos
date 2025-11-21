@@ -81,7 +81,7 @@ const ChangeLog: React.FC = () => {
     { id: 'databases', label: 'Databases', path: `/databases/${projectId}`, isActive: false },
     { id: 'queries', label: 'Queries', path: `/queries/${projectId}`, isActive: false },
     { id: 'variables', label: 'Variables', path: `/variables/${projectId}`, isActive: false },
-    { id: 'change-log', label: 'Change Log', path: `/change-log/${projectId}`, isActive: true },
+    { id: 'change-log', label: 'Activities', path: `/change-log/${projectId}`, isActive: true },
   ];
 
   const breadcrumbItems = [

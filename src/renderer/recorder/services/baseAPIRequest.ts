@@ -90,20 +90,20 @@ export class ApiRouter {
       if (error instanceof TypeError && error.message.includes('fetch')) {
         return {
           success: false,
-          error: `Network error: Unable to connect to ${this.baseUrl}. Please check if the backend server is running at ${this.baseUrl}.`
+          error: `Unable to connect to server. Please check your internet connection and try again.`
         };
       }
       
       if (error instanceof TypeError && error.message.includes('CORS')) {
         return {
           success: false,
-          error: `CORS error: The backend server at ${this.baseUrl} is not allowing requests from this application.`
+          error: `The server is not allowing requests. Please contact support.`
         };
       }
       
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : 'An unexpected error occurred. Please contact support.',
       };
     }
   }
