@@ -1,3 +1,10 @@
+export enum BrowserType {
+  chrome = "chrome",
+  firefox = "firefox",
+  edge = "edge",
+  safari = "safari",
+}
+
 export interface ProjectGetAllResponse {
     projects: Project[];
     number_project: number;
@@ -6,6 +13,7 @@ export interface ProjectGetAllResponse {
 export interface ProjectCreateRequest {
     name: string;
     description?: string;
+    browser_type?: BrowserType | string;
 }
 
 export interface ProjectDeleteRequest {
@@ -31,6 +39,7 @@ export interface Project {
     created_at: string;
     number_testcase: number;
     number_testsuite: number;
+    browser_type?: BrowserType | string;
     number_variable: number;
     number_database_connection: number;
     number_member: number;
@@ -43,6 +52,7 @@ export interface ProjectUpdateRequest {
     project_id: string;
     name?: string;
     description?: string;
+    browser_type?: BrowserType | string;
 }
 
 export interface UserPermissionToProject {

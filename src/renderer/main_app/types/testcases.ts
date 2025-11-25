@@ -1,5 +1,12 @@
 import { Action } from './actions';
 
+export enum BrowserType {
+  chrome = "chrome",
+  firefox = "firefox",
+  edge = "edge",
+  safari = "safari",
+}
+
 export interface BasicAuthentication {
     basic_authentication_id?: string;
     username: string;
@@ -10,6 +17,7 @@ export interface TestCaseCreateRequest {
     project_id: string;
     name: string;
     tag?: string;
+    browser_type?: BrowserType | string;
     actions?: Action[];
     basic_authentication?: BasicAuthentication;
 }
@@ -18,6 +26,7 @@ export interface TestCaseUpdateRequest {
     testcase_id?: string;
     name?: string;
     tag?: string;
+    browser_type?: BrowserType | string;
     basic_authentication?: BasicAuthentication;
     actions?: Action[];
 }
@@ -62,6 +71,7 @@ export interface TestCase {
     evidence?: Evidence;
     created_at: string;
     updated_at: string;
+    browser_type: BrowserType | string;
     basic_authentication?: BasicAuthentication | null;
 }
 

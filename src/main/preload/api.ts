@@ -48,15 +48,29 @@ const systemAPI = {
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
 };
 
+// Playwright API
+const playwrightAPI = {
+  checkBrowsers: (browserTypes: string[]) => ipcRenderer.invoke('playwright:check-browsers', browserTypes),
+  installBrowsers: (browsers: string[]) => ipcRenderer.invoke('playwright:install-browsers', browsers),
+  onInstallProgress: (callback: (progress: { browser: string; progress: number; status: string }) => void) => {
+    const handler = (_event: any, progress: { browser: string; progress: number; status: string }) => {
+      callback(progress);
+    };
+    ipcRenderer.on('playwright:install-progress', handler);
+    return () => ipcRenderer.removeListener('playwright:install-progress', handler);
+  },
+};
+
 // Expose APIs to renderer
 export function exposeAPIs() {
   contextBridge.exposeInMainWorld("electronAPI", {
     window: windowAPI,
     app: appAPI,
     system: systemAPI,
+    playwright: playwrightAPI,
   });
 
   // Legacy support (giữ lại để tương thích)
   contextBridge.exposeInMainWorld("appInfo", systemAPI);
-
+  contextBridge.exposeInMainWorld("playwrightAPI", playwrightAPI);
 }

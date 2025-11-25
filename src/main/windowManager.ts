@@ -156,7 +156,7 @@ export function createMainAppWindow() {
   return mainAppWindow;
 }
 
-export function createRecorderWindow(testcaseId?: string, projectId?: string, testcaseName?: string) {
+export function createRecorderWindow(testcaseId?: string, projectId?: string, testcaseName?: string, browserType?: string) {
   const recorderWindow = createWindow({ width: 500, height: 800 }, "recorder");
   childWindows.push(recorderWindow);
   if (testcaseId) {
@@ -182,7 +182,8 @@ export function createRecorderWindow(testcaseId?: string, projectId?: string, te
     setTimeout(() => {
       const currentUrl = recorderWindow.webContents.getURL();
       const separator = currentUrl.includes('?') ? '&' : '?';
-      const newUrl = `${currentUrl}${separator}testcaseId=${encodeURIComponent(testcaseId)}&projectId=${encodeURIComponent(projectId || '')}`;
+      const browserTypeParam = browserType ? `&browserType=${encodeURIComponent(browserType)}` : '';
+      const newUrl = `${currentUrl}${separator}testcaseId=${encodeURIComponent(testcaseId)}&projectId=${encodeURIComponent(projectId || '')}${browserTypeParam}`;
       recorderWindow.loadURL(newUrl);
     }, 1000);
   } else { }

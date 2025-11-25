@@ -3,7 +3,7 @@ import { Action, AssertType } from "../../browser/types";
 import { BrowserStorageType } from "../../browser/controller";
 
 const browserMethods = {
-    start: async (basicAuthentication: { username: string, password: string }) => ipcRenderer.invoke("browser:start", basicAuthentication),
+    start: async (basicAuthentication: { username: string, password: string }, browserType?: string) => ipcRenderer.invoke("browser:start", basicAuthentication, browserType),
     stop: async () => ipcRenderer.invoke("browser:stop"),
     executeActions: async (actions: Action[]) => ipcRenderer.invoke("browser:executeActions", actions),
     navigate: async (url: string, page_index?: number) => ipcRenderer.invoke("browser:navigate", url, page_index),

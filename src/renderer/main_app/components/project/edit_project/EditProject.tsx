@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Project } from '../../../types/projects';
+import { Project, BrowserType } from '../../../types/projects';
 import './EditProject.css';
 
 interface EditProjectProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (projectData: { id: string; name: string; description: string }) => void;
+  onSave: (projectData: { id: string; name: string; description: string; browser_type?: string }) => void;
   project: Project | null;
 }
 
 const EditProject: React.FC<EditProjectProps> = ({ isOpen, onClose, onSave, project }) => {
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
+  const [browserType, setBrowserType] = useState<string>('');
   const projectNameInputRef = useRef<HTMLInputElement>(null);
 
   // Populate form when project data is available
@@ -19,6 +20,7 @@ const EditProject: React.FC<EditProjectProps> = ({ isOpen, onClose, onSave, proj
     if (project) {
       setProjectName(project.name);
       setProjectDescription(project.description);
+      setBrowserType(project.browser_type || '');
     }
   }, [project]);
 
@@ -36,18 +38,21 @@ const EditProject: React.FC<EditProjectProps> = ({ isOpen, onClose, onSave, proj
     onSave({
       id: project.project_id,
       name: projectName.trim(),
-      description: projectDescription.trim()
+      description: projectDescription.trim(),
+      browser_type: browserType && browserType.trim() ? browserType.trim() : undefined
     });
 
     // Reset form
     setProjectName('');
     setProjectDescription('');
+    setBrowserType('');
     onClose();
-  }, [project, projectName, projectDescription, onSave, onClose]);
+  }, [project, projectName, projectDescription, browserType, onSave, onClose]);
 
   const handleClose = useCallback(() => {
     setProjectName('');
     setProjectDescription('');
+    setBrowserType('');
     onClose();
   }, [onClose]);
 
@@ -131,6 +136,25 @@ const EditProject: React.FC<EditProjectProps> = ({ isOpen, onClose, onSave, proj
               className="form-textarea"
               rows={4}
             />
+          </div>
+
+          {/* Browser Type */}
+          <div className="form-group">
+            <label htmlFor="browserType" className="form-label">
+              Browser Type
+            </label>
+            <select
+              id="browserType"
+              value={browserType}
+              onChange={(e) => setBrowserType(e.target.value)}
+              className="form-input"
+            >
+              <option value="">Select browser type (optional)</option>
+              <option value={BrowserType.chrome}>Chrome</option>  
+              <option value={BrowserType.edge}>Edge</option>
+              <option value={BrowserType.firefox}>Firefox</option>
+              <option value={BrowserType.safari}>Safari</option>
+            </select>
           </div>
 
           {/* Action Buttons */}

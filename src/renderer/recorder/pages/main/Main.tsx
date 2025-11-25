@@ -29,9 +29,10 @@ import { useActionListener } from './hooks/useActionListener';
 interface MainProps {
   projectId?: string | null;
   testcaseId?: string | null;
+  browserType?: string | null;
 }
 
-const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
+const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
   const [url, setUrl] = useState('');
   const [activeTab, setActiveTab] = useState<'actions' | 'script'>('actions');
   const [customScript, setCustomScript] = useState<string>('');
@@ -95,6 +96,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     actions: actionsHook.actions,
     testcaseId: testcaseId || null,
     basicAuth: basicAuthHook.basicAuth,
+    browserType: browserType || 'chrome',
     selectedInsertPosition: actionsHook.selectedInsertPosition,
     setSelectedInsertPosition: actionsHook.setSelectedInsertPosition,
     setDisplayInsertPosition: actionsHook.setDisplayInsertPosition,
@@ -282,6 +284,22 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       (window as any).browserAPI?.browser?.setProjectId?.(projectId);
     }
   }, [projectId]);
+
+  // Check browser compatibility on mount and show warning if needed
+  useEffect(() => {
+    if (browserType) {
+      const platform = (window as any).electronAPI?.system?.platform || 'unknown';
+      const normalizedBrowserType = (browserType || 'chrome').toLowerCase();
+      
+      // Safari (WebKit) is not well supported on Linux
+      if (normalizedBrowserType === 'safari' && platform === 'linux') {
+        toast.warning(
+          'Safari (WebKit) is not well supported on Linux. Some features may not work correctly. Consider using Chrome, Edge, Firefox instead.',
+          { autoClose: 8000}
+        );
+      }
+    }
+  }, [browserType]);
 
   // Auto-focus URL input when component mounts
   useEffect(() => {

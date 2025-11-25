@@ -9,6 +9,7 @@ interface UseBrowserProps {
   actions: Action[];
   testcaseId: string | null;
   basicAuth?: BasicAuthentication;
+  browserType?: string;
   selectedInsertPosition: number;
   setSelectedInsertPosition: (pos: number) => void;
   setDisplayInsertPosition: (pos: number) => void;
@@ -28,6 +29,7 @@ export const useBrowser = ({
   actions,
   testcaseId,
   basicAuth,
+  browserType = 'chrome',
   selectedInsertPosition,
   setSelectedInsertPosition,
   setDisplayInsertPosition,
@@ -66,6 +68,30 @@ export const useBrowser = ({
     setFailedActionIndex(failedActionIndexLocal);
   }, [failedActionIndexLocal, setFailedActionIndex]);
 
+  // Check browser compatibility with platform
+  const checkBrowserCompatibility = useCallback((browserType: string): { supported: boolean; warning?: string } => {
+    const platform = (window as any).electronAPI?.system?.platform || process.platform;
+    const normalizedBrowserType = (browserType || 'chrome').toLowerCase();
+    
+    // Safari (WebKit) is not well supported on Linux
+    if (normalizedBrowserType === 'safari' && platform === 'linux') {
+      return {
+        supported: false,
+        warning: 'Safari (WebKit) is not well supported on Linux. Some features may not work correctly. Consider using Chrome, Edge, Firefox instead.'
+      };
+    }
+    
+    // Firefox on some platforms might have issues
+    if (normalizedBrowserType === 'firefox' && platform === 'win32') {
+      return {
+        supported: true,
+        warning: 'Firefox may have limited support on Windows. If you encounter issues, try using Chrome or Edge instead.'
+      };
+    }
+    
+    return { supported: true };
+  }, []);
+
   const startBrowser = useCallback(async (url: string, executeUntilIndex?: number | null) => {
     if (isBrowserOpen) {
       return;
@@ -76,6 +102,17 @@ export const useBrowser = ({
       return;
     }
 
+    // Check browser compatibility
+    const compatibility = checkBrowserCompatibility(browserType);
+    if (!compatibility.supported) {
+      toast.error(compatibility.warning || 'This browser is not supported on your platform');
+      return;
+    }
+    
+    if (compatibility.warning) {
+      toast.warning(compatibility.warning, { autoClose: 5000 });
+    }
+
     try {
       setIsBrowserOpen(true);
       setIsPaused(true);
@@ -83,7 +120,7 @@ export const useBrowser = ({
         username: basicAuth?.username || '',
         password: basicAuth?.password || '',
       };
-      await (window as any).browserAPI?.browser?.start(basicAuthentication);
+      await (window as any).browserAPI?.browser?.start(basicAuthentication, browserType);
       
       if (actions.length > 0) {
         const limit = (typeof executeUntilIndex === 'number' && executeUntilIndex >= 0)
@@ -118,9 +155,22 @@ export const useBrowser = ({
       }
     } catch (error) {
       setIsBrowserOpen(false);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Check if error is related to browser compatibility
+      if (errorMessage.includes('Unknown option') || errorMessage.includes('Cannot parse arguments')) {
+        const compatibility = checkBrowserCompatibility(browserType);
+        if (!compatibility.supported) {
+          toast.error(compatibility.warning || 'This browser is not supported on your platform. Please use a different browser.');
+        } else {
+          toast.error(`Failed to start browser: ${errorMessage}. This browser may not be fully compatible with your platform.`);
+        }
+      } else {
+        toast.error(`Failed to start browser: ${errorMessage}`);
+      }
       throw error;
     }
-  }, [isBrowserOpen, actions.length, basicAuth, selectedInsertPosition, setSelectedInsertPosition, setDisplayInsertPosition, setActions, setIsDirty, testcaseId]);
+  }, [isBrowserOpen, actions.length, basicAuth, browserType, selectedInsertPosition, setSelectedInsertPosition, setDisplayInsertPosition, setActions, setIsDirty, testcaseId, checkBrowserCompatibility]);
 
   const pauseBrowser = useCallback(async () => {
     setIsPaused(!isPaused);

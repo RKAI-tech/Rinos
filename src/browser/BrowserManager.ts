@@ -1,5 +1,6 @@
 import EventEmitter from "events";
-import { Browser, chromium, Page, BrowserContext, Request } from "playwright";
+import { Browser, chromium, firefox, webkit, Page, BrowserContext, Request } from "playwright";
+import { BrowserType } from "./types";
 import path, * as pathenv from 'path';
 import { app } from "electron";
 import { Action, AssertType } from "./types";
@@ -82,7 +83,8 @@ export class BrowserManager extends EventEmitter {
     }
 
     async start(
-        basicAuthentication: { username: string, password: string }
+        basicAuthentication: { username: string, password: string },
+        browserType?: string
     ): Promise<void> {
         try {
             if (this.browser) {
@@ -90,19 +92,62 @@ export class BrowserManager extends EventEmitter {
                 return;
             }
 
-            // Launch browser
-            const { chromium } = await import('playwright');
-            this.browser = await chromium.launch({
+            // Map browser type to Playwright browser launcher
+            // Default to chrome if not specified or invalid
+            const normalizedBrowserType = (browserType || 'chrome').toLowerCase();
+            let browserLauncher: typeof chromium | typeof firefox | typeof webkit;
+            let launchOptions: any = {
                 headless: false,
-                args: [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-gpu-sandbox',
-                    '--disable-gpu',
-                    '--disable-dev-shm-usage',
-                    '--no-zygote'
-                ],
-            });
+            };
+
+            switch (normalizedBrowserType) {
+                case BrowserType.firefox:
+                case 'firefox':
+                    browserLauncher = firefox;
+                    // Firefox has different launch options
+                    launchOptions.args = [
+                        '--no-sandbox',
+                    ];
+                    break;
+                case BrowserType.safari:
+                case 'safari':
+                    browserLauncher = webkit;
+                    // WebKit doesn't support Chromium-specific args like --no-sandbox
+                    // Use minimal options for WebKit
+                    launchOptions.args = [];
+                    break;
+                case BrowserType.edge:
+                case 'edge':
+                    browserLauncher = chromium;
+                    launchOptions.channel = 'msedge';
+                    launchOptions.args = [
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-gpu-sandbox',
+                        '--disable-gpu',
+                        '--disable-dev-shm-usage',
+                        '--no-zygote'
+                    ];
+                    break;
+                   
+                case BrowserType.chrome:
+                case 'chrome':
+                default:
+                    browserLauncher = chromium;
+                    // chromium is default, no channel needed
+                    launchOptions.args = [
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-gpu-sandbox',
+                        '--disable-gpu',
+                        '--disable-dev-shm-usage',
+                        '--no-zygote'
+                    ];
+                    break;
+            }
+
+            // Launch browser
+            this.browser = await browserLauncher.launch(launchOptions);
             // Create context
             this.context = await this.browser.newContext({
                 viewport: null,

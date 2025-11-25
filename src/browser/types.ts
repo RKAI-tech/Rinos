@@ -1,5 +1,12 @@
 import { BrowserStorageResponse } from "../renderer/main_app/types/browser_storage";
 
+export enum BrowserType {
+  chrome = "chrome",
+  firefox = "firefox",
+  edge = "edge",
+  safari = "safari",
+}
+
 export enum ActionType {
   input = "input",
   click = "click",

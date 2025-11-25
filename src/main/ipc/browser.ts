@@ -68,11 +68,11 @@ function getOrCreateManagerForWindow(win: BrowserWindow): BrowserManager {
 }
 
 export function registerBrowserIpc() {
-    ipcMain.handle("browser:start", async (event, basicAuthentication: { username: string, password: string }) => {
+    ipcMain.handle("browser:start", async (event, basicAuthentication: { username: string, password: string }, browserType?: string) => {
         const win = getWindowFromEvent(event);
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
-        await manager.start(basicAuthentication);
+        await manager.start(basicAuthentication, browserType);
     });
 
     ipcMain.handle("browser:stop", async (event) => {

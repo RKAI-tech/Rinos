@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './CreateTestcase.css';
+import { BrowserType } from '../../../types/testcases';
 
 interface CreateTestcaseProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (testcaseData: { projectId: string; name: string; tag: string }) => void;
+  onSave: (testcaseData: { projectId: string; name: string; tag: string; browser_type?: string }) => void;
   projectId?: string;
 }
 
 const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave, projectId = '' }) => {
   const [testcaseName, setTestcaseName] = useState('');
   const [testcaseTag, setTestcaseTag] = useState('');
+  const [browserType, setBrowserType] = useState<string>('');
   const testcaseNameInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -24,17 +26,20 @@ const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave
     onSave({
       projectId,
       name: testcaseName.trim(),
-      tag: testcaseTag.trim()
+      tag: testcaseTag.trim(),
+      browser_type: browserType || undefined
     });
 
     setTestcaseName('');
     setTestcaseTag('');
+    setBrowserType('');
     onClose();
   };
 
   const handleClose = () => {
     setTestcaseName('');
     setTestcaseTag('');
+    setBrowserType('');
     onClose();
   };
 
@@ -130,7 +135,31 @@ const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave
             />
           </div>
 
-        
+          {/* Browser Type */}
+          <div className="testcase-form-group">
+            <label htmlFor="browserType" className="testcase-form-label">
+              Browser Type
+              <div className="tooltip-container">
+                <span className="tooltip-icon">?</span>
+                <div className="tooltip-content">
+                  Select the browser type for this testcase (e.g., chromium, firefox, webkit).
+                </div>
+              </div>
+            </label>
+            <select
+              id="browserType"
+              value={browserType}
+              onChange={(e) => setBrowserType(e.target.value)}
+              className="testcase-form-input"
+              defaultValue={BrowserType.chrome}
+            >
+              <option value="">Select browser type (optional)</option>
+              <option value={BrowserType.chrome}>Chrome</option>  
+              <option value={BrowserType.edge}>Edge</option>
+              <option value={BrowserType.firefox}>Firefox</option>
+              <option value={BrowserType.safari}>Safari</option>
+            </select>
+          </div>
 
           {/* Action Buttons */}
           <div className="testcase-modal-actions">
