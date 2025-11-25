@@ -1,3 +1,5 @@
+import { StatementResponse } from './statements';
+
 // Variables
 export interface Variable {
     variable_id: string;
@@ -22,4 +24,17 @@ export interface VariableCreateRequest {
     user_defined_name: string;
     original_name: string;
     value: string;
+}
+
+export interface VariableWithConnection {
+    variable_id: string;
+    user_defined_name: string;
+    original_name: string;
+    value: string;
+    statement: StatementResponse;
+}
+
+export interface VariableWithConnectionListResponse {
+    items: VariableWithConnection[];
+    total: number;
 }

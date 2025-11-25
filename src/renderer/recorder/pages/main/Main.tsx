@@ -580,6 +580,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setIsGeneratingAi(true);
     try {
       const response = await actionService.generateAiAssert(request);
+      console.log('[Main] AI assert response:', response);
 
       if (!response.success) {
         const errorMessage =
@@ -689,10 +690,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     // Create action with the URL value
     setActions(prev => {
       const next = receiveAction(testcaseId || '', prev, {
-        type: ActionType.assert,
-        assertType: AssertType.pageHasAURL,
-        value: url,
-        playwright_code: `await expect(page).toHaveURL('${url}');`,
+        action_type: ActionType.assert,
+        assert_type: AssertType.pageHasAURL,
+        action_datas: [{ value: { value: url } }],
         description: `Verify the page has URL ${url}`,
       });
       setIsDirty(true);
@@ -710,10 +710,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     // Create action with the title value
     setActions(prev => {
       const next = receiveAction(testcaseId || '', prev, {
-        type: ActionType.assert,
-        assertType: AssertType.pageHasATitle,
-        value: title,
-        playwright_code: `await expect(page).toHaveTitle('${title}');`,
+        action_type: ActionType.assert,
+        assert_type: AssertType.pageHasATitle,
+        action_datas: [{ value: { value: title } }],
         description: `Verify the page has title ${title}`,
       });
       setIsDirty(true);
@@ -755,6 +754,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           actions: actions as Action[],
           basic_auth: basicAuth,
         };
+        // request.actions.map(action => {
+        //   console.log('action', action);
+        // })
         const response = await service.generateCode(request);
         
         if (response.success && response.data?.code) {

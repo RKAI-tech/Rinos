@@ -346,10 +346,10 @@ export class BrowserManager extends EventEmitter {
                 return { success: false, error: 'No project context' };
               }
             //   console.log('[BrowserManager] Loading variables for project:', projectId);
-              const resp = await variableService.getVariablesByProject(projectId);
+              const resp = await variableService.getVariablesWithConnection(projectId);
             //   console.log('[BrowserManager] Variables API response:', resp);
               resp.data?.items.forEach((v: any) => {
-                // console.log('Variable object:', v);
+                console.log('Variable object:', v);
               })
               return resp;
             } catch (e) {
