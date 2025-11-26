@@ -133,6 +133,34 @@
 .cookies-btn-secondary:hover { background: #f8fafc; }
 .cookies-btn-primary { padding: 10px 16px; background: #5549f5; border: 1px solid #5549f5; border-radius: 8px; font-weight: 700; color: #fff; cursor: pointer; box-shadow: 0 4px 12px rgba(85,73,245,0.3); }
 .cookies-btn-primary:hover { background: #4338ca; border-color: #4338ca; }
+.cookies-btn-primary:disabled {
+  background: #dbe3ff;
+  border-color: #dbe3ff;
+  color: rgba(15, 23, 42, 0.45);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.cookies-btn-primary:disabled:hover {
+  background: #dbe3ff;
+  border-color: #dbe3ff;
+}
+.cookies-textarea-error {
+  font-size: 11px;
+  color: #dc2626;
+  margin-top: -4px;
+  margin-bottom: 8px;
+}
+.cookies-btn-primary:disabled {
+  background: #dbe3ff;
+  border-color: #dbe3ff;
+  color: rgba(15, 23, 42, 0.45);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.cookies-btn-primary:disabled:hover {
+  background: #dbe3ff;
+  border-color: #dbe3ff;
+}
 
 /* Danger button and warning text */
 .cookies-btn-danger { padding: 10px 16px; background: #dc2626; border: 1px solid #dc2626; border-radius: 8px; font-weight: 700; color: #fff; cursor: pointer; box-shadow: 0 4px 12px rgba(220,38,38,0.25); }

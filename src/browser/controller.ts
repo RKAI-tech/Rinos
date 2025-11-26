@@ -365,14 +365,16 @@ export class Controller {
                         const activePage = await this.getPage(pageIndex);
                         activePage.bringToFront();
                         // console.log('[Controller] Action:', action);
-                        if (action.action_datas?.[0]?.browser_storage) {
-                            const browser_storage = action.action_datas?.[0]?.browser_storage;
-                            if (browser_storage.storage_type === BrowserStorageType.COOKIE) {
-                                await this.addCookies(context, activePage, JSON.stringify(browser_storage.value));
-                            } else if (browser_storage.storage_type === BrowserStorageType.LOCAL_STORAGE) {
-                                await this.addLocalStorage(activePage, JSON.stringify(browser_storage.value));
-                            } else if (browser_storage.storage_type === BrowserStorageType.SESSION_STORAGE) {
-                                await this.addSessionStorage(activePage, JSON.stringify(browser_storage.value));
+                        for (const action_data of action.action_datas || []) {
+                            if (action_data.browser_storage) {
+                                const browser_storage = action_data.browser_storage;
+                                if (browser_storage.storage_type === BrowserStorageType.COOKIE) {
+                                    await this.addCookies(context, activePage, JSON.stringify(browser_storage.value));
+                                } else if (browser_storage.storage_type === BrowserStorageType.LOCAL_STORAGE) {
+                                    await this.addLocalStorage(activePage, JSON.stringify(browser_storage.value));
+                                } else if (browser_storage.storage_type === BrowserStorageType.SESSION_STORAGE) {
+                                    await this.addSessionStorage(activePage, JSON.stringify(browser_storage.value));
+                                }
                             }
                         }
                         break;
