@@ -40,7 +40,6 @@ const Testcases: React.FC = () => {
   
   const projectData = { projectId, projectName: (location.state as { projectName?: string } | null)?.projectName };
   const [resolvedProjectName, setResolvedProjectName] = useState<string>(projectData.projectName || 'Project');
-  const [projectBrowserType, setProjectBrowserType] = useState<string | undefined>(undefined);
   // console.log('projectData', projectData);
   // Data from API
   const [testcases, setTestcases] = useState<Testcase[]>([]);
@@ -171,7 +170,7 @@ const Testcases: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectData?.projectId]);
 
-  // Load project name and browser_type from API
+  // Load project name from API
   useEffect(() => {
     const loadProjectData = async () => {
       if (!projectId) return;
@@ -180,7 +179,6 @@ const Testcases: React.FC = () => {
       if (resp.success && resp.data) {
         const project = resp.data as any;
         setResolvedProjectName(project.name || projectData.projectName || 'Project');
-        setProjectBrowserType(project.browser_type || undefined);
       } else if (projectData.projectName) {
         setResolvedProjectName(projectData.projectName);
       }
@@ -530,8 +528,9 @@ const Testcases: React.FC = () => {
     const normalized = browserType.toLowerCase();
     switch (normalized) {
       case 'chrome':
-      case 'edge':
         return 'chromium';
+      case 'edge':
+        return 'msedge'; // Edge uses custom installation
       case 'firefox':
         return 'firefox';
       case 'safari':
@@ -539,6 +538,33 @@ const Testcases: React.FC = () => {
       default:
         return 'chromium';
     }
+  };
+
+  // Check if browser type is supported on current platform
+  const isBrowserSupported = (browserType: string): boolean => {
+    type SupportedPlatform = 'win32' | 'darwin' | 'linux';
+    
+    const browserSupportMap: Record<string, SupportedPlatform[]> = {
+      chrome: ['win32', 'darwin', 'linux'],
+      edge: ['win32', 'darwin', 'linux'],
+      firefox: ['win32', 'darwin', 'linux'],
+      safari: ['darwin'], // Safari only on macOS
+    };
+    
+    const systemPlatformRaw = (window as any).electronAPI?.system?.platform || process?.platform || 'linux';
+    const normalizedPlatform: SupportedPlatform = ['win32', 'darwin', 'linux'].includes(systemPlatformRaw)
+      ? (systemPlatformRaw as SupportedPlatform)
+      : 'linux';
+    
+    const normalizedBrowserType = browserType.toLowerCase();
+    const supportedPlatforms = browserSupportMap[normalizedBrowserType];
+    
+    if (!supportedPlatforms) {
+      // Unknown browser type, assume not supported
+      return false;
+    }
+    
+    return supportedPlatforms.includes(normalizedPlatform);
   };
 
   // Check if browser is installed
@@ -571,7 +597,7 @@ const Testcases: React.FC = () => {
       
       const testcase = testcases.find(tc => tc.testcase_id === id);
       const testcaseName = testcase?.name || id;
-      const browserType = testcase?.browser_type || projectBrowserType || BrowserType.chrome;
+      const browserType = testcase?.browser_type || BrowserType.chrome;
       
       const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectData?.projectId, testcaseName, browserType);
       if (result?.alreadyOpen) {
@@ -587,7 +613,16 @@ const Testcases: React.FC = () => {
   const handleOpenRecorder = async (id: string) => {
     try {
       const testcase = testcases.find(tc => tc.testcase_id === id);
-      const browserType = testcase?.browser_type || projectBrowserType || BrowserType.chrome;
+      const browserType = testcase?.browser_type || BrowserType.chrome;
+      
+      // First check if browser type is supported on current platform
+      if (!isBrowserSupported(browserType)) {
+        const browserName = browserType.charAt(0).toUpperCase() + browserType.slice(1);
+        const systemPlatformRaw = (window as any).electronAPI?.system?.platform || process?.platform || 'linux';
+        const platformName = systemPlatformRaw === 'win32' ? 'Windows' : systemPlatformRaw === 'darwin' ? 'macOS' : 'Linux';
+        toast.error(`${browserName} is not supported on ${platformName}. Please use a different browser type.`);
+        return;
+      }
       
       // Check if browser is installed
       const isInstalled = await checkBrowserInstalled(browserType);
@@ -1052,7 +1087,7 @@ const Testcases: React.FC = () => {
         onInstall={handleInstallBrowsers}
         defaultBrowserType={
           pendingRecorderTestcaseId
-            ? (testcases.find(tc => tc.testcase_id === pendingRecorderTestcaseId)?.browser_type || projectBrowserType || BrowserType.chrome)
+            ? (testcases.find(tc => tc.testcase_id === pendingRecorderTestcaseId)?.browser_type || BrowserType.chrome)
             : null
         }
         isInstalling={isInstallingBrowsers}

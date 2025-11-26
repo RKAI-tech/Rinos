@@ -1,0 +1,683 @@
+/* Overlay */
+.browser-manager-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 20px;
+}
+
+/* Container */
+.browser-manager-modal-container {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 860px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+  overflow: hidden;
+  animation: browser-manager-pop 0.2s ease;
+  position: relative;
+}
+
+@keyframes browser-manager-pop {
+  from {
+    transform: scale(0.97);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.browser-manager-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 28px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 12px;
+}
+
+.browser-manager-modal-header h2 {
+  margin: 0;
+  font-size: 22px;
+  color: #0f172a;
+}
+
+.browser-manager-modal-header p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.browser-manager-close-btn {
+  border: none;
+  background: #f1f5f9;
+  color: #475569;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.browser-manager-close-btn:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.browser-manager-close-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.browser-manager-tabs {
+  display: flex;
+  padding: 0 28px;
+  gap: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.browser-manager-tab {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 600;
+  color: #94a3b8;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.browser-manager-tab.active {
+  color: #1d4ed8;
+  border-bottom-color: #1d4ed8;
+}
+
+.browser-manager-tab:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.browser-manager-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.browser-manager-error {
+  margin: 12px 28px 0;
+  padding: 10px 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.browser-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.browser-card,
+.browser-installed-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  display: flex;
+  gap: 16px;
+}
+
+.browser-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.browser-card-actions {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.browser-card-actions .browser-action-btn {
+  align-self: initial;
+  width: auto;
+}
+
+.browser-card-content .browser-action-btn {
+  width: max-content;
+  align-self: flex-end;
+  min-width: 120px;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.browser-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0px;
+}
+
+.browser-card h3,
+.browser-installed-content h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #0f172a;
+}
+
+.browser-card p,
+.browser-installed-note {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0px 0 12px;
+  line-height: 1.5;
+}
+
+.browser-status.badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-neutral {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.badge-success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badge-system {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.browser-action-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.browser-action-btn.primary {
+  background: #2563eb;
+  color: #fff;
+}
+
+.browser-action-btn.primary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.browser-action-btn.ghost {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.browser-action-btn.ghost:hover:not(:disabled) {
+  background: #e0e7ff;
+}
+
+.browser-action-btn.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.browser-action-btn.danger:hover:not(:disabled) {
+  background: #fecaca;
+}
+
+.browser-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.browser-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.browser-icon.small {
+  width: 40px;
+  height: 40px;
+}
+
+.browser-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.browser-installed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.browser-installed-content {
+  flex: 1;
+}
+
+.browser-installed-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.browser-installed-path {
+  font-size: 12px;
+  color: #94a3b8;
+  word-break: break-all;
+  text-align: right;
+}
+
+.browser-installed-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.browser-empty-state {
+  padding: 24px;
+  border: 1px dashed #cbd5f5;
+  background: #f8fafc;
+  border-radius: 12px;
+  text-align: center;
+  color: #475569;
+}
+
+.browser-activity-log {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.browser-log-item {
+  border-radius: 10px;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.browser-log-item.info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.browser-log-item.success {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.browser-log-item.error {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.browser-log-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.browser-log-browser {
+  font-weight: 600;
+}
+
+.browser-manager-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 28px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.browser-manager-close-bottom-btn {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #1f2937;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.browser-manager-close-bottom-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.browser-manager-close-bottom-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.browser-download-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1300;
+  padding: 24px;
+}
+
+.browser-download-dialog {
+  width: 320px;
+  background: #0f172a;
+  border-radius: 18px;
+  padding: 20px 24px;
+  color: #f8fafc;
+  box-shadow: 0 25px 35px rgba(15, 23, 42, 0.45);
+  position: relative;
+}
+
+.browser-download-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #e2e8f0;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.browser-download-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #f8fafc;
+}
+
+.browser-download-spinner-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.browser-download-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #38bdf8;
+  border-radius: 50%;
+  animation: browser-download-spin 1s linear infinite;
+}
+
+@keyframes browser-download-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.browser-download-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.browser-download-progress-browser {
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  color: #93c5fd;
+}
+
+.browser-download-progress-percent {
+  font-size: 14px;
+  font-weight: 600;
+  color: #38bdf8;
+}
+
+.browser-download-progress-bar-container {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.browser-download-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #6366f1);
+  transition: width 0.2s ease;
+}
+
+.browser-download-progress-status {
+  font-size: 14px;
+  color: #e2e8f0;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.browser-download-warning-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(252, 211, 77, 0.15);
+  border: 1px solid rgba(252, 211, 77, 0.3);
+  border-radius: 8px;
+  color: #fcd34d;
+  font-size: 12px;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.browser-download-warning-message svg {
+  flex-shrink: 0;
+  color: #fcd34d;
+}
+
+@media (max-width: 640px) {
+  .browser-download-dialog {
+    width: 100%;
+  }
+}
+
+.browser-confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 20px;
+}
+
+.browser-confirm-modal-container {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  max-width: 420px;
+}
+
+.browser-confirm-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 24px 0;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.browser-confirm-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+}
+
+.browser-confirm-close-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #64748b;
+  transition: background 0.2s ease, color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.browser-confirm-close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.browser-confirm-modal-content {
+  padding: 0 24px 24px;
+}
+
+.browser-confirm-modal-message {
+  font-size: 14px;
+  color: #1f2937;
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+.browser-confirm-modal-subtext {
+  font-size: 13px;
+  color: #475569;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.browser-confirm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0 24px 24px;
+}
+
+.browser-confirm-btn-cancel,
+.browser-confirm-btn-primary,
+.browser-confirm-btn-danger {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  min-width: 90px;
+}
+
+.browser-confirm-btn-cancel {
+  background: #fff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.browser-confirm-btn-cancel:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.browser-confirm-btn-primary {
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+.browser-confirm-btn-primary:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+}
+
+.browser-confirm-btn-danger {
+  background: #dc2626;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.browser-confirm-btn-danger:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.4);
+}
+
+@media (max-width: 768px) {
+  .browser-manager-modal-container {
+    max-width: 100%;
+    padding-bottom: 80px;
+  }
+
+  .browser-manager-tabs {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .browser-manager-tab {
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .browser-installed-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .browser-installed-path {
+    text-align: left;
+  }
+}
+
+

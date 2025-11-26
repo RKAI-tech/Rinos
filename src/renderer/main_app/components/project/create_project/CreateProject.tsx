@@ -1,17 +1,15 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './CreateProject.css';
-import { BrowserType } from '../../../types/projects';
 
 interface CreateProjectProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (projectData: { name: string; description: string; browser_type?: string }) => void;
+  onSave: (projectData: { name: string; description: string }) => void;
 }
 
 const CreateProject: React.FC<CreateProjectProps> = ({ isOpen, onClose, onSave }) => {
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
-  const [browserType, setBrowserType] = useState<string>('');
   const projectNameInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
@@ -26,20 +24,17 @@ const CreateProject: React.FC<CreateProjectProps> = ({ isOpen, onClose, onSave }
     onSave({
       name: projectName.trim(),
       description: projectDescription.trim(),
-      browser_type: browserType || undefined
     });
 
     // Reset form
     setProjectName('');
     setProjectDescription('');
-    setBrowserType('');
     onClose();
   }, [projectName, projectDescription, onSave, onClose]);
 
   const handleClose = useCallback(() => {
     setProjectName('');
     setProjectDescription('');
-    setBrowserType('');
     onClose();
   }, [onClose]);
 
@@ -123,24 +118,6 @@ const CreateProject: React.FC<CreateProjectProps> = ({ isOpen, onClose, onSave }
             />
           </div>
 
-          {/* Browser Type */}
-          <div className="form-group">
-            <label htmlFor="browserType" className="form-label">
-              Browser Type
-            </label>
-            <select
-              id="browserType"
-              value={browserType}
-              onChange={(e) => setBrowserType(e.target.value)}
-              className="form-input"
-            >
-              <option value="">Select browser type (optional)</option>
-              <option value={BrowserType.chrome}>Chrome</option>  
-              <option value={BrowserType.edge}>Edge</option>
-              <option value={BrowserType.firefox}>Firefox</option>
-              <option value={BrowserType.safari}>Safari</option>
-            </select>
-          </div>
 
           {/* Action Buttons */}
           <div className="modal-actions">

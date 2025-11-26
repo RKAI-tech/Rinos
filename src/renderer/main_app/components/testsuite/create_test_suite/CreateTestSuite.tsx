@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './CreateTestSuite.css';
+import { BrowserType } from '../../../types/testcases';
 
 interface CreateTestSuiteProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (payload: { projectId: string; name: string; description: string }) => void;
+  onSave: (payload: { projectId: string; name: string; description: string; browser_type?: string }) => void;
   projectId?: string;
 }
 
 const CreateTestSuite: React.FC<CreateTestSuiteProps> = ({ isOpen, onClose, onSave, projectId = '' }) => {
   const [suiteName, setSuiteName] = useState('');
   const [suiteDescription, setSuiteDescription] = useState('');
+  const [browserType, setBrowserType] = useState<string>('');
   const suiteNameInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -25,16 +27,19 @@ const CreateTestSuite: React.FC<CreateTestSuiteProps> = ({ isOpen, onClose, onSa
       projectId,
       name: suiteName.trim(),
       description: suiteDescription.trim(),
+      browser_type: browserType || undefined,
     });
 
     setSuiteName('');
     setSuiteDescription('');
+    setBrowserType('');
     onClose();
   };
 
   const handleClose = () => {
     setSuiteName('');
     setSuiteDescription('');
+    setBrowserType('');
     onClose();
   };
 
@@ -123,6 +128,24 @@ const CreateTestSuite: React.FC<CreateTestSuiteProps> = ({ isOpen, onClose, onSa
               className="tsuite-form-textarea"
               rows={4}
             />
+          </div>
+
+          <div className="tsuite-form-group">
+            <label htmlFor="browserType" className="tsuite-form-label">
+              Browser Type
+            </label>
+            <select
+              id="browserType"
+              value={browserType}
+              onChange={(e) => setBrowserType(e.target.value)}
+              className="tsuite-form-input"
+            >
+              <option value="">Select browser type (optional)</option>
+              <option value={BrowserType.chrome}>Chrome</option>
+              <option value={BrowserType.edge}>Edge</option>
+              <option value={BrowserType.firefox}>Firefox</option>
+              <option value={BrowserType.safari}>Safari</option>
+            </select>
           </div>
 
           <div className="tsuite-modal-actions">

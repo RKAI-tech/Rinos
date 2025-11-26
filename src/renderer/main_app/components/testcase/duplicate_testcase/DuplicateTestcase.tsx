@@ -30,7 +30,7 @@ interface DuplicateTestcaseProps {
 const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, onSave, createTestcaseWithActions, testcase }) => {
   const [testcaseName, setTestcaseName] = useState('');
   const [testcaseTag, setTestcaseTag] = useState('');
-  const [browserType, setBrowserType] = useState<string>('');
+  const [browserType, setBrowserType] = useState<string>(BrowserType.chrome);
   const [basicAuth, setBasicAuth] = useState<{ username: string; password: string } | null>(null);
   const [hasInitialBasicAuth, setHasInitialBasicAuth] = useState(false);
   const [actions, setActions] = useState<Action[]>([]);
@@ -49,7 +49,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
     if (testcase) {
       setTestcaseName(`${testcase.name || ''} (1)`);
       setTestcaseTag(testcase.description || '');
-      setBrowserType(testcase.browser_type || '');
+      setBrowserType(testcase.browser_type || BrowserType.chrome);
       const initialBasicAuth = testcase.basic_authentication || null;
       setBasicAuth(initialBasicAuth);
       setHasInitialBasicAuth(!!initialBasicAuth);
@@ -112,7 +112,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
       testcaseTag.trim() || undefined,
       preparedActions,
       basicAuth && (basicAuth.username || basicAuth.password) ? basicAuth : undefined,
-      browserType || undefined
+      browserType || BrowserType.chrome
     );
 
     if (result) {
@@ -121,7 +121,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
         tag: testcaseTag.trim(),
         actions: preparedActions,
         basic_authentication: basicAuth && (basicAuth.username || basicAuth.password) ? basicAuth : undefined,
-        browser_type: browserType || undefined
+        browser_type: browserType || BrowserType.chrome
       });
     }
   };
@@ -129,7 +129,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
   const handleClose = () => {
     setTestcaseName('');
     setTestcaseTag('');
-    setBrowserType('');
+    setBrowserType(BrowserType.chrome);
     setBasicAuth(null);
     setHasInitialBasicAuth(false);
     onClose();
@@ -213,15 +213,15 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
           {/* Browser Type */}
           <div className="tcase-dup-form-group">
             <label htmlFor="dupBrowserType" className="tcase-dup-form-label">
-              Browser Type
+              Browser Type <span className="tcase-dup-required-asterisk">*</span>
             </label>
             <select
               id="dupBrowserType"
               value={browserType}
               onChange={(e) => setBrowserType(e.target.value)}
               className="tcase-dup-form-input"
+              required
             >
-              <option value="">Select browser type (optional)</option>
               <option value={BrowserType.chrome}>Chrome</option>  
               <option value={BrowserType.edge}>Edge</option>
               <option value={BrowserType.firefox}>Firefox</option>
@@ -369,7 +369,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
             <button 
               type="submit" 
               className="tcase-dup-btn-save"
-              disabled={!testcaseName.trim()}
+              disabled={!testcaseName.trim() || !browserType}
             >
               Duplicate
             </button>

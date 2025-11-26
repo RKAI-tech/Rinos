@@ -1,3 +1,5 @@
+import { BrowserType } from "./testcases";
+
 // Test Suites
 export interface TestSuite {
     test_suite_id: string;
@@ -7,6 +9,7 @@ export interface TestSuite {
     number_testcase: number;
     test_passed: string;
     test_failed: string;
+    browser_type: BrowserType;
     created_at: string;
     updated_at?: string;
     progress?: number;
@@ -21,6 +24,7 @@ export interface TestSuiteCreateRequest {
     project_id: string;
     name: string;
     description: string;
+    browser_type?: BrowserType | string;
 }
 
 export interface TestSuiteGetAllRequest {

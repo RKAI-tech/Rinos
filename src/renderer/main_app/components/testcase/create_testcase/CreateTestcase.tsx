@@ -12,7 +12,7 @@ interface CreateTestcaseProps {
 const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave, projectId = '' }) => {
   const [testcaseName, setTestcaseName] = useState('');
   const [testcaseTag, setTestcaseTag] = useState('');
-  const [browserType, setBrowserType] = useState<string>('');
+  const [browserType, setBrowserType] = useState<string>(BrowserType.chrome);
   const testcaseNameInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -27,19 +27,19 @@ const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave
       projectId,
       name: testcaseName.trim(),
       tag: testcaseTag.trim(),
-      browser_type: browserType || undefined
+      browser_type: browserType || BrowserType.chrome
     });
 
     setTestcaseName('');
     setTestcaseTag('');
-    setBrowserType('');
+    setBrowserType(BrowserType.chrome);
     onClose();
   };
 
   const handleClose = () => {
     setTestcaseName('');
     setTestcaseTag('');
-    setBrowserType('');
+    setBrowserType(BrowserType.chrome);
     onClose();
   };
 
@@ -138,7 +138,7 @@ const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave
           {/* Browser Type */}
           <div className="testcase-form-group">
             <label htmlFor="browserType" className="testcase-form-label">
-              Browser Type
+              Browser Type <span className="testcase-required-asterisk">*</span>
               <div className="tooltip-container">
                 <span className="tooltip-icon">?</span>
                 <div className="tooltip-content">
@@ -151,9 +151,8 @@ const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave
               value={browserType}
               onChange={(e) => setBrowserType(e.target.value)}
               className="testcase-form-input"
-              defaultValue={BrowserType.chrome}
+              required
             >
-              <option value="">Select browser type (optional)</option>
               <option value={BrowserType.chrome}>Chrome</option>  
               <option value={BrowserType.edge}>Edge</option>
               <option value={BrowserType.firefox}>Firefox</option>
@@ -169,7 +168,7 @@ const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave
             <button 
               type="submit" 
               className="testcase-btn-save"
-              disabled={!testcaseName.trim()}
+              disabled={!testcaseName.trim() || !browserType}
             >
               Save
             </button>

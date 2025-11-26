@@ -8,7 +8,7 @@ import { UserService } from '../../services/user';
 import AddUser from '../../components/project/add_user/add_user/AddUser';
 import DeleteProject from '../../components/project/delete_project/DeleteProject';
 import { ProjectService } from '../../services/projects';
-import { Project, BrowserType } from '../../types/projects';
+import { Project } from '../../types/projects';
 import { toast } from 'react-toastify';
 import './Dashboard.css';
 
@@ -124,12 +124,11 @@ const Dashboard: React.FC = () => {
     setIsCreateModalOpen(false);
   };
 
-  const handleSaveProject = async (projectData: { name: string; description?: string; browser_type?: string }) => {
+  const handleSaveProject = async (projectData: { name: string; description?: string }) => {
     try {
       const response = await projectService.createProject({
         name: projectData.name,
-        description: projectData.description ?? '',
-        browser_type: projectData.browser_type
+        description: projectData.description ?? ''
       });
 
       if (response.success && response.data) {
@@ -191,13 +190,12 @@ const Dashboard: React.FC = () => {
     setSelectedProject(null);
   };
 
-  const handleUpdateProject = async (projectData: { id: string; name: string; description: string; browser_type?: string }) => {
+  const handleUpdateProject = async (projectData: { id: string; name: string; description: string }) => {
     try {
       const response = await projectService.updateProject({
         project_id: projectData.id,
         name: projectData.name,
-        description: projectData.description,
-        browser_type: projectData.browser_type
+        description: projectData.description
       });
 
       if (response.success && response.data) {
@@ -647,7 +645,6 @@ const Dashboard: React.FC = () => {
                         </span>
                       </span>
                     </th>
-                    <th>Browser Type</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -668,7 +665,6 @@ const Dashboard: React.FC = () => {
                       <td className="project-databases">{project.user_role}</td>
                       <td className="project-variables">{project.user_permissions}</td>
                       <td className="project-members">{project.number_member}</td>
-                      <td className="project-browser-type">{project.browser_type || '-'}</td>
                       <td className="project-actions">
                         <div className="actions-container">
                           <button 

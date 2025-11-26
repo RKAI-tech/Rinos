@@ -5,7 +5,7 @@ import path, * as pathenv from 'path';
 import { app } from "electron";
 import { Action, AssertType } from "./types";
 import { Controller } from "./controller";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync, accessSync, chmodSync, constants } from "fs";
 import { VariableService } from "./services/variables";
 import { DatabaseService } from "./services/database";
 import { StatementService } from "./services/statements";
@@ -82,6 +82,97 @@ export class BrowserManager extends EventEmitter {
         apiRouter.setAuthToken(token);
     }
 
+    // Check if system Edge is installed
+    private isSystemEdgeInstalled(): boolean {
+        const platform = process.platform;
+        
+        if (platform === 'win32') {
+            // Windows: Check common Edge installation paths
+            const systemPaths = [
+                pathenv.join(process.env.LOCALAPPDATA || '', "Microsoft", "Edge", "Application", "msedge.exe"),
+                pathenv.join(process.env.PROGRAMFILES || '', "Microsoft", "Edge", "Application", "msedge.exe"),
+                pathenv.join(process.env["PROGRAMFILES(X86)"] || '', "Microsoft", "Edge", "Application", "msedge.exe"),
+            ];
+            
+            for (const systemPath of systemPaths) {
+                if (existsSync(systemPath)) {
+                    return true;
+                }
+            }
+        } else if (platform === 'darwin') {
+            // macOS: Check if Edge.app exists
+            const systemPaths = [
+                "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+                pathenv.join(process.env.HOME || '', "Applications", "Microsoft Edge.app", "Contents", "MacOS", "Microsoft Edge"),
+            ];
+            
+            for (const systemPath of systemPaths) {
+                if (existsSync(systemPath)) {
+                    return true;
+                }
+            }
+        } else {
+            // Linux: Check common installation paths
+            const systemPaths = [
+                "/usr/bin/microsoft-edge",
+                "/usr/bin/microsoft-edge-stable",
+                "/opt/microsoft/msedge/msedge",
+                "/snap/bin/microsoft-edge",
+            ];
+            
+            for (const systemPath of systemPaths) {
+                if (existsSync(systemPath)) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    // Get custom Edge executable path
+    private getCustomEdgePath(): string | null {
+        const platform = process.platform;
+        let customBrowsersPath: string;
+        
+        if (!app.isPackaged) {
+            customBrowsersPath = pathenv.resolve(process.cwd(), "my-browsers");
+        } else {
+            customBrowsersPath = pathenv.join(process.resourcesPath, "my-browsers");
+        }
+        
+        let edgePath: string;
+        
+        if (platform === 'win32') {
+            edgePath = pathenv.join(customBrowsersPath, "edge-win", "Microsoft", "Edge", "Application", "msedge.exe");
+        } else if (platform === 'darwin') {
+            edgePath = pathenv.join(customBrowsersPath, "edge-mac", "Microsoft Edge.app", "Contents", "MacOS", "Microsoft Edge");
+        } else {
+            // Linux
+            edgePath = pathenv.join(customBrowsersPath, "edge-linux", "final", "microsoft-edge");
+        }
+        
+        // Check if executable exists and is accessible
+        try {
+            if (existsSync(edgePath)) {
+                // On Linux/Mac, check if file is executable
+                if (platform !== 'win32') {
+                    try {
+                        accessSync(edgePath, constants.X_OK);
+                    } catch {
+                        // Make executable if not
+                        chmodSync(edgePath, 0o755);
+                    }
+                }
+                return edgePath;
+            }
+        } catch (error) {
+            // Ignore errors
+        }
+        
+        return null;
+    }
+
     async start(
         basicAuthentication: { username: string, password: string },
         browserType?: string
@@ -119,7 +210,21 @@ export class BrowserManager extends EventEmitter {
                 case BrowserType.edge:
                 case 'edge':
                     browserLauncher = chromium;
-                    launchOptions.channel = 'msedge';
+                    // Priority: 1. System Edge, 2. Custom Edge, 3. Fallback to channel (will fail if not installed)
+                    if (this.isSystemEdgeInstalled()) {
+                        // Use system Edge via channel (preferred)
+                        launchOptions.channel = 'msedge';
+                    } else {
+                        // Try custom Edge installation
+                        const customEdgePath = this.getCustomEdgePath();
+                        if (customEdgePath) {
+                            // Use custom Edge installation
+                            launchOptions.executablePath = customEdgePath;
+                        } else {
+                            // Fallback to channel (may fail if Edge not installed)
+                            launchOptions.channel = 'msedge';
+                        }
+                    }
                     launchOptions.args = [
                         '--no-sandbox',
                         '--disable-setuid-sandbox',

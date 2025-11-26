@@ -13,7 +13,6 @@ export interface ProjectGetAllResponse {
 export interface ProjectCreateRequest {
     name: string;
     description?: string;
-    browser_type?: BrowserType | string;
 }
 
 export interface ProjectDeleteRequest {
@@ -52,7 +51,6 @@ export interface ProjectUpdateRequest {
     project_id: string;
     name?: string;
     description?: string;
-    browser_type?: BrowserType | string;
 }
 
 export interface UserPermissionToProject {

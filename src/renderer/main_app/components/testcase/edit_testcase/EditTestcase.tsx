@@ -27,7 +27,7 @@ interface EditTestcaseProps {
 const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, testcase }) => {
   const [testcaseName, setTestcaseName] = useState('');
   const [testcaseTag, setTestcaseTag] = useState('');
-  const [browserType, setBrowserType] = useState<string>('');
+  const [browserType, setBrowserType] = useState<string>(BrowserType.chrome);
   const [basicAuth, setBasicAuth] = useState<{ username: string; password: string } | null>(null);
   const [hasInitialBasicAuth, setHasInitialBasicAuth] = useState(false);
   const [actions, setActions] = useState<Action[]>([]);
@@ -48,7 +48,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
     if (testcase) {
       setTestcaseName(testcase.name || '');
       setTestcaseTag(testcase.description || '');
-      setBrowserType(testcase.browser_type || '');
+      setBrowserType(testcase.browser_type || BrowserType.chrome);
       const initialBasicAuth = testcase.basic_authentication || null;
       setBasicAuth(initialBasicAuth);
       setHasInitialBasicAuth(!!initialBasicAuth);
@@ -109,13 +109,13 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
         name: testcaseName.trim(),
         description: testcaseTag.trim() || undefined,
         basic_authentication: basicAuth && (basicAuth.username || basicAuth.password) ? basicAuth : undefined,
-        browser_type: browserType || undefined,
+        browser_type: browserType || BrowserType.chrome,
         actions: actionRequests || []
       });
 
       setTestcaseName('');
       setTestcaseTag('');
-      setBrowserType('');
+      setBrowserType(BrowserType.chrome);
       setBasicAuth(null);
       setHasInitialBasicAuth(false);
       onClose();
@@ -127,7 +127,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
   const handleClose = () => {
     setTestcaseName('');
     setTestcaseTag('');
-    setBrowserType('');
+    setBrowserType(BrowserType.chrome);
     setBasicAuth(null);
     setHasInitialBasicAuth(false);
     onClose();
@@ -214,15 +214,15 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
           {/* Browser Type */}
           <div className="tcase-edit-form-group">
             <label htmlFor="browserType" className="tcase-edit-form-label">
-              Browser Type
+              Browser Type <span className="tcase-edit-required-asterisk">*</span>
             </label>
             <select
               id="browserType"
               value={browserType}
               onChange={(e) => setBrowserType(e.target.value)}
               className="tcase-edit-form-input"
+              required
             >
-              <option value="">Select browser type (optional)</option>
               <option value={BrowserType.chrome}>Chrome</option>  
               <option value={BrowserType.edge}>Edge</option>
               <option value={BrowserType.firefox}>Firefox</option>
@@ -372,7 +372,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
             <button 
               type="submit" 
               className="tcase-edit-btn-save"
-              disabled={!testcaseName.trim()}
+              disabled={!testcaseName.trim() || !browserType}
             >
               Update
             </button>

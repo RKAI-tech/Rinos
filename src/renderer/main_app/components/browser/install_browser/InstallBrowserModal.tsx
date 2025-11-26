@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { BrowserType } from '../../../types/testcases';
 import './InstallBrowserModal.css';
 
@@ -20,8 +20,9 @@ const mapBrowserTypeToPlaywright = (browserType: string): string => {
   const normalized = browserType.toLowerCase();
   switch (normalized) {
     case 'chrome':
-    case 'edge':
       return 'chromium';
+    case 'edge':
+      return 'msedge'; // Edge uses custom installation
     case 'firefox':
       return 'firefox';
     case 'safari':
@@ -31,11 +32,13 @@ const mapBrowserTypeToPlaywright = (browserType: string): string => {
   }
 };
 
+type SupportedPlatform = 'win32' | 'darwin' | 'linux';
+
 const ALL_BROWSERS = [
-  { value: BrowserType.chrome, label: 'Chrome', playwrightName: 'chromium' },
-  { value: BrowserType.edge, label: 'Edge', playwrightName: 'chromium' },
-  { value: BrowserType.firefox, label: 'Firefox', playwrightName: 'firefox' },
-  { value: BrowserType.safari, label: 'Safari', playwrightName: 'webkit' },
+  { value: BrowserType.chrome, label: 'Chrome', playwrightName: 'chromium', supportedPlatforms: ['win32', 'darwin', 'linux'] as SupportedPlatform[] },
+  { value: BrowserType.edge, label: 'Edge', playwrightName: 'msedge', supportedPlatforms: ['win32', 'darwin', 'linux'] as SupportedPlatform[] },
+  { value: BrowserType.firefox, label: 'Firefox', playwrightName: 'firefox', supportedPlatforms: ['win32', 'darwin', 'linux'] as SupportedPlatform[] },
+  { value: BrowserType.safari, label: 'Safari', playwrightName: 'webkit', supportedPlatforms: ['darwin'] as SupportedPlatform[] },
 ];
 
 const InstallBrowserModal: React.FC<InstallBrowserModalProps> = ({
@@ -51,6 +54,21 @@ const InstallBrowserModal: React.FC<InstallBrowserModalProps> = ({
   const [installError, setInstallError] = useState<string | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
+  // Get current platform
+  const systemPlatformRaw = (window as any).electronAPI?.system?.platform || process?.platform || 'linux';
+  const normalizedPlatform: SupportedPlatform = useMemo(() => {
+    return ['win32', 'darwin', 'linux'].includes(systemPlatformRaw)
+      ? (systemPlatformRaw as SupportedPlatform)
+      : 'linux';
+  }, [systemPlatformRaw]);
+
+  // Filter browsers based on platform support
+  const availableBrowsers = useMemo(() => {
+    return ALL_BROWSERS.filter(browser => 
+      browser.supportedPlatforms.includes(normalizedPlatform)
+    );
+  }, [normalizedPlatform]);
+
   // Check which browsers are already installed
   useEffect(() => {
     if (isOpen) {
@@ -61,8 +79,8 @@ const InstallBrowserModal: React.FC<InstallBrowserModalProps> = ({
             return;
           }
 
-          // Check all browser types
-          const browserTypes = ALL_BROWSERS.map(b => b.value);
+          // Check only supported browser types for current platform
+          const browserTypes = availableBrowsers.map(b => b.value);
           const result = await playwrightAPI.checkBrowsers(browserTypes);
           
           if (result?.success && result?.data) {
@@ -81,23 +99,23 @@ const InstallBrowserModal: React.FC<InstallBrowserModalProps> = ({
       
       checkInstalledBrowsers();
     }
-  }, [isOpen]);
+  }, [isOpen, availableBrowsers]);
 
   // Set default browser based on browser_type
   useEffect(() => {
     if (isOpen && defaultBrowserType) {
-      const defaultBrowser = ALL_BROWSERS.find(b => b.value === defaultBrowserType);
+      const defaultBrowser = availableBrowsers.find(b => b.value === defaultBrowserType);
       if (defaultBrowser && !installedBrowsers.has(defaultBrowser.value) && !selectedBrowsers.includes(defaultBrowser.value)) {
         setSelectedBrowsers([defaultBrowser.value]);
       }
     } else if (isOpen && !defaultBrowserType) {
       // If no default, select first available browser
-      const firstAvailable = ALL_BROWSERS.find(b => !installedBrowsers.has(b.value));
+      const firstAvailable = availableBrowsers.find(b => !installedBrowsers.has(b.value));
       if (firstAvailable && selectedBrowsers.length === 0) {
         setSelectedBrowsers([firstAvailable.value]);
       }
     }
-  }, [isOpen, defaultBrowserType, installedBrowsers]);
+  }, [isOpen, defaultBrowserType, installedBrowsers, availableBrowsers, selectedBrowsers]);
 
   const handleBrowserToggle = (browserValue: string) => {
     setSelectedBrowsers(prev => {
@@ -117,7 +135,7 @@ const InstallBrowserModal: React.FC<InstallBrowserModalProps> = ({
     // Group by playwright name to avoid installing same browser multiple times
     const playwrightBrowsers = new Set<string>();
     selectedBrowsers.forEach(browserType => {
-      const browser = ALL_BROWSERS.find(b => b.value === browserType);
+      const browser = availableBrowsers.find(b => b.value === browserType);
       if (browser) {
         playwrightBrowsers.add(browser.playwrightName);
       }
@@ -215,9 +233,7 @@ const InstallBrowserModal: React.FC<InstallBrowserModalProps> = ({
                       style={{ width: `${installProgress.progress}%` }}
                     />
                   </div>
-                  <div className="install-browser-progress-status">
-                    {installProgress.status}
-                  </div>
+                  
                 </>
               )}
               {!installProgress && (
@@ -225,10 +241,16 @@ const InstallBrowserModal: React.FC<InstallBrowserModalProps> = ({
                   Preparing installation...
                 </div>
               )}
+              <div className="install-browser-warning-message">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Please do not close the application while downloading browser.
+              </div>
             </div>
           ) : (
             <div className="install-browser-selection-section">
-              {ALL_BROWSERS.map(browser => {
+              {availableBrowsers.map(browser => {
                 // Skip browsers that are already installed
                 if (installedBrowsers.has(browser.value)) {
                   return null;
@@ -252,9 +274,14 @@ const InstallBrowserModal: React.FC<InstallBrowserModalProps> = ({
                   </label>
                 );
               })}
-              {ALL_BROWSERS.every(b => installedBrowsers.has(b.value)) && (
+              {availableBrowsers.length === 0 && (
                 <div className="install-browser-all-installed">
-                  <p>All browsers are already installed!</p>
+                  <p>No browsers available for this platform.</p>
+                </div>
+              )}
+              {availableBrowsers.length > 0 && availableBrowsers.every(b => installedBrowsers.has(b.value)) && (
+                <div className="install-browser-all-installed">
+                  <p>All available browsers are already installed!</p>
                 </div>
               )}
             </div>

@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { toast } from 'react-toastify';
 import { Action } from '../../../types/actions';
 import { receiveActionWithInsert } from '../../../utils/receive_action';
@@ -13,7 +14,7 @@ interface UseActionListenerProps {
   isAnyModalOpen: boolean;
   actions: Action[];
   setActions: React.Dispatch<React.SetStateAction<Action[]>>;
-  setSelectedInsertPosition: (pos: number) => void;
+  setSelectedInsertPosition: Dispatch<SetStateAction<number>>;
   setIsDirty: (dirty: boolean) => void;
   setExecutingActionIndex: (index: number | null) => void;
   setFailedActionIndex: (index: number | null) => void;
@@ -72,6 +73,112 @@ export const useActionListener = ({
 }: UseActionListenerProps) => {
   // Ref để tránh duplicate toast
   const lastPageInfoUpdateRef = useRef<{ pageIndex: number | null; timestamp: number } | null>(null);
+  const latestPropsRef = useRef({
+    testcaseId,
+    isPaused,
+    selectedInsertPosition,
+    isAssertMode,
+    isAnyModalOpen,
+    setActions,
+    setSelectedInsertPosition,
+    setIsDirty,
+    setExecutingActionIndex,
+    setFailedActionIndex,
+  });
+  const actionQueueRef = useRef<any[]>([]);
+  const isProcessingRef = useRef(false);
+
+  useEffect(() => {
+    latestPropsRef.current = {
+      testcaseId,
+      isPaused,
+      selectedInsertPosition,
+      isAssertMode,
+      isAnyModalOpen,
+      setActions,
+      setSelectedInsertPosition,
+      setIsDirty,
+      setExecutingActionIndex,
+      setFailedActionIndex,
+    };
+  }, [
+    testcaseId,
+    isPaused,
+    selectedInsertPosition,
+    isAssertMode,
+    isAnyModalOpen,
+    setActions,
+    setSelectedInsertPosition,
+    setIsDirty,
+    setExecutingActionIndex,
+    setFailedActionIndex,
+  ]);
+
+  const processActionQueue = useCallback(() => {
+    if (isProcessingRef.current) return;
+    const processNext = () => {
+      if (actionQueueRef.current.length === 0) {
+        isProcessingRef.current = false;
+        return;
+      }
+
+      const action = actionQueueRef.current.shift();
+      if (!action) {
+        isProcessingRef.current = false;
+        return;
+      }
+
+      const {
+        testcaseId: currentTestcaseId,
+        isPaused: currentIsPaused,
+        isAssertMode: currentIsAssertMode,
+        isAnyModalOpen: currentIsAnyModalOpen,
+        selectedInsertPosition: currentInsertPosition,
+        setActions: currentSetActions,
+        setSelectedInsertPosition: currentSetSelectedInsertPosition,
+        setIsDirty: currentSetIsDirty,
+        setExecutingActionIndex: currentSetExecutingActionIndex,
+        setFailedActionIndex: currentSetFailedActionIndex,
+      } = latestPropsRef.current;
+
+      if (!currentTestcaseId || currentIsPaused) {
+        setTimeout(processNext, 0);
+        return;
+      }
+
+      currentSetExecutingActionIndex(null);
+      currentSetFailedActionIndex(null);
+
+      if (currentIsAssertMode && action.action_type !== 'assert') {
+        setTimeout(processNext, 0);
+        return;
+      }
+
+      currentSetActions((prev) => {
+        const next = receiveActionWithInsert(
+          currentTestcaseId,
+          prev,
+          action,
+          currentInsertPosition,
+          currentIsAnyModalOpen
+        );
+
+        currentSetSelectedInsertPosition(() => {
+          const updatedPos = next.length;
+          latestPropsRef.current.selectedInsertPosition = updatedPos;
+          return updatedPos;
+        });
+
+        currentSetIsDirty(true);
+
+        setTimeout(processNext, 0);
+        return next;
+      });
+    };
+
+    isProcessingRef.current = true;
+    processNext();
+  }, []);
   
   useEffect(() => {
     return (window as any).browserAPI?.browser?.onAction(async (action: any) => {
@@ -367,23 +474,9 @@ export const useActionListener = ({
         return;
       }
       
-      // Reset execution effects when new action is recorded
-      setExecutingActionIndex(null);
-      setFailedActionIndex(null);
-
-      if (isAssertMode && action.action_type !== 'assert') return;
-
-      setActions(prev => {
-        const next = receiveActionWithInsert(testcaseId, prev, action, selectedInsertPosition, isAnyModalOpen);
-        const added = next.length > prev.length;
-        if (added) {
-          const currentPos = selectedInsertPosition;
-          const newPos = Math.min(currentPos + 1, next.length);
-          setSelectedInsertPosition(newPos);
-        }
-        setIsDirty(true);
-        return next;
-      });
+      // Thêm action vào hàng đợi và xử lý tuần tự
+      actionQueueRef.current.push(action);
+      processActionQueue();
     });
   }, [
     testcaseId,
@@ -408,12 +501,8 @@ export const useActionListener = ({
     setTitleInputSelectedPageInfo,
     aiAssertSelectedPageInfo,
     setAiAssertSelectedPageInfo,
-    setActions,
-    setSelectedInsertPosition,
-    setIsDirty,
-    setExecutingActionIndex,
-    setFailedActionIndex,
     setAiElements,
+    processActionQueue,
   ]);
 };
 

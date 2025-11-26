@@ -30,6 +30,7 @@ interface TestSuite {
   createdAt: string;
   updated?: string;
   progress?: number;
+  browser_type?: string;
 }
 
 const TestSuites: React.FC = () => {
@@ -84,6 +85,7 @@ const TestSuites: React.FC = () => {
           createdAt: ts.created_at,
           updated: ts.updated_at || ts.created_at, // Use updated_at if available, otherwise created_at
           progress: ts.progress ? parseFloat(String(ts.progress)) : undefined,
+          browser_type: ts.browser_type || undefined,
         }));
         setTestSuites(mapped);
       } else {
@@ -325,7 +327,7 @@ const TestSuites: React.FC = () => {
     setOpenDropdownId(null);
   };
 
-  const handleSaveCreateSuite = async ({ projectId: pid, name, description }: { projectId: string; name: string; description: string }) => {
+  const handleSaveCreateSuite = async ({ projectId: pid, name, description, browser_type }: { projectId: string; name: string; description: string; browser_type?: string }) => {
     try {
       const effectiveProjectId = pid || projectId;
       if (!effectiveProjectId) {
@@ -333,7 +335,7 @@ const TestSuites: React.FC = () => {
         return;
       }
       const svc = new TestSuiteService();
-      const resp = await svc.createTestSuite({ project_id: effectiveProjectId, name, description });
+      const resp = await svc.createTestSuite({ project_id: effectiveProjectId, name, description, browser_type });
       if (resp.success) {
         toast.success('Test suite created');
         setIsCreateOpen(false);
@@ -346,11 +348,11 @@ const TestSuites: React.FC = () => {
     }
   };
 
-  const handleSaveEditSuite = async ({ id, name, description }: { id: string; name: string; description?: string }) => {
+  const handleSaveEditSuite = async ({ id, name, description, browser_type }: { id: string; name: string; description?: string; browser_type?: string }) => {
     try {
       const svc = new TestSuiteService();
       const desc = description ?? (selectedSuite?.description || '');
-      const resp = await svc.updateTestSuite({ test_suite_id: id, name: name.trim(), description: desc.trim() });
+      const resp = await svc.updateTestSuite({ test_suite_id: id, name: name.trim(), description: desc.trim(), browser_type });
       if (resp.success) {
         toast.success('Test suite updated');
         handleCloseEditSuite();
@@ -462,9 +464,7 @@ const TestSuites: React.FC = () => {
                     <th className={`sortable ${sortBy === 'name' ? 'sorted' : ''}`} onClick={() => handleSort('name')}>
                       <span className="th-content"><span className="th-text">Name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'name' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'name' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                     </th>
-                    <th className={`sortable ${sortBy === 'description' ? 'sorted' : ''}`} onClick={() => handleSort('description')}>
-                      <span className="th-content"><span className="th-text">Description</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'description' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'description' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
-                    </th>
+                    
                     <th className={`sortable ${sortBy === 'testcases' ? 'sorted' : ''}`} onClick={() => handleSort('testcases')}>
                       <span className="th-content"><span className="th-text">Total Cases</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'testcases' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'testcases' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                     </th>
@@ -483,6 +483,7 @@ const TestSuites: React.FC = () => {
                     <th className={`sortable ${sortBy === 'createdAt' ? 'sorted' : ''}`} onClick={() => handleSort('createdAt')}>
                       <span className="th-content"><span className="th-text">Updated</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'createdAt' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'createdAt' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                     </th>
+                    <th>Browser Type</th>
                     <th>Options</th>
                   </tr>
                 </thead>
@@ -495,7 +496,6 @@ const TestSuites: React.FC = () => {
                       onClick={() => handleViewSuiteResult(suite.id)}
                     >
                       <td className="testsuite-name">{suite.name}</td>
-                      <td className="testsuite-description">{formatValue(suite.description || '-')}</td>
                       <td className="testsuite-testcases">{suite.testcases ?? '-'}</td>
                       <td className="testsuite-passed">{suite.passed ?? '-'}</td>
                       <td className="testsuite-failed">{suite.failed ?? '-'}</td>
@@ -516,6 +516,7 @@ const TestSuites: React.FC = () => {
                         </div>
                       </td>
                       <td className="testsuite-created">{suite.createdAt? suite.createdAt : '-'}</td>
+                      <td className="testsuite-browser-type">{suite.browser_type || '-'}</td>
                       <td className="testsuite-actions">
                         <div className="actions-container">
                           <button 
@@ -658,7 +659,7 @@ const TestSuites: React.FC = () => {
         isOpen={isEditOpen}
         onClose={handleCloseEditSuite}
         onSave={handleSaveEditSuite}
-        testsuite={selectedSuite ? { testsuite_id: selectedSuite.id, name: selectedSuite.name, description: selectedSuite.description || '' } : null}
+        testsuite={selectedSuite ? { testsuite_id: selectedSuite.id, name: selectedSuite.name, description: selectedSuite.description || '', browser_type: selectedSuite.browser_type } : null}
       />
 
       {/* Delete Test Suite Modal */}

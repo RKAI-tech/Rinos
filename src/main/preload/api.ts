@@ -52,6 +52,8 @@ const systemAPI = {
 const playwrightAPI = {
   checkBrowsers: (browserTypes: string[]) => ipcRenderer.invoke('playwright:check-browsers', browserTypes),
   installBrowsers: (browsers: string[]) => ipcRenderer.invoke('playwright:install-browsers', browsers),
+  getBrowsersInfo: () => ipcRenderer.invoke('playwright:get-browsers-info'),
+  removeBrowser: (browserType: string) => ipcRenderer.invoke('playwright:remove-browser', browserType),
   onInstallProgress: (callback: (progress: { browser: string; progress: number; status: string }) => void) => {
     const handler = (_event: any, progress: { browser: string; progress: number; status: string }) => {
       callback(progress);
