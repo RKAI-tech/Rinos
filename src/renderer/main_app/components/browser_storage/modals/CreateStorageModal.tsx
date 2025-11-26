@@ -113,7 +113,17 @@ const CreateBrowserStorageModal: React.FC<CreateBrowserStorageModalProps> = ({ i
         </div>
         <div className="cookies-modal-footer">
           <button className="cookies-btn-secondary" onClick={onClose} disabled={isSaving}>Cancel</button>
-          <button className="cookies-btn-primary" onClick={onSave} disabled={isSaving || !name.trim()}>{isSaving ? 'Saving...' : 'Create'}</button>
+          <button
+            className="cookies-btn-primary"
+            onClick={onSave}
+            disabled={
+              isSaving ||
+              !name.trim() ||
+              !value.trim()
+            }
+          >
+            {isSaving ? 'Saving...' : 'Create'}
+          </button>
         </div>
       </div>
     </div>
