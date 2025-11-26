@@ -236,7 +236,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         const next = receiveActionWithInsert(testcaseId, prev, action, selectedInsertPosition);
         const added = next.length > prev.length;
         if (added) {
-          setSelectedInsertPosition(selectedInsertPosition + 1);
+          console.log(`${next.length}, ${prev.length}`);
+          setSelectedInsertPosition((p) => p+1);
         }
         setIsDirty(true);
         return next;
@@ -579,6 +580,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     setIsGeneratingAi(true);
     try {
       const response = await actionService.generateAiAssert(request);
+      console.log('[Main] AI assert response:', response);
 
       if (!response.success) {
         const errorMessage =
@@ -677,7 +679,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     } catch (e: any) {
       // console.error('[Main] generateAiAssert exception:', e);
       const message = e?.message || e?.error || e?.reason || e;
-      toast.error(String(message || 'Failed to generate AI assertion'));
+      toast.error('Failed to generate AI assertion. Please try again or contact support.');
       return false;
     } finally {
       setIsGeneratingAi(false);
@@ -688,10 +690,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     // Create action with the URL value
     setActions(prev => {
       const next = receiveAction(testcaseId || '', prev, {
-        type: ActionType.assert,
-        assertType: AssertType.pageHasAURL,
-        value: url,
-        playwright_code: `await expect(page).toHaveURL('${url}');`,
+        action_type: ActionType.assert,
+        assert_type: AssertType.pageHasAURL,
+        action_datas: [{ value: { value: url } }],
         description: `Verify the page has URL ${url}`,
       });
       setIsDirty(true);
@@ -709,10 +710,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
     // Create action with the title value
     setActions(prev => {
       const next = receiveAction(testcaseId || '', prev, {
-        type: ActionType.assert,
-        assertType: AssertType.pageHasATitle,
-        value: title,
-        playwright_code: `await expect(page).toHaveTitle('${title}');`,
+        action_type: ActionType.assert,
+        assert_type: AssertType.pageHasATitle,
+        action_datas: [{ value: { value: title } }],
         description: `Verify the page has title ${title}`,
       });
       setIsDirty(true);
@@ -754,6 +754,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
           actions: actions as Action[],
           basic_auth: basicAuth,
         };
+        // request.actions.map(action => {
+        //   console.log('action', action);
+        // })
         const response = await service.generateCode(request);
         
         if (response.success && response.data?.code) {
@@ -796,7 +799,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
       if (response.success && response.data) {
         const newActions = response.data.actions || [];
         setActions(newActions);
-        // console.log('[Main] Reloaded actions:', newActions);
+        console.log('[Main] Reloaded actions:', newActions);
         setSavedActionsSnapshot(JSON.parse(JSON.stringify(newActions)));
         setIsDirty(false);
         // Sau reload, luôn đặt vị trí chèn = độ dài actions (rỗng → 0)

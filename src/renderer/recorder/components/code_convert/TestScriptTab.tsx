@@ -34,7 +34,7 @@ const TestScriptTab: React.FC<TestScriptTabProps> = ({ script, runResult, onScri
       await navigator.clipboard.writeText(localScript);
       toast.success('Copied script to clipboard');
     } catch {
-      toast.error('Something went wrong');
+      toast.error('Failed to copy script to clipboard. Please try again or contact support.');
     }
   };
 

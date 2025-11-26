@@ -134,7 +134,7 @@ function processAssertClick(e) {
   }
 }
 
-function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection_id, connection, query, DOMelement, apiRequest) {
+function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement, apiRequest) {
   // console.log('[sendAssertAction] Called with:', {
   //   assertType,
   //   value,
