@@ -53,7 +53,17 @@ const EditBrowserStorageModal: React.FC<EditBrowserStorageModalProps> = ({ isOpe
         </div>
         <div className="cookies-modal-footer">
           <button className="cookies-btn-secondary" onClick={onClose} disabled={isSaving}>Cancel</button>
-          <button className="cookies-btn-primary" onClick={onSave} disabled={isSaving || !name.trim()}>{isSaving ? 'Saving...' : 'Save'}</button>
+          <button
+            className="cookies-btn-primary"
+            onClick={onSave}
+            disabled={
+              isSaving ||
+              !name.trim() ||
+              !value.trim()
+            }
+          >
+            {isSaving ? 'Saving...' : 'Save'}
+          </button>
         </div>
       </div>
     </div>

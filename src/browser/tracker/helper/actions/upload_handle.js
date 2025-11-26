@@ -1,4 +1,4 @@
-import { 
+import {
   getPauseMode,
   shouldIgnoreTarget,
   buildSelectors,
@@ -35,33 +35,29 @@ export async function handleUploadChangeEvent(e) {
   const selectors = buildSelectors(el);
   const fileList = await Promise.all(
     Array.from(el.files || []).map(async f => ({
-      name: f.name,
-      size: f.size,
+      file_name: f.name,
       type: f.type,
-      content: await readFileContent(f) // data: URL
+      file_path: undefined,
+      file_content: await readFileContent(f) // data: URL
     }))
   );
 
-  const value= undefined;
+  const value = undefined;
 
   const elementText = extractElementText(el);
-  sendAction({
-    action_type: 'upload',
-    elements: [{
-      selectors: selectors.map((selector) => ({ value: selector })),
-    }],
-    action_datas: [{
-      value: {
-        value: value,
-        elementText: elementText,
-      },
-      files: fileList
-    },
+  const action_datas = [
     {
       value: {
         page_index: window.__PAGE_INDEX__ || 0,
       },
     }
-  ],
+  ];
+  action_datas.push(...fileList.map(file => ({ file_upload: file })));
+  sendAction({
+    action_type: 'upload',
+    elements: [{
+      selectors: selectors.map((selector) => ({ value: selector })),
+    }],
+    action_datas: action_datas,
   });
 }

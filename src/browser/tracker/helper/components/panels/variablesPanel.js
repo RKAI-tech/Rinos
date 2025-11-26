@@ -68,9 +68,11 @@ export function createVariablesPanel(onPickVariable) {
       addBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const variablePayload = {
-          __useVariable: true,
-          variable_name: v.original_name,
-          statement_id: v.statement_id
+          // __useVariable: true,
+          value: v.original_name,
+          connection: v.statement.connection,
+          connection_id: v.statement.connection_id,
+          query: v.statement.statement_text
         };
         if (typeof onPickVariable === 'function') onPickVariable(variablePayload);
       });

@@ -64,7 +64,7 @@ const Dashboard: React.FC = () => {
           setProjects(response.data.projects);
         } else {
           setError(response.error || 'Failed to load projects');
-          toast.error('Failed to load projects');
+          toast.error(response.error || 'Failed to load projects');
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An error occurred';
@@ -206,7 +206,7 @@ const Dashboard: React.FC = () => {
         // Reload projects to ensure data consistency
         await reloadProjects();
       } else {
-        toast.error('Failed to update project. Please try again.');
+        toast.error(response.error || 'Failed to update project. Please try again.');
       }
     } catch (err) {
       toast.error('Failed to update project. Please try again.');
@@ -228,7 +228,7 @@ const Dashboard: React.FC = () => {
         // Reload projects to ensure data consistency
         await reloadProjects();
       } else {
-        toast.error('Failed to delete project. Please try again.');
+        toast.error(response.error || 'Failed to delete project. Please try again.');
       }
     } catch (err) {
       toast.error('Failed to delete project. Please try again.');

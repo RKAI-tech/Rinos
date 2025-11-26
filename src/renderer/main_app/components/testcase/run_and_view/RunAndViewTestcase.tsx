@@ -55,17 +55,17 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
         if (testcase) {
           setResult(testcase);
         } else {
-          toast.error('Testcase not found', {
+          toast.error('Testcase is not found. Please try again.', {
             containerId: 'modal-toast-container'
           });
         }
       } else {
-        toast.error('Disconnect from the server. Please try again.', {
+        toast.error(response.error || 'Failed to load testcase data. Please try again.', {
           containerId: 'modal-toast-container'
         });
       }
     } catch (e) {
-      toast.error('Disconnect from the server. Please try again.', {
+      toast.error(e instanceof Error ? e.message : 'An unexpected error occurred. Please contact support.', {
         containerId: 'modal-toast-container'
       });
     } finally {
@@ -92,12 +92,12 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
         // Then reload testcase data to get updated logs
         await loadTestcaseData();
       } else {
-        toast.error('Failed to execute testcase. Please try again.', {
+        toast.error(resp.error || 'Failed to execute testcase. Please try again.', {
           containerId: 'modal-toast-container'
         });
       }
     } catch (e) {
-      toast.error('Disconnect from the server. Please try again.', {
+      toast.error(e instanceof Error ? e.message : 'An unexpected error occurred. Please contact support.', {
         containerId: 'modal-toast-container'
       });
     } finally {

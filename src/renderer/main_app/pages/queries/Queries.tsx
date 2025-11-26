@@ -154,7 +154,7 @@ const Queries: React.FC = () => {
     { id: 'databases', label: 'Databases', path: `/databases/${projectId}`, isActive: false },
     { id: 'queries', label: 'Queries', path: `/queries/${projectId}`, isActive: true },
     { id: 'variables', label: 'Variables', path: `/variables/${projectId}`, isActive: false },
-    { id: 'change-log', label: 'Change Log', path: `/change-log/${projectId}`, isActive: false },
+    { id: 'change-log', label: 'Activities', path: `/change-log/${projectId}`, isActive: false },
   ];
 
   const breadcrumbItems = [

@@ -112,7 +112,7 @@ const BrowserStorage: React.FC = () => {
     { id: 'databases', label: 'Databases', path: `/databases/${projectId}`, isActive: false },
     { id: 'queries', label: 'Queries', path: `/queries/${projectId}`, isActive: false },
     { id: 'variables', label: 'Variables', path: `/variables/${projectId}`, isActive: false },
-    { id: 'change-log', label: 'Change Log', path: `/change-log/${projectId}`, isActive: false },
+    { id: 'change-log', label: 'Activities', path: `/change-log/${projectId}`, isActive: false },
   ];
 
   const breadcrumbItems = [
@@ -218,7 +218,7 @@ const BrowserStorage: React.FC = () => {
           }
         }
       } else {
-        toast.error('Failed to delete browser storage. Please try again.');
+        toast.error(resp.error || 'Failed to delete browser storage. Please try again.');
       }
     } catch (e) {
       toast.error('Failed to delete browser storage. Please try again.');
@@ -327,7 +327,7 @@ const BrowserStorage: React.FC = () => {
         handleCloseEdit();
         await reloadList();
       } else {
-        toast.error('Failed to update browser storage. Please try again.');
+        toast.error(resp.error || 'Failed to update browser storage. Please try again.');
       }
     } catch (e) {
       toast.error('Failed to update browser storage. Please try again.');
@@ -359,7 +359,7 @@ const BrowserStorage: React.FC = () => {
         handleCloseCreate();
         await reloadList();
       } else {
-        toast.error('Failed to create browser storage. Please try again.');
+        toast.error(resp.error || 'Failed to create browser storage. Please try again.');
       }
     } catch (e) {
       toast.error('Failed to create browser storage');

@@ -108,7 +108,7 @@ const Databases: React.FC = () => {
     { id: 'databases', label: 'Databases', path: `/databases/${projectId}`, isActive: true },
     { id: 'queries', label: 'Queries', path: `/queries/${projectId}`, isActive: false },
     { id: 'variables', label: 'Variables', path: `/variables/${projectId}`, isActive: false },
-    { id: 'change-log', label: 'Change Log', path: `/change-log/${projectId}`, isActive: false },
+    { id: 'change-log', label: 'Activities', path: `/change-log/${projectId}`, isActive: false },
   ];
 
   const breadcrumbItems = [
@@ -405,7 +405,7 @@ const Databases: React.FC = () => {
                 }
               }
             } else {
-              toast.error('Failed to delete connection. Please try again.');
+              toast.error(resp.error || 'Failed to delete connection. Please try again.');
             }
           } catch (e) {
             toast.error('Failed to delete connection. Please try again.');
