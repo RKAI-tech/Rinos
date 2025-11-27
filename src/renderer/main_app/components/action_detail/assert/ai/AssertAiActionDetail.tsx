@@ -53,8 +53,7 @@ export const normalizeAssertAiAction = (source: Action): Action => {
   };
 
   cloned.action_datas = (source.action_datas || []).map(ad => {
-    if(!ad.value) return ad;
-    if (ad.value.function_code !== undefined || ad.value.function_name !== undefined) {
+    if (ad.value && (ad.value.function_code !== undefined || ad.value.function_name !== undefined)) {
       if(!ad.value.function_code || !ad.value.function_name) return ad;
       return {
       ...ad,

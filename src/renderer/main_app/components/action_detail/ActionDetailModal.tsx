@@ -1,8 +1,35 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './ActionDetailModal.css';
-import { Action as ActionGetResponse, ActionType, AssertType, Action, Element, Selector } from '../../types/actions';
-import Editor from '@monaco-editor/react';
-import { CreateType } from '../../types/actions';
+import { Action as ActionGetResponse, ActionType, Action, AssertType, Element } from '../../types/actions';
+import InputActionDetail, { normalizeInputAction } from './action/intput/InputActionDetail';
+import NavigateActionDetail, { normalizeNavigateAction } from './action/navigate/NavigateActionDetail';
+import ClickActionsDetail, { normalizeClickAction } from './action/click/ClickActionsDetail';
+import SelectActionDetail, { normalizeSelectAction } from './action/select/SelectActionDetail';
+import ChangeActionDetail, { normalizeChangeAction } from './action/change/ChangeActionDetail';
+import DragAndDropActionDetail, { normalizeDragAndDropAction } from './action/drag_and_drop/DragAndDropActionDetail';
+import KeyboardActionDetail, { normalizeKeyboardAction } from './action/key_board/KeyboardActionDetail';
+import UploadActionDetail, { normalizeUploadAction } from './action/upload/UploadActionDetail';
+import ScrollActionDetail, { normalizeScrollAction } from './action/scroll/ScrollActionDetail';
+import DatabaseExecutionActionDetail, { normalizeDatabaseExecutionAction } from './action/database_execution/DatabaseExecutionActionDetail';
+import WaitActionDetail, { normalizeWaitAction } from './action/wait/WaitActionDetail';
+import ReloadBackForwardActionDetail, { normalizeReloadBackForwardAction } from './action/reload_back_forward_action/ReloadBackForwardActionDetail';
+import WindowResizeActionDetail, { normalizeWindowResizeAction } from './action/window_resize/WindowResizeActionDetail';
+import ApiRequestActionDetail, { normalizeApiRequestAction } from './action/api_request/ApiRequestActionDetail';
+import AddBrowserStorageActionDetail, { normalizeAddBrowserStorageAction } from './action/add_browser_storage/AddBrowserStorageActionDetail';
+import PageActionDetail, { normalizePageAction } from './action/page_action/PageActionDetail';
+import AssertWithValueActionDetail, {
+  isAssertWithValueType,
+  normalizeAssertWithValueAction,
+} from './assert/assert_with_value/AssertWithValueActionDetail';
+import AssertWithoutValueActionDetail, {
+  isAssertWithoutValueType,
+  normalizeAssertWithoutValueAction,
+} from './assert/assert_without_value/AssertWithoutValueActionDetail';
+import AssertAiActionDetail, {
+  isAiAssertType,
+  normalizeAssertAiAction,
+} from './assert/ai/AssertAiActionDetail';
+import DefaultActionDetail from './default/DefaultActionDetail';
 
 interface Props {
   isOpen: boolean;
@@ -18,7 +45,7 @@ const mapFromResponse = (src: ActionGetResponse): Action => ({
   description: src.description,
   action_datas: src.action_datas,
   elements: (src.elements || []) as any,
-  assert_type: src.assert_type as any
+  assert_type: src.assert_type as any,
 });
 
 const mapToResponse = (src: Action): ActionGetResponse => ({
@@ -35,379 +62,313 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
   const [draft, setDraft] = useState<Action | null>(null);
 
   useEffect(() => {
-    setDraft(action ? mapFromResponse(action) : null);
-  }, [action, isOpen]);
-
-  const updateField = (key: keyof Action, value: any) => {
-    setDraft(prev => (prev ? { ...prev, [key]: value } : prev));
-  };
-
-  const updateElement = (index: number, updater: (el: Element) => Element) => {
-    setDraft(prev => {
-      if (!prev) return prev;
-      const elements = (prev.elements || []).map((el, idx) => (idx === index ? updater({ ...el }) : el));
-      return { ...prev, elements };
-    });
-  };
-
-  const updateStatementQuery = (sql: string) => {
-    setDraft(prev => {
-      if (!prev) return prev;
-      const next = { ...prev } as Action;
-      next.action_datas = (next.action_datas || []).map(ad => ({
-        ...ad,
-        statement: { ...(ad.statement || { statement_id: '', query: '', create_type: CreateType.system }), query: sql },
-      }));
-      return next;
-    });
-  };
-
-  const updateActionDataValue = (value: string) => {
-    setDraft(prev => {
-      if (!prev) return prev;
-      const next = { ...prev } as Action;
-      next.action_datas = (next.action_datas || []).map((ad, idx) => 
-        idx === 0 
-          ? { ...ad, value: { ...(ad.value || {}), value } }
-          : ad
-      );
-      // Ensure at least one action_data exists
-      if (!next.action_datas || next.action_datas.length === 0) {
-        next.action_datas = [{ value: { value } }];
-      }
-      return next;
-    });
-  };
-
-  const addNewSelector = (elementIndex: number) => {
-    updateElement(elementIndex, cur => ({ ...cur, selectors: [{ value: '' }, ...(cur.selectors || [])] }));
-  };
-
-  const updateSelector = (elementIndex: number, selectorIndex: number, value: string) => {
-    updateElement(elementIndex, cur => {
-      const next = [...(cur.selectors || [])];
-      next[selectorIndex] = { value };
-      return { ...cur, selectors: next };
-    });
-  };
-
-  const removeSelector = (elementIndex: number, selectorIndex: number) => {
-    updateElement(elementIndex, cur => {
-      const next = [...(cur.selectors || [])];
-      next.splice(selectorIndex, 1);
-      return { ...cur, selectors: next };
-    });
-  };
-
-  const visibility = useMemo(() => {
-    const type = draft?.action_type as ActionType | undefined;
-    const base = {
-      showSelectors: true,
-      showValue: false,
-      valueLabel: 'Value',
-      showSelectedValue: false,
-      showChecked: false,
-      showAssertType: false,
-    };
-    if (!type) return base;
-    switch (type) {
-      case ActionType.navigate:
-        return { ...base, showSelectors: false, showValue: true, valueLabel: 'URL' };
-      case ActionType.database_execution:
-        // hide selectors/value; render dedicated SQL section below
-        return { ...base, showSelectors: false, showValue: false };
-      case ActionType.input:
-        return { ...base, showSelectors: true, showValue: true };
-      case ActionType.click:
-      case ActionType.double_click:
-      case ActionType.right_click:
-      case ActionType.shift_click:
-        return { ...base, showSelectors: true };
-      case ActionType.select:
-        return { ...base, showSelectors: true, showSelectedValue: true };
-      case ActionType.checkbox:
-        return { ...base, showSelectors: true, showChecked: true };
-      case ActionType.change:
-        return { ...base, showSelectors: true, showValue: true };
-      case ActionType.drag_and_drop:
-      case ActionType.drag_start:
-      case ActionType.drag_end:
-      case ActionType.drag_over:
-      case ActionType.drag_leave:
-      case ActionType.drop:
-        return { ...base, showSelectors: true };
-      case ActionType.keydown:
-      case ActionType.keyup:
-      case ActionType.keypress:
-        return { ...base, showSelectors: true, showValue: true, valueLabel: 'Key' };
-      case ActionType.upload:
-        return { ...base, showSelectors: true, showValue: true, valueLabel: 'File Path' };
-      case ActionType.scroll:
-        return { ...base, showSelectors: true, showValue: true, valueLabel: 'Position' };
-      case ActionType.connect_db:
-        return { ...base, showSelectors: false };
-      case ActionType.assert:
-        return { ...base, showAssertType: true };
-      case ActionType.wait:
-        return { ...base, showValue: true, valueLabel: 'Milliseconds' ,showSelectors: false};
-      case ActionType.reload:
-        return { ...base, showSelectors: false, showValue: false };
-      case ActionType.back:
-        return { ...base, showSelectors: false, showValue: false };
-      case ActionType.forward:
-        return { ...base, showSelectors: false, showValue: false };
-      default:
-        return base;
+    if (isOpen && action) {
+      setDraft(mapFromResponse(action));
+    } else {
+      setDraft(null);
     }
-  }, [draft?.action_type]);
+  }, [isOpen, action]);
 
-  const assertConfig = useMemo(() => {
-    if ((draft?.action_type as any) !== ActionType.assert) return null;
-    const t = draft?.assert_type as AssertType | undefined;
-    const base = { showSelectors: true, requiresValue: false, valueLabel: 'Value', valueInputType: 'text' as 'text'|'url'|'number', showAccessibleName: false, valuePlaceholder: undefined as string | undefined };
-    if (!t) return base;
-    switch (t) {
-      case AssertType.toBeChecked:
-      case AssertType.toBeUnchecked:
-      case AssertType.toBeDisabled:
-      case AssertType.toBeEditable:
-      case AssertType.toBeReadOnly:
-      case AssertType.toBeEmpty:
-      case AssertType.toBeEnabled:
-      case AssertType.toBeFocused:
-      case AssertType.toBeHidden:
-      case AssertType.toBeVisible:
-        return { ...base, requiresValue: false };
-      case AssertType.toContainText:
-      case AssertType.toHaveAccessibleDescription:
-      case AssertType.toHaveAccessibleName:
-      case AssertType.toHaveText:
-      case AssertType.toHaveValue:
-      case AssertType.toHaveValues:
-        return { ...base, requiresValue: true, valueLabel: 'Expected', valueInputType: 'text', valuePlaceholder: t === AssertType.toHaveValues ? 'Comma-separated values' : undefined };
-      case AssertType.toHaveCount:
-        return { ...base, requiresValue: true, valueLabel: 'Count', valueInputType: 'number' };
-      case AssertType.toHaveRole:
-        return { ...base, requiresValue: true, valueLabel: 'Role', showAccessibleName: true };
-      case AssertType.pageHasATitle:
-        return { ...base, showSelectors: false, requiresValue: true, valueLabel: 'Title', valueInputType: 'text' };
-      case AssertType.pageHasAURL:
-        return { ...base, showSelectors: false, requiresValue: true, valueLabel: 'URL', valueInputType: 'url', valuePlaceholder: 'https://example.com' };
-      default:
-        return base;
-    }
-  }, [draft?.assert_type, draft?.action_type]);
-
-  const generateAssertDescription = (type?: AssertType, expected: string = ''): string => {
-    switch (type) {
-      case AssertType.toBeChecked: return 'Assert element is checked';
-      case AssertType.toBeUnchecked: return 'Assert element is unchecked';
-      case AssertType.toBeDisabled: return 'Assert element is disabled';
-      case AssertType.toBeEditable: return 'Assert element is editable';
-      case AssertType.toBeReadOnly: return 'Assert element is read-only';
-      case AssertType.toBeEmpty: return 'Assert element is empty';
-      case AssertType.toBeEnabled: return 'Assert element is enabled';
-      case AssertType.toBeFocused: return 'Assert element is focused';
-      case AssertType.toBeHidden: return 'Assert element is hidden';
-      case AssertType.toBeVisible: return 'Assert element is visible';
-      case AssertType.toContainText: return `Assert element contains text "${expected}"`;
-      case AssertType.toHaveAccessibleName: return `Assert element has accessible name "${expected}"`;
-      case AssertType.toHaveAccessibleDescription: return `Assert element has accessible description "${expected}"`;
-      case AssertType.toHaveText: return `Assert element has text "${expected}"`;
-      case AssertType.toHaveValue: return `Assert element has value "${expected}"`;
-      case AssertType.toHaveValues: return `Assert element has values "${expected}"`;
-      case AssertType.toHaveCount: return `Assert element count equals ${expected}`;
-      case AssertType.toHaveRole: return `Assert element has role "${expected}"`;
-      case AssertType.pageHasATitle: return `Assert page title equals "${expected}"`;
-      case AssertType.pageHasAURL: return `Assert page URL equals "${expected}"`;
-      default: return 'Assert';
-    }
-  };
-
-  const handleAssertTypeChange = (nextType: AssertType) => {
-    setDraft(prev => {
-      if (!prev) return prev;
-      const next: Action = { ...prev, assert_type: nextType } as any;
-      next.description = generateAssertDescription(nextType, next.action_datas?.[0]?.value?.["value"] || '');
-      return next;
-    });
-  };
-
-  const normalizeForSave = (src: Action): Action => {
-    const cloned: Action = {
-      ...src,
-      elements: (src.elements || []).map(el => ({
-        ...el,
-        selectors: (el.selectors || [])
-          .map(s => ({ value: (s.value || '').trim() }))
-          .filter(s => s.value.length > 0)
-      })),
-    };
-    if ((cloned.action_type as any) === ActionType.assert) {
-      const noValueAsserts: AssertType[] = [
-        AssertType.toBeChecked,
-        AssertType.toBeUnchecked,
-        AssertType.toBeDisabled,
-        AssertType.toBeEditable,
-        AssertType.toBeReadOnly,
-        AssertType.toBeEmpty,
-        AssertType.toBeEnabled,
-        AssertType.toBeFocused,
-        AssertType.toBeHidden,
-        AssertType.toBeVisible,
-      ];
-      if (cloned.assert_type && (noValueAsserts as any).includes(cloned.assert_type)) {
-        cloned.action_datas = (cloned.action_datas || []).map(ad => ({
-          ...ad,
-          value: {
-            value: '',
-          },
-        }));
-      }
-    }
-    return cloned;
-  };
-
-  // Handle ESC key to close modal
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && isOpen) {
         onClose();
       }
     };
-
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
     }
-
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
-  
-  if (!isOpen || !draft) return null;
+
+  const updateDraft = (updater: (prev: Action) => Action) => {
+    setDraft(prev => (prev ? updater(prev) : prev));
+  };
+
+  const updateField = (key: keyof Action, value: any) => {
+    setDraft(prev => (prev ? { ...prev, [key]: value } as Action : prev));
+  };
+
+  const updateElement = (index: number, updater: (el: Element) => Element) => {
+    setDraft(prev => {
+      if (!prev) return prev;
+      const elements = (prev.elements || []).map((el, idx) => (idx === index ? updater({ ...el }) : el));
+      return { ...prev, elements } as Action;
+    });
+  };
+
+  const addNewSelector = (elementIndex: number) => {
+    updateElement(elementIndex, cur => ({
+      ...cur,
+      selectors: [{ value: '' }, ...(cur.selectors || [])],
+    }));
+  };
+
+  const updateSelector = (elementIndex: number, selectorIndex: number, value: string) => {
+    updateElement(elementIndex, cur => {
+      const newSelectors = [...(cur.selectors || [])];
+      newSelectors[selectorIndex] = { value };
+      return { ...cur, selectors: newSelectors };
+    });
+  };
+
+  const removeSelector = (elementIndex: number, selectorIndex: number) => {
+    updateElement(elementIndex, cur => {
+      const newSelectors = [...(cur.selectors || [])];
+      newSelectors.splice(selectorIndex, 1);
+      return { ...cur, selectors: newSelectors };
+    });
+  };
+
+  const normalizeActionForSave = (source: Action): Action => {
+    const cloned: Action = {
+      ...source,
+      elements: (source.elements || []).map(el => ({
+        ...el,
+        selectors: (el.selectors || [])
+          .map(s => ({ value: (s.value || '').trim() }))
+          .filter(s => s.value.length > 0),
+      })),
+    };
+
+    cloned.action_datas = (source.action_datas ?? []).map(ad => {
+      if(!ad.value) return ad;
+      if (!("value" in ad.value)) return ad;
+      return {
+      ...ad,
+      value: {
+          value: String(ad.value.value),
+        },
+      };
+    });
+
+    return cloned;
+  };
 
   const handleSave = () => {
-    if (draft && onSave) {
-      onSave(mapToResponse(normalizeForSave(draft)));
+    if (!draft) {
+      onClose();
+      return;
+    }
+
+    let normalized: Action;
+    if (draft.action_type === ActionType.input) {
+      normalized = normalizeInputAction(draft);
+    } else if (draft.action_type === ActionType.navigate) {
+      normalized = normalizeNavigateAction(draft);
+    } else if (
+      draft.action_type === ActionType.click ||
+      draft.action_type === ActionType.double_click ||
+      draft.action_type === ActionType.right_click ||
+      draft.action_type === ActionType.shift_click
+    ) {
+      normalized = normalizeClickAction(draft);
+    } else if (draft.action_type === ActionType.select) {
+      normalized = normalizeSelectAction(draft);
+    } else if (draft.action_type === ActionType.change) {
+      normalized = normalizeChangeAction(draft);
+    } else if (
+      draft.action_type === ActionType.drag_and_drop ||
+      draft.action_type === ActionType.drag_start ||
+      draft.action_type === ActionType.drag_end ||
+      draft.action_type === ActionType.drop
+    ) {
+      normalized = normalizeDragAndDropAction(draft);
+    } else if (
+      draft.action_type === ActionType.keydown ||
+      draft.action_type === ActionType.keyup ||
+      draft.action_type === ActionType.keypress
+    ) {
+      normalized = normalizeKeyboardAction(draft);
+    } else if (draft.action_type === ActionType.upload) {
+      normalized = normalizeUploadAction(draft);
+    } else if (draft.action_type === ActionType.scroll) {
+      normalized = normalizeScrollAction(draft);
+    } else if (draft.action_type === ActionType.database_execution) {
+      normalized = normalizeDatabaseExecutionAction(draft);
+    } else if (draft.action_type === ActionType.wait) {
+      normalized = normalizeWaitAction(draft);
+    } else if (
+      draft.action_type === ActionType.reload ||
+      draft.action_type === ActionType.back ||
+      draft.action_type === ActionType.forward
+    ) {
+      normalized = normalizeReloadBackForwardAction(draft);
+    } else if (draft.action_type === ActionType.window_resize) {
+      normalized = normalizeWindowResizeAction(draft);
+    } else if (draft.action_type === ActionType.api_request) {
+      normalized = normalizeApiRequestAction(draft);
+    } else if (draft.action_type === ActionType.add_browser_storage) {
+      normalized = normalizeAddBrowserStorageAction(draft);
+    } else if (draft.action_type === ActionType.assert && isAiAssertType(draft.assert_type)) {
+      normalized = normalizeAssertAiAction(draft);
+    } else if (draft.action_type === ActionType.assert && isAssertWithValueType(draft.assert_type)) {
+      normalized = normalizeAssertWithValueAction(draft);
+    } else if (draft.action_type === ActionType.assert && isAssertWithoutValueType(draft.assert_type)) {
+      normalized = normalizeAssertWithoutValueAction(draft);
+    } else if (
+      draft.action_type === ActionType.page_create ||
+      draft.action_type === ActionType.page_close ||
+      draft.action_type === ActionType.page_focus
+    ) {
+      normalized = normalizePageAction(draft);
+    } else {
+      normalized = normalizeActionForSave(draft);
+    }
+
+    if (onSave) {
+      onSave(mapToResponse(normalized));
     }
     onClose();
   };
 
+  if (!isOpen || !draft) return null;
+
   return (
     <div className="ma-action-detail-overlay" onClick={onClose}>
-      <div className="ma-action-detail-container" onClick={(e) => e.stopPropagation()}>
+      <div className="ma-action-detail-container" onClick={e => e.stopPropagation()}>
         <div className="ma-action-detail-header">
           <h3 className="ma-action-detail-title">Action Detail</h3>
-          <button className="ma-action-detail-close" onClick={onClose}>✕</button>
+          <button className="ma-action-detail-close" onClick={onClose}>
+            ✕
+          </button>
         </div>
         <div className="ma-action-detail-content">
-          <div className="rcd-action-detail-section">
-            <div className="rcd-action-detail-section-title">General</div>
-            <div className="rcd-action-detail-grid">
-              <div className="rcd-action-detail-kv">
-                <label className="rcd-action-detail-kv-label">Type</label>
-                <div className="rcd-action-detail-kv-value"><code>{String(draft.action_type)}</code></div>
-              </div>
-              <div className="rcd-action-detail-kv">
-                <label className="rcd-action-detail-kv-label">Description</label>
-                <input className="rcd-action-detail-input" value={draft.description || ''} onChange={(e) => updateField('description', e.target.value)} placeholder="Enter action description" />
-              </div>
-              {visibility.showAssertType && (
-                <div className="rcd-action-detail-kv">
-                  <label className="rcd-action-detail-kv-label">Assert Type <span className="rcd-required">*</span></label>
-                  <select className="rcd-action-detail-input" value={String(draft.assert_type || '')} onChange={(e) => handleAssertTypeChange(e.target.value as unknown as AssertType)}>
-                    <option value="">-- Select assert type --</option>
-                    {Object.values(AssertType).map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-              )}
-              {(draft.action_type === ActionType.assert ? Boolean((assertConfig as any)?.requiresValue) : visibility.showValue) && (
-                <div className="rcd-action-detail-kv">
-                  <label className="rcd-action-detail-kv-label">{assertConfig ? (assertConfig as any).valueLabel : visibility.valueLabel}</label>
-                  <input className="rcd-action-detail-input" value={draft.action_datas?.[0]?.value?.["value"] || ''} onChange={(e) => updateActionDataValue(e.target.value)} placeholder={`Enter ${(assertConfig ? (assertConfig as any).valueLabel : visibility.valueLabel).toLowerCase()}`} />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {(draft.action_type !== ActionType.database_execution && (assertConfig ? (assertConfig as any).showSelectors : visibility.showSelectors)) && (
-            <div className="rcd-action-detail-section">
-              <div className="rcd-action-detail-section-title">Elements</div>
-              <div className="rcd-action-detail-list">
-                {(draft.elements && draft.elements.length > 0 ? draft.elements : [{ selectors: [] as Selector[] } as Element]).map((el, idx) => (
-                  <div key={idx} className="rcd-action-detail-list-item">
-                    <div className="rcd-action-detail-kv">
-                      <div className="rcd-action-detail-kv-label-container">
-                        <label className="rcd-action-detail-kv-label">Selectors</label>
-                        <button type="button" className="rcd-action-detail-add-btn" onClick={() => addNewSelector(idx)}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                          Add Selector
-                        </button>
-                      </div>
-                      <div className="rcd-action-detail-selectors-list">
-                        {(el.selectors || []).length > 0 ? (
-                          (el.selectors || []).map((s, sIdx) => (
-                            <div key={sIdx} className="rcd-action-detail-selector-item">
-                              <input className="rcd-action-detail-input" value={s.value || ''} onChange={(e) => updateSelector(idx, sIdx, e.target.value)} placeholder="Enter CSS selector" />
-                              <button type="button" className="rcd-action-detail-remove-btn" onClick={() => removeSelector(idx, sIdx)}>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                              </button>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="rcd-action-detail-no-selectors">No selectors. Click "Add Selector" to add one.</div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {draft.action_type === ActionType.input ? (
+            <InputActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+              updateElement={updateElement}
+              addNewSelector={addNewSelector}
+              updateSelector={updateSelector}
+              removeSelector={removeSelector}
+            />
+          ) : draft.action_type === ActionType.navigate ? (
+            <NavigateActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+          ) : draft.action_type === ActionType.click ||
+            draft.action_type === ActionType.double_click ||
+            draft.action_type === ActionType.right_click ||
+            draft.action_type === ActionType.shift_click ? (
+            <ClickActionsDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+              updateElement={updateElement}
+              addNewSelector={addNewSelector}
+              updateSelector={updateSelector}
+              removeSelector={removeSelector}
+            />
+          ) : draft.action_type === ActionType.select ? (
+            <SelectActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+              updateElement={updateElement}
+              addNewSelector={addNewSelector}
+              updateSelector={updateSelector}
+              removeSelector={removeSelector}
+            />
+          ) : draft.action_type === ActionType.change ? (
+            <ChangeActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+              updateElement={updateElement}
+              addNewSelector={addNewSelector}
+              updateSelector={updateSelector}
+              removeSelector={removeSelector}
+            />
+          ) : draft.action_type === ActionType.drag_and_drop ||
+            draft.action_type === ActionType.drag_start ||
+            draft.action_type === ActionType.drag_end ||
+            draft.action_type === ActionType.drop ? (
+            <DragAndDropActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+              updateElement={updateElement}
+              addNewSelector={addNewSelector}
+              updateSelector={updateSelector}
+              removeSelector={removeSelector}
+            />
+          ) : draft.action_type === ActionType.keydown ||
+            draft.action_type === ActionType.keyup ||
+            draft.action_type === ActionType.keypress ? (
+            <KeyboardActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+              updateElement={updateElement}
+              addNewSelector={addNewSelector}
+              updateSelector={updateSelector}
+              removeSelector={removeSelector}
+            />
+          ) : draft.action_type === ActionType.upload ? (
+            <UploadActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+              updateElement={updateElement}
+              addNewSelector={addNewSelector}
+              updateSelector={updateSelector}
+              removeSelector={removeSelector}
+            />
+          ) : draft.action_type === ActionType.scroll ? (
+            <ScrollActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+              updateElement={updateElement}
+              addNewSelector={addNewSelector}
+              updateSelector={updateSelector}
+              removeSelector={removeSelector}
+            />
+          ) : draft.action_type === ActionType.database_execution ? (
+            <DatabaseExecutionActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+          ) : draft.action_type === ActionType.wait ? (
+            <WaitActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+          ) : draft.action_type === ActionType.reload ||
+            draft.action_type === ActionType.back ||
+            draft.action_type === ActionType.forward ? (
+            <ReloadBackForwardActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+          ) : draft.action_type === ActionType.window_resize ? (
+            <WindowResizeActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+              updateElement={updateElement}
+              addNewSelector={addNewSelector}
+              updateSelector={updateSelector}
+              removeSelector={removeSelector}
+            />
+          ) : draft.action_type === ActionType.api_request ? (
+            <ApiRequestActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+          ) : draft.action_type === ActionType.add_browser_storage ? (
+            <AddBrowserStorageActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+          ) : draft.action_type === ActionType.assert && isAiAssertType(draft.assert_type) ? (
+            <AssertAiActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+          ) : draft.action_type === ActionType.page_create ||
+            draft.action_type === ActionType.page_close ||
+            draft.action_type === ActionType.page_focus ? (
+            <PageActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+          ) : draft.action_type === ActionType.assert && isAssertWithoutValueType(draft.assert_type) ? (
+            <AssertWithoutValueActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+          ) : draft.action_type === ActionType.assert && isAssertWithValueType(draft.assert_type) ? (
+            <AssertWithValueActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+          ) : (
+            <DefaultActionDetail draft={draft} updateField={updateField} />
           )}
 
-          {(draft.action_type !== ActionType.database_execution && draft.action_datas?.[0]?.value?.["playwright_code"]) && (
-            <div className="rcd-action-detail-section">
-              <div className="rcd-action-detail-section-title">Playwright</div>
-              <div className="rcd-action-detail-editor">
-                <Editor
-                  value={draft.action_datas?.[0]?.value?.["playwright_code"] || ''}
-                  language="javascript"
-                  theme="vs"
-                  onChange={(value) => updateField('action_datas', value || '')}
-                  options={{
-                    minimap: { enabled: false },
-                    fontSize: 13,
-                    lineHeight: 21,
-                    wordWrap: 'off',
-                    scrollBeyondLastLine: false,
-                    automaticLayout: true,
-                    readOnly: false,
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          {draft.action_type === ActionType.database_execution && (
-            <div className="rcd-action-detail-section">
-              <div className="rcd-action-detail-section-title">Database</div>
-              <div className="rcd-action-detail-kv">
-                <label className="rcd-action-detail-kv-label">SQL Query</label>
-                <textarea
-                  className="rcd-action-detail-input"
-                  style={{ minHeight: '120px', fontFamily: 'monospace' }}
-                  value={(draft.action_datas?.[0]?.statement?.query || '')}
-                  onChange={(e) => updateStatementQuery(e.target.value)}
-                  placeholder="SELECT * FROM table_name;"
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="rcd-action-detail-footer">
-            <button className="rcd-action-detail-btn" onClick={onClose}>Cancel</button>
-            <button className="rcd-action-detail-btn primary" onClick={handleSave}>Save</button>
+          <div className="ma-action-detail-footer">
+            <button className="ma-adm-btn" onClick={onClose}>
+              Cancel
+            </button>
+            <button className="ma-adm-btn primary" onClick={handleSave}>
+              Save
+            </button>
           </div>
         </div>
       </div>
@@ -416,5 +377,4 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
 };
 
 export default MAActionDetailModal;
-
 

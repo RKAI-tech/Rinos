@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Action, Element } from '../../../../types/actions';
 import '../../ActionDetailModal.css';
 
-interface KeyboardActionDetailProps {
+interface WindowResizeActionDetailProps {
   draft: Action;
   updateDraft: (updater: (prev: Action) => Action) => void;
   updateField: (key: keyof Action, value: any) => void;
@@ -12,8 +12,8 @@ interface KeyboardActionDetailProps {
   removeSelector: (elementIndex: number, selectorIndex: number) => void;
 }
 
-// Export normalize function for keyboard actions (keydown, keyup, keypress)
-export const normalizeKeyboardAction = (source: Action): Action => {
+// Export normalize function for window_resize action
+export const normalizeWindowResizeAction = (source: Action): Action => {
   const cloned: Action = {
     ...source,
     // Ensure elements selectors are trimmed and non-empty
@@ -25,25 +25,44 @@ export const normalizeKeyboardAction = (source: Action): Action => {
     })),
   };
 
-  // For keyboard action, normalize all action_datas that have value
-  // Preserve all existing properties in action_datas
+  // For window_resize action, normalize all action_datas that have value
+  // Preserve all existing properties in action_datas (like page_index, elementText)
   cloned.action_datas = (source.action_datas ?? []).map(ad => {
-    // If this action_data has a value property, normalize it
-    if (!ad.value) return ad;
+    if(!ad.value) return ad;
     if (!("value" in ad.value)) return ad;
-      return {
-        ...ad,
-        value: {
-          ...(ad.value || {}),
-          value: String(ad.value.value),
-        }
-      };
+    return {
+      ...ad,
+      value: {
+        ...(ad.value || {}),
+        value: String(ad.value.value),
+      }
+    }
   });
 
   return cloned;
 };
 
-const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
+// Parse value từ format "Width:100, Height:200" thành {width: 100, height: 200}
+const parseWindowResizeValue = (value: string): { width: string; height: string } => {
+  if (!value) return { width: '', height: '' };
+  
+  const widthMatch = value.match(/Width\s*:\s*(\d+)/i);
+  const heightMatch = value.match(/Height\s*:\s*(\d+)/i);
+  
+  return {
+    width: widthMatch ? widthMatch[1] : '',
+    height: heightMatch ? heightMatch[1] : '',
+  };
+};
+
+// Combine width và height thành format "Width:width, Height:height"
+const combineWindowResizeValue = (width: string, height: string): string => {
+  const widthVal = width.trim() || '0';
+  const heightVal = height.trim() || '0';
+  return `Width:${widthVal}, Height:${heightVal}`;
+};
+
+const WindowResizeActionDetail: React.FC<WindowResizeActionDetailProps> = ({
   draft,
   updateDraft,
   updateField,
@@ -52,26 +71,30 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
   updateSelector,
   removeSelector,
 }) => {
-  const [keyValue, setKeyValue] = useState("");
+  const [windowWidth, setWindowWidth] = useState("");
+  const [windowHeight, setWindowHeight] = useState("");
   
   useEffect(() => {
     // Find value from any action_data in the array, not just [0]
     for (const ad of draft.action_datas || []) {
       if (ad.value?.["value"]) {
-        setKeyValue(ad.value?.["value"]);
+        const parsed = parseWindowResizeValue(ad.value["value"]);
+        setWindowWidth(parsed.width);
+        setWindowHeight(parsed.height);
         break;
       }
     }
   }, [draft.action_datas]);
 
-  // Hàm update action data value - giữ nguyên các action_data khác
-  const updateActionDataValue = (value: string) => {
+  // Hàm update action data value - giữ nguyên các action_data khác (như page_index, elementText)
+  const updateActionDataValue = (width: string, height: string) => {
+    const combinedValue = combineWindowResizeValue(width, height);
     updateDraft(prev => {
       const next = { ...prev } as Action;
       const actionDatas = [...(next.action_datas || [])];
       
-      // Tìm action_data có value property, nếu không có thì tạo mới
-      let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined);
+      // Tìm action_data có value property với value field, nếu không có thì tạo mới
+      let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined && ad.value?.["value"] !== undefined);
       if (foundIndex === -1) {
         // Tạo action_data mới nếu chưa có
         actionDatas.push({ value: {} });
@@ -83,7 +106,7 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
         ...actionDatas[foundIndex],
         value: {
           ...(actionDatas[foundIndex].value || {}),
-          value
+          value: combinedValue
         }
       };
       
@@ -177,16 +200,35 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
             />
           </div>
           <div className="rcd-action-detail-kv">
-            <label className="rcd-action-detail-kv-label">Key</label>
+            <label className="rcd-action-detail-kv-label">Width</label>
             <input
+              type="number"
               className="rcd-action-detail-input"
-              value={keyValue}
+              value={windowWidth}
               onChange={(e) => {
-                const newValue = e.target.value;
-                setKeyValue(newValue);
-                updateActionDataValue(newValue);
+                const newWidth = e.target.value;
+                setWindowWidth(newWidth);
+                updateActionDataValue(newWidth, windowHeight);
               }}
-              placeholder="Enter key (e.g., Ctrl+Shift+KeyA, Enter, Tab)"
+              placeholder="Enter window width"
+              min="0"
+              step="1"
+            />
+          </div>
+          <div className="rcd-action-detail-kv">
+            <label className="rcd-action-detail-kv-label">Height</label>
+            <input
+              type="number"
+              className="rcd-action-detail-input"
+              value={windowHeight}
+              onChange={(e) => {
+                const newHeight = e.target.value;
+                setWindowHeight(newHeight);
+                updateActionDataValue(windowWidth, newHeight);
+              }}
+              placeholder="Enter window height"
+              min="0"
+              step="1"
             />
           </div>
         </div>
@@ -197,5 +239,5 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
   );
 };
 
-export default KeyboardActionDetail;
+export default WindowResizeActionDetail;
 

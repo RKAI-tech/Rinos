@@ -12,8 +12,18 @@ const formatActionType = (type?: string) => {
   if (!type) return '';
   return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 };
-
-const formatValue = (value?: string) => {
+const formatDescription = (description?: string) => {
+  if (!description) return '';
+  return description.length > 50 ? description.substring(0, 50) + '...' : description;
+};
+const formatValue = (action: ActionGetResponse) => {
+  let value = '';
+  for (const action_data of action.action_datas || []) {
+    if (action_data.value?.["value"]) {
+      value = action_data.value?.["value"];
+      break;
+    }
+  }
   if (!value) return '';
   return value.length > 50 ? value.substring(0, 50) + '...' : value;
 };
@@ -23,8 +33,8 @@ const MAAction: React.FC<MAActionProps> = ({ action, onEdit, onDelete }) => {
     <div className="ma-action">
       <div className="ma-action-icon">?</div>
       <div className="ma-action-body">
-        <div className="ma-action-title">{action.description || formatActionType(String(action.action_type))}</div>
-        {formatValue(action.action_datas?.[0]?.value?.["value"]) && <div className="ma-action-value">{formatValue(action.action_datas?.[0]?.value?.["value"])}</div>}
+        <div className="ma-action-title">{formatDescription(action.description) || formatActionType(String(action.action_type))}</div>
+        {formatValue(action) && <div className="ma-action-value">{formatValue(action)}</div>}
       </div>
       <div className="ma-action-actions">
         <button type="button" className="ma-action-btn" title="Edit" onClick={(e) => { e.stopPropagation(); onEdit && onEdit(action); }}>

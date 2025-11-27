@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Action, Element } from '../../../../types/actions';
 import '../../ActionDetailModal.css';
 
-interface KeyboardActionDetailProps {
+interface ChangeActionDetailProps {
   draft: Action;
   updateDraft: (updater: (prev: Action) => Action) => void;
   updateField: (key: keyof Action, value: any) => void;
@@ -12,8 +12,8 @@ interface KeyboardActionDetailProps {
   removeSelector: (elementIndex: number, selectorIndex: number) => void;
 }
 
-// Export normalize function for keyboard actions (keydown, keyup, keypress)
-export const normalizeKeyboardAction = (source: Action): Action => {
+// Export normalize function for change action
+export const normalizeChangeAction = (source: Action): Action => {
   const cloned: Action = {
     ...source,
     // Ensure elements selectors are trimmed and non-empty
@@ -25,25 +25,31 @@ export const normalizeKeyboardAction = (source: Action): Action => {
     })),
   };
 
-  // For keyboard action, normalize all action_datas that have value
+  // For change action, normalize all action_datas that have value and checked
   // Preserve all existing properties in action_datas
   cloned.action_datas = (source.action_datas ?? []).map(ad => {
-    // If this action_data has a value property, normalize it
-    if (!ad.value) return ad;
+    if(!ad.value) return ad;
     if (!("value" in ad.value)) return ad;
+    // If this action_data has a value property, normalize value and checked
+    if (ad.value !== undefined) {
       return {
         ...ad,
         value: {
           ...(ad.value || {}),
-          value: String(ad.value.value),
-        }
+          value: (ad.value?.["value"] ?? '').toString(),
+          checked: Boolean(ad.value?.["checked"]),
+          elementText: (ad.value?.["elementText"] ?? '').toString(),
+        },
       };
+    }
+    // Otherwise, keep it as is
+    return ad;
   });
 
   return cloned;
 };
 
-const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
+const ChangeActionDetail: React.FC<ChangeActionDetailProps> = ({
   draft,
   updateDraft,
   updateField,
@@ -52,20 +58,30 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
   updateSelector,
   removeSelector,
 }) => {
-  const [keyValue, setKeyValue] = useState("");
+  const [changeValue, setChangeValue] = useState("");
+  const [checked, setChecked] = useState(false);
+  const [elementText, setElementText] = useState("");
   
   useEffect(() => {
-    // Find value from any action_data in the array, not just [0]
+    // Find value, checked, and elementText from any action_data in the array
     for (const ad of draft.action_datas || []) {
-      if (ad.value?.["value"]) {
-        setKeyValue(ad.value?.["value"]);
+      if (ad.value) {
+        if (ad.value["value"] !== undefined) {
+          setChangeValue(ad.value["value"]);
+        }
+        if (ad.value["checked"] !== undefined) {
+          setChecked(Boolean(ad.value["checked"]));
+        }
+        if (ad.value["elementText"] !== undefined) {
+          setElementText(ad.value["elementText"]);
+        }
         break;
       }
     }
   }, [draft.action_datas]);
 
-  // Hàm update action data value - giữ nguyên các action_data khác
-  const updateActionDataValue = (value: string) => {
+  // Hàm update action data checked - tự động cập nhật value thành "on" hoặc "off"
+  const updateActionDataChecked = (checked: boolean) => {
     updateDraft(prev => {
       const next = { ...prev } as Action;
       const actionDatas = [...(next.action_datas || [])];
@@ -78,12 +94,14 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
         foundIndex = actionDatas.length - 1;
       }
       
-      // Cập nhật action_data tại foundIndex, giữ nguyên các action_data khác
+      // Cập nhật action_data tại foundIndex, tự động set value theo checked
+      // checked = true => value = "on", checked = false => value = "off"
       actionDatas[foundIndex] = {
         ...actionDatas[foundIndex],
         value: {
           ...(actionDatas[foundIndex].value || {}),
-          value
+          checked,
+          value: checked ? "on" : "off"
         }
       };
       
@@ -177,18 +195,37 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
             />
           </div>
           <div className="rcd-action-detail-kv">
-            <label className="rcd-action-detail-kv-label">Key</label>
-            <input
-              className="rcd-action-detail-input"
-              value={keyValue}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                setKeyValue(newValue);
-                updateActionDataValue(newValue);
-              }}
-              placeholder="Enter key (e.g., Ctrl+Shift+KeyA, Enter, Tab)"
-            />
+            <label className="rcd-action-detail-kv-label">Checked</label>
+            <div className="rcd-action-detail-kv-value">
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(e) => {
+                  const newChecked = e.target.checked;
+                  setChecked(newChecked);
+                  setChangeValue(newChecked ? "on" : "off");
+                  updateActionDataChecked(newChecked);
+                }}
+              />
+              <span style={{ marginLeft: '8px' }}>{checked ? 'On' : 'Off'}</span>
+            </div>
           </div>
+          {changeValue && (
+            <div className="rcd-action-detail-kv">
+              <label className="rcd-action-detail-kv-label">Value</label>
+              <div className="rcd-action-detail-kv-value">
+                <span>{changeValue}</span>
+              </div>
+            </div>
+          )}
+          {elementText && (
+            <div className="rcd-action-detail-kv">
+              <label className="rcd-action-detail-kv-label">Element Text</label>
+              <div className="rcd-action-detail-kv-value">
+                <span>{elementText}</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -197,5 +234,5 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
   );
 };
 
-export default KeyboardActionDetail;
+export default ChangeActionDetail;
 

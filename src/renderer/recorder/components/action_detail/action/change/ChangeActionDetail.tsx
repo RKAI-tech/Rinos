@@ -29,19 +29,17 @@ export const normalizeChangeAction = (source: Action): Action => {
   // Preserve all existing properties in action_datas
   cloned.action_datas = (source.action_datas ?? []).map(ad => {
     // If this action_data has a value property, normalize value and checked
-    if (ad.value !== undefined) {
+    if (!ad.value) return ad;
+    if (!("checked" in ad.value)) return ad;
       return {
         ...ad,
         value: {
           ...(ad.value || {}),
-          value: (ad.value?.["value"] ?? '').toString(),
+          value: String(ad.value.value),
           checked: Boolean(ad.value?.["checked"]),
-          elementText: (ad.value?.["elementText"] ?? '').toString(),
-        },
+          elementText: String(ad.value.elementText),
+        }
       };
-    }
-    // Otherwise, keep it as is
-    return ad;
   });
 
   return cloned;

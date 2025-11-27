@@ -29,17 +29,15 @@ export const normalizeWindowResizeAction = (source: Action): Action => {
   // Preserve all existing properties in action_datas (like page_index, elementText)
   cloned.action_datas = (source.action_datas ?? []).map(ad => {
     // If this action_data has a value property, normalize it
-    if (ad.value !== undefined) {
+    if (!ad.value) return ad;
+    if (!("value" in ad.value)) return ad;
       return {
         ...ad,
         value: {
           ...(ad.value || {}),
-          value: (ad.value?.["value"] ?? '').toString(),
-        },
+          value: String(ad.value.value),
+        }
       };
-    }
-    // Otherwise, keep it as is
-    return ad;
   });
 
   return cloned;

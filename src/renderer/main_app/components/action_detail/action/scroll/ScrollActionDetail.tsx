@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Action, Element } from '../../../../types/actions';
 import '../../ActionDetailModal.css';
 
-interface KeyboardActionDetailProps {
+interface ScrollActionDetailProps {
   draft: Action;
   updateDraft: (updater: (prev: Action) => Action) => void;
   updateField: (key: keyof Action, value: any) => void;
@@ -12,8 +12,8 @@ interface KeyboardActionDetailProps {
   removeSelector: (elementIndex: number, selectorIndex: number) => void;
 }
 
-// Export normalize function for keyboard actions (keydown, keyup, keypress)
-export const normalizeKeyboardAction = (source: Action): Action => {
+// Export normalize function for scroll action
+export const normalizeScrollAction = (source: Action): Action => {
   const cloned: Action = {
     ...source,
     // Ensure elements selectors are trimmed and non-empty
@@ -25,25 +25,44 @@ export const normalizeKeyboardAction = (source: Action): Action => {
     })),
   };
 
-  // For keyboard action, normalize all action_datas that have value
+  // For scroll action, normalize all action_datas that have value
   // Preserve all existing properties in action_datas
   cloned.action_datas = (source.action_datas ?? []).map(ad => {
-    // If this action_data has a value property, normalize it
-    if (!ad.value) return ad;
+    if(!ad.value) return ad;
     if (!("value" in ad.value)) return ad;
-      return {
-        ...ad,
-        value: {
-          ...(ad.value || {}),
-          value: String(ad.value.value),
-        }
-      };
+    return {
+      ...ad,
+      value: {
+        ...(ad.value || {}),
+        value: String(ad.value.value),
+      }
+    }
   });
 
   return cloned;
 };
 
-const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
+// Parse value từ format "X:100, Y:200" thành {x: 100, y: 200}
+const parseScrollValue = (value: string): { x: string; y: string } => {
+  if (!value) return { x: '', y: '' };
+  
+  const xMatch = value.match(/X:\s*(\d+)/);
+  const yMatch = value.match(/Y:\s*(\d+)/);
+  
+  return {
+    x: xMatch ? xMatch[1] : '',
+    y: yMatch ? yMatch[1] : '',
+  };
+};
+
+// Combine x và y thành format "X:x, Y:y"
+const combineScrollValue = (x: string, y: string): string => {
+  const xVal = x.trim() || '0';
+  const yVal = y.trim() || '0';
+  return `X:${xVal}, Y:${yVal}`;
+};
+
+const ScrollActionDetail: React.FC<ScrollActionDetailProps> = ({
   draft,
   updateDraft,
   updateField,
@@ -52,20 +71,24 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
   updateSelector,
   removeSelector,
 }) => {
-  const [keyValue, setKeyValue] = useState("");
+  const [scrollX, setScrollX] = useState("");
+  const [scrollY, setScrollY] = useState("");
   
   useEffect(() => {
     // Find value from any action_data in the array, not just [0]
     for (const ad of draft.action_datas || []) {
       if (ad.value?.["value"]) {
-        setKeyValue(ad.value?.["value"]);
+        const parsed = parseScrollValue(ad.value["value"]);
+        setScrollX(parsed.x);
+        setScrollY(parsed.y);
         break;
       }
     }
   }, [draft.action_datas]);
 
   // Hàm update action data value - giữ nguyên các action_data khác
-  const updateActionDataValue = (value: string) => {
+  const updateActionDataValue = (x: string, y: string) => {
+    const combinedValue = combineScrollValue(x, y);
     updateDraft(prev => {
       const next = { ...prev } as Action;
       const actionDatas = [...(next.action_datas || [])];
@@ -83,7 +106,7 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
         ...actionDatas[foundIndex],
         value: {
           ...(actionDatas[foundIndex].value || {}),
-          value
+          value: combinedValue
         }
       };
       
@@ -177,16 +200,31 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
             />
           </div>
           <div className="rcd-action-detail-kv">
-            <label className="rcd-action-detail-kv-label">Key</label>
+            <label className="rcd-action-detail-kv-label">Position X</label>
             <input
+              type="number"
               className="rcd-action-detail-input"
-              value={keyValue}
+              value={scrollX}
               onChange={(e) => {
-                const newValue = e.target.value;
-                setKeyValue(newValue);
-                updateActionDataValue(newValue);
+                const newX = e.target.value;
+                setScrollX(newX);
+                updateActionDataValue(newX, scrollY);
               }}
-              placeholder="Enter key (e.g., Ctrl+Shift+KeyA, Enter, Tab)"
+              placeholder="Enter X position"
+            />
+          </div>
+          <div className="rcd-action-detail-kv">
+            <label className="rcd-action-detail-kv-label">Position Y</label>
+            <input
+              type="number"
+              className="rcd-action-detail-input"
+              value={scrollY}
+              onChange={(e) => {
+                const newY = e.target.value;
+                setScrollY(newY);
+                updateActionDataValue(scrollX, newY);
+              }}
+              placeholder="Enter Y position"
             />
           </div>
         </div>
@@ -197,5 +235,5 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
   );
 };
 
-export default KeyboardActionDetail;
+export default ScrollActionDetail;
 

@@ -28,13 +28,13 @@ export const normalizeAssertWithValueAction = (source: Action): Action => {
   cloned.action_datas = (source.action_datas || []).map(ad => {
     if(!ad.value) return ad;
     if (!("value" in ad.value)) return ad;
-    return {
+      return {
       ...ad,
       value: {
         ...(ad.value || {}),
         value: String(ad.value.value),
       }
-    };
+    }
   });
 
   return cloned;

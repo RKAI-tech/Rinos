@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Action, Element } from '../../../../types/actions';
 import '../../ActionDetailModal.css';
 
-interface KeyboardActionDetailProps {
+interface ClickActionsDetailProps {
   draft: Action;
   updateDraft: (updater: (prev: Action) => Action) => void;
   updateField: (key: keyof Action, value: any) => void;
@@ -12,8 +12,8 @@ interface KeyboardActionDetailProps {
   removeSelector: (elementIndex: number, selectorIndex: number) => void;
 }
 
-// Export normalize function for keyboard actions (keydown, keyup, keypress)
-export const normalizeKeyboardAction = (source: Action): Action => {
+// Export normalize function for click actions (click, double_click, right_click, shift_click)
+export const normalizeClickAction = (source: Action): Action => {
   const cloned: Action = {
     ...source,
     // Ensure elements selectors are trimmed and non-empty
@@ -25,25 +25,13 @@ export const normalizeKeyboardAction = (source: Action): Action => {
     })),
   };
 
-  // For keyboard action, normalize all action_datas that have value
-  // Preserve all existing properties in action_datas
-  cloned.action_datas = (source.action_datas ?? []).map(ad => {
-    // If this action_data has a value property, normalize it
-    if (!ad.value) return ad;
-    if (!("value" in ad.value)) return ad;
-      return {
-        ...ad,
-        value: {
-          ...(ad.value || {}),
-          value: String(ad.value.value),
-        }
-      };
-  });
+  // For click actions, preserve all action_datas as is (no value normalization needed)
+  cloned.action_datas = source.action_datas || [];
 
   return cloned;
 };
 
-const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
+const ClickActionsDetail: React.FC<ClickActionsDetailProps> = ({
   draft,
   updateDraft,
   updateField,
@@ -52,46 +40,6 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
   updateSelector,
   removeSelector,
 }) => {
-  const [keyValue, setKeyValue] = useState("");
-  
-  useEffect(() => {
-    // Find value from any action_data in the array, not just [0]
-    for (const ad of draft.action_datas || []) {
-      if (ad.value?.["value"]) {
-        setKeyValue(ad.value?.["value"]);
-        break;
-      }
-    }
-  }, [draft.action_datas]);
-
-  // Hàm update action data value - giữ nguyên các action_data khác
-  const updateActionDataValue = (value: string) => {
-    updateDraft(prev => {
-      const next = { ...prev } as Action;
-      const actionDatas = [...(next.action_datas || [])];
-      
-      // Tìm action_data có value property, nếu không có thì tạo mới
-      let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined);
-      if (foundIndex === -1) {
-        // Tạo action_data mới nếu chưa có
-        actionDatas.push({ value: {} });
-        foundIndex = actionDatas.length - 1;
-      }
-      
-      // Cập nhật action_data tại foundIndex, giữ nguyên các action_data khác
-      actionDatas[foundIndex] = {
-        ...actionDatas[foundIndex],
-        value: {
-          ...(actionDatas[foundIndex].value || {}),
-          value
-        }
-      };
-      
-      next.action_datas = actionDatas;
-      return next;
-    });
-  };
-
   const renderElements = () => {
     if (!draft.elements || draft.elements.length === 0) {
       return <div className="rcd-action-detail-empty">No elements</div>;
@@ -176,19 +124,6 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
               placeholder="Enter action description"
             />
           </div>
-          <div className="rcd-action-detail-kv">
-            <label className="rcd-action-detail-kv-label">Key</label>
-            <input
-              className="rcd-action-detail-input"
-              value={keyValue}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                setKeyValue(newValue);
-                updateActionDataValue(newValue);
-              }}
-              placeholder="Enter key (e.g., Ctrl+Shift+KeyA, Enter, Tab)"
-            />
-          </div>
         </div>
       </div>
 
@@ -197,5 +132,5 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
   );
 };
 
-export default KeyboardActionDetail;
+export default ClickActionsDetail;
 

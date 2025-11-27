@@ -17,16 +17,16 @@ export const normalizeNavigateAction = (source: Action): Action => {
   // For navigate action, normalize all action_datas that have value
   // Preserve all existing properties in action_datas
   cloned.action_datas = (source.action_datas ?? []).map(ad => {
-    // If this action_data has a value property, normalize it
-    if (!ad.value) return ad;
+    if(!ad.value) return ad;
     if (!("value" in ad.value)) return ad;
-      return {
-        ...ad,
-        value: {
-          ...(ad.value || {}),
-            value: String(ad.value.value),
-        }
-      };
+    return {
+      ...ad,
+      value: {
+        ...(ad.value || {}),
+        value:String(ad.value.value),
+      }
+    }
+    return ad;
   });
 
   return cloned;
@@ -39,6 +39,7 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
 }) => {
   const [url, setUrl] = useState("");
   useEffect(() => {
+    console.log(draft.action_datas);
     for (const ad of draft.action_datas || []) {
       if (ad.value?.["value"]) {
         setUrl(ad.value?.["value"]);
@@ -49,6 +50,7 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
 
   // Hàm update action data value - giữ nguyên các action_data khác
   const updateActionDataValue = (value: string) => {
+    console.log("action_datas before update", draft.action_datas);
     updateDraft(prev => {
       const next = { ...prev } as Action;
       const actionDatas = [...(next.action_datas || [])];
@@ -69,7 +71,6 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
           value
         }
       };
-      
       next.action_datas = actionDatas;
       return next;
     });

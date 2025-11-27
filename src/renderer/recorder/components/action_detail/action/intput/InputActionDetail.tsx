@@ -28,13 +28,15 @@ export const normalizeInputAction = (source: Action): Action => {
   // For input action, normalize all action_datas that have value
   // Preserve all existing properties in action_datas
   cloned.action_datas = (source.action_datas ?? []).map(ad => {
+    if(!ad.value) return ad;
+    if (!("value" in ad.value)) return ad;
     // If this action_data has a value property, normalize it
     if (ad.value !== undefined) {
       return {
         ...ad,
         value: {
           ...(ad.value || {}),
-          value: (ad.value?.["value"] ?? '').toString(),
+          value: String(ad.value.value),
         },
       };
     }

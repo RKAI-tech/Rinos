@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Action, Element } from '../../../../types/actions';
 import '../../ActionDetailModal.css';
 
-interface KeyboardActionDetailProps {
+interface InputActionDetailProps {
   draft: Action;
   updateDraft: (updater: (prev: Action) => Action) => void;
   updateField: (key: keyof Action, value: any) => void;
@@ -12,8 +12,8 @@ interface KeyboardActionDetailProps {
   removeSelector: (elementIndex: number, selectorIndex: number) => void;
 }
 
-// Export normalize function for keyboard actions (keydown, keyup, keypress)
-export const normalizeKeyboardAction = (source: Action): Action => {
+// Export normalize function for input action
+export const normalizeInputAction = (source: Action): Action => {
   const cloned: Action = {
     ...source,
     // Ensure elements selectors are trimmed and non-empty
@@ -25,25 +25,25 @@ export const normalizeKeyboardAction = (source: Action): Action => {
     })),
   };
 
-  // For keyboard action, normalize all action_datas that have value
+  // For input action, normalize all action_datas that have value
   // Preserve all existing properties in action_datas
   cloned.action_datas = (source.action_datas ?? []).map(ad => {
-    // If this action_data has a value property, normalize it
-    if (!ad.value) return ad;
+    if(!ad.value) return ad;
     if (!("value" in ad.value)) return ad;
-      return {
-        ...ad,
-        value: {
-          ...(ad.value || {}),
-          value: String(ad.value.value),
-        }
-      };
+    // If this action_data has a value property, normalize it
+    return {
+      ...ad,
+      value: {
+        ...(ad.value || {}),
+        value: String(ad.value.value),
+      }
+    }
   });
 
   return cloned;
 };
 
-const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
+const InputActionDetail: React.FC<InputActionDetailProps> = ({
   draft,
   updateDraft,
   updateField,
@@ -52,13 +52,13 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
   updateSelector,
   removeSelector,
 }) => {
-  const [keyValue, setKeyValue] = useState("");
+  const [inputValue, setInputValue] = useState("");
   
   useEffect(() => {
     // Find value from any action_data in the array, not just [0]
     for (const ad of draft.action_datas || []) {
       if (ad.value?.["value"]) {
-        setKeyValue(ad.value?.["value"]);
+        setInputValue(ad.value?.["value"]);
         break;
       }
     }
@@ -177,16 +177,16 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
             />
           </div>
           <div className="rcd-action-detail-kv">
-            <label className="rcd-action-detail-kv-label">Key</label>
+            <label className="rcd-action-detail-kv-label">Value</label>
             <input
               className="rcd-action-detail-input"
-              value={keyValue}
+              value={inputValue}
               onChange={(e) => {
                 const newValue = e.target.value;
-                setKeyValue(newValue);
+                setInputValue(newValue);
                 updateActionDataValue(newValue);
               }}
-              placeholder="Enter key (e.g., Ctrl+Shift+KeyA, Enter, Tab)"
+              placeholder="Enter value"
             />
           </div>
         </div>
@@ -197,5 +197,5 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
   );
 };
 
-export default KeyboardActionDetail;
+export default InputActionDetail;
 
