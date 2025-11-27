@@ -24,6 +24,8 @@
     "dist:linux-appimage": "npm run build && electron-builder --linux AppImage",
     "dist:linux-deb": "npm run build && electron-builder --linux deb",
     "dist:linux-snap": "npm run build && electron-builder --linux snap",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:mac-universal": "npm run build && electron-builder --mac universal",
     "test": "electron .",
     "vite:dev": "vite build --mode development && vite"
   },
@@ -109,6 +111,30 @@
         ]
       }
     ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "images/icon.icns",
+      "category": "public.app-category.developer-tools",
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist",
+      "gatekeeperAssess": false
+    },
     "linux": {
       "target": [
         {
