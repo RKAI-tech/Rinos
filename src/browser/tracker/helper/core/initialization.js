@@ -4,7 +4,7 @@ import { initializeNavigationPrevention, setAssertMode as setNavAssertMode } fro
 import { handleClickEvent } from './eventHandlers.js';
 import { setPauseMode } from '../actions/baseAction.js';
 import { handleDoubleClickEvent, handleRightClickEvent, handleShiftClickEvent } from '../actions/click_handle.js';
-import { generateSelector, validateAndImproveSelector } from '../selector_generator/selectorGenerator.js';
+import { generateSelector, validateAndImproveSelector, generateAndValidateSelectors } from '../selector_generator/selectorGenerator.js';
 import { previewNode, extractElementText } from '../dom/domUtils.js';
 import { showAssertInputModal, closeAssertInputModal } from '../components/modals/assertInputModal.js';
 import { handleTextInputEvent } from '../actions/text_input_handle.js';
@@ -78,10 +78,6 @@ function handleAssertCaptureBlocking(e) {
   }
 }
 
-/**
- * Handle assert click logic when in assert mode
- * Xử lý logic click assert khi đang ở chế độ assert
- */
 function handleAssertClick(e) {
   processAssertClick(e);
 }
@@ -89,8 +85,9 @@ function handleAssertClick(e) {
 function processAssertClick(e) {
   const assertType = window.currentAssertType || 'toBeVisible';
   try {
-    const rawSelector = generateSelector(e.target, { minScore: 200 });
-    const selector = validateAndImproveSelector(rawSelector, e.target);
+    // const rawSelector = generateSelector(e.target, { minScore: 200 });
+    // const selector = validateAndImproveSelector(rawSelector, e.target);
+    const selector = generateAndValidateSelectors(e.target, { minScore: 200 });
     const elementType = e.target.tagName.toLowerCase();
     const elementPreview = previewNode(e.target);
     const elementText = extractElementText(e.target);
@@ -114,35 +111,19 @@ function processAssertClick(e) {
         defaultValue,
         rect,
         (finalValue, connection, connection_id, query, apiRequest) => {
-          // console.log('[processAssertClick] onConfirm callback called:', {
-          //   finalValue,
-          //   hasConnection: !!connection,
-          //   hasQuery: !!query,
-          //   hasApiRequest: !!apiRequest,
-          //   apiRequest: apiRequest
-          // });
           sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement, apiRequest);
         },
         () => {
         }
       );
     } else {
-      // console.log('[processAssertClick] No modal needed, sending assert action directly');
       sendAssertAction(selector, assertType, '', elementType, elementPreview, elementText, undefined, undefined, undefined, DOMelement, undefined);
     }
   } catch (error) {
   }
 }
 
-function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement, apiRequest) {
-  // console.log('[sendAssertAction] Called with:', {
-  //   assertType,
-  //   value,
-  //   hasQuery: !!query,
-  //   hasApiRequest: !!apiRequest,
-  //   apiRequest: apiRequest
-  // });
-  
+function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement, apiRequest) {  
   if (window.sendActionToMain) {
     const action = {
       action_type: 'assert',
@@ -214,18 +195,14 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
         }
       ]
     }
-    // console.log('[sendAssertAction] Sending action to main:', action);
     window.sendActionToMain(action);
     closeAssertInputModal();
-    // console.log('[sendAssertAction] Action sent successfully');
   } else {
-    // console.warn('[sendAssertAction] window.sendActionToMain is not available');
   }
 
 }
 
 export function initBrowserControls() {
-  // Load Font Awesome if not already loaded
   if (!document.querySelector('link[href*="font-awesome"]')) {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -239,7 +216,6 @@ export function initBrowserControls() {
 }
 
 export function initializeEventListeners() {
-  // Enhanced input tracking
   document.addEventListener('input', handleTextInputEvent,true);
   // document.addEventListener('change', handleCheckboxRadioChangeEvent);
   document.addEventListener('change', handleSelectChangeEvent,true);
@@ -250,11 +226,8 @@ export function initializeEventListeners() {
   document.addEventListener('dragstart', handleDragStartEvent,true);
   document.addEventListener('drop', handleDropEvent,true);
   document.addEventListener('contextmenu', handleRightClickEvent,true);
-  // Scroll tracking (passive)
   window.addEventListener('scroll', handleScrollEvent, { passive: true });
-  // Capture internal container scrolls as well
   document.addEventListener('scroll', handleScrollEvent, { passive: true, capture: true });
-  // Window resize tracking (passive)
   window.addEventListener('resize', handleWindowResizeEvent, { passive: true });
 
   // Add capture phase event blocker for assert mode - blocks specific events only

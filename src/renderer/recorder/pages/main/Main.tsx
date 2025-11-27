@@ -236,7 +236,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId }) => {
         const next = receiveActionWithInsert(testcaseId, prev, action, selectedInsertPosition);
         const added = next.length > prev.length;
         if (added) {
-          console.log(`${next.length}, ${prev.length}`);
+          // console.log(`${next.length}, ${prev.length}`);
           setSelectedInsertPosition((p) => p+1);
         }
         setIsDirty(true);

@@ -2,7 +2,7 @@ import { BrowserWindow, app, ipcMain, screen } from "electron";
 import { MainEnv } from "./env.js";
 import path from "path";
 
-const isDev = false;
+const isDev = true;
 const __dirnameResolved = __dirname;
 const iconFileNamePng="images/icon.png";
 const iconFileNameIco="images/icon.ico";
