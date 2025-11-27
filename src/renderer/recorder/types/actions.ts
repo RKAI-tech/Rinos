@@ -4,7 +4,6 @@ export enum ActionType {
   input = "input",
   click = "click",
   select = "select",
-  checkbox = "checkbox",
   change = "change",
   drag_and_drop = "drag_and_drop",
   drag_start = "drag_start",
