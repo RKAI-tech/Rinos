@@ -20,9 +20,10 @@ interface EditTestcaseProps {
   onClose: () => void;
   onSave: (data: { testcase_id: string; name: string; description: string | undefined; basic_authentication?: { username: string; password: string }; actions?: any[] }) => void;
   testcase: MinimalTestcase | null;
+  projectId?: string;
 }
 
-const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, testcase }) => {
+const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, testcase, projectId }) => {
   const [testcaseName, setTestcaseName] = useState('');
   const [testcaseTag, setTestcaseTag] = useState('');
   const [basicAuth, setBasicAuth] = useState<{ username: string; password: string } | null>(null);
@@ -357,6 +358,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
           action={selectedAction}
           onClose={() => setSelectedAction(null)}
           onSave={(updated) => setActions(prev => prev.map(x => x.action_id === updated.action_id ? updated : x))}
+          projectId={projectId}
         />
       </div>
     </div>

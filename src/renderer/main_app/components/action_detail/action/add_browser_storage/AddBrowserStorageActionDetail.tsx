@@ -2,13 +2,14 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Action } from '../../../../types/actions';
 import { BrowserStorageResponse } from '../../../../types/browser_storage';
 import { BrowserStorageListItem } from '../../../../types/browser_storage';
-import { browserStorageService } from '../../../../services/browser_storage';
+import { BrowserStorageService } from '../../../../services/browser_storage';
 import '../../ActionDetailModal.css';
 
 interface AddBrowserStorageActionDetailProps {
   draft: Action;
   updateDraft: (updater: (prev: Action) => Action) => void;
   updateField: (key: keyof Action, value: any) => void;
+  projectId?: string;
 }
 
 export const normalizeAddBrowserStorageAction = (source: Action): Action => {
@@ -26,7 +27,9 @@ const AddBrowserStorageActionDetail: React.FC<AddBrowserStorageActionDetailProps
   draft,
   updateDraft,
   updateField,
+  projectId,
 }) => {
+  const browserStorageService = useMemo(() => new BrowserStorageService(), []);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [browserStorages, setBrowserStorages] = useState<BrowserStorageListItem[]>([]);
@@ -40,13 +43,16 @@ const AddBrowserStorageActionDetail: React.FC<AddBrowserStorageActionDetailProps
       try {
         setIsLoading(true);
         setError(null);
-        const projectId = await (window as any).browserAPI?.browser?.getProjectId?.();
-        if (!projectId) {
+        let effectiveProjectId = projectId;
+        if (!effectiveProjectId) {
+          effectiveProjectId = await (window as any).browserAPI?.browser?.getProjectId?.();
+        }
+        if (!effectiveProjectId) {
           setBrowserStorages([]);
           setError('Project ID not found');
           return;
         }
-        const resp = await browserStorageService.getBrowserStoragesByProject(projectId);
+        const resp = await browserStorageService.getBrowserStoragesByProject(effectiveProjectId);
         if (resp.success && resp.data) {
           setBrowserStorages(resp.data.items || []);
         } else {
@@ -61,7 +67,7 @@ const AddBrowserStorageActionDetail: React.FC<AddBrowserStorageActionDetailProps
       }
     };
     loadBrowserStorages();
-  }, []);
+  }, [browserStorageService, projectId]);
 
   // Load current selected browser storage from draft
   useEffect(() => {

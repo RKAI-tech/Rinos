@@ -23,9 +23,10 @@ interface DuplicateTestcaseProps {
   // Function provided by parent page to create testcase with actions
   createTestcaseWithActions: (name: string, tag?: string, actions?: Action[], basic_authentication?: { username: string; password: string }) => Promise<boolean>;
   testcase: MinimalTestcase | null;
+  projectId?: string;
 }
 
-const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, onSave, createTestcaseWithActions, testcase }) => {
+const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, onSave, createTestcaseWithActions, testcase, projectId }) => {
   const [testcaseName, setTestcaseName] = useState('');
   const [testcaseTag, setTestcaseTag] = useState('');
   const [basicAuth, setBasicAuth] = useState<{ username: string; password: string } | null>(null);
@@ -354,6 +355,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
           action={selectedAction}
           onClose={() => setSelectedAction(null)}
           onSave={(updated) => setActions(prev => prev.map(x => x.action_id === updated.action_id ? updated : x))}
+          projectId={projectId}
         />
       </div>
     </div>

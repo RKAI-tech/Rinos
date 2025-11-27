@@ -881,6 +881,7 @@ const Testcases: React.FC = () => {
         onClose={handleCloseEditModal}
         onSave={handleSaveEditTestcase}
         testcase={selectedTestcase ? { testcase_id: selectedTestcase.testcase_id, name: selectedTestcase.name, description: selectedTestcase.description, basic_authentication: selectedTestcase.basic_authentication } : null}
+        projectId={projectData?.projectId}
       />
 
       {/* Delete Testcase Modal */}
@@ -898,6 +899,7 @@ const Testcases: React.FC = () => {
         onSave={handleSaveDuplicateTestcase}
         createTestcaseWithActions={createTestcaseWithActions}
         testcase={selectedTestcase ? { testcase_id: selectedTestcase.testcase_id, name: selectedTestcase.name, description: selectedTestcase.description, basic_authentication: selectedTestcase.basic_authentication } : null}
+        projectId={projectData?.projectId}
       />
 
       {/* Run And View Testcase Modal */}

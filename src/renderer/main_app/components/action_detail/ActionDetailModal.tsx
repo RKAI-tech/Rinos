@@ -36,6 +36,7 @@ interface Props {
   action: ActionGetResponse | null;
   onClose: () => void;
   onSave?: (updated: ActionGetResponse) => void;
+  projectId?: string;
 }
 
 const mapFromResponse = (src: ActionGetResponse): Action => ({
@@ -58,7 +59,7 @@ const mapToResponse = (src: Action): ActionGetResponse => ({
   assert_type: (src.assert_type as any) || undefined,
 });
 
-const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave }) => {
+const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave, projectId }) => {
   const [draft, setDraft] = useState<Action | null>(null);
 
   useEffect(() => {
@@ -347,7 +348,12 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave 
           ) : draft.action_type === ActionType.api_request ? (
             <ApiRequestActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
           ) : draft.action_type === ActionType.add_browser_storage ? (
-            <AddBrowserStorageActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+            <AddBrowserStorageActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+              projectId={projectId}
+            />
           ) : draft.action_type === ActionType.assert && isAiAssertType(draft.assert_type) ? (
             <AssertAiActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
           ) : draft.action_type === ActionType.page_create ||
