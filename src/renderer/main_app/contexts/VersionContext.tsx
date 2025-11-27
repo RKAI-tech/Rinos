@@ -46,8 +46,8 @@ export const VersionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       try {
         const response = await versionCheckService.checkVersion(currentVersion);
         if (!cancelled && response.success && response.data) {
-          const { latest_version } = response.data;
-          const isNewer = latest_version && latest_version !== currentVersion;
+          const { is_latest, latest_version } = response.data;
+          const isNewer = !is_latest;
           setLatestVersion(latest_version || '');
           setHasUpdate(Boolean(isNewer));
           if (isNewer) {

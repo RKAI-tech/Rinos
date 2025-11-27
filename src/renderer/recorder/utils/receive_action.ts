@@ -4,8 +4,26 @@ import { BrowserStorageResponse } from "../types/browser_storage";
 export function createDescription(action_received: any): string {
     const type = action_received.action_type;
     let value = action_received.action_datas?.[0]?.value?.value;
+    for (const action_data of action_received.action_datas || []) {
+        if (action_data.value?.value) {
+            value = action_data.value?.value;
+            break;
+        }
+    }
     let element = action_received.action_datas?.[0]?.value?.elementText;
+    for (const action_data of action_received.action_datas || []) {
+        if (action_data.value?.elementText) {
+            element = action_data.value?.elementText;
+            break;
+        }
+    }
     let files = action_received.action_datas?.[0]?.files?.map((f: any) => f.name).join(', ') || '';
+    for (const action_data of action_received.action_datas || []) {
+        if (action_data.files) {
+            files = action_data.files.map((f: any) => f.name).join(', ') || '';
+            break;
+        }
+    }
     switch (type) {
         case ActionType.navigate:
             return `Navigate to ${value}`;
@@ -15,8 +33,6 @@ export function createDescription(action_received: any): string {
             return `Enter ${value} into ${element}`;
         case ActionType.select:
             return `Select ${value} from ${element}`;
-        case ActionType.checkbox:
-            return `Check ${element}`;
         case ActionType.double_click:
             return `Double click on ${element}`;
         case ActionType.right_click:
@@ -56,11 +72,25 @@ export function createDescription(action_received: any): string {
         case ActionType.wait:
             return `Wait for ${value} ms`;
         case ActionType.database_execution:
-            return `Execute database query: ${action_received.action_datas?.[0]?.statement?.statement_text}`;
+            let statement_text = action_received.action_datas?.[0]?.statement?.statement_text;
+            for (const action_data of action_received.action_datas || []) {
+                if (action_data.statement?.statement_text) {
+                    statement_text = action_data.statement?.statement_text;
+                    break;
+                }
+            }
+            return `Execute database query: ${statement_text}`;
         case ActionType.scroll:
                 return `Scroll viewport`;
         case ActionType.add_browser_storage:
-            return `Add browser storage ${action_received.action_datas?.[0]?.browser_storage?.name}`;
+            let browser_storage_name = action_received.action_datas?.[0]?.browser_storage?.name;
+            for (const action_data of action_received.action_datas || []) {
+                if (action_data.browser_storage?.name) {
+                    browser_storage_name = action_data.browser_storage?.name;
+                    break;
+                }
+            }
+            return `Add browser storage ${browser_storage_name}`;
         case ActionType.assert:
             switch (action_received.assert_type) {
                 case AssertType.toHaveText:
@@ -107,7 +137,13 @@ export function createDescription(action_received: any): string {
                 
             }
         case ActionType.page_focus:
-                const title = action_received.action_datas?.[0]?.value?.title ||action_received.action_datas?.[0]?.value?.url ||'';
+                let title = action_received.action_datas?.[0]?.value?.title ||action_received.action_datas?.[0]?.value?.url ||'';
+                for (const action_data of action_received.action_datas || []) {
+                    if (action_data.value?.title) {
+                        title = action_data.value?.title;
+                        break;
+                    }
+                }
     
                 return `Focus on page ${title} `;
         case ActionType.page_create:
@@ -129,7 +165,13 @@ export function createDescription(action_received: any): string {
             }
             return `Close page ${pageUrlClose}`;
         case ActionType.api_request:
-            const apiRequest = action_received.action_datas?.[0]?.api_request;
+            let apiRequest = action_received.action_datas?.[0]?.api_request;
+            for (const action_data of action_received.action_datas || []) {
+                if (action_data.api_request) {
+                    apiRequest = action_data.api_request;
+                    break;
+                }
+            }
             const method = apiRequest?.method ? apiRequest.method.toUpperCase() : 'GET';
             const url = apiRequest?.url || '';
             return `API Request: ${method} ${url}`;

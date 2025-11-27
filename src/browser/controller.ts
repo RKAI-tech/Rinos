@@ -40,9 +40,11 @@ export class Controller {
     }
 
     async addLocalStorage(page: Page, localStorageJSON: any): Promise<void> {
+        console.log('addLocalStorage', localStorageJSON);
         await page.evaluate((data: any) => {
             Object.entries(data).forEach(([key, value]) => {
-                localStorage.setItem(key, value as any);
+                const valid_value = typeof value === 'object' ? JSON.stringify(value) : value;
+                localStorage.setItem(key, valid_value as any);
             });
         }, JSON.parse(localStorageJSON));
         await page.reload();
@@ -51,7 +53,8 @@ export class Controller {
     async addSessionStorage(page: Page, sessionStorageJSON: any): Promise<void> {
         await page.evaluate((data: any) => {
             Object.entries(data).forEach(([key, value]) => {
-                sessionStorage.setItem(key, value as any);
+                const valid_value = typeof value === 'object' ? JSON.stringify(value) : value;
+                sessionStorage.setItem(key, valid_value as any);
             });
         }, JSON.parse(sessionStorageJSON));
         await page.reload();
@@ -61,8 +64,11 @@ export class Controller {
         if (!page) {
             throw new Error('Browser page not found');
         }
+        try {
+            await page.goto(url);
+        } catch (error) {
 
-        await page.goto(url);
+        }
     }
 
     async reload(page: Page): Promise<void> {
@@ -162,17 +168,19 @@ export class Controller {
                     options.data = formBody;
                 }
             }
-        } catch { try { 
-            // console.log('[Controller][API] Build options error'); 
-        } catch { } }
+        } catch {
+            try {
+                // console.log('[Controller][API] Build options error'); 
+            } catch { }
+        }
 
         // Execute
         const method = ((apiData.method as any) || 'get').toLowerCase();
-        try { 
+        try {
             // console.log('[Controller][API] Sending request', { method, url, hasHeaders: Object.keys(headers).length > 0 }); 
         } catch { }
         const resp = await (page.request as any)[method](url, options);
-        try { 
+        try {
             // console.log('[Controller][API] Response status:', await resp.status()); 
         } catch { }
 
@@ -219,37 +227,64 @@ export class Controller {
     }
     async resolveUniqueSelector(page: Page, selectors: string[]): Promise<string> {
         if (!page || !selectors || !Array.isArray(selectors) || selectors.length === 0) {
-            throw new Error('[Controller] Invalid inputs for resolveUniqueSelector');
+            throw new Error('resolveUniqueSelector: invalid inputs');
         }
 
-        for (const raw of selectors) {
-            const s = String(raw).trim();
-            if (!s) continue;
+        // Normalize various selector formats into Playwright locators
+        const toLocator = (s: string) => {
+            const selector = String(s).trim();
+            if (selector.startsWith('xpath=')) {
+                // Already a valid XPath with the 'xpath=' prefix
+                return page.locator(selector);
+            }
+            if (selector.startsWith('/') || selector.startsWith('(')) {
+                // Absolute or relative XPath without the prefix
+                return page.locator(`xpath=${selector}`);
+            }
+            // Otherwise treat as CSS or text selector
+            return page.locator(selector);
+        };
 
-            try {
-                let locator;
+        const locators = selectors.map(toLocator);
 
-                if (s.startsWith('xpath=') || s.startsWith('/')) {
-                    const xpathExpr = s.startsWith('xpath=') ? s.substring(6) : s;
-                    locator = page.locator(`xpath=${xpathExpr}`);
-                } else {
-                    locator = page.locator(s);
+        // Wait for selectors to be attached (exist in the DOM)
+        await Promise.allSettled(
+            locators.map(l => l.first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => { }))
+        );
+
+        // Find the first valid and visible selector
+        let minIndex = -1;
+        let minCount = Infinity;
+        for (let i = 0; i < locators.length; i++) {
+            const locator = locators[i];
+            const selector = selectors[i];
+            const count = await locator.count();
+
+            if (count === 1) {
+                // If an XPath without the prefix, return with the 'xpath=' prefix
+                if (selector.startsWith('/') || selector.startsWith('(')) {
+                    return `xpath=${selector}`;
                 }
-
-                await locator.first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => { });
-
-                const count = await locator.count();
-
-                if (count === 1) {
-                    const normalized = (s.startsWith('/') || s.startsWith('(')) ? `xpath=${s}` : s;
-                    return normalized;
-                }
-            } catch (error) {
+                // Otherwise return the original selector
+                return selector;
+            }
+            if (count > 0 && count < minCount) {
+                minCount = count;
+                minIndex = i;
             }
         }
 
-        // console.error(`[Controller] No unique selector found from:`, selectors);
-        throw new Error('[Controller] No matching selector found in ' + selectors.join(', '));
+        if (minIndex !== -1) {
+            const selector = selectors[minIndex];
+            // If an XPath without the prefix, return with the 'xpath=' prefix
+            if (selector.startsWith('/') || selector.startsWith('(')) {
+                return `xpath=${selector}`;
+            }
+            // Otherwise return the original selector
+            return selector;
+        }
+
+        throw new Error(`No matching selector found among: ${selectors.join(', ')}`);
     }
     //get page promt page index
     async getPage(pageIndex: number): Promise<Page> {
@@ -330,14 +365,16 @@ export class Controller {
                         const activePage = await this.getPage(pageIndex);
                         activePage.bringToFront();
                         // console.log('[Controller] Action:', action);
-                        if (action.action_datas?.[0]?.browser_storage) {
-                            const browser_storage = action.action_datas?.[0]?.browser_storage;
-                            if (browser_storage.storage_type === BrowserStorageType.COOKIE) {
-                                await this.addCookies(context, activePage, JSON.stringify(browser_storage.value));
-                            } else if (browser_storage.storage_type === BrowserStorageType.LOCAL_STORAGE) {
-                                await this.addLocalStorage(activePage, JSON.stringify(browser_storage.value));
-                            } else if (browser_storage.storage_type === BrowserStorageType.SESSION_STORAGE) {
-                                await this.addSessionStorage(activePage, JSON.stringify(browser_storage.value));
+                        for (const action_data of action.action_datas || []) {
+                            if (action_data.browser_storage) {
+                                const browser_storage = action_data.browser_storage;
+                                if (browser_storage.storage_type === BrowserStorageType.COOKIE) {
+                                    await this.addCookies(context, activePage, JSON.stringify(browser_storage.value));
+                                } else if (browser_storage.storage_type === BrowserStorageType.LOCAL_STORAGE) {
+                                    await this.addLocalStorage(activePage, JSON.stringify(browser_storage.value));
+                                } else if (browser_storage.storage_type === BrowserStorageType.SESSION_STORAGE) {
+                                    await this.addSessionStorage(activePage, JSON.stringify(browser_storage.value));
+                                }
                             }
                         }
                         break;
@@ -354,10 +391,26 @@ export class Controller {
                                 await activePage.click(uniqueSelector, { timeout: 5000 });
                                 // console.log(`[Controller] Clicked on unique selector: ${uniqueSelector}`);
                             } catch (error) {
-                                // console.log(`[Controller] Click failed, trying JS fallback for unique selector: ${uniqueSelector}`);
                                 const jsCode = `document.querySelector('${uniqueSelector}').click()`;
                                 await activePage.evaluate(jsCode);
                                 // console.log(`[Controller] Clicked on unique selector: ${uniqueSelector} using JS fallback`);
+                                await activePage.evaluate(jsCode);
+                            }
+                        }
+                        break;
+                        }
+                    case ActionType.double_click:
+                        {
+                            const activePage = await this.getPage(pageIndex);
+                            activePage.bringToFront();
+                        if (action.elements && action.elements.length === 1) {
+                            const selectors = action.elements[0].selectors?.map(selector => selector.value) || [];
+                            const uniqueSelector = await this.resolveUniqueSelector(activePage, selectors);
+                            try {
+                                await activePage.dblclick(uniqueSelector, { timeout: 5000 });
+                            } catch (error) {
+                                const jsCode = `document.querySelector('${uniqueSelector}').dblclick()`;
+                                await activePage.evaluate(jsCode);
                             }
                         }
                         break;
@@ -478,7 +531,7 @@ export class Controller {
                                     }
                                     // TODO: Save `content` to temp file
                                     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-                                    const tempFileName = `upload-${uniqueSuffix}-${file.file_name}`;
+                                    const tempFileName = `${file.file_name}`;
                                     const tempFilePath = path.join(tmpDir, tempFileName);
                                     // Write the file content (base64 decoding)
                                     fs.writeFileSync(tempFilePath, Buffer.from(content || '', 'base64'));

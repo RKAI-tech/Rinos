@@ -4,7 +4,7 @@ import {
   buildCommonActionData,
   sendAction
 } from './baseAction.js';
-import { extractElementText } from '../dom/domUtils.js';
+import { previewNode, extractElementText } from '../dom/domUtils.js';
 let _scrollRafId = null;
 let _pendingEvent = null;
 

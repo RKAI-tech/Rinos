@@ -115,10 +115,10 @@ export function showAssertInputModal(assertType, defaultValue, anchorRect, onCon
   insertDropdownWrap.appendChild(insertDropdownBtn);
   insertDropdownWrap.appendChild(insertMenu);
   
-  const variablesPanel = createVariablesPanel((variablePayload) => {
+  const variablesPanel = createVariablesPanel((v) => {
     // console.log('[assertInputModal] variablesPanel onConfirm called:', variablePayload);
     if (typeof onConfirm === 'function') {
-      onConfirm(variablePayload, undefined, undefined, undefined, undefined);
+      onConfirm(v.value, v.connection, v.connection_id, v.query, undefined);
     }
     closeAssertInputModal();
     variablesPanel.close();

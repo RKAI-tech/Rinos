@@ -323,7 +323,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
         setCases(mapped);
       } else {
         setCases([]);
-        toast.error('Disconnect from the server. Please try again.');
+        toast.error(resp.error || 'Failed to load test suite results. Please try again.');
       }
     } catch (e) {
       setCases([]);
@@ -372,7 +372,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       if (resp.success) {
         toast.success('Test suite execution started');
       } else {
-        toast.error('Failed to execute test suite. Please try again.');
+        toast.error(resp.error || 'Failed to execute test suite. Please try again.');
       }
     } catch (e) {
       toast.error('Failed to execute test suite. Please try again.');
@@ -506,7 +506,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       const response = await svc.exportTestSuite({ test_suite_id: testSuiteId });
       
       if (!response.success) {
-        toast.error('Failed to export test suite. Please try again.');
+        toast.error(response.error || 'Failed to export test suite. Please try again.');
         return;
       }
 
@@ -521,7 +521,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
         URL.revokeObjectURL(url);
         toast.success('Exported test suite to Excel');
       } else {
-        toast.error('No file received from server');
+        toast.error(response.error || 'No file received from server');
       }
     } catch (e) {
       toast.error('Export failed. Please try again.');

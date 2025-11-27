@@ -3,7 +3,7 @@ import { ApiResponse } from '../types/api_responses';
 import {
     VariableListResponse,
     VariableCreateRequest,
-    Variable
+    VariableWithConnectionListResponse
 } from '../types/variables';
 import { DefaultResponse } from '../types/api_responses';
 
@@ -13,6 +13,15 @@ export class VariableService {
             return { success: false, error: 'project_id is required' };
         }
         return await apiRouter.request<VariableListResponse>(`/variables/get_by_project/${projectId}`, {
+            method: 'GET'
+        });
+    }
+
+    async getVariablesWithConnection(projectId: string): Promise<ApiResponse<VariableWithConnectionListResponse>> {
+        if (!projectId) {
+            return { success: false, error: 'project_id is required' };
+        }
+        return await apiRouter.request<VariableWithConnectionListResponse>(`/variables/get_with_connection_by_project/${projectId}`, {
             method: 'GET'
         });
     }

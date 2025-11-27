@@ -1,5 +1,5 @@
 import { getPauseMode, sendAction } from './baseAction.js';
-
+import { previewNode, extractElementText } from '../dom/domUtils.js';
 let last_time_click = null;
 let clickedLinkHref = null;
 let lastURL = window.location.href;

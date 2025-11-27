@@ -134,20 +134,29 @@ export default function RenderedAction({ action, onDelete, onClick, onStartRecor
     }
   };
 
-  const renderValue = (value: string | undefined) => {
+  const renderDescription = (value: any) => {
     if (value) {
       return value.length > 50 ? value.substring(0, 50) + '...' : value;
     }
     return '';
   };
-
+  const renderValue = () => {
+    let value = '';
+    for (const action_data of action.action_datas || []) {
+      if (action_data.value?.["value"]) {
+        value = action_data.value?.["value"];
+        break;
+      }
+    }
+    return value;
+  };
   return (
     <div className="rcd-action">
       <div className="rcd-action-icon">{(index ?? 0) + 1}</div>
       <div className="rcd-action-body">
-        <div className="rcd-action-title">{renderValue(action.description) || formatActionType(action.action_type)}</div>
+        <div className="rcd-action-title">{renderDescription(action.description) || formatActionType(action.action_type)}</div>
         {/* <div className="rcd-action-meta">{getSelector()}</div> */}
-        {renderValue(action.action_datas?.[0]?.value?.["value"]) && <div className="rcd-action-value">{renderValue(action.action_datas?.[0]?.value?.["value"])}</div>}
+        {renderValue() && <div className="rcd-action-value">{renderValue()}</div>}
         {/* <div className="rcd-action-time">Order: {action.order_index}</div> */}
       </div>
       <div className="rcd-action-actions">
