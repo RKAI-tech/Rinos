@@ -313,6 +313,41 @@ export class BrowserManager extends EventEmitter {
         return null;
     }
 
+    // Determine if a URL is a default blank/new-tab/start page
+    private isDefaultNewTabPage(url: string | undefined | null): boolean {
+        if (!url) return true;
+        const normalized = url.trim().toLowerCase();
+        if (
+            !normalized ||
+            normalized === 'about:blank' ||
+            normalized === 'about:newtab' ||
+            normalized === 'about:home' ||
+            normalized === 'about:privatebrowsing'
+        ) {
+            return true;
+        }
+
+        const exactMatches = new Set([
+            'https://www.apple.com/startpage/',
+            'https://www.apple.com/startpage'
+        ]);
+        if (exactMatches.has(normalized)) return true;
+
+        const prefixes = [
+            'chrome://newtab',
+            'chrome://new-tab-page',
+            'edge://newtab',
+            'ms-browser-newtab',
+            'browser://newtab',
+            'safari-resource:/',
+            'safari-extension://',
+            'safari-web-extension://',
+            'moz-extension://',
+            'res://',
+        ];
+        return prefixes.some(prefix => normalized.startsWith(prefix));
+    }
+
     async start(
         basicAuthentication: { username: string, password: string },
         browserType?: string
@@ -370,8 +405,13 @@ export class BrowserManager extends EventEmitter {
                     launchOptions.args = [
                         '--no-sandbox',
                     ];
-                        
-           
+                    launchOptions.firefoxUserPrefs = {
+                        "browser.newtabpage.enabled": false,        // Tắt about:newtab
+                        "browser.startup.homepage": "about:blank",  // Trang mặc định
+                        "browser.newtab.preload": false,            // Ngăn preload trang mới
+                    };
+                    
+                      
                     break;
                 case BrowserType.safari:
                 case 'safari':
@@ -427,6 +467,7 @@ export class BrowserManager extends EventEmitter {
             this.isClosingContext = false;
             // Expose function một lần ở context level (cho tất cả pages)
             await this.context.exposeFunction('sendActionToMain', async (action: Action) => {
+                //log all page off context 
                 this.emit('action', action);
             });
             await this.ensureContextScripts();
@@ -480,24 +521,28 @@ export class BrowserManager extends EventEmitter {
                         openerIndex = this.pages_index.get(openerId) || 0;
                     }
                 }
+                const pageUrl = this.pages.get(pageId)?.url() || '';
+                const shouldIncludeUrl = !this.isDefaultNewTabPage(pageUrl);
                 if(opener){
+                    const actionData: any[] = [{ value: { page_index: newIndex,  opener_index: openerIndex } }];
+                    if (shouldIncludeUrl) {
+                        actionData.push({ value: { value: pageUrl } });
+                    }
                     this.emit("action", {
                         action_type: 'page_create',
                         elements: [],
-                        action_datas: [
-                            { value: { page_index: newIndex,  opener_index: openerIndex } },
-                            { value: { value: this.pages.get(pageId)?.url() || '' } }
-                        ]
+                        action_datas: actionData
                     });
                 }
                 else{
+                    const actionData: any[] = [{ value: { page_index: newIndex } }];
+                    if (shouldIncludeUrl) {
+                        actionData.push({ value: { value: pageUrl } });
+                    }
                     this.emit("action", {
                         action_type: 'page_create',
                         elements: [],
-                        action_datas: [
-                            { value: { page_index: newIndex } },
-                            { value: { value: this.pages.get(pageId)?.url() || 'blank' } }
-                        ]
+                        action_datas: actionData
                     });
                 }
                 this.emit('page-created', { pageId, index: newIndex });
