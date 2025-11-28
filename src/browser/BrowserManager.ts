@@ -130,6 +130,146 @@ export class BrowserManager extends EventEmitter {
         return false;
     }
 
+    // Check if system Chrome is installed
+    private isSystemChromeInstalled(): boolean {
+        const platform = process.platform;
+        
+        if (platform === 'win32') {
+            const systemPaths = [
+                pathenv.join(process.env.LOCALAPPDATA || '', "Google", "Chrome", "Application", "chrome.exe"),
+                pathenv.join(process.env.PROGRAMFILES || '', "Google", "Chrome", "Application", "chrome.exe"),
+                pathenv.join(process.env["PROGRAMFILES(X86)"] || '', "Google", "Chrome", "Application", "chrome.exe"),
+            ];
+            for (const systemPath of systemPaths) {
+                if (existsSync(systemPath)) return true;
+            }
+        } else if (platform === 'darwin') {
+            const systemPaths = [
+                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                pathenv.join(process.env.HOME || '', "Applications", "Google Chrome.app", "Contents", "MacOS", "Google Chrome"),
+            ];
+            for (const systemPath of systemPaths) {
+                if (existsSync(systemPath)) return true;
+            }
+        } else {
+            const systemPaths = [
+                "/usr/bin/google-chrome",
+                "/usr/bin/google-chrome-stable",
+                "/usr/bin/chromium",
+                "/usr/bin/chromium-browser",
+                "/snap/bin/chromium",
+            ];
+            for (const systemPath of systemPaths) {
+                if (existsSync(systemPath)) return true;
+            }
+        }
+        return false;
+    }
+
+    // Check if system Firefox is installed
+    private isSystemFirefoxInstalled(): boolean {
+        const platform = process.platform;
+        
+        if (platform === 'win32') {
+            const systemPaths = [
+                pathenv.join(process.env.LOCALAPPDATA || '', "Mozilla Firefox", "firefox.exe"),
+                pathenv.join(process.env.PROGRAMFILES || '', "Mozilla Firefox", "firefox.exe"),
+                pathenv.join(process.env["PROGRAMFILES(X86)"] || '', "Mozilla Firefox", "firefox.exe"),
+            ];
+            for (const systemPath of systemPaths) {
+                if (existsSync(systemPath)) return true;
+            }
+        } else if (platform === 'darwin') {
+            const systemPaths = [
+                "/Applications/Firefox.app/Contents/MacOS/firefox",
+                pathenv.join(process.env.HOME || '', "Applications", "Firefox.app", "Contents", "MacOS", "firefox"),
+            ];
+            for (const systemPath of systemPaths) {
+                if (existsSync(systemPath)) return true;
+            }
+        } else {
+            const systemPaths = [
+                "/usr/bin/firefox",
+                "/usr/bin/firefox-esr",
+                "/snap/bin/firefox",
+            ];
+            for (const systemPath of systemPaths) {
+                if (existsSync(systemPath)) return true;
+            }
+        }
+        return false;
+    }
+
+    // Check if system Safari is installed (macOS only)
+    private isSystemSafariInstalled(): boolean {
+        if (process.platform !== 'darwin') return false;
+        const systemPaths = [
+            "/Applications/Safari.app/Contents/MacOS/Safari",
+        ];
+        for (const systemPath of systemPaths) {
+            if (existsSync(systemPath)) return true;
+        }
+        return false;
+    }
+
+    // Get system Chrome executable path
+    private getSystemChromePath(): string | null {
+        const platform = process.platform;
+        const paths = platform === 'win32' 
+            ? [
+                pathenv.join(process.env.LOCALAPPDATA || '', "Google", "Chrome", "Application", "chrome.exe"),
+                pathenv.join(process.env.PROGRAMFILES || '', "Google", "Chrome", "Application", "chrome.exe"),
+                pathenv.join(process.env["PROGRAMFILES(X86)"] || '', "Google", "Chrome", "Application", "chrome.exe"),
+            ]
+            : platform === 'darwin'
+            ? [
+                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                pathenv.join(process.env.HOME || '', "Applications", "Google Chrome.app", "Contents", "MacOS", "Google Chrome"),
+            ]
+            : [
+                "/usr/bin/google-chrome",
+                "/usr/bin/google-chrome-stable",
+                "/usr/bin/chromium",
+                "/usr/bin/chromium-browser",
+            ];
+        
+        for (const p of paths) {
+            if (existsSync(p)) return p;
+        }
+        return null;
+    }
+
+    // Get system Firefox executable path
+    private getSystemFirefoxPath(): string | null {
+        const platform = process.platform;
+        const paths = platform === 'win32'
+            ? [
+                pathenv.join(process.env.LOCALAPPDATA || '', "Mozilla Firefox", "firefox.exe"),
+                pathenv.join(process.env.PROGRAMFILES || '', "Mozilla Firefox", "firefox.exe"),
+            ]
+            : platform === 'darwin'
+            ? [
+                "/Applications/Firefox.app/Contents/MacOS/firefox",
+                pathenv.join(process.env.HOME || '', "Applications", "Firefox.app", "Contents", "MacOS", "firefox"),
+            ]
+            : [
+                "/usr/bin/firefox",
+                "/usr/bin/firefox-esr",
+            ];
+        
+        for (const p of paths) {
+            if (existsSync(p)) return p;
+        }
+        return null;
+    }
+
+    // Get system Safari executable path (macOS only)
+    private getSystemSafariPath(): string | null {
+        if (process.platform !== 'darwin') return null;
+        const path = "/Applications/Safari.app/Contents/MacOS/Safari";
+        return existsSync(path) ? path : null;
+    }
+
     // Get custom Edge executable path
     private getCustomEdgePath(): string | null {
         const platform = process.platform;
@@ -192,19 +332,59 @@ export class BrowserManager extends EventEmitter {
             };
 
             switch (normalizedBrowserType) {
+                case BrowserType.chrome:
+                case 'chrome':
+                default:
+                    browserLauncher = chromium;
+                    // Priority: System Chrome > Playwright Chromium
+                    if (this.isSystemChromeInstalled()) {
+                        const chromePath = this.getSystemChromePath();
+                        if (chromePath) {
+                            launchOptions.executablePath = chromePath;
+                        } else {
+                            // Fallback to channel if path not found
+                            launchOptions.channel = 'chrome';
+                        }
+                    }
+                    // If no system Chrome, Playwright will use its bundled Chromium
+                    launchOptions.args = [
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-gpu-sandbox',
+                        '--disable-gpu',
+                        '--disable-dev-shm-usage',
+                        '--no-zygote'
+                    ];
+                    break;
                 case BrowserType.firefox:
                 case 'firefox':
                     browserLauncher = firefox;
-                    // Firefox has different launch options
+                    // Priority: System Firefox > Playwright Firefox
+                    if (this.isSystemFirefoxInstalled()) {
+                        const firefoxPath = this.getSystemFirefoxPath();
+                        if (firefoxPath) {
+                            launchOptions.executablePath = firefoxPath;
+                        }
+                    }
+                    // If no system Firefox, Playwright will download its Firefox
                     launchOptions.args = [
                         '--no-sandbox',
                     ];
+                        
+           
                     break;
                 case BrowserType.safari:
                 case 'safari':
                     browserLauncher = webkit;
+                    // Priority: System Safari > Playwright WebKit
+                    if (this.isSystemSafariInstalled()) {
+                        const safariPath = this.getSystemSafariPath();
+                        if (safariPath) {
+                            launchOptions.executablePath = safariPath;
+                        }
+                    }
+                    // If no system Safari, Playwright will use its WebKit
                     // WebKit doesn't support Chromium-specific args like --no-sandbox
-                    // Use minimal options for WebKit
                     launchOptions.args = [];
                     break;
                 case BrowserType.edge:
@@ -225,21 +405,6 @@ export class BrowserManager extends EventEmitter {
                             launchOptions.channel = 'msedge';
                         }
                     }
-                    launchOptions.args = [
-                        '--no-sandbox',
-                        '--disable-setuid-sandbox',
-                        '--disable-gpu-sandbox',
-                        '--disable-gpu',
-                        '--disable-dev-shm-usage',
-                        '--no-zygote'
-                    ];
-                    break;
-                   
-                case BrowserType.chrome:
-                case 'chrome':
-                default:
-                    browserLauncher = chromium;
-                    // chromium is default, no channel needed
                     launchOptions.args = [
                         '--no-sandbox',
                         '--disable-setuid-sandbox',
