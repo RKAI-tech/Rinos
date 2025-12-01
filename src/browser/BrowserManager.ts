@@ -315,7 +315,7 @@ export class BrowserManager extends EventEmitter {
 
         try {
             await this.context.exposeFunction('sendActionToMain', (action: Action) => {
-                // console.log('[BrowserManager] Received action from page:', action);
+                console.log("number of context", this.browser?.contexts().length);
                 this.emit('action', action);
             });
             
