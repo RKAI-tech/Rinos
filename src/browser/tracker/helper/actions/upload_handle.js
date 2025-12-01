@@ -50,13 +50,13 @@ export async function handleUploadChangeEvent(e) {
     elements: [{
       selectors: selectors.map((selector) => ({ value: selector })),
     }],
-    // action_datas: [{
-    //   value: {
-    //     value: value,
-    //     elementText: elementText,
-    //   },
-    //   files: fileList
-    // }],
-    action_datas: fileList.map(file => ({file_upload: file})),
+    action_datas: [
+    {
+      value: {
+        page_index: window.__PAGE_INDEX__ || 0,
+      },
+    },
+    ...fileList.map(file => ({file_upload: file})),
+  ],
   });
 }

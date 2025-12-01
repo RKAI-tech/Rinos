@@ -5,7 +5,7 @@ import './EditProject.css';
 interface EditProjectProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (projectData: { id: string; name: string; description: string }) => void;
+  onSave: (projectData: { id: string; name: string; description: string}) => void;
   project: Project | null;
 }
 
@@ -36,7 +36,7 @@ const EditProject: React.FC<EditProjectProps> = ({ isOpen, onClose, onSave, proj
     onSave({
       id: project.project_id,
       name: projectName.trim(),
-      description: projectDescription.trim()
+      description: projectDescription.trim(),
     });
 
     // Reset form
@@ -133,6 +133,7 @@ const EditProject: React.FC<EditProjectProps> = ({ isOpen, onClose, onSave, proj
             />
           </div>
 
+         
           {/* Action Buttons */}
           <div className="modal-actions">
             <button type="button" className="btn-cancel" onClick={handleClose}>

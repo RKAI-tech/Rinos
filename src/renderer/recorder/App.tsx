@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 export default function App() {
   const [testcaseId, setTestcaseId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
+  const [browserType, setBrowserType] = useState<string | null>(null);
   const [isTokenSynced, setIsTokenSynced] = useState(false);
 
 
@@ -47,6 +48,12 @@ export default function App() {
       return projectIdFromUrl || projectIdFromAPI || null;
     };
 
+    const getBrowserType = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const browserTypeFromUrl = urlParams.get('browserType');
+      return browserTypeFromUrl || null;
+    };
+
     const id = getTestcaseId();
     if (id) {
       setTestcaseId(id);
@@ -61,6 +68,12 @@ export default function App() {
       // console.log('[Recorder App] Received project ID:', projectId);
     } else {
       // console.log('[Recorder App] No project ID found');
+    }
+
+    const browserType = getBrowserType();
+    if (browserType) {
+      setBrowserType(browserType);
+      // console.log('[Recorder App] Received browser type:', browserType);
     }
   }, []);
 
@@ -82,7 +95,7 @@ export default function App() {
 
   return (
     <>
-      <Main testcaseId={testcaseId} projectId={projectId} />
+      <Main testcaseId={testcaseId} projectId={projectId} browserType={browserType} />
       <ToastContainer position="top-right" autoClose={3000} newestOnTop closeOnClick pauseOnHover theme="colored" />
     </>
   );

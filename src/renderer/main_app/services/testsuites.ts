@@ -89,7 +89,7 @@ export class TestSuiteService {
         });
     }
 
-    async updateTestSuite(payload: { test_suite_id: string; name: string; description: string }): Promise<ApiResponse<DefaultResponse>> {
+    async updateTestSuite(payload: { test_suite_id: string; name: string; description: string; browser_type?: string }): Promise<ApiResponse<DefaultResponse>> {
         // console.log('updateTestSuite payload', payload);
         if (!payload || !payload.test_suite_id) {
             return { success: false, error: 'Suite ID is missing, please try again.' };

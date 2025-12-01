@@ -54,18 +54,18 @@ export function setAssertMode(enabled, assertType) {
       // console.log('Assert mode: Prevented history.forward');
       return;
     };
-    window.location.assign = function() {
-      // console.log('Assert mode: Prevented window.location.assign');
-      return;
-    };
-    window.location.replace = function() {
-      // console.log('Assert mode: Prevented window.location.replace');
-      return;
-    };
-    window.location.reload = function() {
-      // console.log('Assert mode: Prevented window.location.reload');
-      return;
-    };
+    // window.location.assign = function() {
+    //   // console.log('Assert mode: Prevented window.location.assign');
+    //   return;
+    // };
+    // window.location.replace = function() {
+    //   // console.log('Assert mode: Prevented window.location.replace');
+    //   return;
+    // };
+    // window.location.reload = function() {
+    //   // console.log('Assert mode: Prevented window.location.reload');
+    //   return;
+    // };
     
     // Override AJAX functions
     XMLHttpRequest.prototype.open = function(...args) {
@@ -141,9 +141,9 @@ export function setAssertMode(enabled, assertType) {
     history.go = originalGo;
     history.back = originalBack;
     history.forward = originalForward;
-    window.location.assign = originalLocationAssign;
-    window.location.replace = originalLocationReplace;
-    window.location.reload = originalLocationReload;
+    // window.location.assign = originalLocationAssign;
+    // window.location.replace = originalLocationReplace;
+    // window.location.reload = originalLocationReload;
     
     // Restore original AJAX functions
     XMLHttpRequest.prototype.open = originalXHROpen;

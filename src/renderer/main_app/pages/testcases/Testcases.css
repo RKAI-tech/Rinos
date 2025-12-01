@@ -185,100 +185,210 @@
   overflow-y: visible;
   margin-bottom: 24px;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.08);
-  border: 1px solid #e1e5e9;
-  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+  padding: 0;
   position: relative;
   z-index: 0;
+  isolation: isolate; /* Create stacking context for table */
+}
+
+/* Custom scrollbar for table */
+.testcases-table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.testcases-table-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 0 0 16px 16px;
+}
+
+.testcases-table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.testcases-table-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .testcases-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   background: white;
-  border-radius: 12px;
   table-layout: fixed;
 }
 
-/* Column widths updated for 6 columns: Name, Tag, Actions, Status, Updated, Action */
+/* Column widths: Name, Description, Actions, Status, Updated, Browser Type, Options */
 .testcases-table th:nth-child(1),
 .testcases-table td:nth-child(1) {
-  width: 20%; /* Name */
+  width: 10%; /* Name */
+  min-width: 180px;
 }
 
 .testcases-table th:nth-child(2),
 .testcases-table td:nth-child(2) {
-  width: 15%; /* Tag */
+  width: 15%; /* Description */
+  min-width: 150px;
 }
 
 .testcases-table th:nth-child(3),
 .testcases-table td:nth-child(3) {
-  width: 15%; /* Actions (count) */
+  width: 10%; /* Actions (count) */
+  min-width: 90px;
 }
 
 .testcases-table th:nth-child(4),
 .testcases-table td:nth-child(4) {
-  width: 15%; /* Status */
+  width: 12%; /* Status */
+  min-width: 100px;
 }
 
 .testcases-table th:nth-child(5),
 .testcases-table td:nth-child(5) {
-  width: 20%; /* Updated */
+  width: 15%; /* Updated */
+  min-width: 140px;
 }
 
 .testcases-table th:nth-child(6),
 .testcases-table td:nth-child(6) {
-  width: 10%; /* Action */
+  width: 12%; /* Browser Type */
+  min-width: 100px;
+}
+
+.testcases-table th:nth-child(7),
+.testcases-table td:nth-child(7) {
+  width: 18%; /* Options */
+  min-width: 120px;
 }
 
 .testcases-table th {
-  background: #f8fafc;
-  padding: 16px 12px;
+  background: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
+  padding: 18px 16px;
   text-align: center;
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-  border-bottom: 2px solid #e1e5e9;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  border-bottom: 2px solid #e2e8f0;
   white-space: nowrap;
   vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
-.testcases-table th.sortable { cursor: pointer; position: relative; }
-.testcases-table th .th-content { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
-.testcases-table th .sort-arrows { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; margin-left: 2px; opacity: 0; transition: opacity 0.15s ease; }
-.testcases-table th:hover .sort-arrows, .testcases-table th.sorted .sort-arrows { opacity: 1; }
-.testcases-table th .arrow { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; margin: 1px 0; opacity: 0.4; }
-.testcases-table th .arrow.up { border-bottom: 6px solid #6b7280; }
-.testcases-table th .arrow.down { border-top: 6px solid #6b7280; }
-.testcases-table th .arrow.active { opacity: 1; border-bottom-color: #111827; border-top-color: #111827; }
+
+.testcases-table th.sortable {
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.testcases-table th.sortable:hover {
+  background: linear-gradient(to bottom, #f1f5f9 0%, #e2e8f0 100%);
+}
+
+.testcases-table th .th-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.testcases-table th .sort-arrows {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.testcases-table th:hover .sort-arrows,
+.testcases-table th.sorted .sort-arrows {
+  opacity: 1;
+}
+
+.testcases-table th .arrow {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  margin: 2px 0;
+  opacity: 0.5;
+  transition: opacity 0.2s ease, border-color 0.2s ease;
+}
+
+.testcases-table th .arrow.up {
+  border-bottom: 7px solid #64748b;
+}
+
+.testcases-table th .arrow.down {
+  border-top: 7px solid #64748b;
+}
+
+.testcases-table th .arrow.active {
+  opacity: 1;
+  border-bottom-color: #5549f5;
+  border-top-color: #5549f5;
+}
 
 .testcases-table th:first-child {
   text-align: left;
+  padding-left: 20px;
 }
 
 .testcases-table td {
-  padding: 16px 12px;
-  border-bottom: 1px solid #e1e5e9;
+  padding: 18px 16px;
+  border-bottom: 1px solid #f1f5f9;
   font-size: 14px;
-  color: #374151;
+  color: #334155;
   vertical-align: middle;
   text-align: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
-.testcases-table td:nth-child(1) {
+
+.testcases-table td:first-child {
   text-align: left;
+  padding-left: 20px;
+}
+
+.testcases-table tbody tr {
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .testcases-table tbody tr:hover {
-  background: #e2e8f0;
+  background: #f8fafc;
+  transform: scale(1.001);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.testcases-table tbody tr:active {
+  background: #e0f2fe;
+  transform: scale(0.999);
+}
+
+.testcases-table tbody tr.is-running {
+  background: linear-gradient(to right, #eff6ff 0%, #dbeafe 100%);
+  box-shadow: inset 4px 0 0 #3b82f6;
 }
 
 .testcases-table tbody tr:last-child td {
   border-bottom: none;
 }
 
+.testcases-table tbody tr:not(:last-child) {
+  border-bottom: 1px solid #f1f5f9;
+}
+
 .testcase-name {
   font-weight: 600;
-  color: #1a1a1a;
+  color: #1e293b;
   font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
@@ -289,14 +399,39 @@
 /* New columns styling */
 .testcase-tag {
   font-size: 14px;
-  color: #374151;
+  color: #475569;
   white-space: nowrap;
+  font-weight: 500;
 }
 
 .testcase-updated {
   font-size: 13px;
-  color: #6b7280;
+  color: #64748b;
   white-space: nowrap;
+  font-weight: 500;
+}
+
+.testcase-actions-count {
+  font-size: 14px;
+  color: #475569;
+  text-align: center;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.testcase-browser-type {
+  font-size: 14px;
+  color: #5549f5;
+  text-align: center;
+  white-space: nowrap;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.testcase-browser-type:empty::before {
+  content: '-';
+  color: #cbd5e1;
+  font-weight: 400;
 }
 
 .testcase-created-by,
@@ -305,7 +440,7 @@
 .testcase-platform,
 .testcase-count {
   font-size: 14px;
-  color: #333;
+  color: #475569;
   text-align: center;
   white-space: nowrap;
   font-weight: 500;
@@ -377,6 +512,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 10000;
+  isolation: isolate; /* Create new stacking context */
 }
 
 .actions-dropdown {
@@ -388,14 +525,32 @@
   border: 1px solid #e1e5e9;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 2147483647;
+  z-index: 2147483647 !important;
   min-width: 120px;
   overflow: hidden;
   animation: dropdownSlideIn 0.15s ease-out;
   will-change: transform, opacity;
   transform: translateX(50%) translateZ(0); /* Force GPU acceleration */
+  pointer-events: auto;
 }
-
+/* Khi hover vào dropdown, loại bỏ hiệu ứng hover của dòng cha */
+.testcases-table tbody tr:has(.actions-dropdown:hover) {
+  background: white !important; /* Hoặc màu nền gốc của tr */
+  transform: none !important;
+  box-shadow: none !important;
+}
+.testcases-table tbody tr:has(.actions-dropdown:active) {
+  background: white !important; /* Hoặc màu nền gốc của tr */
+  transform: none !important;
+  box-shadow: none !important;
+}
+/* Đảm bảo con trỏ chuột khi ở trong dropdown không phải là pointer của tr */
+.actions-dropdown {
+  cursor: default; /* Hoặc auto */
+}
+.dropdown-item {
+  cursor: pointer; /* Item con vẫn có pointer */
+}
 @keyframes dropdownSlideIn {
   from {
     opacity: 0;

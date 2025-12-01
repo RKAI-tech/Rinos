@@ -33,7 +33,7 @@ export function escapeSelector(value) {
   if (!value) return '';
   const fallbackEscape = function(s) { return String(s).replace(/[^\w-]/g, '\\$&'); };
   const esc = (window.CSS && typeof window.CSS.escape === 'function') ? window.CSS.escape : fallbackEscape;
-  return esc(value);
+  return esc(value).replace(/\\/g, '\\\\');
 }
 
 

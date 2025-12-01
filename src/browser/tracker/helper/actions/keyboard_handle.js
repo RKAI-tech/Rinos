@@ -70,7 +70,13 @@ import {
       }],
       action_datas: [{
         value: { value: shortcut, elementText: elementText },
-      }],
+      },
+      {
+        value: {
+          page_index: window.__PAGE_INDEX__ || 0,
+        },
+      }
+    ],
     });
   }
   

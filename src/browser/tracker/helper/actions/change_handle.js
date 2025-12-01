@@ -21,7 +21,7 @@ export function handleCheckboxRadioChangeEvent(e) {
   const selectors = buildSelectors(el, { maxSelectors: 5, minScore: 100, validate: true });
   const isChecked = !!el.checked;
   const elementText = extractElementText(el);
-  // Chuẩn hóa value theo loại phần tử
+  //add page index
   if (tag === 'input' && type === 'checkbox') {
     const normalizedValue = isChecked ? 'on' : 'off';
     sendAction({
@@ -35,7 +35,13 @@ export function handleCheckboxRadioChangeEvent(e) {
           checked: isChecked,
           elementText: elementText,
         },
-      }],
+      },
+      {
+        value: {
+          page_index: window.__PAGE_INDEX__ || 0,
+        },
+      }
+    ],
     });
     return;
   }

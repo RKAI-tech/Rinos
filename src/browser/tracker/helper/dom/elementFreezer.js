@@ -280,7 +280,7 @@ export function freezeEntireScreen() {
   badgeStyle.id = 'rikkei-screen-freeze-badge';
   badgeStyle.textContent = `
     .rikkei-screen-frozen::before {
-      content: "🔒 SCREEN FROZEN FOR ASSERT";
+      content: "🔒 SCREEN FROZEN";
       position: fixed;
       top: 10px;
       right: 10px;

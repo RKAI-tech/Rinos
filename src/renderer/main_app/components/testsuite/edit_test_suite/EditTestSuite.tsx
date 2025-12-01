@@ -1,28 +1,32 @@
 import React, { useEffect, useState, useRef } from 'react';
 import './EditTestSuite.css';
+import { BrowserType } from '../../../types/testcases';
 
 interface MinimalTestSuite {
   testsuite_id: string;
   name: string;
   description?: string;
+  browser_type?: string;
 }
 
 interface EditTestSuiteProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { id: string; name: string; description?: string }) => void;
+  onSave: (data: { id: string; name: string; description?: string; browser_type?: string }) => void;
   testsuite: MinimalTestSuite | null;
 }
 
 const EditTestSuite: React.FC<EditTestSuiteProps> = ({ isOpen, onClose, onSave, testsuite }) => {
   const [suiteName, setSuiteName] = useState('');
   const [suiteDescription, setSuiteDescription] = useState('');
+  const [browserType, setBrowserType] = useState<string>('');
   const suiteNameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (testsuite) {
       setSuiteName(testsuite.name || '');
       setSuiteDescription(testsuite.description || '');
+      setBrowserType(testsuite.browser_type || '');
     }
   }, [testsuite]);
 
@@ -35,13 +39,14 @@ const EditTestSuite: React.FC<EditTestSuiteProps> = ({ isOpen, onClose, onSave, 
       return;
     }
 
-    onSave({ id: testsuite.testsuite_id, name: suiteName.trim(), description: suiteDescription.trim() || '' });
+    onSave({ id: testsuite.testsuite_id, name: suiteName.trim(), description: suiteDescription.trim() || '', browser_type: browserType || undefined });
     handleClose();
   };
 
   const handleClose = () => {
     setSuiteName('');
     setSuiteDescription('');
+    setBrowserType('');
     onClose();
   };
 
@@ -116,6 +121,22 @@ const EditTestSuite: React.FC<EditTestSuiteProps> = ({ isOpen, onClose, onSave, 
               className="tsuite-edit-form-textarea"
               rows={4}
             />
+          </div>
+
+          <div className="tsuite-edit-form-group">
+            <label htmlFor="browserType" className="tsuite-edit-form-label">Browser Type</label>
+            <select
+              id="browserType"
+              value={browserType}
+              onChange={(e) => setBrowserType(e.target.value)}
+              className="tsuite-edit-form-input"
+            >
+              <option value="">Select browser type (optional)</option>
+              <option value={BrowserType.chrome}>Chrome</option>
+              <option value={BrowserType.edge}>Edge</option>
+              <option value={BrowserType.firefox}>Firefox</option>
+              <option value={BrowserType.safari}>Safari</option>
+            </select>
           </div>
 
           <div className="tsuite-edit-modal-actions">

@@ -41,7 +41,13 @@ export function handleSelectChangeEvent(e) {
         selected_text: selectedText,
         elementText: elementText,
       },
-    }],
+    },
+    {
+      value: {
+        page_index: window.__PAGE_INDEX__ || 0,
+      },
+    }
+  ],
   });
 }
 

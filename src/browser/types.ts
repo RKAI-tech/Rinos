@@ -1,5 +1,12 @@
 import { BrowserStorageResponse } from "../renderer/main_app/types/browser_storage";
 
+export enum BrowserType {
+  chrome = "chrome",
+  firefox = "firefox",
+  edge = "edge",
+  safari = "safari",
+}
+
 export enum ActionType {
   input = "input",
   click = "click",
@@ -32,6 +39,9 @@ export enum ActionType {
   window_resize = "window_resize",
   add_browser_storage = "add_browser_storage",
   api_request = "api_request",
+  page_create="page_create",
+  page_close="page_close",
+  page_focus="page_focus",
 }
 
 export enum AssertType {

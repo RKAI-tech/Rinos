@@ -3,10 +3,10 @@ import { Action, AssertType } from "../../browser/types";
 import { BrowserStorageType } from "../../browser/controller";
 
 const browserMethods = {
-    start: async (basicAuthentication: { username: string, password: string }) => ipcRenderer.invoke("browser:start", basicAuthentication),
+    start: async (basicAuthentication: { username: string, password: string }, browserType?: string) => ipcRenderer.invoke("browser:start", basicAuthentication, browserType),
     stop: async () => ipcRenderer.invoke("browser:stop"),
     executeActions: async (actions: Action[]) => ipcRenderer.invoke("browser:executeActions", actions),
-    navigate: async (url: string) => ipcRenderer.invoke("browser:navigate", url),
+    navigate: async (url: string, page_index?: number) => ipcRenderer.invoke("browser:navigate", url, page_index),
     onAction: (handler: (action: Action) => void) => {
         const listener = (_: unknown, action: Action) => handler(action);
         ipcRenderer.on("browser:action", listener);
@@ -44,22 +44,24 @@ const browserMethods = {
   getAuthValue: async (
     source: 'local' | 'session' | 'cookie',
     key: string,
+    page_index: number,
     options?: { cookieDomainMatch?: string; cookieDomainRegex?: string }
-  ) => ipcRenderer.invoke("browser:getAuthValue", source, key, options),
+  ) => ipcRenderer.invoke("browser:getAuthValue", source, key, page_index, options),
 
   // Lấy Basic Auth từ storage/cookie/custom
   getBasicAuthFromStorage: async (payload: {
     type: 'localStorage' | 'sessionStorage' | 'cookie',
     usernameKey?: string,
     passwordKey?: string,
+    page_index?: number,
     cookieDomainMatch?: string,
     cookieDomainRegex?: string,
+    
   }) => ipcRenderer.invoke("browser:getBasicAuthFromStorage", payload),
-
-    addBrowserStorage: async (storageType: BrowserStorageType, value: any) => ipcRenderer.invoke("browser:addBrowserStorage", storageType, value),
-    reload: async () => ipcRenderer.invoke("browser:reload"),
-    goBack: async () => ipcRenderer.invoke("browser:goBack"),
-    goForward: async () => ipcRenderer.invoke("browser:goForward"),
+    addBrowserStorage: async (storageType: BrowserStorageType, value: any, page_index?: number) => ipcRenderer.invoke("browser:addBrowserStorage", storageType, value, page_index),
+    reload: async (page_index?: number) => ipcRenderer.invoke("browser:reload", page_index),
+    goBack: async (page_index?: number) => ipcRenderer.invoke("browser:goBack", page_index),
+    goForward: async (page_index?: number) => ipcRenderer.invoke("browser:goForward", page_index),
 }
 
 export function exposeBrowserAPI() {

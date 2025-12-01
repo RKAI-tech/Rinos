@@ -1,141 +1,22 @@
-.rcd-ba-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+/* BasicAuthModal styles - tương thích với WaitModal design */
+/* Styles đã được chuyển sang inline styles trong component để tương thích với WaitModal */
+
+.rcd-ba-btn-primary:hover {
+  background: #2563eb !important;
+  opacity: 0.9;
 }
 
-.rcd-ba-container {
-  width: 720px;
-  max-width: 90vw;
-  max-height: 80vh;
-  background: #fff;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+/* Hover effects cho buttons */
+button[style*="background: #3b82f6"]:hover {
+  background: #2563eb !important;
 }
 
-.rcd-ba-header {
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #eee;
+button[style*="background: #dc2626"]:hover {
+  background: #b91c1c !important;
 }
 
-.rcd-ba-title {
-  margin: 0;
-  font-size: 16px;
-}
-
-.rcd-ba-close {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-.rcd-ba-content {
-  padding: 16px;
-  overflow: auto;
-}
-
-.rcd-ba-empty {
-  color: #666;
-  font-size: 13px;
-}
-
-.rcd-ba-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.rcd-ba-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  gap: 12px;
-  align-items: end;
-}
-
-.rcd-ba-field {
-  display: flex;
-  flex-direction: column;
-}
-
-.rcd-ba-label {
-  font-size: 12px;
-  color: #555;
-  margin-bottom: 6px;
-}
-
-.rcd-ba-input {
-  height: 32px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 0 10px;
-}
-
-.rcd-ba-input.error {
-  border-color: #dc2626;
-  background: #fff7f7;
-}
-
-.rcd-ba-error {
-  margin-top: 6px;
-  color: #dc2626;
-  font-size: 12px;
-}
-
-.rcd-ba-remove {
-  height: 32px;
-  width: 36px;
-  background: transparent;
-  border: 1px solid #eee;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.rcd-ba-actions {
-  margin-top: 8px;
-}
-
-.rcd-ba-btn {
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-  background: #fafafa;
-  cursor: pointer;
-}
-
-.rcd-ba-footer {
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  border-top: 1px solid #eee;
-}
-
-.rcd-ba-btn.primary {
-  background: #2563eb;
-  color: white;
-  border-color: #2563eb;
-}
-
-.rcd-ba-btn.danger {
-  background: #dc2626;
-  color: white;
-  border-color: #dc2626;
-}
-
-.rcd-ba-btn.danger:hover {
-  background: #b91c1c;
-  border-color: #b91c1c;
+button[style*="border: 1px solid #d1d5db"]:hover {
+  background: #f9fafb !important;
 }
 
 

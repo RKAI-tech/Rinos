@@ -1,26 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import './AiAssertModal.css';
-import { StatementService } from '../../services/statements';
-import { apiRouter } from '../../services/baseAPIRequest';
+import { StatementService } from '../../../services/statements';
+import { apiRouter } from '../../../services/baseAPIRequest';
 import QueryResultTable from './QueryResultTable';
 import ApiElementPanel from './api_model/ApiElementPanel';
-import { Connection, ApiRequestData } from '../../types/actions';
+import { Connection, ApiRequestData } from '../../../types/actions';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { executeApiRequest, validateApiRequest, convertApiRequestDataToOptions } from '../../utils/api_request';
+import { executeApiRequest, validateApiRequest, convertApiRequestDataToOptions } from '../../../utils/api_request';
 import { toast } from 'react-toastify';
-import { useRef } from 'react';
 const statementService = new StatementService();
 
 type ElementType = 'Browser' | 'Database' | 'API';
-
-const createDefaultApiRequest = (): ApiRequestData => ({
-  method: 'get',
-  url: 'https://',
-  params: [],
-  headers: [],
-  auth: { type: 'none' },
-  body: { type: 'none', content: '', form_data: [] },
-});
 
 interface AiElementItem {
   id: string;
@@ -29,6 +19,9 @@ interface AiElementItem {
   selector?: string[];
   domHtml?: string;
   value?: string;
+  pageIndex?: number | null;
+  pageUrl?: string | null;
+  pageTitle?: string | null;
   // Database fields
   connectionId?: string;
   connection?: Connection;
@@ -42,6 +35,8 @@ interface AiElementItem {
 
 interface ConnectionOption { id: string; label: string }
 
+import { SelectedPageInfo } from './api_model/ApiElementPanel';
+
 interface AiAssertModalProps {
   isOpen: boolean;
   testcaseId?: string | null;
@@ -53,7 +48,12 @@ interface AiAssertModalProps {
   onRemoveElement: (idx: number) => void;
   onClose: () => void;
   onSubmit: () => Promise<boolean | void> | boolean | void;
-  onAddElement: () => void;
+  onAddBrowserElement: () => void;
+  onAddDatabaseElement: () => void;
+  onAddApiElement: () => void;
+  onBrowserElementClear: (elementId: string) => void;
+  selectedPageInfo?: SelectedPageInfo | null;
+  onClearPage?: () => void;
 }
 
 const AiAssertModal: React.FC<AiAssertModalProps> = ({
@@ -66,7 +66,12 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
   onRemoveElement,
   onClose,
   onSubmit,
-  onAddElement,
+  onAddBrowserElement,
+  onAddDatabaseElement,
+  onAddApiElement,
+  onBrowserElementClear,
+  selectedPageInfo,
+  onClearPage,
 }) => {
   const [connections, setConnections] = useState<ConnectionOption[]>([]);
   const [connectionMap, setConnectionMap] = useState<Record<string, Connection>>({});
@@ -74,34 +79,32 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
   const [isRunningQueryIdx, setIsRunningQueryIdx] = useState<number | null>(null);
   const [isSendingApiIdx, setIsSendingApiIdx] = useState<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>({});
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const addMenuWrapRef = useRef<HTMLDivElement | null>(null);
   const addMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const [showTooltip, setShowTooltip] = useState(false);
+  const hasIncompleteBrowserElement = elements.some(
+    (el) =>
+      el.type === 'Browser' &&
+      (!el.selector || el.selector.length === 0) &&
+      !(el.domHtml && el.domHtml.trim())
+  );
+  const hasIncompleteDatabaseElement = elements.some(
+    (el) =>
+      el.type === 'Database' &&
+      (!el.connectionId ||
+        !el.query ||
+        !el.query.trim() ||
+        !el.queryResultData )
+  );
+  const hasIncompleteApiElement = elements.some(
+    (el) =>
+      el.type === 'API' &&
+      (!el.apiResponse || !el.apiResponse.status || el.apiResponse.status === 0)
+  );
+  const shouldBlockNewElement = hasIncompleteBrowserElement || hasIncompleteDatabaseElement || hasIncompleteApiElement;
 
-  const getElementTypeFromDom = (html?: string): string | undefined => {
-    try {
-      const m = (html || '').match(/^\s*<\s*([a-zA-Z0-9-]+)/);
-      return m ? m[1].toLowerCase() : undefined;
-    } catch {
-      return undefined;
-    }
-  };
-
-  const getBrowserElementText = (item: AiElementItem): string => {
-    const raw = (item.value || '').trim();
-    if (raw) return raw;
-    const tag = getElementTypeFromDom(item.domHtml);
-    if (tag) return `<${tag}>`;
-    return '(No text available)';
-  };
-
-  const toggleCollapsed = (id: string) => {
-    setCollapsedMap((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-  
-  // Close Add element popup when clicking outside
   useEffect(() => {
     if (!isAddMenuOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
@@ -121,6 +124,131 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
     };
   }, [isAddMenuOpen]);
 
+
+  const getElementTypeFromDom = (html?: string): string | undefined => {
+    try {
+      const m = (html || '').match(/^\s*<\s*([a-zA-Z0-9-]+)/);
+      return m ? m[1].toLowerCase() : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  const getBrowserElementText = (item: AiElementItem): string => {
+    const raw = (item.value || '').trim();
+    if (raw) return raw;
+    const tag = getElementTypeFromDom(item.domHtml);
+    if (tag) return `<${tag}>`;
+    return '(No text available)';
+  };
+
+  const renderBrowserElement = (el: AiElementItem, idx: number) => {
+    const hasSelectors = !!(el.selector && el.selector.length > 0);
+    const hasDom = !!(el.domHtml && el.domHtml.trim());
+    const isBrowserFilled = hasSelectors || hasDom;
+    return (
+      <div className="aiam-browser-box">
+        {!isBrowserFilled ? (
+          <div style={{ padding: '16px', border: '1px dashed #cbd5f5', borderRadius: 8, background: '#f8fafc', color: '#475569' }}>
+            Click on the browser to capture this element.
+          </div>
+        ) : (
+          <>
+            <div className="aiam-col">
+              <div className="aiam-row">
+                <label className="aiam-sub">Element text</label>
+                <div className="aiam-mono">{getBrowserElementText(el)}</div>
+              </div>
+              {el.pageTitle && (
+                <div className="aiam-row" style={{ marginTop: 8 }}>
+                  <label className="aiam-sub">Page</label>
+                  <div className="aiam-mono">{el.pageTitle}</div>
+                </div>
+              )}
+            </div>
+            <div className="aiam-col">
+              <div className="aiam-row">
+                <label className="aiam-sub">Selectors <span style={{ color: 'red' }}>*</span></label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                  {(el.selector || []).map((sel, selIdx) => (
+                    <div key={selIdx} style={{ position: 'relative', width: '100%' }}>
+                      <input
+                        className="aiam-input"
+                        type="text"
+                        value={sel}
+                        onChange={(e) => {
+                          const newSelectors = [...(el.selector || [])];
+                          newSelectors[selIdx] = e.target.value;
+                          onChangeElement(idx, (old) => ({ ...old, selector: newSelectors }));
+                        }}
+                        style={{ width: '100%', paddingRight: '32px' }}
+                        placeholder="Enter selector"
+                      />
+                      <button
+                        onClick={() => {
+                          const newSelectors = [...(el.selector || [])];
+                          newSelectors.splice(selIdx, 1);
+                          onChangeElement(idx, (old) => ({ ...old, selector: newSelectors.length > 0 ? newSelectors : undefined }));
+                        }}
+                        style={{ 
+                          position: 'absolute',
+                          right: '8px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#9ca3af',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          fontSize: '16px',
+                          lineHeight: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Remove selector"
+                        onMouseEnter={(e) => { e.currentTarget.style.color = '#6b7280'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = '#9ca3af'; }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    className="aiam-btn"
+                    onClick={() => {
+                      const newSelectors = [...(el.selector || []), ''];
+                      onChangeElement(idx, (old) => ({ ...old, selector: newSelectors }));
+                    }}
+                    style={{ 
+                      alignSelf: 'flex-start',
+                      padding: '6px 12px'
+                    }}
+                  >
+                    + Add selector
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+          <button
+            className="aiam-btn"
+            onClick={() => onBrowserElementClear(el.id)}
+            disabled={!isBrowserFilled}
+          >
+            Clear element
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const toggleCollapsed = (id: string) => {
+    setCollapsedMap((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+  
   useEffect(() => {
     const loadConnections = async () => {
       try {
@@ -165,10 +293,39 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
     el.type === 'API' && (!el.apiResponse || !el.apiResponse.status || el.apiResponse.status === 0)
   );
 
+  // Validation: prompt and elements are required
+  const isValidPrompt = prompt && prompt.trim().length > 0;
+  const hasElements = elements && elements.length > 0;
+  // Kiểm tra tất cả elements đã đủ thông tin (không có incomplete element nào)
+  const allElementsComplete = !hasIncompleteBrowserElement && !hasIncompleteDatabaseElement && !hasIncompleteApiElement;
+  const canGenerate = isValidPrompt && hasElements && allElementsComplete;
+
   const handleGenerate = async () => {
-    // Prevent generate if there are unrun API elements
-    if (hasUnrunApiElements) {
-      toast.error('Please run API request before generate');
+    // Validate prompt
+    if (!isValidPrompt) {
+      toast.error('Prompt is required');
+      return;
+    }
+
+    // Validate elements
+    if (!hasElements) {
+      toast.error('Please add at least one element');
+      return;
+    }
+
+    // Validate all elements are complete
+    if (hasIncompleteBrowserElement) {
+      toast.error('Please capture the pending browser element before generating');
+      return;
+    }
+
+    if (hasIncompleteDatabaseElement) {
+      toast.error('Please complete the pending database element before generating');
+      return;
+    }
+
+    if (hasIncompleteApiElement) {
+      toast.error('Please run the pending API element before generating');
       return;
     }
 
@@ -266,16 +423,16 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
 
         <div className="aiam-body">
           <div className="aiam-field">
-            <label className="aiam-label">Prompt</label>
+            <label className="aiam-label">Prompt <span style={{ color: 'red' }}>*</span></label>
             <textarea className="aiam-input" rows={3} placeholder="Describe what to assert..." value={prompt} onChange={(e) => onChangePrompt(e.target.value)} />
           </div>
 
           <div className="aiam-elements-header">
-            <div className="aiam-elements-title">Elements</div>
+            <div className="aiam-elements-title">Elements <span style={{ color: 'red' }}>*</span></div>
             <div className="aiam-elements-actions" style={{ position: 'relative' }} ref={addMenuWrapRef}>
               <button
                 className="aiam-btn"
-                onClick={() => setIsAddMenuOpen((v) => !v)}
+                onClick={() => setIsAddMenuOpen(v => !v)}
                 ref={addMenuButtonRef}
               >
                 Add element
@@ -297,29 +454,77 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                   <button
                     className="aiam-btn"
                     style={{ display: 'block', width: '100%', borderRadius: 0, border: 'none', textAlign: 'left' }}
-                    onClick={() => { setIsAddMenuOpen(false); onAddElement(); }}
+                    onClick={() => {
+                        if (hasIncompleteBrowserElement) {
+                          toast.warn('Please capture the pending browser element before adding new ones.');
+                          setIsAddMenuOpen(false);
+                          return;
+                        }
+                        if (hasIncompleteDatabaseElement) {
+                          toast.warn('Please complete the pending database element before adding new ones.');
+                          setIsAddMenuOpen(false);
+                          return;
+                        }
+                        if (hasIncompleteApiElement) {
+                          toast.warn('Please run the pending API element before adding new ones.');
+                          setIsAddMenuOpen(false);
+                          return;
+                        }
+                      setIsAddMenuOpen(false);
+                      onAddBrowserElement();
+                    }}
                   >
-                    Database 
+                    Browser
                   </button>
                   <button
                     className="aiam-btn"
                     style={{ display: 'block', width: '100%', borderRadius: 0, border: 'none', textAlign: 'left' }}
-                    onClick={() => { 
+                    onClick={() => {
+                        if (hasIncompleteBrowserElement) {
+                          toast.warn('Please capture the pending browser element before adding new ones.');
+                          setIsAddMenuOpen(false);
+                          return;
+                        }
+                        if (hasIncompleteDatabaseElement) {
+                          toast.warn('Please complete the pending database element before adding new ones.');
+                          setIsAddMenuOpen(false);
+                          return;
+                        }
+                        if (hasIncompleteApiElement) {
+                          toast.warn('Please run the pending API element before adding new ones.');
+                          setIsAddMenuOpen(false);
+                          return;
+                        }
                       setIsAddMenuOpen(false);
-                      // First add element (will add Database by default)
-                      onAddElement();
-                      // Then immediately update it to API type with initial API request data
-                      const newIndex = elements.length;
-                      setTimeout(() => {
-                        onChangeElement(newIndex, (old) => ({
-                          ...old,
-                          type: 'API',
-                          apiRequest: createDefaultApiRequest()
-                        }));
-                      }, 0);
+                      onAddDatabaseElement();
                     }}
                   >
-                    API 
+                    Database
+                  </button>
+                  <button
+                    className="aiam-btn"
+                    style={{ display: 'block', width: '100%', borderRadius: 0, border: 'none', textAlign: 'left' }}
+                    onClick={() => {
+                        if (hasIncompleteBrowserElement) {
+                          toast.warn('Please capture the pending browser element before adding new ones.');
+                          setIsAddMenuOpen(false);
+                          return;
+                        }
+                        if (hasIncompleteDatabaseElement) {
+                          toast.warn('Please complete the pending database element before adding new ones.');
+                          setIsAddMenuOpen(false);
+                          return;
+                        }
+                        if (hasIncompleteApiElement) {
+                          toast.warn('Please run the pending API element before adding new ones.');
+                          setIsAddMenuOpen(false);
+                          return;
+                        }
+                      setIsAddMenuOpen(false);
+                      onAddApiElement();
+                    }}
+                  >
+                    API
                   </button>
                 </div>
               )}
@@ -415,78 +620,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
 
                 {!collapsedMap[el.id] && (
                   el.type === 'Browser' ? (
-                    <div className="aiam-browser-box" >
-                      <div className="aiam-col">
-                        <div className="aiam-row">
-                          <label className="aiam-sub">Element text</label>
-                          <div className="aiam-mono">{getBrowserElementText(el)}</div>
-                        </div>
-                      </div>
-                      <div className="aiam-col">
-                        <div className="aiam-row">
-                          <label className="aiam-sub">Selectors <span style={{ color: 'red' }}>*</span></label>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-                            {(el.selector || []).map((sel, selIdx) => (
-                              <div key={selIdx} style={{ position: 'relative', width: '100%' }}>
-                                <input
-                                  className="aiam-input"
-                                  type="text"
-                                  value={sel}
-                                  onChange={(e) => {
-                                    const newSelectors = [...(el.selector || [])];
-                                    newSelectors[selIdx] = e.target.value;
-                                    onChangeElement(idx, (old) => ({ ...old, selector: newSelectors }));
-                                  }}
-                                  style={{ width: '100%', paddingRight: '32px' }}
-                                  placeholder="Enter selector"
-                                />
-                                <button
-                                  onClick={() => {
-                                    const newSelectors = [...(el.selector || [])];
-                                    newSelectors.splice(selIdx, 1);
-                                    onChangeElement(idx, (old) => ({ ...old, selector: newSelectors.length > 0 ? newSelectors : undefined }));
-                                  }}
-                                  style={{ 
-                                    position: 'absolute',
-                                    right: '8px',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: '#9ca3af',
-                                    cursor: 'pointer',
-                                    padding: '4px',
-                                    fontSize: '16px',
-                                    lineHeight: 1,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                  }}
-                                  title="Remove selector"
-                                  onMouseEnter={(e) => { e.currentTarget.style.color = '#6b7280'; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.color = '#9ca3af'; }}
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ))}
-                            <button
-                              className="aiam-btn"
-                              onClick={() => {
-                                const newSelectors = [...(el.selector || []), ''];
-                                onChangeElement(idx, (old) => ({ ...old, selector: newSelectors }));
-                              }}
-                              style={{ 
-                                alignSelf: 'flex-start',
-                                padding: '6px 12px'
-                              }}
-                            >
-                              + Add selector
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    renderBrowserElement(el, idx)
                   ) : el.type === 'Database' ? (
                     <div className="aiam-db-box">
                       <div className="aiam-row">
@@ -546,6 +680,8 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                       onChange={(data) => onChangeElement(idx, (old) => ({ ...old, apiRequest: data }))}
                       onSendRequest={async (data, response) => await handleSendApiRequest(idx, data, response)}
                       isSending={isSendingApiIdx === idx}
+                      selectedPageInfo={selectedPageInfo}
+                      onClearPage={onClearPage}
                     />
                   ) : null
                 )}
@@ -561,22 +697,22 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
           <div className="aiam-right">
             <div 
               style={{ position: 'relative', display: 'inline-block' }}
-              onMouseEnter={() => hasUnrunApiElements && setShowTooltip(true)}
+              onMouseEnter={() => !canGenerate && setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
             >
               <button 
                 className="aiam-btn aiam-primary" 
-                disabled={isGenerating || hasUnrunApiElements} 
+                disabled={isGenerating || !canGenerate} 
                 onClick={handleGenerate}
                 style={{ 
                   position: 'relative',
-                  cursor: hasUnrunApiElements ? 'not-allowed' : 'pointer',
-                  opacity: hasUnrunApiElements ? 0.6 : 1
+                  cursor: canGenerate ? 'pointer' : 'not-allowed',
+                  opacity: canGenerate ? 1 : 0.6
                 }}
               >
                 {isGenerating ? 'Generating...' : 'Generate'}
               </button>
-              {hasUnrunApiElements && showTooltip && (
+              {!canGenerate && showTooltip && (
                 <div
                   style={{
                     position: 'absolute',
@@ -595,7 +731,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                     boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                   }}
                 >
-                  Run API request before generate
+                  {!isValidPrompt ? 'Prompt is required' : !hasElements ? 'Please add at least one element' : hasIncompleteBrowserElement ? 'Please capture the pending browser element' : hasIncompleteDatabaseElement ? 'Please complete the pending database element' : 'Please run the pending API element'}
                   <div
                     style={{
                       position: 'absolute',

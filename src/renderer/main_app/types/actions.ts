@@ -33,6 +33,8 @@ export enum ActionType {
   window_resize = "window_resize",
   add_browser_storage = "add_browser_storage",
   api_request = "api_request",
+  page_create="page_create",
+  page_close="page_close",
 }
 
 export enum AssertType {

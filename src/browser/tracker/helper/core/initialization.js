@@ -16,7 +16,7 @@ import { handleDragStartEvent, handleDragEndEvent, handleDropEvent } from '../ac
 import { handleUploadChangeEvent } from '../actions/upload_handle.js';
 import { handleScrollEvent } from '../actions/scroll_handle.js';
 import { handleWindowResizeEvent, setExecutingActionsState } from '../actions/window_resize.js';
-
+// import { generateAndValidateSelectors } from '../selector_generator/selectorGenerator.js';
 let globalAssertMode = false;
 let browserControls = null;
 let browserHandlersDisposer = null;
@@ -85,9 +85,7 @@ function handleAssertClick(e) {
 function processAssertClick(e) {
   const assertType = window.currentAssertType || 'toBeVisible';
   try {
-    // const rawSelector = generateSelector(e.target, { minScore: 200 });
-    // const selector = validateAndImproveSelector(rawSelector, e.target);
-    const selector = generateAndValidateSelectors(e.target, { minScore: 200 });
+    const selector = generateAndValidateSelectors(e.target, { minScore: 0, validate: true });
     const elementType = e.target.tagName.toLowerCase();
     const elementPreview = previewNode(e.target);
     const elementText = extractElementText(e.target);
@@ -123,83 +121,90 @@ function processAssertClick(e) {
   }
 }
 
-function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement, apiRequest) {  
+function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection_id, connection, query, DOMelement, apiRequest) {
   if (window.sendActionToMain) {
+    var action_datas = {};
+    action_datas.value = {
+      value: value ? value : undefined,
+      htmlDOM: DOMelement ? DOMelement : undefined,
+      elementText: elementText ? elementText : undefined,
+      page_index: window.__PAGE_INDEX__ || 0,
+      page_url: window.location.href || '',
+      page_title: document.title || '',
+    };
+    if (query) {
+      action_datas.statement = {
+        statement_id: Math.random().toString(36),
+        statement_text: query,
+        connection_id: connection_id,
+        connection: {
+          ...connection,
+          port: connection && connection.port !== undefined ? String(connection.port) : undefined,
+        }
+      };
+    }
+    if (apiRequest) {
+      action_datas.api_request = apiRequest ? {
+        api_request_id: apiRequest.api_request_id,
+        createType: apiRequest.createType || 'system',
+        url: apiRequest.url,
+        method: apiRequest.method,
+        params: apiRequest.params && apiRequest.params.length > 0 ? apiRequest.params.map(p => ({
+          api_request_param_id: p.api_request_param_id,
+          key: p.key,
+          value: p.value
+        })) : undefined,
+        headers: apiRequest.headers && apiRequest.headers.length > 0 ? apiRequest.headers.map(h => ({
+          api_request_header_id: h.api_request_header_id,
+          key: h.key,
+          value: h.value
+        })) : undefined,
+        auth: apiRequest.auth ? {
+          apiRequestId: apiRequest.auth.apiRequestId,
+          type: apiRequest.auth.type,
+          storage_enabled: apiRequest.auth.storage_enabled,
+          username: apiRequest.auth.username,
+          password: apiRequest.auth.password,
+          token: apiRequest.auth.token,
+          token_storages: apiRequest.auth.token_storages && apiRequest.auth.token_storages.length > 0 ? apiRequest.auth.token_storages.map(ts => ({
+            api_request_token_storage_id: ts.api_request_token_storage_id,
+            type: ts.type,
+            key: ts.key
+          })) : undefined,
+          basic_auth_storages: apiRequest.auth.basic_auth_storages && apiRequest.auth.basic_auth_storages.length > 0 ? apiRequest.auth.basic_auth_storages.map(bs => ({
+            api_request_basic_auth_storage_id: bs.api_request_basic_auth_storage_id,
+            type: bs.type,
+            usernameKey: bs.usernameKey,
+            passwordKey: bs.passwordKey,
+            enabled: bs.enabled
+          })) : undefined
+        } : undefined,
+        body: apiRequest.body ? {
+          api_request_id: apiRequest.body.api_request_id,
+          type: apiRequest.body.type,
+          content: apiRequest.body.content,
+          formData: apiRequest.body.formData && apiRequest.body.formData.length > 0 ? apiRequest.body.formData.map(fd => ({
+            api_request_body_form_data_id: fd.api_request_body_form_data_id,
+            name: fd.name,
+            value: fd.value,
+            orderIndex: fd.orderIndex
+          })) : undefined
+        } : undefined
+      } : undefined;
+    };
     const action = {
       action_type: 'assert',
       assert_type: assertType,
       elements: [{
         selectors: selector.map((selector) => ({ value: selector })),
       }],
-      action_datas: [
-        {
-          value: {
-            value: value? value : undefined,
-            htmlDOM: DOMelement? DOMelement : undefined,
-            elementText: elementText? elementText : undefined,
-          },
-          
-          statement: query ? {
-              statement_id: Math.random().toString(36),
-              statement_text: query,
-              connection_id: connection_id,
-              connection: connection
-            } : undefined,
-          api_request: apiRequest ? {
-            api_request_id: apiRequest.api_request_id,
-            createType: apiRequest.createType || 'system',
-            url: apiRequest.url,
-            method: apiRequest.method,
-            params: apiRequest.params && apiRequest.params.length > 0 ? apiRequest.params.map(p => ({
-              api_request_param_id: p.api_request_param_id,
-              key: p.key,
-              value: p.value
-            })) : undefined,
-            headers: apiRequest.headers && apiRequest.headers.length > 0 ? apiRequest.headers.map(h => ({
-              api_request_header_id: h.api_request_header_id,
-              key: h.key,
-              value: h.value
-            })) : undefined,
-            auth: apiRequest.auth ? {
-              apiRequestId: apiRequest.auth.apiRequestId,
-              type: apiRequest.auth.type,
-              storage_enabled: apiRequest.auth.storage_enabled,
-              username: apiRequest.auth.username,
-              password: apiRequest.auth.password,
-              token: apiRequest.auth.token,
-              token_storages: apiRequest.auth.token_storages && apiRequest.auth.token_storages.length > 0 ? apiRequest.auth.token_storages.map(ts => ({
-                api_request_token_storage_id: ts.api_request_token_storage_id,
-                type: ts.type,
-                key: ts.key
-              })) : undefined,
-              basic_auth_storages: apiRequest.auth.basic_auth_storages && apiRequest.auth.basic_auth_storages.length > 0 ? apiRequest.auth.basic_auth_storages.map(bs => ({
-                api_request_basic_auth_storage_id: bs.api_request_basic_auth_storage_id,
-                type: bs.type,
-                usernameKey: bs.usernameKey,
-                passwordKey: bs.passwordKey,
-                enabled: bs.enabled
-              })) : undefined
-            } : undefined,
-            body: apiRequest.body ? {
-              api_request_id: apiRequest.body.api_request_id,
-              type: apiRequest.body.type,
-              content: apiRequest.body.content,
-              formData: apiRequest.body.formData && apiRequest.body.formData.length > 0 ? apiRequest.body.formData.map(fd => ({
-                api_request_body_form_data_id: fd.api_request_body_form_data_id,
-                name: fd.name,
-                value: fd.value,
-                orderIndex: fd.orderIndex
-              })) : undefined
-            } : undefined
-          } : undefined
-        }
-      ]
+      action_datas: [action_datas]
     }
     window.sendActionToMain(action);
     closeAssertInputModal();
   } else {
+    console.error('window.sendActionToMain is not defined');
   }
-
 }
 
 export function initBrowserControls() {
@@ -216,16 +221,16 @@ export function initBrowserControls() {
 }
 
 export function initializeEventListeners() {
-  document.addEventListener('input', handleTextInputEvent,true);
+  document.addEventListener('input', handleTextInputEvent, true);
   // document.addEventListener('change', handleCheckboxRadioChangeEvent);
-  document.addEventListener('change', handleSelectChangeEvent,true);
+  document.addEventListener('change', handleSelectChangeEvent, true);
   document.addEventListener('click', handleClickEvent, true);
-  document.addEventListener('dblclick', handleDoubleClickEvent,true);
-  document.addEventListener('keydown', handleKeyDownEvent,true);
-  document.addEventListener('change', handleUploadChangeEvent,true);
-  document.addEventListener('dragstart', handleDragStartEvent,true);
-  document.addEventListener('drop', handleDropEvent,true);
-  document.addEventListener('contextmenu', handleRightClickEvent,true);
+  document.addEventListener('dblclick', handleDoubleClickEvent, true);
+  document.addEventListener('keydown', handleKeyDownEvent, true);
+  document.addEventListener('change', handleUploadChangeEvent, true);
+  document.addEventListener('dragstart', handleDragStartEvent, true);
+  document.addEventListener('drop', handleDropEvent, true);
+  document.addEventListener('contextmenu', handleRightClickEvent, true);
   window.addEventListener('scroll', handleScrollEvent, { passive: true });
   document.addEventListener('scroll', handleScrollEvent, { passive: true, capture: true });
   window.addEventListener('resize', handleWindowResizeEvent, { passive: true });
@@ -246,7 +251,6 @@ export function initializeEventListeners() {
   document.addEventListener('drop', handleAssertCaptureBlocking, true);
   document.addEventListener('contextmenu', handleAssertCaptureBlocking, true);
   document.addEventListener('dblclick', handleAssertCaptureBlocking, true);
-
 }
 
 export function initializeHoverEffects() {
@@ -291,6 +295,9 @@ export function initializeTracking() {
   initBrowserControls();
   initializeEventListeners();
   initializeHoverEffects();
+  // initializeNavigateHandle();
+
+  // initializeTabActivateListener();
 
   // Expose functions to main process
   window.setAssertMode = function (enabled, assertType) {

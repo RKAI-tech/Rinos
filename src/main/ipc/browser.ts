@@ -34,9 +34,12 @@ function getOrCreateManagerForWindow(win: BrowserWindow): BrowserManager {
     });
     manager.on('browser-stopped', () => {
         if (!win.isDestroyed()) {
+            //reset browser manager
+            windowIdToManager.delete(id);
             win.webContents.send('browser:stopped');
         }
     });
+
     manager.on('action-executing', (data: { index: number }) => {
         if (!win.isDestroyed()) {
             win.webContents.send('browser:action-executing', data);
@@ -65,11 +68,11 @@ function getOrCreateManagerForWindow(win: BrowserWindow): BrowserManager {
 }
 
 export function registerBrowserIpc() {
-    ipcMain.handle("browser:start", async (event, basicAuthentication: { username: string, password: string }) => {
+    ipcMain.handle("browser:start", async (event, basicAuthentication: { username: string, password: string }, browserType?: string) => {
         const win = getWindowFromEvent(event);
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
-        await manager.start(basicAuthentication);
+        await manager.start(basicAuthentication, browserType);
     });
 
     ipcMain.handle("browser:stop", async (event) => {
@@ -91,27 +94,46 @@ export function registerBrowserIpc() {
         
         // Set executing state in tracking script to prevent resize event recording
         try {
-            if (manager.page) {
-                await manager.page.evaluate(() => {
-                    const global: any = globalThis as any;
-                    if (global.setExecutingActionsState) {
-                        global.setExecutingActionsState(true);
+            if (manager.pages && manager.pages_index) {
+                // Find page with index 0
+                let pageWithIndex0: Page | null = null;
+                for (const [pageId, index] of manager.pages_index.entries()) {
+                    if (index === 0) {
+                        pageWithIndex0 = manager.pages.get(pageId) || null;
+                        break;
                     }
-                });
+                }
+                if (pageWithIndex0 && !pageWithIndex0.isClosed()) {
+                    await pageWithIndex0.evaluate(() => {
+                        const global: any = globalThis as any;
+                        if (global.setExecutingActionsState) {
+                            global.setExecutingActionsState(true);
+                        }
+                    });
+                }
             }
         } catch (e) {
             // Ignore if function doesn't exist
         }
         
         try {
-            await manager.controller?.executeMultipleActions(manager.page as Page, manager.context as BrowserContext, actions);
+            await manager.controller?.executeMultipleActions(manager.context as BrowserContext, actions);
         } finally {
             (manager as any).isExecuting = false;
             
-            // Reset executing state in tracking script
+                // Reset executing state in tracking script
             try {
-                if (manager.page) {
-                    await manager.page.evaluate(() => {
+                if (manager.pages && manager.pages_index) {
+                    // Find page with index 0
+                    let pageWithIndex0: Page | null = null;
+                    for (const [pageId, index] of manager.pages_index.entries()) {
+                        if (index === 0) {
+                            pageWithIndex0 = manager.pages.get(pageId) || null;
+                            break;
+                        }
+                    }
+                    if (pageWithIndex0 && !pageWithIndex0.isClosed()) {
+                        await pageWithIndex0.evaluate(() => {
                         const global: any = globalThis as any;
                         if (global.setExecutingActionsState) {
                             global.setExecutingActionsState(false);
@@ -121,64 +143,173 @@ export function registerBrowserIpc() {
                     // Add a small delay to ensure resize events can be recorded again
                     await new Promise(resolve => setTimeout(resolve, 500));
                 }
-            } catch (e) {
+            }} catch (e) {
                 // Ignore if function doesn't exist
             }
         }
     });
 
-    ipcMain.handle("browser:addBrowserStorage", async (event, storageType: BrowserStorageType, value: any) => {
+    ipcMain.handle("browser:addBrowserStorage", async (event, storageType: BrowserStorageType, value: any, page_index?: number) => {
         const win = getWindowFromEvent(event);
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
+        //check current page
+        if (!manager.activePageId) {
+            console.error('[Browser] Cannot add browser storage: active page is null');
+            return;
+        }
+        let pageId = null;
+        for (const [idd, index] of manager.pages_index.entries()) {
+            if (index === page_index) {
+                pageId = idd;
+                break;
+            }
+        }
+        if (!pageId) {
+            pageId = manager.activePageId;
+        }
+        if (!pageId) {
+            console.error('[Browser] Cannot add browser storage: page is null');
+            return;
+        }
+        const currentPage = manager.pages.get(pageId);
+        if (!currentPage) {
+            console.error('[Browser] Cannot add browser storage: current page is null');
+            return;
+        }
+        
         if (storageType === BrowserStorageType.COOKIE) {
-            await manager.controller?.addCookies(manager.context as BrowserContext, manager.page as Page, value);
+            await manager.controller?.addCookies(manager.context as BrowserContext, currentPage, value);
         } else if (storageType === BrowserStorageType.LOCAL_STORAGE) {
-            await manager.controller?.addLocalStorage(manager.page as Page, value);
+            await manager.controller?.addLocalStorage(currentPage, value);
         } else if (storageType === BrowserStorageType.SESSION_STORAGE) {
-            await manager.controller?.addSessionStorage(manager.page as Page, value);
+            await manager.controller?.addSessionStorage(currentPage, value);
         }
     });
 
-    ipcMain.handle("browser:navigate", async (event, url: string) => {
+    ipcMain.handle("browser:navigate", async (event, url: string,page_index?: number) => {
         const win = getWindowFromEvent(event);
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
-        // console.log('[Browser] Navigating to:', url);
-        await manager.controller?.navigate(manager.page as Page, url);
-    });
-
-    ipcMain.handle("browser:reload", async (event) => {
-        const win = getWindowFromEvent(event);
-        if (!win) return;
-        const manager = getOrCreateManagerForWindow(win);
-        if (!manager.page) {
-            // console.error('[Browser] Cannot reload: page is null');
+        if (!manager.activePageId) {
+            console.error('[Browser] Cannot navigate: active page is null');
             return;
         }
-        await manager.controller?.reload(manager.page);
+        let pageId = null;
+        for (const [idd, index] of manager.pages_index.entries()) {
+            if (index === page_index) {
+                pageId = idd;
+                break;
+            }
+        }
+        if (!pageId) {
+            pageId = manager.activePageId;
+        }
+        if (!pageId) {
+            console.error('[Browser] Cannot navigate: page is null');
+            return;
+        }
+        const currentPage = manager.pages.get(pageId);
+        if (!currentPage) {
+            console.error('[Browser] Cannot navigate: current page is null');
+            return;
+        }
+        await currentPage.bringToFront();
+        await manager.controller?.navigate(currentPage, url);
     });
 
-    ipcMain.handle("browser:goBack", async (event) => {
+    ipcMain.handle("browser:reload", async (event,page_index?: number) => {
         const win = getWindowFromEvent(event);
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
-        if (!manager.page) {
-            // console.error('[Browser] Cannot go back: page is null');
+        if (!manager.activePageId) {
+            console.error('[Browser] Cannot reload: active page is null');
             return;
         }
-        await manager.controller?.goBack(manager.page);
+        let pageId = null;
+        for (const [idd, index] of manager.pages_index.entries()) {
+            if (index === page_index) {
+                pageId = idd;
+                break;
+            }
+        }
+        if (!pageId) {
+            pageId = manager.activePageId;
+        }
+        if (!pageId) {
+            console.error('[Browser] Cannot reload: page is null');
+            return;
+        }
+        const currentPage = manager.pages.get(pageId);
+        if (!currentPage) {
+            console.error('[Browser] Cannot reload: page is null');
+            return;
+        }
+
+        await currentPage.bringToFront();
+        await manager.controller?.reload(currentPage);
     });
 
-    ipcMain.handle("browser:goForward", async (event) => {
+    ipcMain.handle("browser:goBack", async (event,page_index?: number) => {
         const win = getWindowFromEvent(event);
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
-        if (!manager.page) {
-            // console.error('[Browser] Cannot go forward: page is null');
+        if (!manager.activePageId) {
+            console.error('[Browser] Cannot go back: active page is null');
             return;
         }
-        await manager.controller?.goForward(manager.page);
+        let pageId = null;
+        for (const [idd, index] of manager.pages_index.entries()) {
+            if (index === page_index) {
+                pageId = idd;
+                break;
+            }
+        }
+        if (!pageId) {
+            pageId = manager.activePageId;
+        }
+        if (!pageId) {
+            console.error('[Browser] Cannot go back: page is null');
+            return;
+        }
+        const currentPage = manager.pages.get(pageId);
+        if (!currentPage) {
+            console.error('[Browser] Cannot go back: page is null');
+            return;
+        }
+        await currentPage.bringToFront();
+        await manager.controller?.goBack(currentPage);
+    });
+
+    ipcMain.handle("browser:goForward", async (event,page_index?: number) => {
+        const win = getWindowFromEvent(event);
+        if (!win) return;
+        const manager = getOrCreateManagerForWindow(win);
+        if (!manager.activePageId) {
+            console.error('[Browser] Cannot go forward: active page is null');
+            return;
+        }
+        let pageId = null;
+        for (const [idd, index] of manager.pages_index.entries()) {
+            if (index === page_index) {
+                pageId = idd;
+                break;
+            }
+        }
+        if (!pageId) {
+            pageId = manager.activePageId;
+        }
+        if (!pageId) {
+            console.error('[Browser] Cannot go forward: page is null');
+            return;
+        }
+        const currentPage = manager.pages.get(pageId);
+        if (!currentPage) {
+            console.error('[Browser] Cannot go forward: page is null');
+            return;
+        }
+        await currentPage.bringToFront();
+        await manager.controller?.goForward(currentPage);
     });
 
     ipcMain.handle("browser:setAssertMode", async (event, enabled: boolean, assertType: AssertType) => {
@@ -213,13 +344,13 @@ export function registerBrowserIpc() {
     });
 
     // Get a single value by source and key: 'local' | 'session' | 'cookie'
-    ipcMain.handle("browser:getAuthValue", async (event, source: 'local' | 'session' | 'cookie', key: string, options?: { cookieDomainMatch?: string, cookieDomainRegex?: string }) => {
+    ipcMain.handle("browser:getAuthValue", async (event, source: 'local' | 'session' | 'cookie', key: string, page_index: number, options?: { cookieDomainMatch?: string, cookieDomainRegex?: string }) => {
         const win = getWindowFromEvent(event);
         if (!win) return null;
         const manager = getOrCreateManagerForWindow(win);
         const domainOpt = options?.cookieDomainMatch || undefined;
         const regexOpt = options?.cookieDomainRegex ? new RegExp(options.cookieDomainRegex) : undefined;
-        const value = await manager.getAuthValue(source, key, { cookieDomainMatch: regexOpt || domainOpt });
+        const value = await manager.getAuthValue(source, key, page_index, { cookieDomainMatch: regexOpt || domainOpt });
         return value;
     });
 
@@ -227,8 +358,10 @@ export function registerBrowserIpc() {
         type: 'localStorage' | 'sessionStorage' | 'cookie',
         usernameKey?: string,
         passwordKey?: string,
+        page_index?: number,
         cookieDomainMatch?: string,
         cookieDomainRegex?: string,
+        
     }) => {
         const win = getWindowFromEvent(event);
         if (!win) return { username: null, password: null };
@@ -240,7 +373,9 @@ export function registerBrowserIpc() {
             type: payload.type,
             usernameKey: payload.usernameKey,
             passwordKey: payload.passwordKey,
+            page_index: payload.page_index,
             cookieDomainMatch,
+            
         });
         return result;
     });

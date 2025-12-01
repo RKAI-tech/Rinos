@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import authService from '../../services/auth';
 import { useVersion } from '../../contexts/VersionContext';
+import BrowserManagerModal from '../browser/install_browser/BrowserManagerModal';
 import './Header.css';
 import image from '../../assets/logo_user.png';
 import rikkeiLogo from '../../assets/logoRikkeisoft.png';
@@ -10,6 +11,7 @@ const Header: React.FC = () => {
   const { currentVersion, hasUpdate, openVersionModal } = useVersion();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [localUserEmail, setLocalUserEmail] = useState<string>('');
+  const [isBrowserManagerOpen, setIsBrowserManagerOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -122,6 +124,16 @@ const Header: React.FC = () => {
           {showUserDropdown && (
             <div className="user-dropdown">
               <div 
+                className="dropdown-item" 
+                onClick={() => {
+                  setIsBrowserManagerOpen(true);
+                  setShowUserDropdown(false);
+                }}
+              >
+                <span>Browser Manager</span>
+              </div>
+              <div className="dropdown-separator" />
+              <div 
                 className={`dropdown-item ${isLoading ? 'disabled' : ''}`} 
                 onClick={isLoading ? undefined : handleLogout}
               >
@@ -132,6 +144,12 @@ const Header: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Browser Manager Modal */}
+      <BrowserManagerModal
+        isOpen={isBrowserManagerOpen}
+        onClose={() => setIsBrowserManagerOpen(false)}
+      />
     </header>
   );
 };

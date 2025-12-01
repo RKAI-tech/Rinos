@@ -48,6 +48,13 @@ export function handleClickLikeBase(e, actionType, eventLabel = 'Click') {
           elementText: elementText,
           htmlDOM: e?.target?.outerHTML,
         },
+      },
+      {
+        value: {
+          page_index: window.__PAGE_INDEX__ || 0,
+          page_url: window.location.href,
+          page_title: document.title,
+        },
       }],
     });
   }

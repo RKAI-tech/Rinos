@@ -103,7 +103,31 @@ export function createDescription(action_received: any): string {
                     return `Verify the page has title ${value}`;
                 case AssertType.ai:
                     return `${action_received.description}`;
+                
+                
             }
+        case ActionType.page_focus:
+                const title = action_received.action_datas?.[0]?.value?.title ||action_received.action_datas?.[0]?.value?.url ||'';
+    
+                return `Focus on page ${title} `;
+        case ActionType.page_create:
+            let pageUrl = 'blank';
+            for (const action_data of action_received.action_datas || []) {
+                if (action_data.value?.value) {
+                    pageUrl = action_data.value?.value;
+                    break;
+                }
+            }
+            return `Create page ${pageUrl}`;
+        case ActionType.page_close:
+            let pageUrlClose = 'blank';
+            for (const action_data of action_received.action_datas || []) {
+                if (action_data.value?.value) {
+                    pageUrlClose = action_data.value?.value;
+                    break;
+                }
+            }
+            return `Close page ${pageUrlClose}`;
         case ActionType.api_request:
             const apiRequest = action_received.action_datas?.[0]?.api_request;
             const method = apiRequest?.method ? apiRequest.method.toUpperCase() : 'GET';
@@ -114,7 +138,19 @@ export function createDescription(action_received: any): string {
     }
 }
 
-export function receiveAction(testcaseId: string, action_recorded: Action[], action_received: any): Action[] {    
+export function receiveAction(
+    testcaseId: string, 
+    action_recorded: Action[], 
+    action_received: any,
+    skipIfModalOpen?: boolean
+): Action[] {
+    // Nếu có flag skip và flag là true, bỏ qua xử lý action
+    if (skipIfModalOpen) {
+        console.log('[receiveAction] Skipping action - modal is open');
+        return action_recorded;
+    }
+    console.log('[receiveAction] Skipping action - modal is open', skipIfModalOpen);
+    
     const receivedAction = {
         action_id: Math.random().toString(36),
         testcase_id: testcaseId,
@@ -233,16 +269,23 @@ export function receiveActionWithInsert(
     testcaseId: string,
     actions: Action[],
     action_received: any,
-    insertAt?: number | null
+    insertAt?: number | null,
+    skipIfModalOpen?: boolean
 ): Action[] {
+    // Nếu có flag skip và flag là true, bỏ qua xử lý action
+    if (skipIfModalOpen) {
+        console.log('[receiveActionWithInsert] Skipping action - modal is open');
+        return actions;
+    }
+
     // Nếu không có vị trí chèn cụ thể, xử lý như bình thường
     if (insertAt === null || insertAt === undefined) {
-        return receiveAction(testcaseId, actions, action_received);
+        return receiveAction(testcaseId, actions, action_received, skipIfModalOpen);
     }
 
     const safeIndex = Math.max(0, Math.min(insertAt, actions.length));
     const head = actions.slice(0, safeIndex);
     const tail = actions.slice(safeIndex);
-    const updatedHead = receiveAction(testcaseId, head, action_received);
+    const updatedHead = receiveAction(testcaseId, head, action_received, skipIfModalOpen);
     return [...updatedHead, ...tail];
 }

@@ -10,6 +10,7 @@ import EditTestcase from '../../components/testcase/edit_testcase/EditTestcase';
 import DuplicateTestcase from '../../components/testcase/duplicate_testcase/DuplicateTestcase';
 import DeleteTestcase from '../../components/testcase/delete_testcase/DeleteTestcase';
 import RunAndViewTestcase from '../../components/testcase/run_and_view/RunAndViewTestcase';
+import InstallBrowserModal from '../../components/browser/install_browser/InstallBrowserModal';
 import { TestCaseService } from '../../services/testcases';
 import { ProjectService } from '../../services/projects';
 import { toast } from 'react-toastify';
@@ -17,7 +18,7 @@ import { ExecuteScriptsService } from '../../services/executeScripts';
 import { ActionService } from '../../services/actions';
 import { Action } from '../../types/actions';
 import { canEdit } from '../../hooks/useProjectPermissions';
-import { Evidence } from '../../types/testcases';
+import { Evidence, BrowserType } from '../../types/testcases';
 
 
 interface Testcase {
@@ -30,6 +31,7 @@ interface Testcase {
   status: 'Passed' | 'Failed' | 'Draft' | 'Running';
   actionsCount: number;
   basic_authentication?: { username: string; password: string };
+  browser_type?: string;
 }
 
 const Testcases: React.FC = () => {
@@ -60,7 +62,11 @@ const Testcases: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
   const [isRunAndViewModalOpen, setIsRunAndViewModalOpen] = useState(false);
+  const [isInstallBrowserModalOpen, setIsInstallBrowserModalOpen] = useState(false);
   const [selectedTestcase, setSelectedTestcase] = useState<Testcase | null>(null);
+  const [pendingRecorderTestcaseId, setPendingRecorderTestcaseId] = useState<string | null>(null);
+  const [isInstallingBrowsers, setIsInstallingBrowsers] = useState(false);
+  const [installProgress, setInstallProgress] = useState<{ browser: string; progress: number; status: string } | null>(null);
   const [selectedTestcaseData, setSelectedTestcaseData] = useState<any>(null);
   const [runningTestcases, setRunningTestcases] = useState<string[]>([]);
   const [autoReloadInterval, setAutoReloadInterval] = useState<NodeJS.Timeout | null>(null);
@@ -102,6 +108,7 @@ const Testcases: React.FC = () => {
               username: tc.basic_authentication?.username ? tc.basic_authentication.username : '',
               password: tc.basic_authentication?.password ? tc.basic_authentication.password : '',
             },
+            browser_type: tc.browser_type || undefined,
           };
         });
         // console.log('[MAIN_APP] mapped', mapped);
@@ -168,19 +175,18 @@ const Testcases: React.FC = () => {
 
   // Load project name from API
   useEffect(() => {
-    const loadProjectName = async () => {
+    const loadProjectData = async () => {
       if (!projectId) return;
-      if (projectData.projectName) {
-        setResolvedProjectName(projectData.projectName);
-        return;
-      }
       const svc = new ProjectService();
       const resp = await svc.getProjectById(projectId);
       if (resp.success && resp.data) {
-        setResolvedProjectName((resp.data as any).name || 'Project');
+        const project = resp.data as any;
+        setResolvedProjectName(project.name || projectData.projectName || 'Project');
+      } else if (projectData.projectName) {
+        setResolvedProjectName(projectData.projectName);
       }
     };
-    loadProjectName();
+    loadProjectData();
   }, [projectId]);
 
   // Sidebar navigation items
@@ -346,7 +352,7 @@ const Testcases: React.FC = () => {
     reloadTestcases();
   };
 
-  const handleSaveTestcase = async ({ projectId, name, tag }: { projectId: string; name: string; tag: string }) => {
+  const handleSaveTestcase = async ({ projectId, name, tag, browser_type }: { projectId: string; name: string; tag: string; browser_type?: string }) => {
     try {
       const effectiveProjectId = projectId || projectData?.projectId;
       if (!effectiveProjectId) {
@@ -357,6 +363,7 @@ const Testcases: React.FC = () => {
         project_id: effectiveProjectId,
         name,
         tag: tag || undefined,
+        browser_type: browser_type || undefined,
       };
       const resp = await testCaseService.createTestCase(payload);
       if (resp.success) {
@@ -497,7 +504,7 @@ const Testcases: React.FC = () => {
   };
 
   // Create testcase with actions in one call
-  const createTestcaseWithActions = async (name: string, tag?: string, actions?: any[], basic_authentication?: { username: string; password: string }) => {
+  const createTestcaseWithActions = async (name: string, tag?: string, actions?: any[], basic_authentication?: { username: string; password: string }, browser_type?: string) => {
     const effectiveProjectId = projectData?.projectId;
     if (!effectiveProjectId) {
       toast.error('Missing project ID');
@@ -508,7 +515,8 @@ const Testcases: React.FC = () => {
       name, 
       tag: tag || undefined,
       actions: actions || [],
-      basic_authentication: basic_authentication || undefined
+      basic_authentication: basic_authentication || undefined,
+      browser_type: browser_type || undefined
     } as any;
     const resp = await testCaseService.createTestCaseWithActions(payload);
     if (!resp.success) {
@@ -518,36 +526,192 @@ const Testcases: React.FC = () => {
     return true;
   };
 
-  const handleOpenRecorder = async (id: string) => {
+  // Map browser type to playwright browser name
+  const mapBrowserTypeToPlaywright = (browserType: string): string => {
+    const normalized = browserType.toLowerCase();
+    switch (normalized) {
+      case 'chrome':
+        return 'chromium';
+      case 'edge':
+        return 'msedge'; // Edge uses custom installation
+      case 'firefox':
+        return 'firefox';
+      case 'safari':
+        return 'webkit';
+      default:
+        return 'chromium';
+    }
+  };
+
+  // Check if browser type is supported on current platform
+  const isBrowserSupported = (browserType: string): boolean => {
+    type SupportedPlatform = 'win32' | 'darwin' | 'linux';
+    
+    const browserSupportMap: Record<string, SupportedPlatform[]> = {
+      chrome: ['win32', 'darwin', 'linux'],
+      edge: ['win32', 'darwin', 'linux'],
+      firefox: ['win32', 'darwin', 'linux'],
+      safari: ['darwin'], // Safari only on macOS
+    };
+    
+    const systemPlatformRaw = (window as any).electronAPI?.system?.platform || process?.platform || 'linux';
+    const normalizedPlatform: SupportedPlatform = ['win32', 'darwin', 'linux'].includes(systemPlatformRaw)
+      ? (systemPlatformRaw as SupportedPlatform)
+      : 'linux';
+    
+    const normalizedBrowserType = browserType.toLowerCase();
+    const supportedPlatforms = browserSupportMap[normalizedBrowserType];
+    
+    if (!supportedPlatforms) {
+      // Unknown browser type, assume not supported
+      return false;
+    }
+    
+    return supportedPlatforms.includes(normalizedPlatform);
+  };
+
+  // Check if browser is installed
+  const checkBrowserInstalled = async (browserType: string): Promise<boolean> => {
     try {
-      // console.log('[Testcases] Opening recorder for testcase:', id);
-      // TODO: Get token from apiRouter
+      const playwrightAPI = (window as any).playwrightAPI || (window as any).electronAPI?.playwright;
+      if (!playwrightAPI) {
+        console.warn('[Testcases] Playwright API not available');
+        return true; // Assume installed if API not available
+      }
+      
+      const playwrightBrowser = mapBrowserTypeToPlaywright(browserType);
+      const result = await playwrightAPI.checkBrowsers([browserType]);
+      
+      if (result?.success && result?.data) {
+        return result.data[browserType] === true;
+      }
+      return false;
+    } catch (err) {
+      console.error('[Testcases] Error checking browser:', err);
+      return false;
+    }
+  };
+
+  // Open recorder after browser check
+  const openRecorderAfterCheck = async (id: string) => {
+    try {
       const token = await (window as any).tokenStore?.get?.();
       (window as any).browserAPI?.browser?.setAuthToken?.(token);
       
-      // Lấy tên test case để hiển thị trong title
       const testcase = testcases.find(tc => tc.testcase_id === id);
       const testcaseName = testcase?.name || id;
+      const browserType = testcase?.browser_type || BrowserType.chrome;
       
-      const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectData?.projectId, testcaseName);
+      const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectData?.projectId, testcaseName, browserType);
       if (result?.alreadyOpen) {
         toast.warning('Recorder for this testcase is already open.');
       } else if (result?.created) {
       }
     } catch (err) {
-      // console.error('[Testcases] openRecorder error:', err);
+      console.error('[Testcases] openRecorder error:', err);
+      toast.error('Failed to open recorder');
     }
   };
 
+  const handleOpenRecorder = async (id: string) => {
+    try {
+      const testcase = testcases.find(tc => tc.testcase_id === id);
+      const browserType = testcase?.browser_type || BrowserType.chrome;
+      
+      // First check if browser type is supported on current platform
+      if (!isBrowserSupported(browserType)) {
+        const browserName = browserType.charAt(0).toUpperCase() + browserType.slice(1);
+        const systemPlatformRaw = (window as any).electronAPI?.system?.platform || process?.platform || 'linux';
+        const platformName = systemPlatformRaw === 'win32' ? 'Windows' : systemPlatformRaw === 'darwin' ? 'macOS' : 'Linux';
+        toast.error(`${browserName} is not supported on ${platformName}. Please use a different browser type.`);
+        return;
+      }
+      
+      // Check if browser is installed
+      const isInstalled = await checkBrowserInstalled(browserType);
+      
+      if (!isInstalled) {
+        // Show install modal
+        setPendingRecorderTestcaseId(id);
+        setIsInstallBrowserModalOpen(true);
+      } else {
+        // Browser is installed, open recorder directly
+        await openRecorderAfterCheck(id);
+      }
+    } catch (err) {
+      console.error('[Testcases] Error in handleOpenRecorder:', err);
+      toast.error('Failed to check browser installation');
+    }
+  };
+
+  // Handle browser installation
+  const handleInstallBrowsers = async (browsers: string[]) => {
+    try {
+      setIsInstallingBrowsers(true);
+      setInstallProgress(null);
+      
+      const playwrightAPI = (window as any).playwrightAPI || (window as any).electronAPI?.playwright;
+      if (!playwrightAPI) {
+        throw new Error('Playwright API not available');
+      }
+      
+      // Set up progress listener
+      const unsubscribe = playwrightAPI.onInstallProgress?.((progress: { browser: string; progress: number; status: string }) => {
+        setInstallProgress(progress);
+      });
+      
+      // Install browsers
+      const result = await playwrightAPI.installBrowsers(browsers);
+      
+      // Clean up listener
+      if (unsubscribe) unsubscribe();
+      
+      if (result?.success) {
+        toast.success('Browsers installed successfully!');
+        setIsInstallBrowserModalOpen(false);
+        setIsInstallingBrowsers(false);
+        setInstallProgress(null);
+        
+        // Open recorder after installation
+        if (pendingRecorderTestcaseId) {
+          await openRecorderAfterCheck(pendingRecorderTestcaseId);
+          setPendingRecorderTestcaseId(null);
+        }
+      } else {
+        throw new Error(result?.error || 'Installation failed');
+      }
+    } catch (err) {
+      console.error('[Testcases] Error installing browsers:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to install browsers');
+      setIsInstallingBrowsers(false);
+      setInstallProgress(null);
+      throw err;
+    }
+  };
+
+  // Set up progress listener on mount
+  useEffect(() => {
+    const playwrightAPI = (window as any).playwrightAPI || (window as any).electronAPI?.playwright;
+    if (playwrightAPI?.onInstallProgress) {
+      const unsubscribe = playwrightAPI.onInstallProgress((progress: { browser: string; progress: number; status: string }) => {
+        if (isInstallingBrowsers) {
+          setInstallProgress(progress);
+        }
+      });
+      return unsubscribe;
+    }
+  }, [isInstallingBrowsers]);
+
   const handleSaveEditTestcase = async (
-    { testcase_id, name, description, basic_authentication, actions }:
-    { testcase_id: string; name: string; description: string | undefined; basic_authentication?: { username: string; password: string }; actions?: any[] }) => {
+    { testcase_id, name, description, basic_authentication, browser_type, actions }:
+    { testcase_id: string; name: string; description: string | undefined; basic_authentication?: { username: string; password: string }; browser_type?: string; actions?: any[] }) => {
     try {
       const payload = {
         testcase_id,
         name,
         description: description || undefined,
         basic_authentication: basic_authentication || undefined,
+        browser_type: browser_type || undefined,
         actions: actions || undefined
       } as any;
       // console.log('[MAIN_APP] payload', payload);
@@ -696,6 +860,7 @@ const Testcases: React.FC = () => {
                   <th className={`sortable ${sortBy === 'updatedAt' ? 'sorted' : ''}`} onClick={() => handleSort('updatedAt')}>
                     <span className="th-content"><span className="th-text">Updated</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'updatedAt' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'updatedAt' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
                   </th>
+                  <th>Browser Type</th>
                   <th>Options</th>
                 </tr>
               </thead>
@@ -727,6 +892,7 @@ const Testcases: React.FC = () => {
                       </span>
                     </td>
                     <td className="testcase-created">{testcase.updatedAt}</td>
+                    <td className="testcase-browser-type">{testcase.browser_type || '-'}</td>
                     <td className="testcase-actions">
                       <div className="actions-container">
                         <button 
@@ -880,7 +1046,7 @@ const Testcases: React.FC = () => {
         isOpen={isEditModalOpen}
         onClose={handleCloseEditModal}
         onSave={handleSaveEditTestcase}
-        testcase={selectedTestcase ? { testcase_id: selectedTestcase.testcase_id, name: selectedTestcase.name, description: selectedTestcase.description, basic_authentication: selectedTestcase.basic_authentication } : null}
+        testcase={selectedTestcase ? { testcase_id: selectedTestcase.testcase_id, name: selectedTestcase.name, description: selectedTestcase.description, basic_authentication: selectedTestcase.basic_authentication, browser_type: selectedTestcase.browser_type } : null}
       />
 
       {/* Delete Testcase Modal */}
@@ -897,7 +1063,7 @@ const Testcases: React.FC = () => {
         onClose={handleCloseDuplicateModal}
         onSave={handleSaveDuplicateTestcase}
         createTestcaseWithActions={createTestcaseWithActions}
-        testcase={selectedTestcase ? { testcase_id: selectedTestcase.testcase_id, name: selectedTestcase.name, description: selectedTestcase.description, basic_authentication: selectedTestcase.basic_authentication } : null}
+        testcase={selectedTestcase ? { testcase_id: selectedTestcase.testcase_id, name: selectedTestcase.name, description: selectedTestcase.description, basic_authentication: selectedTestcase.basic_authentication, browser_type: selectedTestcase.browser_type } : null}
       />
 
       {/* Run And View Testcase Modal */}
@@ -909,6 +1075,26 @@ const Testcases: React.FC = () => {
         projectId={projectData?.projectId}
         testcaseData={selectedTestcaseData}
         onReloadTestcases={reloadTestcases}
+      />
+
+      {/* Install Browser Modal */}
+      <InstallBrowserModal
+        isOpen={isInstallBrowserModalOpen}
+        onClose={() => {
+          if (!isInstallingBrowsers) {
+            setIsInstallBrowserModalOpen(false);
+            setPendingRecorderTestcaseId(null);
+            setInstallProgress(null);
+          }
+        }}
+        onInstall={handleInstallBrowsers}
+        defaultBrowserType={
+          pendingRecorderTestcaseId
+            ? (testcases.find(tc => tc.testcase_id === pendingRecorderTestcaseId)?.browser_type || BrowserType.chrome)
+            : null
+        }
+        isInstalling={isInstallingBrowsers}
+        installProgress={installProgress}
       />
     </div>
   );

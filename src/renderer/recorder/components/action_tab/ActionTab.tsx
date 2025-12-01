@@ -2,14 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import './ActionTab.css';
 import RenderedAction from '../action/Action';
 import AddActionModal from '../add_action_modal/AddActionModal';
-import DatabaseExecutionModal from '../database_execution_modal/DatabaseExecutionModal';
-import WaitModal from '../wait_modal/WaitModal';
-import NavigateModal from '../navigate_modal/NavigateModal';
-import ApiRequestModal from '../api_request_modal/ApiRequestModal';
+import DatabaseExecutionModal from '../add_action_modal/database_execution_modal/DatabaseExecutionModal';
+import WaitModal, { SelectedPageInfo } from '../add_action_modal/wait_modal/WaitModal';
+import NavigateModal, { SelectedPageInfo as NavigateSelectedPageInfo } from '../add_action_modal/navigate_modal/NavigateModal';
+import ApiRequestModal, { SelectedPageInfo as ApiRequestSelectedPageInfo } from '../add_action_modal/api_request_modal/ApiRequestModal';
+import BrowserActionModal, { BrowserActionType, SelectedPageInfo as BrowserActionSelectedPageInfo } from '../add_action_modal/browser_action_modal/BrowserActionModal';
 import { Action, ActionType, AssertType, Connection, ApiRequestData } from '../../types/actions';
 import { receiveActionWithInsert } from '../../utils/receive_action';
 import { BrowserStorageResponse } from '../../types/browser_storage';
-import AddBrowserStorageModal from '../add_browser_storage_modal/AddBrowserStorageModal';
+import AddBrowserStorageModal, { SelectedPageInfo as AddBrowserStorageSelectedPageInfo } from '../add_action_modal/add_browser_storage_modal/AddBrowserStorageModal';
 import { toast } from 'react-toastify';
 
 export type ActionOperationResult = {
@@ -48,6 +49,17 @@ interface ActionTabProps {
   projectId?: string | null;
   basicAuthStatus?: 'idle' | 'success';
   onBasicAuthStatusClear?: () => void;
+  onModalStateChange?: (modalType: 'wait' | 'navigate' | 'api_request' | 'add_browser_storage' | 'database_execution' | 'browser_action', isOpen: boolean) => void;
+  waitSelectedPageInfo?: SelectedPageInfo | null;
+  onWaitPageInfoChange?: (pageInfo: SelectedPageInfo | null) => void;
+  navigateSelectedPageInfo?: NavigateSelectedPageInfo | null;
+  onNavigatePageInfoChange?: (pageInfo: NavigateSelectedPageInfo | null) => void;
+  browserActionSelectedPageInfo?: BrowserActionSelectedPageInfo | null;
+  onBrowserActionPageInfoChange?: (pageInfo: BrowserActionSelectedPageInfo | null) => void;
+  addBrowserStorageSelectedPageInfo?: AddBrowserStorageSelectedPageInfo | null;
+  onAddBrowserStoragePageInfoChange?: (pageInfo: AddBrowserStorageSelectedPageInfo | null) => void;
+  apiRequestSelectedPageInfo?: ApiRequestSelectedPageInfo | null;
+  onApiRequestPageInfoChange?: (pageInfo: ApiRequestSelectedPageInfo | null) => void;
 }
 
 const ActionTab: React.FC<ActionTabProps> = ({
@@ -79,7 +91,18 @@ const ActionTab: React.FC<ActionTabProps> = ({
   onOpenBasicAuth,
   projectId,
   basicAuthStatus,
-  onBasicAuthStatusClear
+  onBasicAuthStatusClear,
+  onModalStateChange,
+  waitSelectedPageInfo: propWaitSelectedPageInfo,
+  onWaitPageInfoChange,
+  navigateSelectedPageInfo: propNavigateSelectedPageInfo,
+  onNavigatePageInfoChange,
+  browserActionSelectedPageInfo: propBrowserActionSelectedPageInfo,
+  onBrowserActionPageInfoChange,
+  addBrowserStorageSelectedPageInfo: propAddBrowserStorageSelectedPageInfo,
+  onAddBrowserStoragePageInfoChange,
+  apiRequestSelectedPageInfo: propApiRequestSelectedPageInfo,
+  onApiRequestPageInfoChange
 }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -88,6 +111,13 @@ const ActionTab: React.FC<ActionTabProps> = ({
   const [isNavigateOpen, setIsNavigateOpen] = useState(false);
   const [isApiRequestOpen, setIsApiRequestOpen] = useState(false);
   const [isAddBrowserStorageOpen, setIsAddBrowserStorageOpen] = useState(false);
+  const [isBrowserActionOpen, setIsBrowserActionOpen] = useState(false);
+  const [browserActionType, setBrowserActionType] = useState<BrowserActionType>('back');
+  const [waitSelectedPageInfo, setWaitSelectedPageInfo] = useState<SelectedPageInfo | null>(null);
+  const [navigateSelectedPageInfo, setNavigateSelectedPageInfo] = useState<NavigateSelectedPageInfo | null>(null);
+  const [browserActionSelectedPageInfo, setBrowserActionSelectedPageInfo] = useState<BrowserActionSelectedPageInfo | null>(null);
+  const [addBrowserStorageSelectedPageInfo, setAddBrowserStorageSelectedPageInfo] = useState<AddBrowserStorageSelectedPageInfo | null>(null);
+  const [apiRequestSelectedPageInfo, setApiRequestSelectedPageInfo] = useState<ApiRequestSelectedPageInfo | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [reloadStatus, setReloadStatus] = useState<'idle' | 'loading' | 'success'>('idle');
@@ -222,45 +252,41 @@ const ActionTab: React.FC<ActionTabProps> = ({
     setDraggedIndex(null);
     setDragOverIndex(null);
   };
-
-  const handleInsertPositionClick = (position: number) => {
-    if (onSelectInsertPosition) {
-      onSelectInsertPosition(position);
-    }
-  };
-
-  const handleClearPosition = () => {
-    if (onSelectInsertPosition) {
-      onSelectInsertPosition(null);
-    }
-  };
-
-  // Add action handlers
   const handleSelectDatabaseExecution = () => {
     setIsDatabaseExecutionOpen(true);
+    onModalStateChange?.('database_execution', true);
   };
 
   const handleSelectApiRequest = () => {
     setIsApiRequestOpen(true);
+    onModalStateChange?.('api_request', true);
   };
 
-  const handleApiRequestConfirm = (apiData: ApiRequestData) => {
+  const handleApiRequestConfirm = (apiData: ApiRequestData, pageInfo?: ApiRequestSelectedPageInfo) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
 
     const method = (apiData.method || 'get').toUpperCase();
     const url = apiData.url || '';
     const desc = `API Request: ${method} ${url}`;
+    var actionDatas: any[] = [
+      {
+        api_request: apiData,
+      }
+    ];
+    if (pageInfo) {
+      actionDatas.push({
+        value: {
+          page_index: pageInfo.page_index,
+        },
+      });
+    }
 
     const newAction = {
       testcase_id: testcaseId,
       action_id: Math.random().toString(36),
       action_type: ActionType.api_request,
       description: desc,
-      action_datas: [
-        {
-          api_request: apiData,
-        } as any,
-      ],
+      action_datas: actionDatas,
     } as any;
 
     onActionsChange(prev => {
@@ -280,18 +306,22 @@ const ActionTab: React.FC<ActionTabProps> = ({
     });
 
     setIsApiRequestOpen(false);
+    onModalStateChange?.('api_request', false);
   };
 
   const handleSelectWait = () => {
     setIsWaitOpen(true);
+    onModalStateChange?.('wait', true);
   };
 
   const handleSelectNavigate = () => {
     setIsNavigateOpen(true);
+    onModalStateChange?.('navigate', true);
   };
 
   const handleSelectAddBrowserStorage = () => {
     setIsAddBrowserStorageOpen(true);
+    onModalStateChange?.('add_browser_storage', true);
   };
 
   const normalizeResult = (result?: ActionOperationResult | void): ActionOperationResult => {
@@ -317,7 +347,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
       const rawResult = await onReload();
       const normalized = normalizeResult(rawResult);
 
-       if (normalized.success) {
+      if (normalized.success) {
         setReloadSuccessWithTimeout();
       } else {
         setReloadStatus('idle');
@@ -328,6 +358,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
   };
 
   const handleSaveClick = async () => {
+    // console.log('component: save actions', actions);
     if (!onSaveActions) {
       return;
     }
@@ -342,7 +373,6 @@ const ActionTab: React.FC<ActionTabProps> = ({
     try {
       const rawResult = await onSaveActions();
       const normalized = normalizeResult(rawResult);
-
       if (normalized.success) {
         setSaveSuccessWithTimeout();
       } else {
@@ -353,20 +383,30 @@ const ActionTab: React.FC<ActionTabProps> = ({
     }
   };
 
-  const handleNavigateConfirm = async (url: string) => {
+  const handleNavigateConfirm = async (url: string, pageInfo?: NavigateSelectedPageInfo) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+    const actionDatas: any[] = [
+      {
+        value: {
+          value: url,
+        },
+      }
+    ];
+
+    if (pageInfo) {
+      actionDatas.push({
+        value: {
+          page_index: pageInfo.page_index,
+        },
+      });
+    }
+
     const newAction = {
       testcase_id: testcaseId,
       action_id: Math.random().toString(36),
       action_type: ActionType.navigate,
-      action_datas: [
-        {
-          value: {
-            value: url,
-          },
-        }
-      ],
-      description: `Navigate to ${url}`,
+      action_datas: actionDatas,
+      description: pageInfo ? `Navigate to ${url} on page ${pageInfo.page_title || pageInfo.page_url}` : `Navigate to ${url}`,
     } as any;
     onActionsChange(prev => {
       const next = receiveActionWithInsert(
@@ -384,24 +424,39 @@ const ActionTab: React.FC<ActionTabProps> = ({
       return next;
     });
     setIsNavigateOpen(false);
-    await(window as any).browserAPI?.browser.navigate(url);
+    setNavigateSelectedPageInfo(null);
+    onModalStateChange?.('navigate', false);
+    onNavigatePageInfoChange?.(null);
+    await (window as any).browserAPI?.browser.navigate(url);
     // toast.success('Added navigate action');
   }
 
-  const handleWaitConfirm = async (ms: any) => {
+  const handleWaitConfirm = async (ms: any, pageInfo?: SelectedPageInfo) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+    const actionDatas: any[] = [
+      {
+        value: {
+          value: String(ms),
+        },
+      }
+    ];
+
+    if (pageInfo) {
+      actionDatas.push({
+        value: {
+          page_index: pageInfo.page_index,
+          page_url: pageInfo.page_url,
+          page_title: pageInfo.page_title,
+        }
+      });
+    }
+
     const newAction = {
       testcase_id: testcaseId,
       action_id: Math.random().toString(36),
       action_type: ActionType.wait,
-      action_datas: [
-        {
-          value: {
-            value: String(ms),
-          },
-        }
-      ],
-      description: `Wait for ${ms} ms`,
+      action_datas: actionDatas,
+      description: pageInfo ? `Wait for ${ms} ms on page ${pageInfo.page_title || pageInfo.page_url}` : `Wait for ${ms} ms`,
     };
     onActionsChange(prev => {
       const next = receiveActionWithInsert(
@@ -419,27 +474,148 @@ const ActionTab: React.FC<ActionTabProps> = ({
       return next;
     });
     setIsWaitOpen(false);
+    setWaitSelectedPageInfo(null);
+    onModalStateChange?.('wait', false);
+    onWaitPageInfoChange?.(null);
     // toast.success('Added wait action');
   }
 
-  const handleAddBrowserStorageConfirm = async (selectedBrowserStorage: BrowserStorageResponse) => {
+  // Reset page info khi modal đóng
+  useEffect(() => {
+    if (!isWaitOpen) {
+      setWaitSelectedPageInfo(null);
+      onWaitPageInfoChange?.(null);
+    }
+  }, [isWaitOpen, onWaitPageInfoChange]);
+
+  useEffect(() => {
+    if (!isNavigateOpen) {
+      setNavigateSelectedPageInfo(null);
+      onNavigatePageInfoChange?.(null);
+    }
+  }, [isNavigateOpen, onNavigatePageInfoChange]);
+
+  useEffect(() => {
+    if (!isBrowserActionOpen) {
+      setBrowserActionSelectedPageInfo(null);
+      onBrowserActionPageInfoChange?.(null);
+    }
+  }, [isBrowserActionOpen, onBrowserActionPageInfoChange]);
+
+  useEffect(() => {
+    if (!isAddBrowserStorageOpen) {
+      setAddBrowserStorageSelectedPageInfo(null);
+      onAddBrowserStoragePageInfoChange?.(null);
+    }
+  }, [isAddBrowserStorageOpen, onAddBrowserStoragePageInfoChange]);
+
+  useEffect(() => {
+    if (!isApiRequestOpen) {
+      setApiRequestSelectedPageInfo(null);
+      onApiRequestPageInfoChange?.(null);
+    }
+  }, [isApiRequestOpen, onApiRequestPageInfoChange]);
+
+  const handleBrowserActionConfirm = async (pageInfo: BrowserActionSelectedPageInfo) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+
+    const actionDatas: any[] = [];
+
+    if (pageInfo) {
+      actionDatas.push({
+        value: {
+          page_index: pageInfo.page_index,
+        },
+      });
+    }
+
+    let actionType: ActionType;
+    let description: string;
+    let browserMethod: string;
+
+    switch (browserActionType) {
+      case 'back':
+        actionType = ActionType.back;
+        description = pageInfo ? `Go back on page ${pageInfo.page_title || pageInfo.page_url}` : 'Go back to previous page';
+        browserMethod = 'goBack';
+        break;
+      case 'forward':
+        actionType = ActionType.forward;
+        description = pageInfo ? `Go forward on page ${pageInfo.page_title || pageInfo.page_url}` : 'Go forward to next page';
+        browserMethod = 'goForward';
+        break;
+      case 'reload':
+        actionType = ActionType.reload;
+        description = pageInfo ? `Reload page ${pageInfo.page_title || pageInfo.page_url}` : 'Reload current page';
+        browserMethod = 'reload';
+        break;
+      default:
+        return;
+    }
+
+    const newAction = {
+      testcase_id: testcaseId,
+      action_id: Math.random().toString(36),
+      action_type: actionType,
+      action_datas: actionDatas,
+      description: description,
+    } as any;
+
+    onActionsChange(prev => {
+      const next = receiveActionWithInsert(
+        testcaseId,
+        prev,
+        newAction,
+        selectedInsertPosition || 0
+      );
+      const added = next.length > prev.length;
+      if (added) {
+        const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
+        onInsertPositionChange(newPos);
+        onDisplayPositionChange(newPos);
+      }
+      return next;
+    });
+
+    setIsBrowserActionOpen(false);
+    setBrowserActionSelectedPageInfo(null);
+    onModalStateChange?.('browser_action', false);
+    onBrowserActionPageInfoChange?.(null);
+
+    // Gọi browser API method
+    if (browserMethod && (window as any).browserAPI?.browser?.[browserMethod]) {
+      await (window as any).browserAPI.browser[browserMethod](pageInfo.page_index);
+    }
+  };
+
+  const handleAddBrowserStorageConfirm = async (selectedBrowserStorage: BrowserStorageResponse, pageInfo?: AddBrowserStorageSelectedPageInfo) => {
+    if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+    const actionDatas: any[] = [
+      {
+        browser_storage: {
+          browser_storage_id: selectedBrowserStorage.browser_storage_id,
+          name: selectedBrowserStorage.name,
+          description: selectedBrowserStorage.description,
+          value: selectedBrowserStorage.value,
+          storage_type: selectedBrowserStorage.storage_type,
+        },
+      }
+    ];
+
+    if (pageInfo) {
+      actionDatas[0].value = {
+        page_index: pageInfo.page_index,
+        page_url: pageInfo.page_url,
+        page_title: pageInfo.page_title,
+      };
+    }
+
     const newAction = {
       testcase_id: testcaseId,
       action_id: Math.random().toString(36),
       action_type: ActionType.add_browser_storage,
-      action_datas: [
-        {
-          browser_storage: {
-            browser_storage_id: selectedBrowserStorage.browser_storage_id,
-            name: selectedBrowserStorage.name,
-            description: selectedBrowserStorage.description,
-            value: selectedBrowserStorage.value,
-            storage_type: selectedBrowserStorage.storage_type,
-          },
-        }
-      ],
-      description: `Add browser storage: ${selectedBrowserStorage.name}`,
+      action_datas: actionDatas,
+      description: pageInfo ? `Add browser storage: ${selectedBrowserStorage.name} on page ${pageInfo.page_title || pageInfo.page_url}` : `Add browser storage: ${selectedBrowserStorage.name}`,
     } as any;
     // console.log("cookies action:", newAction);
     onActionsChange(prev => {
@@ -458,7 +634,8 @@ const ActionTab: React.FC<ActionTabProps> = ({
       return next;
     });
     setIsAddBrowserStorageOpen(false);
-    await (window as any).browserAPI?.browser?.addBrowserStorage(selectedBrowserStorage.storage_type, JSON.stringify(selectedBrowserStorage.value));
+    onModalStateChange?.('add_browser_storage', false);
+    await (window as any).browserAPI?.browser?.addBrowserStorage(selectedBrowserStorage.storage_type, JSON.stringify(selectedBrowserStorage.value), pageInfo?.page_index);
     // toast.success('Added cookies action');
   }
 
@@ -479,9 +656,8 @@ const ActionTab: React.FC<ActionTabProps> = ({
         }
       ]
     }
-    
+
     onActionsChange(prev => {
-      // console.log("Previous actions:", prev);
       const next = receiveActionWithInsert(
         testcaseId,
         prev,
@@ -499,6 +675,9 @@ const ActionTab: React.FC<ActionTabProps> = ({
       }
       return next;
     });
+
+    setIsDatabaseExecutionOpen(false);
+    onModalStateChange?.('database_execution', false);
     // toast.success('Added database execution action');
 
   };
@@ -507,14 +686,11 @@ const ActionTab: React.FC<ActionTabProps> = ({
   const handleSelectAddAction = async (actionType: string) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
 
-    // console.log("handleSelectAddAction called with type:", actionType);
 
-    // For database_execution, it's handled by modal, so don't add to list here
     if (actionType === 'database_execution') {
       // console.log("Database execution handled by modal, not adding to list");
       return;
     }
-
     if (actionType === 'wait') {
       handleSelectWait();
       return;
@@ -530,8 +706,15 @@ const ActionTab: React.FC<ActionTabProps> = ({
       return;
     }
 
+    // Xử lý các browser actions (back, forward, reload) - sẽ mở modal
+    if (actionType === 'back' || actionType === 'forward' || actionType === 'reload') {
+      setBrowserActionType(actionType as BrowserActionType);
+      setIsBrowserActionOpen(true);
+      onModalStateChange?.('browser_action', true);
+      return;
+    }
+
     const newAction = await createActionByType(actionType);
-    // console.log("Created action:", newAction);
 
     if (newAction) {
       onActionsChange(prev => {
@@ -548,13 +731,16 @@ const ActionTab: React.FC<ActionTabProps> = ({
           const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
           onInsertPositionChange(newPos);
           onDisplayPositionChange(newPos);
-          // console.log("Updated insert position to:", newPos);
         }
         return next;
       });
       // toast.success(`Added ${actionType} action`);
     } else {
-      // console.error("Failed to create action for type:", actionType);
+      // Chỉ log error nếu không phải là action type được xử lý bởi modal
+      const modalHandledTypes = ['back', 'forward', 'reload', 'api_request', 'database_execution'];
+      if (!modalHandledTypes.includes(actionType)) {
+        console.error("Failed to create action for type:", actionType);
+      }
     }
   };
 
@@ -568,47 +754,26 @@ const ActionTab: React.FC<ActionTabProps> = ({
 
     switch (actionType) {
       case 'reload':
-        const reloadAction = {
-          ...baseAction,
-          action_type: ActionType.reload,
-          description: 'Reload current page',
-        } as any;
-        // console.log("Created reload action:", reloadAction);
-        await (window as any).browserAPI?.browser?.reload();
-        return reloadAction;
-
       case 'back':
-        const backAction = {
-          ...baseAction,
-          action_type: ActionType.back,
-          description: 'Go back to previous page',
-        } as any;
-        // console.log("Created back action:", backAction);
-        await (window as any).browserAPI?.browser?.goBack();
-        return backAction;
-
       case 'forward':
-        const forwardAction = {
-          ...baseAction,
-          action_type: ActionType.forward,
-          description: 'Go forward to next page',
-        } as any;
-        // console.log("Created forward action:", forwardAction);
-        await (window as any).browserAPI?.browser?.goForward();
-        return forwardAction;
-      
+        // Mở browser action modal để chọn page
+        setBrowserActionType(actionType as BrowserActionType);
+        setIsBrowserActionOpen(true);
+        onModalStateChange?.('browser_action', true);
+        return null;
+
       case 'database_execution':
         // This will be handled by the modal
         // console.log("Database execution will be handled by modal");
         handleSelectDatabaseExecution();
         return null;
-      
+
       case 'api_request':
         // This will be handled by the modal
         // console.log("API request will be handled by modal");
         handleSelectApiRequest();
         return null;
-      
+
       case 'visit_url':
         const visitAction = {
           ...baseAction,
@@ -621,24 +786,20 @@ const ActionTab: React.FC<ActionTabProps> = ({
         // console.log("Created visit_url action:", visitAction);
         await (window as any).browserAPI?.browser?.navigate(visitAction.value as string);
         return visitAction;
-      
+
       default:
         // console.error('Unknown action type:', actionType);
         return null;
     }
   };
 
-  // Auto-scroll to bottom when actions list grows or loads
   useEffect(() => {
     if (!listRef.current) return;
-    // Smooth scroll to bottom on any length change
     try {
       const container = listRef.current;
       container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     } catch { }
   }, [actions.length]);
-
-  // Ensure the currently selected recording start index is visible
   useEffect(() => {
     if (recordingFromActionIndex == null) return;
     const node = itemRefs.current[recordingFromActionIndex];
@@ -709,29 +870,86 @@ const ActionTab: React.FC<ActionTabProps> = ({
             />
             <ApiRequestModal
               isOpen={isApiRequestOpen}
-              onClose={() => setIsApiRequestOpen(false)}
+              onClose={() => {
+                setIsApiRequestOpen(false);
+                onModalStateChange?.('api_request', false);
+              }}
               onConfirm={handleApiRequestConfirm}
+              selectedPageInfo={propApiRequestSelectedPageInfo || apiRequestSelectedPageInfo}
+              onClearPage={() => {
+                setApiRequestSelectedPageInfo(null);
+                onApiRequestPageInfoChange?.(null);
+              }}
             />
             <DatabaseExecutionModal
               isOpen={isDatabaseExecutionOpen}
-              onClose={() => setIsDatabaseExecutionOpen(false)}
+              onClose={() => {
+                setIsDatabaseExecutionOpen(false);
+                onModalStateChange?.('database_execution', false);
+              }}
               onConfirm={handleDatabaseExecutionConfirm}
             />
             <WaitModal
               isOpen={isWaitOpen}
-              onClose={() => setIsWaitOpen(false)}
+              onClose={() => {
+                setIsWaitOpen(false);
+                setWaitSelectedPageInfo(null);
+                onModalStateChange?.('wait', false);
+                onWaitPageInfoChange?.(null);
+              }}
               onConfirm={handleWaitConfirm}
+              selectedPageInfo={propWaitSelectedPageInfo || waitSelectedPageInfo}
+              onClearPage={() => {
+                setWaitSelectedPageInfo(null);
+                onWaitPageInfoChange?.(null);
+              }}
             />
             <NavigateModal
               isOpen={isNavigateOpen}
-              onClose={() => setIsNavigateOpen(false)}
+              onClose={() => {
+                setIsNavigateOpen(false);
+                setNavigateSelectedPageInfo(null);
+                onModalStateChange?.('navigate', false);
+                onNavigatePageInfoChange?.(null);
+              }}
               onConfirm={handleNavigateConfirm}
+              selectedPageInfo={propNavigateSelectedPageInfo || navigateSelectedPageInfo}
+              onClearPage={() => {
+                setNavigateSelectedPageInfo(null);
+                onNavigatePageInfoChange?.(null);
+              }}
+            />
+            <BrowserActionModal
+              isOpen={isBrowserActionOpen}
+              actionType={browserActionType}
+              onClose={() => {
+                setIsBrowserActionOpen(false);
+                setBrowserActionSelectedPageInfo(null);
+                onModalStateChange?.('browser_action', false);
+                onBrowserActionPageInfoChange?.(null);
+              }}
+              onConfirm={handleBrowserActionConfirm}
+              selectedPageInfo={propBrowserActionSelectedPageInfo || browserActionSelectedPageInfo}
+              onClearPage={() => {
+                setBrowserActionSelectedPageInfo(null);
+                onBrowserActionPageInfoChange?.(null);
+              }}
             />
             <AddBrowserStorageModal
               isOpen={isAddBrowserStorageOpen}
               projectId={projectId || ''}
-              onClose={() => setIsAddBrowserStorageOpen(false)}
+              onClose={() => {
+                setIsAddBrowserStorageOpen(false);
+                setAddBrowserStorageSelectedPageInfo(null);
+                onModalStateChange?.('add_browser_storage', false);
+                onAddBrowserStoragePageInfoChange?.(null);
+              }}
               onConfirm={handleAddBrowserStorageConfirm}
+              selectedPageInfo={propAddBrowserStorageSelectedPageInfo || addBrowserStorageSelectedPageInfo}
+              onClearPage={() => {
+                setAddBrowserStorageSelectedPageInfo(null);
+                onAddBrowserStoragePageInfoChange?.(null);
+              }}
             />
           </div>
           <button className="rcd-action-btn reset" title="Reload actions" onClick={handleReloadClick} disabled={shouldShowReloadSpinner}>

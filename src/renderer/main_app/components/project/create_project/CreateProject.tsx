@@ -23,7 +23,7 @@ const CreateProject: React.FC<CreateProjectProps> = ({ isOpen, onClose, onSave }
     // Save project
     onSave({
       name: projectName.trim(),
-      description: projectDescription.trim()
+      description: projectDescription.trim(),
     });
 
     // Reset form
@@ -117,6 +117,7 @@ const CreateProject: React.FC<CreateProjectProps> = ({ isOpen, onClose, onSave }
               rows={4}
             />
           </div>
+
 
           {/* Action Buttons */}
           <div className="modal-actions">

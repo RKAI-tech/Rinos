@@ -1,15 +1,16 @@
 import EventEmitter from "events";
-import { Browser, chromium, Page, BrowserContext, Request } from "playwright";
+import { Browser, chromium, firefox, webkit, Page, BrowserContext, Request } from "playwright";
+import { BrowserType } from "./types";
 import path, * as pathenv from 'path';
 import { app } from "electron";
 import { Action, AssertType } from "./types";
 import { Controller } from "./controller";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync, accessSync, chmodSync, constants } from "fs";
 import { VariableService } from "./services/variables";
 import { DatabaseService } from "./services/database";
 import { StatementService } from "./services/statements";
 import { apiRouter } from "./services/baseAPIRequest";
-
+import { randomUUID } from "crypto";
 let browsersPath: string;
 
 if (!app.isPackaged) {
@@ -33,14 +34,19 @@ const statementService = new StatementService();
 export class BrowserManager extends EventEmitter {
     private browser: Browser | null = null;
     context: BrowserContext | null = null;
-    page: Page | null = null;
+    pages: Map<string, Page> = new Map();
+    pages_index: Map<string, number> = new Map();
+    activePageId: string | null = null;
     controller: Controller | null = null;
+    private isClosingContext=false;
+    private pagesClosingWithContext: Set<string> = new Set();
     private isAssertMode: boolean = false;
     private assertType: AssertType | null = null;
     private projectId: string | null = null;
     private isExecuting: boolean = false;
     private currentExecutingIndex: number | null = null;
-
+    private visibilityCheckInterval: NodeJS.Timeout | null = null;
+    private contextScriptsPrepared = false;
     constructor() {
         super();
         this.controller = new Controller();
@@ -65,7 +71,6 @@ export class BrowserManager extends EventEmitter {
                 this.emit('action-failed', { index });
             }
         );
-
     }
 
     setProjectId(projectId: string): void {
@@ -77,8 +82,100 @@ export class BrowserManager extends EventEmitter {
         apiRouter.setAuthToken(token);
     }
 
+    // Check if system Edge is installed
+    private isSystemEdgeInstalled(): boolean {
+        const platform = process.platform;
+        
+        if (platform === 'win32') {
+            // Windows: Check common Edge installation paths
+            const systemPaths = [
+                pathenv.join(process.env.LOCALAPPDATA || '', "Microsoft", "Edge", "Application", "msedge.exe"),
+                pathenv.join(process.env.PROGRAMFILES || '', "Microsoft", "Edge", "Application", "msedge.exe"),
+                pathenv.join(process.env["PROGRAMFILES(X86)"] || '', "Microsoft", "Edge", "Application", "msedge.exe"),
+            ];
+            
+            for (const systemPath of systemPaths) {
+                if (existsSync(systemPath)) {
+                    return true;
+                }
+            }
+        } else if (platform === 'darwin') {
+            // macOS: Check if Edge.app exists
+            const systemPaths = [
+                "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+                pathenv.join(process.env.HOME || '', "Applications", "Microsoft Edge.app", "Contents", "MacOS", "Microsoft Edge"),
+            ];
+            
+            for (const systemPath of systemPaths) {
+                if (existsSync(systemPath)) {
+                    return true;
+                }
+            }
+        } else {
+            // Linux: Check common installation paths
+            const systemPaths = [
+                "/usr/bin/microsoft-edge",
+                "/usr/bin/microsoft-edge-stable",
+                "/opt/microsoft/msedge/msedge",
+                "/snap/bin/microsoft-edge",
+            ];
+            
+            for (const systemPath of systemPaths) {
+                if (existsSync(systemPath)) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    // Get custom Edge executable path
+    private getCustomEdgePath(): string | null {
+        const platform = process.platform;
+        let customBrowsersPath: string;
+        
+        if (!app.isPackaged) {
+            customBrowsersPath = pathenv.resolve(process.cwd(), "my-browsers");
+        } else {
+            customBrowsersPath = pathenv.join(process.resourcesPath, "my-browsers");
+        }
+        
+        let edgePath: string;
+        
+        if (platform === 'win32') {
+            edgePath = pathenv.join(customBrowsersPath, "edge-win", "Microsoft", "Edge", "Application", "msedge.exe");
+        } else if (platform === 'darwin') {
+            edgePath = pathenv.join(customBrowsersPath, "edge-mac", "Microsoft Edge.app", "Contents", "MacOS", "Microsoft Edge");
+        } else {
+            // Linux
+            edgePath = pathenv.join(customBrowsersPath, "edge-linux", "final", "microsoft-edge");
+        }
+        
+        // Check if executable exists and is accessible
+        try {
+            if (existsSync(edgePath)) {
+                // On Linux/Mac, check if file is executable
+                if (platform !== 'win32') {
+                    try {
+                        accessSync(edgePath, constants.X_OK);
+                    } catch {
+                        // Make executable if not
+                        chmodSync(edgePath, 0o755);
+                    }
+                }
+                return edgePath;
+            }
+        } catch (error) {
+            // Ignore errors
+        }
+        
+        return null;
+    }
+
     async start(
-        basicAuthentication: { username: string, password: string }
+        basicAuthentication: { username: string, password: string },
+        browserType?: string
     ): Promise<void> {
         try {
             if (this.browser) {
@@ -86,53 +183,167 @@ export class BrowserManager extends EventEmitter {
                 return;
             }
 
-            // Launch browser
-            const { chromium } = await import('playwright');
-            this.browser = await chromium.launch({
+            // Map browser type to Playwright browser launcher
+            // Default to chrome if not specified or invalid
+            const normalizedBrowserType = (browserType || 'chrome').toLowerCase();
+            let browserLauncher: typeof chromium | typeof firefox | typeof webkit;
+            let launchOptions: any = {
                 headless: false,
-                args: [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-gpu-sandbox',
-                    '--disable-gpu',
-                    '--disable-dev-shm-usage',
-                    '--no-zygote'
-                ],
-            });
+            };
 
+            switch (normalizedBrowserType) {
+                case BrowserType.firefox:
+                case 'firefox':
+                    browserLauncher = firefox;
+                    // Firefox has different launch options
+                    launchOptions.args = [
+                        '--no-sandbox',
+                    ];
+                    break;
+                case BrowserType.safari:
+                case 'safari':
+                    browserLauncher = webkit;
+                    // WebKit doesn't support Chromium-specific args like --no-sandbox
+                    // Use minimal options for WebKit
+                    launchOptions.args = [];
+                    break;
+                case BrowserType.edge:
+                case 'edge':
+                    browserLauncher = chromium;
+                    // Priority: 1. System Edge, 2. Custom Edge, 3. Fallback to channel (will fail if not installed)
+                    if (this.isSystemEdgeInstalled()) {
+                        // Use system Edge via channel (preferred)
+                        launchOptions.channel = 'msedge';
+                    } else {
+                        // Try custom Edge installation
+                        const customEdgePath = this.getCustomEdgePath();
+                        if (customEdgePath) {
+                            // Use custom Edge installation
+                            launchOptions.executablePath = customEdgePath;
+                        } else {
+                            // Fallback to channel (may fail if Edge not installed)
+                            launchOptions.channel = 'msedge';
+                        }
+                    }
+                    launchOptions.args = [
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-gpu-sandbox',
+                        '--disable-gpu',
+                        '--disable-dev-shm-usage',
+                        '--no-zygote'
+                    ];
+                    break;
+                   
+                case BrowserType.chrome:
+                case 'chrome':
+                default:
+                    browserLauncher = chromium;
+                    // chromium is default, no channel needed
+                    launchOptions.args = [
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-gpu-sandbox',
+                        '--disable-gpu',
+                        '--disable-dev-shm-usage',
+                        '--no-zygote'
+                    ];
+                    break;
+            }
+
+            // Launch browser
+            this.browser = await browserLauncher.launch(launchOptions);
             // Create context
             this.context = await this.browser.newContext({
                 viewport: null,
                 // viewport: { width: 1920, height: 1080 },
                 httpCredentials: basicAuthentication,
             });
-
-            // Create page
-            this.page = await this.context.newPage();
-            this.page.setDefaultTimeout(0);
-
-            // Inject script
-            await this.injectingScript(path.join(__dirname, 'renderer', 'browser', 'tracker', 'trackingScript.js'));
-
-            console.log('injecting script success');
-
-            // Track requests
-            this.controller?.trackRequests(this.page);
-
-            // Catch close event
-            this.page.on('close', () => {
-                this.emit('page-closed', { timestamp: Date.now() });
-                this.stop().catch((error) => { });// console.error('Error stopping browser:', error); });
+            this.isClosingContext = false;
+            // Expose function một lần ở context level (cho tất cả pages)
+            await this.context.exposeFunction('sendActionToMain', async (action: Action) => {
+                this.emit('action', action);
             });
-
-            // Catch context close event
-            this.context?.on('close', () => {
+            await this.ensureContextScripts();
+            const newPage = await this.context.newPage();
+            const pageId = randomUUID();
+            const initialPageIndex = 0;
+            this.pages.set(pageId, newPage);
+            this.pages_index.set(pageId, initialPageIndex);
+            this.activePageId = pageId;
+            newPage.setDefaultTimeout(0);
+            await newPage.waitForLoadState('domcontentloaded');
+            await this.basicSetupPage(pageId)
+            await newPage.waitForLoadState('domcontentloaded');
+            this.context?.on('close', async () => {
+                this.isClosingContext = true;
+                console.log('[BrowserManager] Closing context');
+                for (const pageId of this.pages.keys()) {
+                    await this.pages.get(pageId)?.close();
+                }
                 this.emit('context-closed', { timestamp: Date.now() });
+                this.stop();
             });
+            this.context.on('page', async (page: Page) => {
+                for (const [pageId, p] of this.pages.entries()) {
+                    if (p === page) {
+                        console.log('[BrowserManager] Page already in pages', pageId, page.url());
+                        return;
+                    }
+                }
 
-            this.browser?.on('disconnected', () => {
-                this.emit('browser-closed', { timestamp: Date.now() });
+                const pageId = randomUUID();
+                const newIndex = Math.max(...this.pages_index.values(), -1) + 1; 
+                this.pages.set(pageId, page);
+                this.pages_index.set(pageId, newIndex);
+                this.activePageId = pageId;
+                await page.waitForLoadState('domcontentloaded');
+                await this.basicSetupPage(pageId)
+                await page.waitForLoadState('domcontentloaded');
+                const opener=await page.opener();
+                let openerId:string|null=null;
+                let openerIndex:number|null=null;
+                if (opener) {
+                    //get opener page id
+                    for (const [pageId, page] of this.pages.entries()) {
+                        if (page === opener) {
+                            openerId = pageId;
+                            break;
+                        }
+                    }
+                    if (openerId) {
+                        openerIndex = this.pages_index.get(openerId) || 0;
+                    }
+                }
+                if(opener){
+                    this.emit("action", {
+                        action_type: 'page_create',
+                        elements: [],
+                        action_datas: [
+                            { value: { page_index: newIndex,  opener_index: openerIndex } },
+                            { value: { value: this.pages.get(pageId)?.url() || '' } }
+                        ]
+                    });
+                }
+                else{
+                    this.emit("action", {
+                        action_type: 'page_create',
+                        elements: [],
+                        action_datas: [
+                            { value: { page_index: newIndex } },
+                            { value: { value: this.pages.get(pageId)?.url() || 'blank' } }
+                        ]
+                    });
+                }
+                this.emit('page-created', { pageId, index: newIndex });
             });
+            this.browser?.on('disconnected', () => {
+                console.log('[BrowserManager] Browser disconnected');
+                this.emit('browser-closed');
+            });
+            if (this.visibilityCheckInterval) {
+                clearInterval(this.visibilityCheckInterval);
+            }
         } catch (error) {
             // console.error('Error starting browser:', error);
             throw error;
@@ -141,12 +352,16 @@ export class BrowserManager extends EventEmitter {
 
     async stop(): Promise<void> {
         try {
-            if (this.page && !this.page.isClosed()) {
-                await this.page.close();
-                this.page = null;
-            }
+            this.isClosingContext = true;
+            this.contextScriptsPrepared = false;
+            console.log('[BrowserManager] Stopping browser');
+            //close all pages
+            this.emit('browser-stopped');
 
             if (this.context) {
+                for (const pageId of this.pages.keys()) {
+                    await this.pages.get(pageId)?.close();
+                }
                 await this.context.close();
                 this.context = null;
             }
@@ -155,27 +370,40 @@ export class BrowserManager extends EventEmitter {
                 await this.browser.close();
                 this.browser = null;
             }
-
-            // console.log('Browser stopped');
-
-            // Emit stopped event to notify main process
-            this.emit('browser-stopped');
+            this.pages.clear();
+            this.pages_index.clear();
+            this.activePageId = null;
+            this.pagesClosingWithContext.clear();
         } catch (error) {
-            // console.error('Error stopping browser:', error);
             throw error;
         }
     }
-
-
-
+    public async createPage(pageIndex?: number, url?: string): Promise<Page> {
+        try {
+           
+            await this.ensureContextScripts();
+            const page = await this.context?.newPage();
+            if (!page) {
+                throw new Error('Failed to create page');
+            }
+            await page.waitForLoadState('domcontentloaded');
+            if (url) {
+                console.log('goto', url);
+                await page.goto(url);
+                await page.waitForLoadState('domcontentloaded');
+            }
+            return page;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
     public async resizeWindow(width: number, height: number): Promise<void> {
         try {
-            if (!this.page) return;
-            
-            // console.log(`[BrowserManager] Resizing window to ${width}x${height}`);
-            
+            if (!this.activePageId) return;
+                        
             // Use CDP to resize the actual browser window
-            const session = await (this.page.context() as any).newCDPSession(this.page);
+            const session = await (this.context as any).newCDPSession(this.pages.get(this.activePageId) as Page);
             const { windowId } = await session.send('Browser.getWindowForTarget');
             
             // Set window bounds with the exact requested size
@@ -184,57 +412,53 @@ export class BrowserManager extends EventEmitter {
                 bounds: { 
                     width, 
                     height
-                    // Don't force windowState to avoid sudden resizing
                 } 
             });
             
-            // Wait for the resize to take effect
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // Verify the resize worked
-            try {
-                const bounds = await session.send('Browser.getWindowBounds', { windowId });
-                // console.log(`[BrowserManager] Window resized successfully. Current bounds:`, bounds);
-                
-                // With viewport: null, viewport should automatically match window size
-                const viewportSize = await this.page.viewportSize();
-                // console.log(`[BrowserManager] Viewport size (should match window):`, viewportSize);
-                
-            } catch (e) {
-                // console.log(`[BrowserManager] Could not verify window bounds:`, e);
-            }
-            
         } catch (e) {
-            // console.error(`[BrowserManager] Failed to resize window:`, e);
-            // Fallback: no-op
         }
     }
  
     public async getAuthValue(
         source: 'local' | 'session' | 'cookie',
         key: string,
+        page_index: number,
         options?: { cookieDomainMatch?: string | RegExp }
     ): Promise<string | null> {
-        if (!this.page) {
+        if (!this.activePageId) {
             throw new Error('Page not found');
         }
 
         if (!key || typeof key !== 'string') return null;
-
+        let pageId = null;
+        for (const [idd, index] of this.pages_index.entries()) {
+            if (index === page_index) {
+                pageId = idd;
+                break;
+            }
+        }
+        if (!pageId) {
+            pageId = this.activePageId;
+        }
+        if (!pageId) {
+            throw new Error('Page not found');
+        }
         if (source === 'local') {
-            return await this.page.evaluate((k) => {
+            return await (this.pages.get(pageId) as Page).evaluate((k) => {
                 try { return window.localStorage.getItem(k); } catch { return null; }
             }, key);
         }
 
         if (source === 'session') {
-            return await this.page.evaluate((k) => {
+            return await (this.pages.get(pageId) as Page).evaluate((k) => {
                 try { return window.sessionStorage.getItem(k); } catch { return null; }
             }, key);
         }
 
         // cookie
-        const context = this.page.context();
+        const context = (this.pages.get(pageId) as Page).context();
         const allCookies = await context.cookies();
         const domainMatch = options?.cookieDomainMatch;
         for (const c of allCookies) {
@@ -258,16 +482,29 @@ export class BrowserManager extends EventEmitter {
         type: 'localStorage' | 'sessionStorage' | 'cookie',
         usernameKey?: string,
         passwordKey?: string,
+        page_index?: number,
         cookieDomainMatch?: string | RegExp
     }): Promise<{ username: string | null; password: string | null }> {
-        if (!this.page) {
+        if (!this.activePageId) {
             throw new Error('Page not found');
         }
-
+        let pageId = null;
+        for (const [idd, index] of this.pages_index.entries()) {
+            if (index === options.page_index) {
+                pageId = idd;
+                break;
+            }
+        }
+        if (!pageId) {
+            pageId = this.activePageId;
+        }
+        if (!pageId) {
+            throw new Error('Page not found');
+        }
         const type = options.type;
         if (type === 'localStorage' || type === 'sessionStorage') {
             const keys = { u: options.usernameKey || '', p: options.passwordKey || '' };
-            return await this.page.evaluate(({ type, keys }) => {
+            return await (this.pages.get(pageId) as Page).evaluate(({ type, keys }) => {
                 try {
                     const storage = type === 'localStorage' ? window.localStorage : window.sessionStorage;
                     const username = keys.u ? storage.getItem(keys.u) : null;
@@ -280,7 +517,7 @@ export class BrowserManager extends EventEmitter {
         }
 
         if (type === 'cookie') {
-            const context = this.page.context();
+            const context = (this.pages.get(pageId) as Page).context();
             const allCookies = await context.cookies();
             const domainMatch = options.cookieDomainMatch;
             const pickCookie = (name?: string | null) => {
@@ -307,36 +544,43 @@ export class BrowserManager extends EventEmitter {
         return { username: null, password: null };
     }
 
-    private async injectingScript(path: string): Promise<void> {
-        if (!this.context) {
-            throw new Error('Context not found');
+    private async ensureContextScripts(): Promise<void> {
+        if (this.contextScriptsPrepared) {
             return;
         }
-
-        try {
-            await this.context.exposeFunction('sendActionToMain', (action: Action) => {
-                // console.log('[BrowserManager] Received action from page:', action);
-                this.emit('action', action);
-            });
-            
-            const script = readFileSync(path, 'utf8');
-            await this.context.addInitScript((script) => {
-                try {
-                    eval(script);
-                    // console.log('Script injected successfully');
-                } catch (error) {
-                    // console.error('Error evaluating script:', error);
-                }
-            }, script);
-        } catch (error) {
-            // console.error('Error injecting script:', error);
-            throw error;
+        if (!this.context) {
+            throw new Error('Context not found');
         }
 
-        // Note: CDP navigation detection disabled - using browser_handle.js instead
-        // This prevents duplicate navigation events and allows proper type detection
+        const scriptPath = path.join(__dirname, 'renderer', 'browser', 'tracker', 'trackingScript.js');
+        const scriptContent = readFileSync(scriptPath, 'utf8');
 
-        await this.context.exposeFunction('getVariablesForTracker', async () => {
+        await this.context.addInitScript(
+            (content) => {
+                
+                const script = document.createElement('script');
+                script.type = 'module';
+                script.textContent = content;
+                const injectScript = () => {
+                    if (document.head) {
+                        document.head.appendChild(script);
+                    } else {
+                        const head = document.createElement('head');
+                        document.documentElement.insertBefore(head, document.documentElement.firstChild);
+                        head.appendChild(script);
+                    }
+                    (window as any).__RIKKEI_TRACKER_LOADED__ = true;
+                };
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', injectScript);
+                } else {
+                    injectScript();
+                }
+            },
+            scriptContent
+        );
+
+        await this.context.exposeBinding('getVariablesForTracker', async () => {
             try {
               // Get project ID from BrowserManager instance instead of window API
               const projectId = this.projectId;
@@ -353,29 +597,24 @@ export class BrowserManager extends EventEmitter {
               })
               return resp;
             } catch (e) {
-            //   console.error('[BrowserManager] getVariablesForTracker failed:', e);
-              return { success: false, error: String(e) };
-            }
-          });
-
-        // Expose a lightweight query runner for the assert modal query panel
-        await this.context.exposeFunction('getConnection', async () => {
-            try {
-                const projectId = this.projectId;
-                if (!projectId) {
-                    // console.log('[BrowserManager] getConnection failed: No project context');
-                    return { success: false, error: 'No project context' };
-                }
-                const resp = await databaseService.getDatabaseConnections({ project_id: projectId });
-                // console.log('[BrowserManager] getConnection response:', resp);
-                return resp;
-            } catch (e) {
-                // console.log('[BrowserManager] getConnection failed:', e);
                 return { success: false, error: String(e) };
             }
         });
 
-        await this.context.exposeFunction('runQueryForTracker', async (sql: string, connectionId?: string) => {
+        await this.context.exposeBinding('getConnection', async () => {
+            try {
+                const projectId = this.projectId;
+                if (!projectId) {
+                    return { success: false, error: 'No project context' };
+                }
+                const resp = await databaseService.getDatabaseConnections({ project_id: projectId });
+                return resp;
+            } catch (e) {
+                return { success: false, error: String(e) };
+            }
+        });
+
+        await this.context.exposeBinding('runQueryForTracker', async (_source, sql: string, connectionId?: string) => {
             try {
                 const projectId = this.projectId;
                 if (!projectId) {
@@ -385,7 +624,6 @@ export class BrowserManager extends EventEmitter {
                     return { success: false, error: 'Query is empty' };
                 }
 
-                // 1) Determine connection id
                 let useConnId = connectionId;
                 if (!useConnId) {
                     const connResp = await databaseService.getDatabaseConnections({ project_id: projectId });
@@ -396,26 +634,26 @@ export class BrowserManager extends EventEmitter {
                     useConnId = connections[0].connection_id;
                 }
 
-                // 2) Run query without creating a statement
                 const runResp = await statementService.runWithoutCreate({ connection_id: useConnId, query: sql.trim() });
                 return runResp;
             } catch (e) {
-                // console.error('[BrowserManager] runQueryForTracker failed:', e);
                 return { success: false, error: String(e) };
             }
         });
 
-        // Expose API request runner for tracker (bypass page's fetch restrictions)
-        await this.context.exposeFunction('runApiRequestForTracker', async (payload: {
-            method: string,
-            url: string,
-            headers?: Record<string, string>,
-            bodyType?: 'none' | 'json' | 'form',
-            body?: string,
-            formData?: Array<{ key: string; value: string }>,
-        }) => {
+        type TrackerApiPayload = {
+            method: string;
+            url: string;
+            headers?: Record<string, string>;
+            bodyType?: 'none' | 'json' | 'form';
+            body?: string;
+            formData?: Array<{ key: string; value: string }>;
+        };
+
+        await this.context.exposeBinding('runApiRequestForTracker', async (source, payload: TrackerApiPayload) => {
             try {
-                if (!this.page) {
+                const page = source?.page;
+                if (!page) {
                     return { success: false, error: 'No page context' };
                 }
 
@@ -427,7 +665,6 @@ export class BrowserManager extends EventEmitter {
                 const headers: Record<string, string> = { ...(payload?.headers || {}) };
                 const options: any = { headers };
 
-                // body
                 const bodyType = payload?.bodyType || 'none';
                 if (bodyType !== 'none') {
                     if (bodyType === 'json') {
@@ -442,7 +679,7 @@ export class BrowserManager extends EventEmitter {
                 }
 
                 const method = (payload?.method || 'GET').toLowerCase();
-                const resp = await (this.page.request as any)[method](url, options);
+                const resp = await (page.request as any)[method](url, options);
                 const status = await resp.status();
                 let data: any = null;
                 try { data = await resp.json(); } catch { try { data = await resp.text(); } catch { data = null; } }
@@ -455,21 +692,84 @@ export class BrowserManager extends EventEmitter {
                 return { success: false, error: String(e) };
             }
         });
+
+        this.contextScriptsPrepared = true;
+    }
+
+    private async injectPageMetadata(pageId: string): Promise<void> {
+        const page = this.pages.get(pageId);
+        if (!page) throw new Error(`Page with id ${pageId} not found`);
+        const pageIndex = this.pages_index.get(pageId) || 0;
+
+        await page.addInitScript(
+            (index) => {
+                (window as any).__PAGE_INDEX__ = index;
+            },
+            pageIndex
+        );
+
+        try {
+            await page.evaluate((index) => {
+                (window as any).__PAGE_INDEX__ = index;
+            }, pageIndex);
+        } catch (error) {
+        }
     }
 
     async setAssertMode(enabled: boolean, assertType: AssertType): Promise<void> {
-        if (!this.page) {
-            throw new Error('Page not found');
+        if (!this.pages) {
+            throw new Error('Pages not found');
         }
 
         this.isAssertMode = enabled;
         this.assertType = assertType;
-
-        await this.page.evaluate(({ isAssertMode, type } : { isAssertMode: boolean, type: AssertType }) => {
-            const global : any = globalThis as any;
-            global.setAssertMode(isAssertMode, type);
-        }, { isAssertMode: enabled, type: assertType });
+        //set for all pages
+        for (const page of this.pages.values()) {
+            if (page.isClosed()) continue;
+            try {
+                await page.evaluate(({ isAssertMode, type } : { isAssertMode: boolean, type: AssertType }) => {
+                    const global : any = globalThis as any;
+                    if (typeof global?.setAssertMode === 'function') {
+                        global.setAssertMode(isAssertMode, type);
+                    } else {
+                        global.__PENDING_ASSERT_MODE__ = { enabled: isAssertMode, type };
+                    }
+                }, { isAssertMode: enabled, type: assertType });
+            } catch (error) {
+                console.warn('[BrowserManager] Failed to set assert mode on page, will retry when content loads', error);
+            }
+        }
     }
-    // get token from browser page
+
+    private async basicSetupPage(pageId: string): Promise<void> {
+        const page = this.pages.get(pageId);
+        if (!page) throw new Error(`Page with id ${pageId} not found`);
+        await this.injectPageMetadata(pageId);
+        this.controller?.trackRequests(page);
+        
+        const pageIndex = this.pages_index.get(pageId) || 0;
+        page.on('close', async () => {
+            const contextIsClosing = this.isClosingContext || this.pagesClosingWithContext.has(pageId);
+            this.pages.delete(pageId);
+            //print all pages
+            if (this.pages.size === 0) {
+                this.emit('browser-stopped');
+            }
+            if (!contextIsClosing){
+                this.emit("action", {
+                    action_type: 'page_close',
+                    elements: [],
+                    action_datas: [
+                        { value: { page_index: pageIndex } },
+                        { value: { value: page.url() || '' } }
+                    ]
+                });
+            }
+            this.pagesClosingWithContext.delete(pageId);
+            this.emit('page-closed', { pageId, timestamp: Date.now() });
+        });
+       
+        
+    }
     
 }

@@ -1,8 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
-import { executeApiRequest, validateApiRequest, ApiRequestOptions, formatResponseData, getStatusColorClass, getStatusDescription, convertApiRequestDataToOptions } from '../../../utils/api_request';
-import { ApiRequestData, ApiRequestTokenStorage, ApiRequestBasicAuthStorage, ApiRequestBody, ApiRequestMethod, ApiRequestAuth } from '../../../types/actions';
+import { executeApiRequest, validateApiRequest, ApiRequestOptions, formatResponseData, getStatusColorClass, getStatusDescription, convertApiRequestDataToOptions } from '../../../../utils/api_request';
+import { ApiRequestData, ApiRequestTokenStorage, ApiRequestBasicAuthStorage, ApiRequestBody, ApiRequestMethod, ApiRequestAuth } from '../../../../types/actions';
 import './ApiElementPanel.css';
+
+export interface SelectedPageInfo {
+  page_index: number;
+  page_url: string;
+  page_title: string;
+}
 
 interface ApiElementPanelProps {
   apiRequest?: ApiRequestData;
@@ -10,6 +16,8 @@ interface ApiElementPanelProps {
   onChange: (data: ApiRequestData) => void;
   onSendRequest: (data: ApiRequestData, response?: { status: number; data: any; headers: any }) => Promise<void>;
   isSending?: boolean;
+  selectedPageInfo?: SelectedPageInfo | null;
+  onClearPage?: () => void;
 }
 
 const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
@@ -17,7 +25,9 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
   apiResponse,
   onChange,
   onSendRequest,
-  isSending = false
+  isSending = false,
+  selectedPageInfo,
+  onClearPage
 }) => {
   const getPrimaryAuth = (req?: ApiRequestData) => {
     if (!req) return undefined;
@@ -109,6 +119,10 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
   const [fetchedBasicUsername, setFetchedBasicUsername] = useState<string | null>(null);
   const [fetchedBasicPassword, setFetchedBasicPassword] = useState<string | null>(null);
   const [isFetchingBasic, setIsFetchingBasic] = useState(false);
+  
+  // Local state for page info - only update when user clears or when prop changes from null to non-null
+  const [localPageInfo, setLocalPageInfo] = useState<SelectedPageInfo | null>(selectedPageInfo || null);
+  const hasClearedRef = useRef(false);
 
   const httpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
 
@@ -139,6 +153,22 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+
+  // Sync page info - chỉ update khi user đã clear hoặc khi prop thay đổi từ null sang non-null
+  useEffect(() => {
+    if (selectedPageInfo && (!localPageInfo || hasClearedRef.current)) {
+      setLocalPageInfo(selectedPageInfo);
+      hasClearedRef.current = false;
+    } else if (!selectedPageInfo && localPageInfo) {
+      // Nếu prop là null nhưng local state có giá trị, giữ nguyên (không tự động clear)
+    }
+  }, [selectedPageInfo]);
+
+  const handleClearPage = () => {
+    setLocalPageInfo(null);
+    hasClearedRef.current = true;
+    onClearPage?.();
+  };
 
   // Sync with prop changes (only when prop actually changes from outside)
   useEffect(() => {
@@ -339,6 +369,10 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
         toast.error('Please enter a token key');
         return;
       }
+      if (!localPageInfo) {
+        toast.error('Please select a page first');
+        return;
+      }
       setIsFetchingToken(true);
       setFetchedTokenValue(null);
       const source = tokenStorageType === 'localStorage'
@@ -352,7 +386,7 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
         setIsFetchingToken(false);
         return;
       }
-      const val = await api.getAuthValue(source, tokenStorageKey);
+      const val = await api.getAuthValue(source, tokenStorageKey, localPageInfo.page_index);
       if (typeof val === 'string') {
         setAuthToken(val);
         setFetchedTokenValue(val);
@@ -373,25 +407,92 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
       if (!basicAuthStorageEnabled) return;
       if (authType !== 'basic') return;
       if (!basicAuthUsernameKey.trim() || !basicAuthPasswordKey.trim()) return;
+      if (!localPageInfo) {
+        toast.error('Please select a page first');
+        return;
+      }
       setIsFetchingBasic(true);
       const api = (window as any)?.browserAPI?.browser;
       if (!api?.getBasicAuthFromStorage) return;
       const payload: any = {
         type: basicAuthStorageType,
-        username_key: basicAuthUsernameKey,
-        password_key: basicAuthPasswordKey
+        usernameKey: basicAuthUsernameKey,
+        passwordKey: basicAuthPasswordKey,
+        page_index: localPageInfo.page_index
       };
       const result = await api.getBasicAuthFromStorage(payload);
       setFetchedBasicUsername(result?.username ?? '');
       setFetchedBasicPassword(result?.password ?? '');
     } catch (e) {
+      toast.error('Fetch basic auth failed');
     } finally {
       setIsFetchingBasic(false);
     }
   };
 
   const handleSendRequest = async () => {
+    // Fetch latest token/basic auth from storage if enabled
+    let currentToken = authToken;
+    let currentUsername = authUsername;
+    let currentPassword = authPassword;
+
+    try {
+      const api = (window as any)?.browserAPI?.browser;
+      
+      // Fetch token if storage is enabled for bearer
+      if (tokenStorageEnabled && authType === 'bearer' && tokenStorageKey.trim() && api?.getAuthValue && localPageInfo) {
+        const source = tokenStorageType === 'localStorage'
+          ? 'local'
+          : tokenStorageType === 'sessionStorage'
+          ? 'session'
+          : 'cookie';
+        const fetchedToken = await api.getAuthValue(source, tokenStorageKey, localPageInfo.page_index);
+        if (typeof fetchedToken === 'string' && fetchedToken) {
+          currentToken = fetchedToken;
+          setAuthToken(fetchedToken);
+          setFetchedTokenValue(fetchedToken);
+        }
+      }
+
+      // Fetch basic auth if storage is enabled for basic
+      if (basicAuthStorageEnabled && authType === 'basic' && basicAuthUsernameKey.trim() && basicAuthPasswordKey.trim() && api?.getBasicAuthFromStorage && localPageInfo) {
+        const payload: any = {
+          type: basicAuthStorageType,
+          usernameKey: basicAuthUsernameKey,
+          passwordKey: basicAuthPasswordKey,
+          page_index: localPageInfo.page_index
+        };
+        const result = await api.getBasicAuthFromStorage(payload);
+        if (result?.username) {
+          currentUsername = result.username;
+          setAuthUsername(result.username);
+          setFetchedBasicUsername(result.username);
+        }
+        if (result?.password) {
+          currentPassword = result.password;
+          setAuthPassword(result.password);
+          setFetchedBasicPassword(result.password);
+        }
+      }
+    } catch (error) {
+      // console.error('Failed to fetch auth from storage:', error);
+      // Continue with existing values if fetch fails
+    }
+
+    // Build API request data with current auth values
     const runtimeApiData = buildApiRequestData({ forSave: false });
+    // Override with fetched values if available
+    if (currentToken !== authToken || currentUsername !== authUsername || currentPassword !== authPassword) {
+      const auth = runtimeApiData.auth;
+      if (auth) {
+        if (authType === 'bearer') {
+          auth.token = currentToken;
+        } else if (authType === 'basic') {
+          auth.username = currentUsername;
+          auth.password = currentPassword;
+        }
+      }
+    }
 
     const options = convertApiRequestDataToOptions(runtimeApiData);
     const validation = validateApiRequest(options);
@@ -430,6 +531,7 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
 
   return (
     <div className="aiam-db-box" style={{ padding: '12px' }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 12 }}>API Element</div>
       {/* Method and URL */}
       <div className="aep-method-url">
         <select 
@@ -599,6 +701,55 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
           </div>
         )}
       </div>
+
+      {/* Page Selection - chỉ hiển thị khi storage enabled */}
+      {(tokenStorageEnabled || basicAuthStorageEnabled) && authType !== 'none' && (
+        <div className="aep-section">
+          <div className="aep-section-header">
+            <span className="aep-section-title">Page <span style={{ color: '#ef4444' }}>*</span></span>
+          </div>
+          {localPageInfo ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#ffffff', borderRadius: '4px', border: '1px solid #d1d5db' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '13px', fontWeight: '500', color: '#111827', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {localPageInfo.page_title || `Page ${localPageInfo.page_index + 1}`}
+                </div>
+                <div style={{ fontSize: '12px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {localPageInfo.page_url}
+                </div>
+              </div>
+              <button
+                onClick={handleClearPage}
+                style={{
+                  marginLeft: '8px',
+                  padding: '4px 8px',
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  backgroundColor: 'transparent',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                  e.currentTarget.style.color = '#374151';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#6b7280';
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          ) : (
+            <div style={{ padding: '12px', backgroundColor: '#fef3c7', borderRadius: '4px', border: '1px solid #fbbf24', fontSize: '13px', color: '#92400e' }}>
+              Please click on a page in the browser to select it
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Token Storage Section */}
       {tokenStorageEnabled && authType === 'bearer' && (

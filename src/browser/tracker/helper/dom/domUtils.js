@@ -58,28 +58,49 @@ export function previewNode(node) {
  * Extract meaningful text from element
  * Trích xuất text có ý nghĩa từ element
  */
-export function extractElementText(element) {
-  if (!element) return '';
-  
-  // Try to get accessible name first (most meaningful)
-  const accessibleName = getAccessibleName(element);
-  if (accessibleName) {
-    return accessibleName.replace(/[\r\n]+/g, ' ').replace(/['"]/g, '');
+export function extractElementText(el) {
+  if (!el) return "";
+
+  // 1. Accessible name (ưu tiên cao nhất)
+  const name = getAccessibleName(el);
+  if (name?.trim()) {
+    return cleanText(name);
   }
-  
-  // Try to get text content
-  const textContent = element.textContent?.trim();
-  if (textContent && textContent.length > 1 && textContent.length < 100) {
-    return textContent.replace(/[\r\n]+/g, ' ').replace(/['"]/g, '');
+
+  // 2. aria-label
+  const ariaLabel = el.getAttribute("aria-label");
+  if (ariaLabel?.trim()) {
+    return cleanText(ariaLabel);
   }
-  
-  // Try to get inner text
-  const innerText = element.innerText?.trim();
-  if (innerText && innerText.length > 1 && innerText.length < 100) {
-    return innerText.replace(/[\r\n]+/g, ' ').replace(/['"]/g, '');
+
+  // 3. input / textarea value
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    if (el.value?.trim()) return cleanText(el.value);
+    if (el.placeholder?.trim()) return cleanText(el.placeholder);
   }
-  
-  return '';
+
+  // 4. img alt text
+  if (el instanceof HTMLImageElement) {
+    if (el.alt?.trim()) return cleanText(el.alt);
+  }
+
+  // 5. textContent (đã trim)
+  const textContent = el.textContent?.trim();
+  if (textContent) return cleanText(textContent);
+
+  // 6. title attribute (tooltip)
+  const title = el.getAttribute("title");
+  if (title?.trim()) return cleanText(title);
+
+  return "";
+}
+
+function cleanText(text) {
+  return text
+    .replace(/[\r\n]+/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/['"]/g, "")
+    .trim();
 }
 
 // /**
@@ -215,27 +236,13 @@ export function extractElementText(element) {
 //   return element;
 // }
 
-// import { normalizeWhiteSpace, trimStringWithEllipsis, oneLine } from '../utils/stringUtils.js';
-
-// export { normalizeWhiteSpace, trimStringWithEllipsis, oneLine };
-
-/**
- * Tìm kiếm element xuyên qua Shadow DOM (Depth-first traversal)
- * Thay thế cho document.querySelectorAll
- */
+// ... (Giữ nguyên các hàm queryShadowAll và isVisible) ...
 export function queryShadowAll(selector, root = document) {
   const results = [];
-  
-  // 1. Tìm trong scope hiện tại
   try {
     const matches = root.querySelectorAll(selector);
     matches.forEach(m => results.push(m));
-  } catch (e) {
-    // Bỏ qua selector lỗi (ví dụ xpath trong css query)
-  }
-
-  // 2. Tìm các Shadow Roots và đệ quy
-  // Sử dụng TreeWalker để duyệt hiệu quả hơn
+  } catch (e) {}
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
   while (walker.nextNode()) {
     const node = walker.currentNode;
@@ -243,13 +250,9 @@ export function queryShadowAll(selector, root = document) {
       results.push(...queryShadowAll(selector, node.shadowRoot));
     }
   }
-  
   return results;
 }
 
-/**
- * Kiểm tra element có hiển thị hay không
- */
 export function isVisible(element) {
   if (!element) return false;
   if (element.getAttribute && element.getAttribute('aria-hidden') === 'true') return false;
@@ -258,83 +261,93 @@ export function isVisible(element) {
 }
 
 /**
- * Tính toán Accessible Name (Simplified Version of AccName Spec)
- * Dùng cho getByRole('...', { name: '...' })
+ * MỚI: Chỉ lấy text từ Label tường minh (Label tag, aria-label)
+ * Dùng cho strategy: getByLabel
  */
-export function getAccessibleName(element) {
-  if (!element) return '';
+export function getExplicitLabelText(element) {
+  if (!element) return null;
 
-  // 1. aria-labelledby
-  const labelledBy = element.getAttribute('aria-labelledby');
-  if (labelledBy) {
-    const ids = labelledBy.split(/\s+/);
-    return ids.map(id => {
-      // Lưu ý: labelledby chỉ tham chiếu trong cùng document/root, không xuyên shadow dom chuẩn
-      const refEl = element.getRootNode().getElementById(id);
-      return refEl ? getAccessibleName(refEl) : '';
-    }).join(' ').trim();
+  // 1. aria-label
+  if (element.hasAttribute('aria-label')) {
+    return element.getAttribute('aria-label').trim();
   }
 
-  // 2. aria-label
-  const ariaLabel = element.getAttribute('aria-label');
-  if (ariaLabel) return ariaLabel.trim();
+  // 2. aria-labelledby
+  if (element.hasAttribute('aria-labelledby')) {
+    const id = element.getAttribute('aria-labelledby');
+    const labelEl = document.getElementById(id); // Lưu ý: scope ID
+    if (labelEl) return labelEl.textContent.trim();
+  }
 
-  // 3. Native labels (input, textarea, select)
+  // 3. Native Label (Only for form controls)
   const tagName = element.tagName.toLowerCase();
   if (['input', 'textarea', 'select'].includes(tagName)) {
-    // Label tag wrapper
-    const labelParent = element.closest('label');
-    if (labelParent) return getAccessibleName(labelParent);
-    
-    // Label for
+    // 3a. Label bao bọc (Wrapping label)
+    const parentLabel = element.closest('label');
+    if (parentLabel) {
+      // Chỉ lấy text của label, loại bỏ text của chính input nếu có
+      const clone = parentLabel.cloneNode(true);
+      const inputInClone = clone.querySelector(tagName);
+      if (inputInClone) inputInClone.remove(); 
+      return normalizeWhiteSpace(clone.textContent);
+    }
+
+    // 3b. Label for (Linked label)
     if (element.id) {
       const root = element.getRootNode();
-      // Tìm label for trong cùng root
+      // Tìm trong cùng root (document hoặc shadow root)
       const labelFor = root.querySelector ? root.querySelector(`label[for="${CSS.escape(element.id)}"]`) : null;
-      if (labelFor) return getAccessibleName(labelFor);
+      if (labelFor) return normalizeWhiteSpace(labelFor.textContent);
     }
-    
-    if (element.getAttribute('placeholder')) return element.getAttribute('placeholder');
-    if (element.getAttribute('title')) return element.getAttribute('title');
-    if (element.getAttribute('alt')) return element.getAttribute('alt');
-    if (element.value) return element.value;
   }
 
-  // 4. Recursive Text Content (Dành cho button, link, heading...)
-  // Logic: Nối text của tất cả con cái lại
-  let text = '';
-  const children = element.childNodes;
-  for (let i = 0; i < children.length; i++) {
-    const child = children[i];
-    if (child.nodeType === Node.TEXT_NODE) {
-      text += child.textContent;
-    } else if (child.nodeType === Node.ELEMENT_NODE) {
-      if (isVisible(child)) {
-        // Ảnh có alt
-        if (child.tagName === 'IMG' && child.getAttribute('alt')) {
-          text += child.getAttribute('alt');
-        } else {
-          text += getAccessibleName(child);
-        }
-      }
-    }
-  }
-  
-  return normalizeWhiteSpace(text);
+  return null; // Không fallback sang placeholder hay title
 }
 
 /**
- * Xác định ARIA Role (Bao gồm Implicit Roles)
+ * Accessible Name (Dùng cho getByRole)
+ * Vẫn giữ logic fallback để tính toán tên cho Role
  */
+export function getAccessibleName(element) {
+  // Ưu tiên Explicit Label trước
+  const explicit = getExplicitLabelText(element);
+  if (explicit) return explicit;
+
+  // Fallback theo thứ tự ưu tiên của ARIA
+  // 1. Placeholder (chỉ cho input)
+  if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+    const placeholder = element.getAttribute('placeholder');
+    if (placeholder && placeholder.trim()) return placeholder.trim();
+  }
+
+  // 2. Title
+  const title = element.getAttribute('title');
+  if (title && title.trim()) return title.trim();
+
+  // 3. Alt (cho img/input image)
+  const alt = element.getAttribute('alt');
+  if (alt && alt.trim()) return alt.trim();
+
+  // 4. Value (cho button input)
+  if (element.tagName === 'INPUT' && ['submit', 'reset', 'button'].includes(element.type)) {
+     return element.value;
+  }
+
+  // 5. Text Content (Recursive)
+  // ... (Giữ nguyên logic recursive text cũ của bạn nếu có, hoặc dùng bản đơn giản dưới)
+  if (!['INPUT', 'SELECT', 'TEXTAREA', 'IMG'].includes(element.tagName)) {
+      return normalizeWhiteSpace(element.textContent);
+  }
+
+  return '';
+}
+
+// ... (Giữ nguyên getElementRole và retargetElement) ...
 export function getElementRole(element) {
-  // 1. Explicit Role
   const explicitRole = element.getAttribute('role');
   if (explicitRole) return explicitRole;
-
-  // 2. Implicit Role dựa trên Tag và Attribute
   const tag = element.tagName.toLowerCase();
   const type = element.getAttribute('type')?.toLowerCase();
-
   switch (tag) {
     case 'button': return 'button';
     case 'a': return element.hasAttribute('href') ? 'link' : null;
@@ -344,30 +357,17 @@ export function getElementRole(element) {
       if (['button', 'image', 'reset', 'submit'].includes(type)) return 'button';
       if (['checkbox'].includes(type)) return 'checkbox';
       if (['radio'].includes(type)) return 'radio';
-      if (['number'].includes(type)) return 'spinbutton';
-      if (['search'].includes(type)) return 'searchbox';
-      // Default inputs
-      if (!type || ['text', 'email', 'tel', 'url'].includes(type)) return 'textbox';
+      if (!type || ['text', 'email', 'tel', 'url', 'password', 'search'].includes(type)) return 'textbox';
       return null;
     }
     case 'textarea': return 'textbox';
-    case 'select': return 'combobox'; // Hoặc listbox tùy size
-    case 'li': return 'listitem';
-    case 'ul': case 'ol': return 'list';
-    case 'nav': return 'navigation';
-    case 'main': return 'main';
-    case 'article': return 'article';
-    case 'aside': return 'complementary';
-    case 'form': return 'form';
-    case 'table': return 'table';
-    case 'dialog': return 'dialog';
+    case 'select': return 'combobox';
     default: return null;
   }
 }
 
 export function retargetElement(el) {
     if (!el) return null;
-    // Đơn giản hóa logic retarget để tập trung vào interactive elements
     if (el.closest) {
         return el.closest('button, a, [role="button"], input, select, textarea') || el;
     }
