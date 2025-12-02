@@ -14,45 +14,63 @@ fi
 echo "APPLE_ID=$APPLE_ID"
 echo "TEAM_ID=$TEAM_ID"
 
-APP="release/mac/Automation Test Execution.app"
-ZIP="release/mac/Automation_Test_Execution.zip"
-DMG="release/mac/Automation_Test_Execution.dmg"
+# Lấy version từ package.json để lọc đúng artifact
+VERSION=$(node -p "require('./package.json').version" 2>/dev/null)
+if [ -z "$VERSION" ]; then
+  echo "Cannot read version from package.json"
+  exit 1
+fi
+echo "VERSION=$VERSION"
 
-echo "== Packaging zip from signed app"
-rm -f "$ZIP"
-ditto -c -k --keepParent "$APP" "$ZIP"
-echo "== Zip file is created: $ZIP"
+RELEASE_DIR="release"
 
-echo "== Uploading zip file to Apple to notarize"
-xcrun notarytool submit "$ZIP" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$TEAM_ID" --wait > notarize_result.txt
+echo "== Tìm tất cả file mac (dmg/zip) trong $RELEASE_DIR có chứa -${VERSION}-mac-"
 
-echo "== Notarize is processed"
-cat notarize_result.txt
+found_any=false
 
-echo "== Stapling ticket into app"
-xcrun stapler staple "$APP"
+find "$RELEASE_DIR" -maxdepth 1 -type f \( -name "*.dmg" -o -name "*.zip" \) -print0 | while IFS= read -r -d '' artifact; do
+  basename="$(basename "$artifact")"
 
-echo "== Stapling ticket into zip"
-xcrun stapler staple "$ZIP" || echo "stapling zip failed (often ok if ticket is only for app)"
+  # Chỉ xử lý file có pattern cho mac + đúng version
+  case "$basename" in
+    *-"$VERSION"-mac-*.dmg|*-"$VERSION"-mac-*.zip)
+      echo "== Xử lý artifact: $basename"
+      found_any=true
 
-echo "== Creating dmg from stapled app"
-rm -f "$DMG"
-hdiutil create -volname "Automation Test Execution" -srcfolder "$APP" -ov -format UDZO "$DMG"
-echo "== Dmg file is created: $DMG"
+      # Ký artifact nếu có SIGN_ID
+      if [ -n "$SIGN_ID" ]; then
+        echo "== Signing $basename với SIGN_ID: $SIGN_ID"
+        codesign --force --options runtime --timestamp --sign "$SIGN_ID" "$artifact"
+      else
+        echo "SIGN_ID không được set, bỏ qua bước ký cho $basename (chỉ notarize)"
+      fi
 
-if [ -n "$SIGN_ID" ]; then
-  echo "== Signing dmg with SIGN_ID: $SIGN_ID"
-  codesign --force --options runtime --timestamp --sign "$SIGN_ID" "$DMG"
-else
-  echo "SIGN_ID is not set, skip signing dmg (dmg will contain signed/notarized app)"
+      # Notarize
+      log_file="notarize_${basename}.txt"
+      echo "== Gửi $basename lên Apple để notarize (log: $log_file)"
+      xcrun notarytool submit "$artifact" \
+        --apple-id "$APPLE_ID" \
+        --password "$APPLE_PASSWORD" \
+        --team-id "$TEAM_ID" \
+        --wait > "$log_file"
+
+      echo "== Kết quả notarize cho $basename:"
+      cat "$log_file"
+
+      # Staple
+      echo "== Stapling ticket vào $basename"
+      xcrun stapler staple "$artifact"
+      ;;
+    *)
+      # Bỏ qua file không phải mac cho version hiện tại
+      ;;
+  esac
+done
+
+if [ "$found_any" = false ]; then
+  echo "Không tìm thấy artifact mac nào matching pattern *-${VERSION}-mac-*.dmg|zip trong $RELEASE_DIR"
+  exit 1
 fi
 
-echo "== Uploading dmg to Apple to notarize"
-xcrun notarytool submit "$DMG" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$TEAM_ID" --wait > notarize_dmg_result.txt
-echo "== Dmg notarize result"
-cat notarize_dmg_result.txt
-
-echo "== Stapling ticket into dmg"
-xcrun stapler staple "$DMG"
-
+echo "== Hoàn tất ký + notarize cho tất cả dmg/zip mac"
 echo "DONE"
