@@ -19,7 +19,7 @@ ENTITLEMENTS="build_mac/entitlements.mac.plist"
 echo "== Start sign playwright  and electron app"
 echo "==signing all executable binaries"
 while IFS= read -r file; do
-    if [[ "$(file =b "$file")" == *"Mach-O"* ]]; then
+    if [[ "$(file -b "$file")" == *"Mach-O"* ]]; then
        echo "signing: $file"
        codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$SIGN_ID" "$file"
     fi

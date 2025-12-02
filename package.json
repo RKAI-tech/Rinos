@@ -1,6 +1,6 @@
 {
   "name": "automation-test-execution",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "type": "module",
   "main": "dist/main.cjs",
   "scripts": {
@@ -110,14 +110,16 @@
           "target": "dmg",
           "arch": [
             "x64",
-            "arm64"
+            "arm64",
+            "universal"
           ]
         },
         {
           "target": "zip",
           "arch": [
             "x64",
-            "arm64"
+            "arm64",
+            "universal"
           ]
         }
       ],
@@ -127,7 +129,8 @@
       "entitlements": "build_mac/entitlements.mac.plist",
       "entitlementsInherit": "build_mac/entitlements.mac.inherit.plist",
       "gatekeeperAssess": false,
-      "identity":null
+      "identity": null,
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
     },
     "linux": {
       "target": [
@@ -153,7 +156,8 @@
       "icon": "images/icon.png",
       "category": "Development",
       "synopsis": "Automation Test Execution",
-      "maintainer": "Rikkeisoft Corporation <pr@rikkeisoft.com>"
+      "maintainer": "Rikkeisoft Corporation <pr@rikkeisoft.com>",
+      "artifactName": "${productName}-${version}-linux-${arch}.${ext}"
     },
     "win": {
       "target": [
@@ -172,7 +176,8 @@
       ],
       "icon": "images/icon.ico",
       "requestedExecutionLevel": "asInvoker",
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "artifactName": "${productName}-${version}-win-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -184,7 +189,7 @@
       "uninstallerIcon": "images/icon.ico"
     },
     "portable": {
-      "artifactName": "${productName}-${version}-portable.${ext}"
+      "artifactName": "${productName}-${version}-portable-${arch}.${ext}"
     }
   }
 }

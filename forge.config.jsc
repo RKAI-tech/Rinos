@@ -1,6 +1,0 @@
-module.exports = {
-    //if win
-    packagerConfig: {
-       icon: 'images/icon',
-     },
-  };
