@@ -272,7 +272,12 @@
   padding: 0;
   position: relative;
   z-index: 0;
-  isolation: isolate; /* Create stacking context for table */
+  /* Removed isolation: isolate to allow dropdown z-index to work properly */
+}
+
+/* Ensure table doesn't clip dropdown */
+.projects-table {
+  overflow: visible;
 }
 
 /* Custom scrollbar for table */
@@ -444,6 +449,7 @@
 }
 .projects-table tbody tr {
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .projects-table tbody tr:hover {
@@ -452,9 +458,45 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
+/* Prevent row hover/active effects when dropdown is open */
+.projects-table tbody tr:has(.actions-dropdown) {
+  z-index: 1;
+}
+
+.projects-table tbody tr:has(.actions-dropdown):hover {
+  background: white;
+  transform: none;
+  box-shadow: none;
+}
+
+.projects-table tbody tr:has(.actions-dropdown):active {
+  background: white;
+  transform: none;
+}
+
+/* Ensure rows don't overlap dropdown */
+.projects-table tbody tr:not(.dropdown-open) {
+  z-index: 1;
+}
+
+.projects-table tbody tr.dropdown-open {
+  z-index: 100;
+}
+
+/* When any dropdown is open, prevent other rows from receiving clicks */
+.projects-table tbody tr.has-open-dropdown:not(.dropdown-open) {
+  pointer-events: none;
+}
+
+/* Ensure the row with open dropdown can still receive clicks for closing */
+.projects-table tbody tr.dropdown-open {
+  pointer-events: auto;
+}
+
 .clickable-row {
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .clickable-row:hover {
@@ -462,9 +504,21 @@
   box-shadow: inset 4px 0 0 #5549f5;
 }
 
+/* Disable hover effect when dropdown is open */
+.clickable-row:has(.actions-dropdown):hover {
+  background: white !important;
+  box-shadow: none !important;
+}
+
 .clickable-row:active {
   background: #e0f2fe !important;
   transform: scale(0.999);
+}
+
+/* Disable active effect when dropdown is open */
+.clickable-row:has(.actions-dropdown):active {
+  background: white !important;
+  transform: none;
 }
 
 .projects-table tbody tr:last-child td {
@@ -564,27 +618,34 @@
 /* Actions Dropdown */
 .actions-container {
   position: relative;
-  display: flex;
+  display: inline-flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  isolation: isolate; /* Create new stacking context */
+  /* Removed isolation to allow proper z-index stacking */
 }
 
 .actions-dropdown {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 4px);
   right: 50%;
-  transform: translateX(50%) translateZ(0); /* Force GPU acceleration */
+  transform: translateX(50%);
   background: white;
   border: 1px solid #e1e5e9;
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 2147483647; /* Maximum z-index to ensure it's above everything */
+  z-index: 10000 !important; /* High z-index to ensure it's above table rows */
   min-width: 140px;
-  overflow: hidden;
+  overflow: visible; /* Changed from hidden to visible to ensure dropdown is fully clickable */
   animation: dropdownSlideIn 0.2s ease-out;
-  will-change: transform, opacity; /* Optimize for animation */
+  will-change: transform, opacity;
+  pointer-events: auto !important;
+  margin-top: 4px;
+  cursor: default;
+}
+
+.actions-dropdown * {
+  pointer-events: auto !important;
 }
 
 @keyframes dropdownSlideIn {
@@ -612,7 +673,7 @@
   cursor: pointer;
   transition: background-color 0.2s ease;
   text-align: left;
-  z-index: 9999;
+  pointer-events: auto !important;
 }
 
 .dropdown-item:hover {
@@ -626,6 +687,22 @@
 .dropdown-item.delete:hover {
   background: #fef2f2;
   color: #b91c1c;
+}
+
+/* Ensure dropdown is always on top when open */
+.projects-table tbody tr.dropdown-open .actions-dropdown {
+  z-index: 10000 !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure table cells don't block dropdown */
+.projects-table td {
+  position: relative;
+}
+
+.projects-table td.project-actions {
+  overflow: visible;
+  z-index: 1000;
 }
 
 /* Responsive Design */

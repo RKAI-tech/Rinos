@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BrowserStorageType } from '../../../types/browser_storage';
 
 interface CreateBrowserStorageModalProps {
@@ -45,6 +45,12 @@ const CreateBrowserStorageModal: React.FC<CreateBrowserStorageModalProps> = ({ i
         `}`;
     }
   };
+
+  const isCreateDisabled =
+    isSaving ||
+    !name.trim() ||
+    !value.trim() ||
+    !type;
 
   return (
     <div className="cookies-modal-overlay" onClick={onClose}>
@@ -109,11 +115,23 @@ const CreateBrowserStorageModal: React.FC<CreateBrowserStorageModalProps> = ({ i
               </div>
             </div>
           </label>
-          <textarea className="cookies-modal-textarea-placeholder" rows={6} value={value} onChange={e => setValue(e.target.value)} placeholder={handleValuePlaceholder(type)}></textarea>
+          <textarea
+            className="cookies-modal-textarea-placeholder"
+            rows={6}
+            value={value}
+            onChange={e => setValue(e.target.value)}
+            placeholder={handleValuePlaceholder(type)}
+          ></textarea>
         </div>
         <div className="cookies-modal-footer">
           <button className="cookies-btn-secondary" onClick={onClose} disabled={isSaving}>Cancel</button>
-          <button className="cookies-btn-primary" onClick={onSave} disabled={isSaving || !name.trim()}>{isSaving ? 'Saving...' : 'Create'}</button>
+          <button
+            className="cookies-btn-primary"
+            onClick={onSave}
+            disabled={isCreateDisabled}
+          >
+            {isSaving ? 'Saving...' : 'Create'}
+          </button>
         </div>
       </div>
     </div>

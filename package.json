@@ -1,6 +1,6 @@
 {
   "name": "automation-test-execution",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "type": "module",
   "main": "dist/main.cjs",
   "scripts": {
@@ -63,6 +63,7 @@
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^4.7.0",
     "concurrently": "^9.2.1",
+    "cross-env": "^7.0.3",
     "electron": "^38.1.2",
     "electron-builder": "^26.0.12",
     "png2icons": "^2.0.1",

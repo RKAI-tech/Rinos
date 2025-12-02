@@ -1,5 +1,5 @@
 import { getPauseMode, sendAction } from './baseAction.js';
-
+import { previewNode, extractElementText } from '../dom/domUtils.js';
 let last_time_click = null;
 let clickedLinkHref = null;
 let lastURL = window.location.href;
@@ -34,7 +34,7 @@ function handleNavigateFunc(event) {
     console.log('[NavigateHandle] Skipping - pause mode enabled');
     return;
   }
-  
+
   // Reset isNavigating flag sau một khoảng thời gian để tránh block navigation tiếp theo
   if (isNavigating) {
     console.log('[NavigateHandle] Skipping - already navigating');
@@ -53,7 +53,7 @@ function handleNavigateFunc(event) {
       console.log('[NavigateHandle] User clicked link, sending navigate:', clickedLinkHref);
       isNavigating = true;
       lastURL = clickedLinkHref;
-      
+
       // Reset flag sau 2 giây
       setTimeout(() => {
         isNavigating = false;
@@ -63,8 +63,12 @@ function handleNavigateFunc(event) {
         action_type: "navigate",
         elements: [],
         action_datas: [
-          { value: { url: clickedLinkHref } },
-          { value: { page_index: window.__PAGE_INDEX__ || 0 } },
+          {
+            value: {
+              url: clickedLinkHref,
+              page_index: window.__PAGE_INDEX__ || 0
+            }
+          },
         ],
       });
       return;
@@ -91,7 +95,7 @@ function handleNavigateFunc(event) {
   console.log('[NavigateHandle] Sending navigate action:', currentURL);
   isNavigating = true;
   lastURL = currentURL;
-  
+
   // Reset flag sau 2 giây
   setTimeout(() => {
     isNavigating = false;
@@ -101,8 +105,12 @@ function handleNavigateFunc(event) {
     action_type: "navigate",
     elements: [],
     action_datas: [
-      { value: { value: currentURL } },
-      { value: { page_index: window.__PAGE_INDEX__ || 0 } },
+      {
+        value: {
+          value: currentURL,
+          page_index: window.__PAGE_INDEX__ || 0
+        }
+      },
     ],
   });
 }
@@ -114,12 +122,12 @@ export function initializeNavigateHandle() {
   }
 
   console.log('[NavigateHandle] Initializing navigation listeners');
-  
+
   document.addEventListener("click", handleClickForTimeTracking, true);
 
   window.addEventListener("beforeunload", handleNavigateFunc, true);
   window.addEventListener("unload", handleNavigateFunc, true);
   window.addEventListener("pagehide", handleNavigateFunc, true);
-  
+
   console.log('[NavigateHandle] Navigation listeners registered');
 }

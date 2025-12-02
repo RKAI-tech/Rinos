@@ -129,21 +129,22 @@ const Queries: React.FC = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (openDropdownId) {
-        const target = event.target as Element;
-        const actionsContainer = target.closest('.actions-container');
-        if (!actionsContainer) {
-          setOpenDropdownId(null);
-        }
+      const target = event.target as Element;
+      // Close dropdown if clicking outside actions container and dropdown
+      // Also check if the click is on a dropdown item (button inside dropdown)
+      const isInActionsContainer = target.closest('.actions-container');
+      const isInDropdown = target.closest('.actions-dropdown');
+      const isDropdownItem = target.closest('.dropdown-item');
+      
+      if (!isInActionsContainer && !isInDropdown && !isDropdownItem) {
+        setOpenDropdownId(null);
       }
     };
 
-    if (openDropdownId) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
+    // Only use mousedown to avoid conflicts with click handlers
+    document.addEventListener('mousedown', handleClickOutside, true); // Use capture phase
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside, true);
     };
   }, [openDropdownId]);
 
@@ -447,7 +448,10 @@ const Queries: React.FC = () => {
                     <tr><td colSpan={6} className="qry-center">No queries</td></tr>
                   ) : (
                     currentItems.map((q) => (
-                      <tr key={q.id}>
+                      <tr 
+                        key={q.id}
+                        className={`${openDropdownId === q.id ? 'dropdown-open' : ''} ${openDropdownId ? 'has-open-dropdown' : ''}`}
+                      >
                         <td className="qry-name">{q.name}</td>
                         <td className="qry-description">{q.description || '-'}</td>
                         <td className="qry-status">
@@ -461,7 +465,13 @@ const Queries: React.FC = () => {
                         <td className="qry-db-type">{q.db_type || '-'}</td>
                         <td className="qry-actions">
                           <div className="actions-container">
-                            <button className="actions-btn" onClick={() => setOpenDropdownId(openDropdownId === q.id ? null : q.id)}>
+                            <button 
+                              className="actions-btn" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenDropdownId(openDropdownId === q.id ? null : q.id);
+                              }}
+                            >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <circle cx="12" cy="12" r="1" fill="currentColor"/>
                                 <circle cx="19" cy="12" r="1" fill="currentColor"/>
@@ -469,37 +479,72 @@ const Queries: React.FC = () => {
                               </svg>
                             </button>
                             {openDropdownId === q.id && (
-                              <div className="actions-dropdown">
-                                <button className="dropdown-item" onClick={async () => {
-                                  if (!canEditPermission) { setOpenDropdownId(null); return; }
-                                  try {
-                                    const svc = new StatementService();
-                                    setSelectedQuery({ id: q.id, name: q.name });
-                                    const resp = await svc.runStatementById(q.id);
-                                    console.log('resp', resp);
-                                    if (resp.success) {
-                                      toast.success('Query is running');
-                                      // StatementRunByIdResponse does not include statement_text; keep last known
-                                      setRunSql(q.name);
-                                      // const items = (resp.data?.data || []).map((d: any) => ({ name: d.name, value: String(d.value) }));
-                                      // setRunItems(items);
-                                      setRunItems(resp.data?.data || []);
-                                      setIsRunOpen(true);
-                                    } else {
-                                      toast.error(resp.error || 'Failed to run query');
+                              <div 
+                                className="actions-dropdown"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }}
+                              >
+                                <button 
+                                  className="dropdown-item" 
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    if (!canEditPermission) { setOpenDropdownId(null); return; }
+                                    try {
+                                      const svc = new StatementService();
+                                      setSelectedQuery({ id: q.id, name: q.name });
+                                      const resp = await svc.runStatementById(q.id);
+                                      console.log('resp', resp);
+                                      if (resp.success) {
+                                        toast.success('Query is running');
+                                        // StatementRunByIdResponse does not include statement_text; keep last known
+                                        setRunSql(q.name);
+                                        // const items = (resp.data?.data || []).map((d: any) => ({ name: d.name, value: String(d.value) }));
+                                        // setRunItems(items);
+                                        setRunItems(resp.data?.data || []);
+                                        setIsRunOpen(true);
+                                      } else {
+                                        toast.error(resp.error || 'Failed to run query');
+                                      }
+                                    } catch (e) {
+                                      toast.error('Failed to run query');
+                                    } finally {
+                                      setOpenDropdownId(null);
                                     }
-                                  } catch (e) {
-                                    toast.error('Failed to run query');
-                                  } finally {
-                                    setOpenDropdownId(null);
-                                  }
-                                }} disabled={!canEditPermission}>
+                                  }}
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                  }}
+                                  disabled={!canEditPermission}
+                                >
                                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <polygon points="8,5 19,12 8,19" fill="currentColor" />
                                   </svg>
                                   Run
                                 </button>
-                                <button className="dropdown-item delete" onClick={() => { if (!canEditPermission) { setOpenDropdownId(null); return; } setSelectedQuery({ id: q.id, name: q.name }); setIsDeleteOpen(true); setOpenDropdownId(null); }} disabled={!canEditPermission}>
+                                <button 
+                                  className="dropdown-item delete" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    if (!canEditPermission) { setOpenDropdownId(null); return; } 
+                                    setSelectedQuery({ id: q.id, name: q.name }); 
+                                    setIsDeleteOpen(true); 
+                                    setOpenDropdownId(null);
+                                  }}
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                  }}
+                                  disabled={!canEditPermission}
+                                >
                                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                     <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

@@ -85,21 +85,22 @@ const Variables: React.FC = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (openDropdownId) {
-        const target = event.target as Element;
-        const actionsContainer = target.closest('.actions-container');
-        if (!actionsContainer) {
-          setOpenDropdownId(null);
-        }
+      const target = event.target as Element;
+      // Close dropdown if clicking outside actions container and dropdown
+      // Also check if the click is on a dropdown item (button inside dropdown)
+      const isInActionsContainer = target.closest('.actions-container');
+      const isInDropdown = target.closest('.actions-dropdown');
+      const isDropdownItem = target.closest('.dropdown-item');
+      
+      if (!isInActionsContainer && !isInDropdown && !isDropdownItem) {
+        setOpenDropdownId(null);
       }
     };
 
-    if (openDropdownId) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
+    // Only use mousedown to avoid conflicts with click handlers
+    document.addEventListener('mousedown', handleClickOutside, true); // Use capture phase
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside, true);
     };
   }, [openDropdownId]);
 
@@ -235,7 +236,10 @@ const Variables: React.FC = () => {
                 </thead>
                 <tbody>
                   {currentItems.map((v) => (
-                    <tr key={v.id}>
+                    <tr 
+                      key={v.id}
+                      className={`${openDropdownId === v.id ? 'dropdown-open' : ''} ${openDropdownId ? 'has-open-dropdown' : ''}`}
+                    >
                       <td className="vars-name">{v.customName}</td>
                       <td className="vars-original">{v.originalName}</td>
                       <td className="vars-value">{v.value}</td>
@@ -246,7 +250,10 @@ const Variables: React.FC = () => {
                         <div className="actions-container">
                           <button 
                             className="actions-btn" 
-                            onClick={() => setOpenDropdownId(openDropdownId === v.id ? null : v.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenDropdownId(openDropdownId === v.id ? null : v.id);
+                            }}
                             disabled={!canEditPermission}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -257,18 +264,34 @@ const Variables: React.FC = () => {
                           </button>
 
                           {openDropdownId === v.id && (
-                            <div className="actions-dropdown">
+                            <div 
+                              className="actions-dropdown"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
+                            >
                               <button 
                                 className="dropdown-item delete" 
-                                onClick={() => { 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
                                   if (!canEditPermission) { 
                                     setOpenDropdownId(null); 
                                     return; 
                                   } 
                                   setSelectedVar({ id: v.id, name: v.customName }); 
                                   setIsDeleteOpen(true); 
-                                  setOpenDropdownId(null); 
-                                }} 
+                                  setOpenDropdownId(null);
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }}
                                 disabled={!canEditPermission}
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

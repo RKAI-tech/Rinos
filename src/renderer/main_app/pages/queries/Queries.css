@@ -13,7 +13,7 @@
 .qry-create-query-btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; transform: none; box-shadow: 0 4px 12px rgba(85, 73, 245, 0.3); }
 .qry-create-query-btn:disabled:hover { background: #5549f5; transform: none; box-shadow: 0 4px 12px rgba(85, 73, 245, 0.3); }
 .qry-table-container { overflow-x: visible; overflow-y: visible; margin-bottom: 24px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(74, 144, 226, 0.08); border: 1px solid #e1e5e9; padding: 20px; position: relative; z-index: 0; }
-.qry-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; table-layout: fixed; }
+.qry-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; table-layout: fixed; overflow: visible; }
 .qry-table th { background: #f8fafc; padding: 16px 12px; text-align: center; font-size: 14px; font-weight: 600; color: #374151; border-bottom: 2px solid #e1e5e9; white-space: nowrap; vertical-align: middle; }
 .qry-table th.sortable { cursor: pointer; position: relative; }
 .qry-table th .th-content { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
@@ -24,8 +24,44 @@
 .qry-table th .arrow.down { border-top: 6px solid #6b7280; }
 .qry-table th .arrow.active { opacity: 1; border-bottom-color: #111827; border-top-color: #111827; }
 .qry-table td { padding: 16px 12px; border-bottom: 1px solid #e1e5e9; font-size: 14px; color: #374151; vertical-align: middle; text-align: center; }
+.qry-table tbody tr {
+  position: relative;
+}
+
 .qry-table tbody tr:hover {
   background: #e2e8f0;
+}
+
+/* Prevent row hover/active effects when dropdown is open */
+.qry-table tbody tr:has(.actions-dropdown) {
+  z-index: 1;
+}
+
+.qry-table tbody tr:has(.actions-dropdown):hover {
+  background: white;
+}
+
+.qry-table tbody tr:has(.actions-dropdown):active {
+  background: white;
+}
+
+/* Ensure rows don't overlap dropdown */
+.qry-table tbody tr:not(.dropdown-open) {
+  z-index: 1;
+}
+
+.qry-table tbody tr.dropdown-open {
+  z-index: 100;
+}
+
+/* When any dropdown is open, prevent other rows from receiving clicks */
+.qry-table tbody tr.has-open-dropdown:not(.dropdown-open) {
+  pointer-events: none;
+}
+
+/* Ensure the row with open dropdown can still receive clicks for closing */
+.qry-table tbody tr.dropdown-open {
+  pointer-events: auto;
 }
 .qry-table th:first-child { text-align: left; }
 .qry-table td:first-child { text-align: left; }
@@ -49,8 +85,31 @@
 .qry-pagination-ellipsis { padding: 8px 12px; color: #666; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; min-width: 40px; }
 
 /* Ensure row action dropdown overlays above table/container */
-.actions-container { position: relative; }
-.actions-dropdown { position: absolute; top: 100%; right: 50%; transform: translateX(50%); background: white; border: 1px solid #e1e5e9; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); z-index: 2147483647; min-width: 120px; overflow: hidden; }
+.actions-container { position: relative; display: inline-flex; justify-content: center; align-items: center; z-index: 1000; }
+.actions-btn { background: none; border: none; padding: 8px; border-radius: 6px; cursor: pointer; color: #666; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.actions-btn:hover { background: #f3f4f6; color: #5549f5; }
+.actions-dropdown { position: absolute; top: calc(100% + 4px); right: 50%; transform: translateX(50%); background: white; border: 1px solid #e1e5e9; border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.15); z-index: 10000 !important; min-width: 140px; overflow: visible; pointer-events: auto !important; margin-top: 4px; cursor: default; }
+.actions-dropdown * { pointer-events: auto !important; }
+.dropdown-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; background: none; border: none; color: #374151; font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color 0.2s ease; text-align: left; pointer-events: auto !important; }
+.dropdown-item:hover { background: #f8fafc; }
+.dropdown-item.delete { color: #dc2626; }
+.dropdown-item.delete:hover { background: #fef2f2; color: #b91c1c; }
+
+/* Ensure dropdown is always on top when open */
+.qry-table tbody tr.dropdown-open .actions-dropdown {
+  z-index: 10000 !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure table cells don't block dropdown */
+.qry-table td {
+  position: relative;
+}
+
+.qry-table td.qry-actions {
+  overflow: visible;
+  z-index: 1000;
+}
 
 /* SQL Query & Results Side by Side Section */
 .qry-sql-results-section { display: flex; gap: 24px; margin-bottom: 32px; }

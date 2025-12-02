@@ -35,6 +35,7 @@ export enum ActionType {
   api_request = "api_request",
   page_create="page_create",
   page_close="page_close",
+  page_focus="page_focus",
 }
 
 export enum AssertType {

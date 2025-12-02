@@ -1,5 +1,5 @@
 import { getPauseMode, sendAction } from './baseAction.js';
-
+import { previewNode, extractElementText } from '../dom/domUtils.js';
 const DEBOUNCE_TIME = 500; // ms
 let lastActivateTime = 0;
 let lastVisibilityState = 'visible';

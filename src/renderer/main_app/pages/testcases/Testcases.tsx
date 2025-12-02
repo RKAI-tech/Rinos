@@ -754,14 +754,21 @@ const Testcases: React.FC = () => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
-      if (!target.closest('.actions-container')) {
+      // Close dropdown if clicking outside actions container and dropdown
+      // Also check if the click is on a dropdown item (button inside dropdown)
+      const isInActionsContainer = target.closest('.actions-container');
+      const isInDropdown = target.closest('.actions-dropdown');
+      const isDropdownItem = target.closest('.dropdown-item');
+      
+      if (!isInActionsContainer && !isInDropdown && !isDropdownItem) {
         setOpenDropdownId(null);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    // Only use mousedown to avoid conflicts with click handlers
+    document.addEventListener('mousedown', handleClickOutside, true); // Use capture phase
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside, true);
     };
   }, []);
 
@@ -868,13 +875,29 @@ const Testcases: React.FC = () => {
                 {currentTestcases.map((testcase) => (
                   <tr
                     key={testcase.testcase_id}
-                    onClick={() => canEditPermission && handleOpenRecorder(testcase.testcase_id)}
+                    onClick={(e) => {
+                      // Don't open recorder if clicking on actions container or dropdown
+                      const target = e.target as Element;
+                      const isClickingOnActions = target.closest('.actions-container') || target.closest('.actions-dropdown');
+                      
+                      // Don't open if any dropdown is open (to prevent accidental clicks)
+                      if (!isClickingOnActions && !openDropdownId && canEditPermission) {
+                        handleOpenRecorder(testcase.testcase_id);
+                      }
+                    }}
                     style={{ cursor: 'pointer' }}
-                    className={runningTestcases.includes(testcase.testcase_id) ? 'is-running' : ''}
+                    className={`${runningTestcases.includes(testcase.testcase_id) ? 'is-running' : ''} ${openDropdownId === testcase.testcase_id ? 'dropdown-open' : ''} ${openDropdownId ? 'has-open-dropdown' : ''}`}
                     aria-busy={runningTestcases.includes(testcase.testcase_id)}
                   >
-                    <td className="testcase-name">{testcase.name}</td>
-                    <td className="testcase-tag">{formatValue(testcase.description || '')}</td>
+                    <td className="testcase-name" title={testcase.name}>
+                      {testcase.name}
+                    </td>
+                    <td
+                      className="testcase-tag"
+                      title={testcase.description || ''}
+                    >
+                      {formatValue(testcase.description || '')}
+                    </td>
                     <td className="testcase-actions-count">{testcase.actionsCount}</td>
                     <td className="testcase-status">
                       <span className={`status-badge ${testcase.status || 'Draft'}`}>
@@ -907,10 +930,28 @@ const Testcases: React.FC = () => {
                         </button>
                         
                         {openDropdownId === testcase.testcase_id && (
-                          <div className="actions-dropdown">
+                          <div 
+                            className="actions-dropdown" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                            }}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                            }}
+                          >
                             <button
                               className="dropdown-item"
-                              onClick={(e) => handleRunTestcase(testcase.testcase_id, e)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleRunTestcase(testcase.testcase_id, e);
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
                               disabled={runningTestcases.includes(testcase.testcase_id) || !canEditPermission || testcase.actionsCount === 0}
                               title={testcase.actionsCount === 0 ? "Cannot run testcase without actions" : "Execute this testcase and view results"}
                             >
@@ -933,7 +974,15 @@ const Testcases: React.FC = () => {
                             </button>
                             <button 
                               className="dropdown-item" 
-                              onClick={(e) => handleViewResult(testcase.testcase_id, e)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleViewResult(testcase.testcase_id, e);
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
                               title="View testcase execution results and details"
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -943,7 +992,15 @@ const Testcases: React.FC = () => {
                             </button>
                             <button 
                               className="dropdown-item" 
-                              onClick={(e) => handleOpenEdit(testcase.testcase_id, e)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleOpenEdit(testcase.testcase_id, e);
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
                               title="Edit testcase name and tag"
                               disabled={!canEditPermission}
                             >
@@ -955,7 +1012,15 @@ const Testcases: React.FC = () => {
                             </button>
                             <button 
                               className="dropdown-item" 
-                              onClick={(e) => handleOpenDuplicate(testcase.testcase_id, e)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleOpenDuplicate(testcase.testcase_id, e);
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
                               title="Create a copy of this testcase with all its actions"
                               disabled={!canEditPermission}
                             >
@@ -967,7 +1032,15 @@ const Testcases: React.FC = () => {
                             </button>
                             <button 
                               className="dropdown-item delete" 
-                              onClick={(e) => handleOpenDelete(testcase.testcase_id, e)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleOpenDelete(testcase.testcase_id, e);
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
                               title="Permanently delete this testcase and all its actions"
                               disabled={!canEditPermission}
                             >
@@ -1046,7 +1119,8 @@ const Testcases: React.FC = () => {
         isOpen={isEditModalOpen}
         onClose={handleCloseEditModal}
         onSave={handleSaveEditTestcase}
-        testcase={selectedTestcase ? { testcase_id: selectedTestcase.testcase_id, name: selectedTestcase.name, description: selectedTestcase.description, basic_authentication: selectedTestcase.basic_authentication, browser_type: selectedTestcase.browser_type } : null}
+        testcase={selectedTestcase ? { testcase_id: selectedTestcase.testcase_id, name: selectedTestcase.name, description: selectedTestcase.description, basic_authentication: selectedTestcase.basic_authentication } : null}
+        projectId={projectData?.projectId}
       />
 
       {/* Delete Testcase Modal */}
@@ -1063,7 +1137,8 @@ const Testcases: React.FC = () => {
         onClose={handleCloseDuplicateModal}
         onSave={handleSaveDuplicateTestcase}
         createTestcaseWithActions={createTestcaseWithActions}
-        testcase={selectedTestcase ? { testcase_id: selectedTestcase.testcase_id, name: selectedTestcase.name, description: selectedTestcase.description, basic_authentication: selectedTestcase.basic_authentication, browser_type: selectedTestcase.browser_type } : null}
+        testcase={selectedTestcase ? { testcase_id: selectedTestcase.testcase_id, name: selectedTestcase.name, description: selectedTestcase.description, basic_authentication: selectedTestcase.basic_authentication } : null}
+        projectId={projectData?.projectId}
       />
 
       {/* Run And View Testcase Modal */}

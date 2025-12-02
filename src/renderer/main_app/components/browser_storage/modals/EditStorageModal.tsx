@@ -18,6 +18,13 @@ interface EditBrowserStorageModalProps {
 
 const EditBrowserStorageModal: React.FC<EditBrowserStorageModalProps> = ({ isOpen, onClose, onSave, isSaving, name, description, value, type, setName, setDescription, setValue, setType }) => {
   if (!isOpen) return null;
+
+  const isSaveDisabled =
+    isSaving ||
+    !name.trim() ||
+    !value.trim() ||
+    !type;
+
   return (
     <div className="cookies-modal-overlay" onClick={onClose}>
       <div className="cookies-modal" onClick={e => e.stopPropagation()}>
@@ -31,13 +38,17 @@ const EditBrowserStorageModal: React.FC<EditBrowserStorageModalProps> = ({ isOpe
           </button>
         </div>
         <div className="cookies-modal-body">
-          <label className="cookies-modal-label">Name</label>
+          <label className="cookies-modal-label">
+            Name <span style={{ color: '#dc2626' }}>*</span>
+          </label>
           <input className="cookies-modal-input" value={name} onChange={e => setName(e.target.value)} placeholder="Browser storage name" />
 
           <label className="cookies-modal-label">Description</label>
           <input className="cookies-modal-input" value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description" />
 
-          <label className="cookies-modal-label">Type</label>
+          <label className="cookies-modal-label">
+            Type <span style={{ color: '#dc2626' }}>*</span>
+          </label>
           <select
             className="cookies-modal-input"
             value={type}
@@ -48,12 +59,20 @@ const EditBrowserStorageModal: React.FC<EditBrowserStorageModalProps> = ({ isOpe
             <option value={BrowserStorageType.SESSION_STORAGE}>Session Storage</option>
           </select>
 
-          <label className="cookies-modal-label">Value</label>
+          <label className="cookies-modal-label">
+            Value <span style={{ color: '#dc2626' }}>*</span>
+          </label>
           <textarea className="cookies-modal-textarea" rows={6} value={value} onChange={e => setValue(e.target.value)} placeholder='Enter value (JSON or text)'></textarea>
         </div>
         <div className="cookies-modal-footer">
           <button className="cookies-btn-secondary" onClick={onClose} disabled={isSaving}>Cancel</button>
-          <button className="cookies-btn-primary" onClick={onSave} disabled={isSaving || !name.trim()}>{isSaving ? 'Saving...' : 'Save'}</button>
+          <button
+            className="cookies-btn-primary"
+            onClick={onSave}
+            disabled={isSaveDisabled}
+          >
+            {isSaving ? 'Saving...' : 'Save'}
+          </button>
         </div>
       </div>
     </div>

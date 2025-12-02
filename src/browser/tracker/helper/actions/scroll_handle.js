@@ -4,7 +4,7 @@ import {
   buildCommonActionData,
   sendAction
 } from './baseAction.js';
-import { extractElementText } from '../dom/domUtils.js';
+import { previewNode, extractElementText } from '../dom/domUtils.js';
 let _scrollRafId = null;
 let _pendingEvent = null;
 
@@ -20,12 +20,12 @@ function getScrollableTarget(e) {
 
 function dispatchScroll(e) {
   if (e && e.isTrusted === false) {
-    try { 
+    try {
       // console.log('Skipping scroll recording - event is not trusted');
-    } catch {}
+    } catch { }
     return;
   }
-  
+
   const target = getScrollableTarget(e);
   const selectors = buildSelectors(target);
   const isWindow = (target === window || target === document.scrollingElement || target === document.documentElement || target === document.body);
@@ -39,14 +39,13 @@ function dispatchScroll(e) {
       selectors: selectors.map((selector) => ({ value: selector })),
     }],
     action_datas: [{
-      value: { value: value, elementText: elementText },
-    },
-    {
       value: {
-        page_index: window.__PAGE_INDEX__ || 0,
+        value: value,
+        elementText: elementText,
+        page_index: window.__PAGE_INDEX__ || 0
       },
     }
-  ],
+    ],
   });
 }
 
@@ -64,7 +63,7 @@ export function handleScrollEvent(e) {
 
 export function disposeScrollHandler() {
   if (_scrollRafId != null) {
-    try { window.cancelAnimationFrame(_scrollRafId); } catch {}
+    try { window.cancelAnimationFrame(_scrollRafId); } catch { }
     _scrollRafId = null;
   }
   _pendingEvent = null;

@@ -5,7 +5,7 @@ import {
   buildCommonActionData,
   sendAction
 } from './baseAction.js';
-
+import { previewNode, extractElementText } from '../dom/domUtils.js';
 // Trạng thái drag and drop đơn giản
 let isDragging = false;
 
@@ -39,6 +39,7 @@ export function handleDragStartEvent(e) {
     action_datas: [{
       value: {
         elementText: elementText,
+        page_index: window.__PAGE_INDEX__ || 0,
       },
     }],
   });
@@ -71,10 +72,6 @@ export function handleDragEndEvent(e) {
     action_datas: [{
       value: {
         elementText: elementText,
-      },
-    },
-    {
-      value: {
         page_index: window.__PAGE_INDEX__ || 0,
       },
     }],
@@ -110,6 +107,7 @@ export function handleDropEvent(e) {
     action_datas: [{
       value: {
         elementText: elementText,
+        page_index: window.__PAGE_INDEX__ || 0,
       },
     }],
   });

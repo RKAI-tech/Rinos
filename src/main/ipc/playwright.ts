@@ -83,6 +83,66 @@ function getSystemEdgePaths(): string[] {
   ];
 }
 
+// System Chrome paths helper
+function getSystemChromePaths(): string[] {
+  const platform = process.platform;
+  if (platform === 'win32') {
+    return [
+      path.join(process.env.LOCALAPPDATA || '', "Google", "Chrome", "Application", "chrome.exe"),
+      path.join(process.env.PROGRAMFILES || '', "Google", "Chrome", "Application", "chrome.exe"),
+      path.join(process.env["PROGRAMFILES(X86)"] || '', "Google", "Chrome", "Application", "chrome.exe"),
+    ].filter(Boolean);
+  }
+  if (platform === 'darwin') {
+    return [
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      path.join(process.env.HOME || '', "Applications", "Google Chrome.app", "Contents", "MacOS", "Google Chrome"),
+    ];
+  }
+  
+  return [
+    "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+    "/snap/bin/chromium",
+  ];
+}
+
+// System Firefox paths helper
+function getSystemFirefoxPaths(): string[] {
+  const platform = process.platform;
+  if (platform === 'win32') {
+    return [
+      path.join(process.env.LOCALAPPDATA || '', "Mozilla Firefox", "firefox.exe"),
+      path.join(process.env.PROGRAMFILES || '', "Mozilla Firefox", "firefox.exe"),
+      path.join(process.env["PROGRAMFILES(X86)"] || '', "Mozilla Firefox", "firefox.exe"),
+    ].filter(Boolean);
+  }
+  if (platform === 'darwin') {
+    return [
+      "/Applications/Firefox.app/Contents/MacOS/firefox",
+      path.join(process.env.HOME || '', "Applications", "Firefox.app", "Contents", "MacOS", "firefox"),
+    ];
+  }
+  
+  return [
+    "/usr/bin/firefox",
+    "/usr/bin/firefox-esr",
+    "/snap/bin/firefox",
+  ];
+}
+
+// System Safari paths helper (macOS only)
+function getSystemSafariPaths(): string[] {
+  if (process.platform !== 'darwin') {
+    return [];
+  }
+  return [
+    "/Applications/Safari.app/Contents/MacOS/Safari",
+  ];
+}
+
 function getFirstExistingPath(paths: string[]): string | null {
   for (const target of paths) {
     if (target && fs.existsSync(target)) {
@@ -90,6 +150,33 @@ function getFirstExistingPath(paths: string[]): string | null {
     }
   }
   return null;
+}
+
+// Check if Chrome is installed (system or playwright)
+async function isChromeInstalled(): Promise<boolean> {
+  const systemPath = getFirstExistingPath(getSystemChromePaths());
+  if (systemPath) return true;
+  
+  // Check playwright chromium installation
+  return await isBrowserInstalled('chromium');
+}
+
+// Check if Firefox is installed (system or playwright)
+async function isFirefoxInstalled(): Promise<boolean> {
+  const systemPath = getFirstExistingPath(getSystemFirefoxPaths());
+  if (systemPath) return true;
+  
+  // Check playwright firefox installation
+  return await isBrowserInstalled('firefox');
+}
+
+// Check if Safari is installed (system or playwright)
+async function isSafariInstalled(): Promise<boolean> {
+  const systemPath = getFirstExistingPath(getSystemSafariPaths());
+  if (systemPath) return true;
+  
+  // Check playwright webkit installation
+  return await isBrowserInstalled('webkit');
 }
 
 // Check if Edge is installed (system or custom)
@@ -233,6 +320,7 @@ function getLatestUpdatedAt(paths: string[]): string | undefined {
 
 function getBrowsersInfo(): BrowserInfoResponse[] {
   return MANAGED_BROWSERS.map((browser) => {
+    // Special handling for Edge
     if (browser.id === 'edge') {
       const systemPath = getFirstExistingPath(getSystemEdgePaths());
       const customPath = getEdgeExecutablePath();
@@ -267,6 +355,55 @@ function getBrowsersInfo(): BrowserInfoResponse[] {
       };
     }
     
+    // Check for system Chrome
+    if (browser.id === 'chrome') {
+      const systemPath = getFirstExistingPath(getSystemChromePaths());
+      if (systemPath) {
+        return {
+          id: browser.id,
+          label: browser.label,
+          status: 'system',
+          installSource: 'system',
+          paths: [systemPath],
+          updatedAt: getLatestUpdatedAt([systemPath]),
+          note: 'Using system Chrome installation',
+        };
+      }
+    }
+    
+    // Check for system Firefox
+    if (browser.id === 'firefox') {
+      const systemPath = getFirstExistingPath(getSystemFirefoxPaths());
+      if (systemPath) {
+        return {
+          id: browser.id,
+          label: browser.label,
+          status: 'system',
+          installSource: 'system',
+          paths: [systemPath],
+          updatedAt: getLatestUpdatedAt([systemPath]),
+          note: 'Using system Firefox installation',
+        };
+      }
+    }
+    
+    // Check for system Safari
+    if (browser.id === 'safari') {
+      const systemPath = getFirstExistingPath(getSystemSafariPaths());
+      if (systemPath) {
+        return {
+          id: browser.id,
+          label: browser.label,
+          status: 'system',
+          installSource: 'system',
+          paths: [systemPath],
+          updatedAt: getLatestUpdatedAt([systemPath]),
+          note: 'Using system Safari installation',
+        };
+      }
+    }
+    
+    // Check Playwright installations
     const playwrightName = browser.playwrightName;
     const paths = getPlaywrightInstallPaths(playwrightName);
     
@@ -330,9 +467,19 @@ export async function checkBrowsersInstalled(browserTypes: string[]): Promise<{ 
   const result: { [key: string]: boolean } = {};
   
   for (const browserType of browserTypes) {
-    if (browserType.toLowerCase() === 'edge') {
+    const normalized = browserType.toLowerCase();
+    if (normalized === 'edge') {
       // Special handling for Edge: check both custom and system installation
       result[browserType] = await isEdgeInstalled();
+    } else if (normalized === 'chrome') {
+      // Check system Chrome or Playwright Chromium
+      result[browserType] = await isChromeInstalled();
+    } else if (normalized === 'firefox') {
+      // Check system Firefox or Playwright Firefox
+      result[browserType] = await isFirefoxInstalled();
+    } else if (normalized === 'safari') {
+      // Check system Safari or Playwright WebKit
+      result[browserType] = await isSafariInstalled();
     } else {
       const playwrightBrowser = mapBrowserTypeToPlaywright(browserType);
       result[browserType] = await isBrowserInstalled(playwrightBrowser);

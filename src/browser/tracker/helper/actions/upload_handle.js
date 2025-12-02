@@ -1,4 +1,4 @@
-import { 
+import {
   getPauseMode,
   shouldIgnoreTarget,
   buildSelectors,
@@ -42,8 +42,6 @@ export async function handleUploadChangeEvent(e) {
     }))
   );
 
-  const value= undefined;
-
   const elementText = extractElementText(el);
   sendAction({
     action_type: 'upload',
@@ -51,12 +49,13 @@ export async function handleUploadChangeEvent(e) {
       selectors: selectors.map((selector) => ({ value: selector })),
     }],
     action_datas: [
-    {
-      value: {
-        page_index: window.__PAGE_INDEX__ || 0,
+      {
+        value: {
+          elementText: elementText,
+          page_index: window.__PAGE_INDEX__ || 0,
+        },
       },
-    },
-    ...fileList.map(file => ({file_upload: file})),
-  ],
+      ...fileList.map(file => ({ file_upload: file })),
+    ],
   });
 }

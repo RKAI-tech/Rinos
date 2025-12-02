@@ -1,4 +1,4 @@
-import { Action, ActionType } from "./types";
+import { Action, ActionType, Selector } from "./types";
 import { ApiRequestData } from "./types/api_request";
 import { BrowserContext, Page, Request } from "playwright";
 import { BasicAuthentication } from "../renderer/recorder/types/basic_auth";
@@ -246,6 +246,27 @@ export class Controller {
         }
         throw new Error(`Page with index ${pageIndex} not found`);
     }
+
+    async resolveUniqueSelector(page: Page | null, selectors: string[]): Promise<string> {
+        if (!page || !selectors || !Array.isArray(selectors) || selectors.length === 0) {
+            throw new Error('Page or selectors is invalid.');
+        }
+        const toLocator = (s: string) => {
+            return eval(`page.${s}`);
+        };
+        const locators = selectors.map(toLocator);
+        await Promise.allSettled(
+            locators.map(l => l.first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => { }))
+        );
+        for (let i = 0; i < locators.length; i++) {
+            const count = await locators[i].count();
+            if (count === 1) {
+                return selectors[i];
+            }
+        }
+        throw new Error('No unique selector found.');
+    }
+
     async executeMultipleActions(context: BrowserContext, actions: Action[]): Promise<void> {
         if (!context) {
             throw new Error('Context is required');
@@ -262,16 +283,14 @@ export class Controller {
                     break;
                 }
             }
-            // change active page id
+
             this.onActionExecuting?.(i);
             try {
-                console.log('[Controller] Page Index:', pageIndex);
                 let activePage: Page | null = null;
                 if (action.action_type !== ActionType.page_create) {
                     activePage = await this.getPage(pageIndex);
                     activePage.bringToFront();
                 }
-                console.log('[Controller] Action:', action.action_type);
                 switch (action.action_type) {
                     case ActionType.navigate:
                         let url_navigated = ""
@@ -321,9 +340,9 @@ export class Controller {
                     }
                     case ActionType.click:
                         if (action.elements && action.elements.length === 1) {
-                            const locator = action.elements[0].selectors?.[0]?.value;
-                            if (locator) {
-                                console.log('[Controller] CLICK ->', locator);
+                            const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
+                            if (selectors) {
+                                const locator = await this.resolveUniqueSelector(activePage, selectors);
                                 const pageApi = activePage;
                                 await eval(`pageApi.${locator}.click()`);
                             }
@@ -331,8 +350,9 @@ export class Controller {
                         break;
                     case ActionType.double_click:
                         if (action.elements && action.elements.length === 1) {
-                            const locator = action.elements[0].selectors?.[0]?.value;
-                            if (locator) {
+                            const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
+                            if (selectors) {
+                                const locator = await this.resolveUniqueSelector(activePage, selectors);
                                 const pageApi = activePage;
                                 await eval(`pageApi.${locator}.dblclick()`);
                             }
@@ -350,8 +370,9 @@ export class Controller {
                             throw new Error('Value is required for input action');
                         }
                         if (action.elements) {
-                            const locator = action.elements[0].selectors?.[0]?.value;
-                            if (locator) {
+                            const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
+                            if (selectors) {
+                                const locator = await this.resolveUniqueSelector(activePage, selectors);
                                 const pageApi = activePage;
                                 const valueApi = value_input;
                                 await eval(`pageApi.${locator}.fill(valueApi)`);
@@ -370,8 +391,9 @@ export class Controller {
                             throw new Error('Value is required for select action');
                         }
                         if (action.elements && action.elements.length === 1) {
-                            const locator = action.elements[0].selectors?.[0]?.value;
-                            if (locator) {
+                            const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
+                            if (selectors) {
+                                const locator = await this.resolveUniqueSelector(activePage, selectors);
                                 const pageApi = activePage;
                                 const valueApi = value_select;
                                 await eval(`pageApi.${locator}.selectOption(valueApi)`);
@@ -390,8 +412,9 @@ export class Controller {
                             throw new Error('Value is required for checkbox action');
                         }
                         if (action.elements && action.elements.length === 1) {
-                            const locator = action.elements[0].selectors?.[0]?.value;
-                            if (locator) {
+                            const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
+                            if (selectors) {
+                                const locator = await this.resolveUniqueSelector(activePage, selectors);
                                 const pageApi = activePage;
                                 const valueApi = value_checkbox;
                                 await eval(`pageApi.${locator}.check(valueApi)`);
@@ -407,8 +430,9 @@ export class Controller {
                             }
                         }
                         if (action.elements && action.elements.length === 1) {
-                            const locator = action.elements[0].selectors?.[0]?.value;
-                            if (locator) {
+                            const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
+                            if (selectors) {
+                                const locator = await this.resolveUniqueSelector(activePage, selectors);
                                 const pageApi = activePage;
                                 const valueApi = value_keydown;
                                 await eval(`pageApi.${locator}.press(valueApi)`);
@@ -441,22 +465,24 @@ export class Controller {
                                     const tempFilePath = path.join(tmpDir, tempFileName);
                                     // Write the file content (base64 decoding)
                                     fs.writeFileSync(tempFilePath, Buffer.from(content || '', 'base64'));
-                                    const locator = action.elements[0].selectors?.[0]?.value;
-                                    if (locator) {
+                                    const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
+                                    if (selectors) {
+                                        const locator = await this.resolveUniqueSelector(activePage, selectors);
                                         const pageApi = activePage;
                                         const tempFilePathApi = tempFilePath;
                                         await eval(`pageApi.${locator}.setInputFiles(tempFilePathApi)`);
-                                    }
-                                    const inputLocator = eval(`activePage.${locator}`);
-                                    await inputLocator.waitForSelector && typeof inputLocator.waitForSelector === 'function'
-                                        ? await inputLocator.waitForSelector({ state: 'attached', timeout: 10000 })
-                                        : undefined;
+                                    
+                                        const inputLocator = eval(`activePage.${locator}`);
+                                        await inputLocator.waitForSelector && typeof inputLocator.waitForSelector === 'function'
+                                            ? await inputLocator.waitForSelector({ state: 'attached', timeout: 10000 })
+                                            : undefined;
 
-                                    await activePage.waitForFunction(
-                                        el => !el || (el.files && el.files.length > 0),
-                                        await inputLocator.elementHandle(),
-                                        { timeout: 10000 }
-                                    );
+                                        await activePage.waitForFunction(
+                                            el => !el || (el.files && el.files.length > 0),
+                                            await inputLocator.elementHandle(),
+                                            { timeout: 10000 }
+                                        );
+                                    }
 
                                     // TODO: Delete temp file
                                     fs.unlinkSync(tempFilePath);
@@ -467,8 +493,9 @@ export class Controller {
                     case ActionType.change:
                         if (action.elements && action.elements.length === 1) {
                             try {
-                                const locator = action.elements[0].selectors?.[0]?.value;
-                                if (locator) {
+                                const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
+                                if (selectors) {
+                                    const locator = await this.resolveUniqueSelector(activePage, selectors);
                                     const pageApi = activePage;
                                     await eval(`pageApi.${locator}.click()`);
                                 }
@@ -491,9 +518,11 @@ export class Controller {
                         break;
                     case ActionType.drag_and_drop:
                         if (activePage && action.elements && action.elements.length === 2) {
-                            const sourceLocator = action.elements[0].selectors?.[0]?.value;
-                            const targetLocator = action.elements[1].selectors?.[0]?.value;
-                            if (sourceLocator && targetLocator) {
+                            const sourceSelectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
+                            const targetSelectors = action.elements[1].selectors?.map((selector: Selector) => selector.value);
+                            if (sourceSelectors && targetSelectors) {
+                                const sourceLocator = await this.resolveUniqueSelector(activePage, sourceSelectors);
+                                const targetLocator = await this.resolveUniqueSelector(activePage, targetSelectors);
                                 const pageApi = activePage;
                                 await eval(`pageApi.${sourceLocator}.dragTo(pageApi.${targetLocator})`);
                             }
@@ -517,8 +546,9 @@ export class Controller {
                             x = Number(match[1]);
                             y = Number(match[2]);
                         }
-                        const locator = action.elements?.[0]?.selectors?.[0]?.value;
-                        if (locator) {
+                        const selectors = action.elements?.[0]?.selectors?.map((selector: Selector) => selector.value);
+                        if (selectors) {
+                            const locator = await this.resolveUniqueSelector(activePage, selectors);
                             const pageApi = activePage;
                             const jsCode = `
                                 await pageApi.${locator}.evaluate((el, pos) => {
@@ -661,8 +691,7 @@ export class Controller {
 
 
             } catch (error) {
-                // console.error(`[Controller] Error executing action ${i + 1} (${action.action_type}):`, error);
-                // Emit failed event
+                console.error(`[Controller] Error executing action ${i + 1} (${action.action_type}):`, error);
                 this.onActionFailed?.(i);
 
             }
