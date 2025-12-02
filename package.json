@@ -42,6 +42,7 @@
   "license": "ISC",
   "dependencies": {
     "@azure/msal-node": "^3.7.4",
+    "@electron/notarize": "^2.5.0",
     "@monaco-editor/react": "^4.7.0",
     "chromium-bidi": "^9.1.0",
     "dompurify": "^3.3.0",
@@ -69,8 +70,8 @@
     "cross-env": "^7.0.3",
     "electron": "^38.1.2",
     "electron-builder": "^26.0.12",
-    "png2icons": "^2.0.1",
     "esbuild": "^0.23.1",
+    "png2icons": "^2.0.1",
     "typescript": "^5.9.2",
     "vite": "^6.3.6",
     "wait-on": "^9.0.1"
@@ -133,7 +134,8 @@
       "hardenedRuntime": true,
       "entitlements": "build_mac/entitlements.mac.plist",
       "entitlementsInherit": "build_mac/entitlements.mac.inherit.plist",
-      "gatekeeperAssess": false
+      "gatekeeperAssess": false,
+      "identity":null
     },
     "linux": {
       "target": [
