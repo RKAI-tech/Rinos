@@ -1119,7 +1119,13 @@ const Testcases: React.FC = () => {
         isOpen={isEditModalOpen}
         onClose={handleCloseEditModal}
         onSave={handleSaveEditTestcase}
-        testcase={selectedTestcase ? { testcase_id: selectedTestcase.testcase_id, name: selectedTestcase.name, description: selectedTestcase.description, basic_authentication: selectedTestcase.basic_authentication } : null}
+        testcase={selectedTestcase ? { 
+          testcase_id: selectedTestcase.testcase_id, 
+          name: selectedTestcase.name, 
+          description: selectedTestcase.description, 
+          basic_authentication: selectedTestcase.basic_authentication,
+          browser_type: selectedTestcase.browser_type 
+        } : null}
         projectId={projectData?.projectId}
       />
 
