@@ -9,12 +9,16 @@ else
   echo "env file not found"
   exit 1
 fi
+
 if [ -z "$SIGN_ID" ]; then
   echo "missing sign id"
   exit 1
 fi
+
+APP_PATH="${1:-release/mac/Automation Test Execution.app}"
+
 echo "SIGN ID: $SIGN_ID"
-APP_PATH="release/mac/Automation Test Execution.app"
+echo "APP PATH: $APP_PATH"
 ENTITLEMENTS="build_mac/entitlements.mac.plist"
 echo "== Start sign playwright  and electron app"
 echo "==signing all executable binaries"
