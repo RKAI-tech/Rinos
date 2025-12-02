@@ -42,22 +42,20 @@ export async function handleUploadChangeEvent(e) {
     }))
   );
 
-  const value = undefined;
-
   const elementText = extractElementText(el);
-  const action_datas = [
-    {
-      value: {
-        page_index: window.__PAGE_INDEX__ || 0,
-      },
-    }
-  ];
-  action_datas.push(...fileList.map(file => ({ file_upload: file })));
   sendAction({
     action_type: 'upload',
     elements: [{
       selectors: selectors.map((selector) => ({ value: selector })),
     }],
-    action_datas: action_datas,
+    action_datas: [
+      {
+        value: {
+          elementText: elementText,
+          page_index: window.__PAGE_INDEX__ || 0,
+        },
+      },
+      ...fileList.map(file => ({ file_upload: file })),
+    ],
   });
 }

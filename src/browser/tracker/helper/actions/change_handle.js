@@ -34,13 +34,9 @@ export function handleCheckboxRadioChangeEvent(e) {
           value: normalizedValue,
           checked: isChecked,
           elementText: elementText,
-        },
-      },
-      {
-        value: {
           page_index: window.__PAGE_INDEX__ || 0,
         },
-      }
+      },
     ],
     });
     return;
@@ -59,6 +55,7 @@ export function handleCheckboxRadioChangeEvent(e) {
           value: radioValue,
           checked: true,
           elementText: elementText,
+          page_index: window.__PAGE_INDEX__ || 0,
         },
       }],
     });

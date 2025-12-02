@@ -105,6 +105,28 @@ const BrowserStorage: React.FC = () => {
     return () => window.removeEventListener('keydown', onEsc);
   }, [isCreateOpen]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      // Close dropdown if clicking outside actions container and dropdown
+      // Also check if the click is on a dropdown item (button inside dropdown)
+      const isInActionsContainer = target.closest('.actions-container');
+      const isInDropdown = target.closest('.actions-dropdown');
+      const isDropdownItem = target.closest('.dropdown-item');
+      
+      if (!isInActionsContainer && !isInDropdown && !isDropdownItem) {
+        setOpenDropdownId(null);
+      }
+    };
+
+    // Only use mousedown to avoid conflicts with click handlers
+    document.addEventListener('mousedown', handleClickOutside, true); // Use capture phase
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside, true);
+    };
+  }, [openDropdownId]);
+
   const sidebarItems = [
     { id: 'testcases', label: 'Testcases', path: `/testcases/${projectId}`, isActive: false },
     { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
@@ -458,8 +480,17 @@ const BrowserStorage: React.FC = () => {
                     {currentItems.map((c) => (
                       <tr
                         key={c.id}
-                        className={`${selectedCookie?.id === c.id ? 'row-selected' : ''}`}
-                        onClick={() => setSelectedCookie(selectedCookie?.id === c.id ? null : c)}
+                        className={`${selectedCookie?.id === c.id ? 'row-selected' : ''} ${openDropdownId === c.id ? 'dropdown-open' : ''} ${openDropdownId ? 'has-open-dropdown' : ''}`}
+                        onClick={(e) => {
+                          // Don't select cookie if clicking on actions container or dropdown
+                          const target = e.target as Element;
+                          const isClickingOnActions = target.closest('.actions-container') || target.closest('.actions-dropdown');
+                          
+                          // Don't select if any dropdown is open (to prevent accidental clicks)
+                          if (!isClickingOnActions && !openDropdownId) {
+                            setSelectedCookie(selectedCookie?.id === c.id ? null : c);
+                          }
+                        }}
                       >
                         <td className="cookie-name">{c.name}</td>
                         <td className="cookie-description">{c.description || '-'}</td>
@@ -480,7 +511,10 @@ const BrowserStorage: React.FC = () => {
                           <div className="actions-container">
                             <button
                               className="actions-btn"
-                              onClick={(e) => { e.stopPropagation(); handleBrowserStorageActions(c.id); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleBrowserStorageActions(c.id);
+                              }}
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <circle cx="12" cy="12" r="1" fill="currentColor" />
@@ -490,15 +524,47 @@ const BrowserStorage: React.FC = () => {
                             </button>
 
                             {openDropdownId === c.id && (
-                              <div className="actions-dropdown">
-                                <button className="dropdown-item" onClick={(e) => { e.stopPropagation(); openEditModal(c.id); }}>
+                              <div 
+                                className="actions-dropdown"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }}
+                              >
+                                <button 
+                                  className="dropdown-item" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    openEditModal(c.id);
+                                  }}
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                  }}
+                                >
                                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                   </svg>
                                   Edit
                                 </button>
-                                <button className="dropdown-item delete" onClick={(e) => { e.stopPropagation(); openDeleteModal(c.id, c.name); }}>
+                                <button 
+                                  className="dropdown-item delete" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    openDeleteModal(c.id, c.name);
+                                  }}
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                  }}
+                                >
                                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                     <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

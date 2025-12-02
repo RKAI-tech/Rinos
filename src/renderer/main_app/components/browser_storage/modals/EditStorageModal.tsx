@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { BrowserStorageType } from '../../../types/browser_storage';
 
 interface EditBrowserStorageModalProps {
@@ -16,54 +16,14 @@ interface EditBrowserStorageModalProps {
   setType: (value: BrowserStorageType) => void;
 }
 
-const validateCookieArray = (parsed: unknown) => {
-  if (!Array.isArray(parsed) || parsed.length === 0) return false;
-  return parsed.every((item) => {
-    if (!item || typeof item !== 'object') return false;
-    const obj = item as Record<string, any>;
-    return (
-      typeof obj.domain === 'string' &&
-      typeof obj.path === 'string' &&
-      typeof obj.sameSite === 'string' &&
-      typeof obj.secure === 'boolean' &&
-      typeof obj.value === 'string'
-    );
-  });
-};
-
-const validateKeyValueObject = (parsed: unknown) => {
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
-  return Object.keys(parsed).every((key) => typeof (parsed as any)[key] === 'string');
-};
-
 const EditBrowserStorageModal: React.FC<EditBrowserStorageModalProps> = ({ isOpen, onClose, onSave, isSaving, name, description, value, type, setName, setDescription, setValue, setType }) => {
   if (!isOpen) return null;
-
-  const isValueValidJSON = useMemo(() => {
-    if (!value.trim()) return false;
-    try {
-      const parsed = JSON.parse(value);
-      if (type === BrowserStorageType.COOKIE) {
-        return validateCookieArray(parsed);
-      }
-      if (
-        type === BrowserStorageType.LOCAL_STORAGE ||
-        type === BrowserStorageType.SESSION_STORAGE
-      ) {
-        return validateKeyValueObject(parsed);
-      }
-      return true;
-    } catch {
-      return false;
-    }
-  }, [value]);
 
   const isSaveDisabled =
     isSaving ||
     !name.trim() ||
     !value.trim() ||
-    !type ||
-    !isValueValidJSON;
+    !type;
 
   return (
     <div className="cookies-modal-overlay" onClick={onClose}>
@@ -103,13 +63,6 @@ const EditBrowserStorageModal: React.FC<EditBrowserStorageModalProps> = ({ isOpe
             Value <span style={{ color: '#dc2626' }}>*</span>
           </label>
           <textarea className="cookies-modal-textarea" rows={6} value={value} onChange={e => setValue(e.target.value)} placeholder='Enter value (JSON or text)'></textarea>
-          {!isValueValidJSON && value.trim().length > 0 && (
-            <div className="cookies-textarea-error">
-              {type === BrowserStorageType.COOKIE
-                ? 'Value must be an array of cookie objects with domain, path, sameSite, secure, value.'
-                : 'Value must be a valid JSON object with key-value string pairs.'}
-            </div>
-          )}
         </div>
         <div className="cookies-modal-footer">
           <button className="cookies-btn-secondary" onClick={onClose} disabled={isSaving}>Cancel</button>

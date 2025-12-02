@@ -15,6 +15,7 @@ const VersionContext = createContext<VersionContextValue | undefined>(undefined)
 export const VersionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentVersion, setCurrentVersion] = useState('');
   const [latestVersion, setLatestVersion] = useState('');
+  const [releaseNote, setReleaseNote] = useState('');
   const [hasUpdate, setHasUpdate] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -46,9 +47,10 @@ export const VersionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       try {
         const response = await versionCheckService.checkVersion(currentVersion);
         if (!cancelled && response.success && response.data) {
-          const { is_latest, latest_version } = response.data;
+          const { is_latest, latest_version, release_note } = response.data;
           const isNewer = !is_latest;
           setLatestVersion(latest_version || '');
+          setReleaseNote(release_note || '');
           setHasUpdate(Boolean(isNewer));
           if (isNewer) {
             setShowModal(true);
@@ -103,6 +105,7 @@ export const VersionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isOpen={showModal}
         currentVersion={currentVersion}
         latestVersion={latestVersion}
+          releaseNote={releaseNote}
         onClose={closeVersionModal}
         onDownload={handleDownloadClick}
       />

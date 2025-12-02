@@ -5,6 +5,7 @@ export interface VersionCheckResponse {
   data?: {
     is_latest: boolean;
     latest_version: string;
+    release_note: string;
   };
   error?: string;
 }
@@ -15,6 +16,7 @@ export const versionCheckService = {
       const response = await apiRouter.request<{
         is_latest: boolean;
         latest_version: string;
+        release_note: string;
       }>('/admin/app_releases/is_latest_version', {
         method: 'POST',
         body: JSON.stringify({version: currentVersion }),

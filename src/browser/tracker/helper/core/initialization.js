@@ -4,7 +4,7 @@ import { initializeNavigationPrevention, setAssertMode as setNavAssertMode } fro
 import { handleClickEvent } from './eventHandlers.js';
 import { setPauseMode } from '../actions/baseAction.js';
 import { handleDoubleClickEvent, handleRightClickEvent, handleShiftClickEvent } from '../actions/click_handle.js';
-import { generateSelector, validateAndImproveSelector } from '../selector_generator/selectorGenerator.js';
+import { generateSelector, validateAndImproveSelector, generateAndValidateSelectors } from '../selector_generator/selectorGenerator.js';
 import { previewNode, extractElementText } from '../dom/domUtils.js';
 import { showAssertInputModal, closeAssertInputModal } from '../components/modals/assertInputModal.js';
 import { handleTextInputEvent } from '../actions/text_input_handle.js';
@@ -16,7 +16,7 @@ import { handleDragStartEvent, handleDragEndEvent, handleDropEvent } from '../ac
 import { handleUploadChangeEvent } from '../actions/upload_handle.js';
 import { handleScrollEvent } from '../actions/scroll_handle.js';
 import { handleWindowResizeEvent, setExecutingActionsState } from '../actions/window_resize.js';
-import {generateAndValidateSelectors} from '../selector_generator/selectorGenerator.js';
+// import { generateAndValidateSelectors } from '../selector_generator/selectorGenerator.js';
 let globalAssertMode = false;
 let browserControls = null;
 let browserHandlersDisposer = null;
@@ -78,10 +78,6 @@ function handleAssertCaptureBlocking(e) {
   }
 }
 
-/**
- * Handle assert click logic when in assert mode
- * Xử lý logic click assert khi đang ở chế độ assert
- */
 function handleAssertClick(e) {
   processAssertClick(e);
 }
@@ -89,7 +85,7 @@ function handleAssertClick(e) {
 function processAssertClick(e) {
   const assertType = window.currentAssertType || 'toBeVisible';
   try {
-    const selector= generateAndValidateSelectors(e.target, { minScore: 0, validate: true });
+    const selector = generateAndValidateSelectors(e.target, { minScore: 0, validate: true });
     const elementType = e.target.tagName.toLowerCase();
     const elementPreview = previewNode(e.target);
     const elementText = extractElementText(e.target);
@@ -113,20 +109,12 @@ function processAssertClick(e) {
         defaultValue,
         rect,
         (finalValue, connection, connection_id, query, apiRequest) => {
-          // console.log('[processAssertClick] onConfirm callback called:', {
-          //   finalValue,
-          //   hasConnection: !!connection,
-          //   hasQuery: !!query,
-          //   hasApiRequest: !!apiRequest,
-          //   apiRequest: apiRequest
-          // });
           sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement, apiRequest);
         },
         () => {
         }
       );
     } else {
-      // console.log('[processAssertClick] No modal needed, sending assert action directly');
       sendAssertAction(selector, assertType, '', elementType, elementPreview, elementText, undefined, undefined, undefined, DOMelement, undefined);
     }
   } catch (error) {
@@ -135,99 +123,91 @@ function processAssertClick(e) {
 
 function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection_id, connection, query, DOMelement, apiRequest) {
   if (window.sendActionToMain) {
-    var action_datas = [];
-    action_datas.push({
-      value: {
-        value: value? value : undefined,
-        htmlDOM: DOMelement? DOMelement : undefined,
-        elementText: elementText? elementText : undefined,
-      },
-    });
+    var action_datas = {};
+    action_datas.value = {
+      value: value ? value : undefined,
+      htmlDOM: DOMelement ? DOMelement : undefined,
+      elementText: elementText ? elementText : undefined,
+      page_index: window.__PAGE_INDEX__ || 0,
+      page_url: window.location.href || '',
+      page_title: document.title || '',
+    };
     if (query) {
-      action_datas.push({
-        statement: {
-          statement_id: Math.random().toString(36),
-          statement_text: query,
-          connection_id: connection_id,
-          connection: connection
+      action_datas.statement = {
+        statement_id: Math.random().toString(36),
+        statement_text: query,
+        connection_id: connection_id,
+        connection: {
+          ...connection,
+          port: connection && connection.port !== undefined ? String(connection.port) : undefined,
         }
-      });
+      };
     }
     if (apiRequest) {
-      action_datas.push({
-        api_request: apiRequest ? {
-          api_request_id: apiRequest.api_request_id,
-          createType: apiRequest.createType || 'system',
-          url: apiRequest.url,
-          method: apiRequest.method,
-          params: apiRequest.params && apiRequest.params.length > 0 ? apiRequest.params.map(p => ({
-            api_request_param_id: p.api_request_param_id,
-            key: p.key,
-            value: p.value
+      action_datas.api_request = apiRequest ? {
+        api_request_id: apiRequest.api_request_id,
+        createType: apiRequest.createType || 'system',
+        url: apiRequest.url,
+        method: apiRequest.method,
+        params: apiRequest.params && apiRequest.params.length > 0 ? apiRequest.params.map(p => ({
+          api_request_param_id: p.api_request_param_id,
+          key: p.key,
+          value: p.value
+        })) : undefined,
+        headers: apiRequest.headers && apiRequest.headers.length > 0 ? apiRequest.headers.map(h => ({
+          api_request_header_id: h.api_request_header_id,
+          key: h.key,
+          value: h.value
+        })) : undefined,
+        auth: apiRequest.auth ? {
+          apiRequestId: apiRequest.auth.apiRequestId,
+          type: apiRequest.auth.type,
+          storage_enabled: apiRequest.auth.storage_enabled,
+          username: apiRequest.auth.username,
+          password: apiRequest.auth.password,
+          token: apiRequest.auth.token,
+          token_storages: apiRequest.auth.token_storages && apiRequest.auth.token_storages.length > 0 ? apiRequest.auth.token_storages.map(ts => ({
+            api_request_token_storage_id: ts.api_request_token_storage_id,
+            type: ts.type,
+            key: ts.key
           })) : undefined,
-          headers: apiRequest.headers && apiRequest.headers.length > 0 ? apiRequest.headers.map(h => ({
-            api_request_header_id: h.api_request_header_id,
-            key: h.key,
-            value: h.value
-          })) : undefined,
-          auth: apiRequest.auth ? {
-            apiRequestId: apiRequest.auth.apiRequestId,
-            type: apiRequest.auth.type,
-            storage_enabled: apiRequest.auth.storage_enabled,
-            username: apiRequest.auth.username,
-            password: apiRequest.auth.password,
-            token: apiRequest.auth.token,
-            token_storages: apiRequest.auth.token_storages && apiRequest.auth.token_storages.length > 0 ? apiRequest.auth.token_storages.map(ts => ({
-              api_request_token_storage_id: ts.api_request_token_storage_id,
-              type: ts.type,
-              key: ts.key
-            })) : undefined,
-            basic_auth_storages: apiRequest.auth.basic_auth_storages && apiRequest.auth.basic_auth_storages.length > 0 ? apiRequest.auth.basic_auth_storages.map(bs => ({
-              api_request_basic_auth_storage_id: bs.api_request_basic_auth_storage_id,
-              type: bs.type,
-              usernameKey: bs.usernameKey,
-              passwordKey: bs.passwordKey,
-              enabled: bs.enabled
-            })) : undefined
-          } : undefined,
-          body: apiRequest.body ? {
-            api_request_id: apiRequest.body.api_request_id,
-            type: apiRequest.body.type,
-            content: apiRequest.body.content,
-            formData: apiRequest.body.formData && apiRequest.body.formData.length > 0 ? apiRequest.body.formData.map(fd => ({
-              api_request_body_form_data_id: fd.api_request_body_form_data_id,
-              name: fd.name,
-              value: fd.value,
-              orderIndex: fd.orderIndex
-            })) : undefined
-          } : undefined
+          basic_auth_storages: apiRequest.auth.basic_auth_storages && apiRequest.auth.basic_auth_storages.length > 0 ? apiRequest.auth.basic_auth_storages.map(bs => ({
+            api_request_basic_auth_storage_id: bs.api_request_basic_auth_storage_id,
+            type: bs.type,
+            usernameKey: bs.usernameKey,
+            passwordKey: bs.passwordKey,
+            enabled: bs.enabled
+          })) : undefined
+        } : undefined,
+        body: apiRequest.body ? {
+          api_request_id: apiRequest.body.api_request_id,
+          type: apiRequest.body.type,
+          content: apiRequest.body.content,
+          formData: apiRequest.body.formData && apiRequest.body.formData.length > 0 ? apiRequest.body.formData.map(fd => ({
+            api_request_body_form_data_id: fd.api_request_body_form_data_id,
+            name: fd.name,
+            value: fd.value,
+            orderIndex: fd.orderIndex
+          })) : undefined
         } : undefined
-      })
-    }
-    action_datas.push({
-      value: {
-        page_index: window.__PAGE_INDEX__ || 0,
-        page_url: window.location.href || '',
-        page_title: document.title || '',
-      },
-    });
+      } : undefined;
+    };
     const action = {
       action_type: 'assert',
       assert_type: assertType,
       elements: [{
         selectors: selector.map((selector) => ({ value: selector })),
       }],
-      action_datas: action_datas
+      action_datas: [action_datas]
     }
     window.sendActionToMain(action);
     closeAssertInputModal();
   } else {
+    console.error('window.sendActionToMain is not defined');
   }
-
 }
 
 export function initBrowserControls() {
-  // Load Font Awesome if not already loaded
   if (!document.querySelector('link[href*="font-awesome"]')) {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -241,22 +221,18 @@ export function initBrowserControls() {
 }
 
 export function initializeEventListeners() {
-  // Enhanced input tracking
-  document.addEventListener('input', handleTextInputEvent,true);
+  document.addEventListener('input', handleTextInputEvent, true);
   // document.addEventListener('change', handleCheckboxRadioChangeEvent);
-  document.addEventListener('change', handleSelectChangeEvent,true);
+  document.addEventListener('change', handleSelectChangeEvent, true);
   document.addEventListener('click', handleClickEvent, true);
-  document.addEventListener('dblclick', handleDoubleClickEvent,true);
-  document.addEventListener('keydown', handleKeyDownEvent,true);
-  document.addEventListener('change', handleUploadChangeEvent,true);
-  document.addEventListener('dragstart', handleDragStartEvent,true);
-  document.addEventListener('drop', handleDropEvent,true);
-  document.addEventListener('contextmenu', handleRightClickEvent,true);
-  // Scroll tracking (passive)
+  document.addEventListener('dblclick', handleDoubleClickEvent, true);
+  document.addEventListener('keydown', handleKeyDownEvent, true);
+  document.addEventListener('change', handleUploadChangeEvent, true);
+  document.addEventListener('dragstart', handleDragStartEvent, true);
+  document.addEventListener('drop', handleDropEvent, true);
+  document.addEventListener('contextmenu', handleRightClickEvent, true);
   window.addEventListener('scroll', handleScrollEvent, { passive: true });
-  // Capture internal container scrolls as well
   document.addEventListener('scroll', handleScrollEvent, { passive: true, capture: true });
-  // Window resize tracking (passive)
   window.addEventListener('resize', handleWindowResizeEvent, { passive: true });
 
   // Add capture phase event blocker for assert mode - blocks specific events only
@@ -320,7 +296,7 @@ export function initializeTracking() {
   initializeEventListeners();
   initializeHoverEffects();
   // initializeNavigateHandle();
-  
+
   // initializeTabActivateListener();
 
   // Expose functions to main process

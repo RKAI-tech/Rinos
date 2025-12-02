@@ -29,10 +29,9 @@ export function handleInputLikeBase(e, actionType = 'input', eventLabel = 'Input
       selectors: selectors.map((selector) => ({ value: selector })),
     }],
     action_datas: [{
-      value: { value: value, elementText: elementText },
-    },
-    {
-      value: {
+      value: { 
+        value: value, 
+        elementText: elementText ,
         page_index: window.__PAGE_INDEX__ || 0,
       },
     }

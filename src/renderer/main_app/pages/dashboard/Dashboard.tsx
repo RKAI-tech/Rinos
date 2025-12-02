@@ -85,14 +85,21 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
-      if (!target.closest('.actions-container')) {
+      // Close dropdown if clicking outside actions container and dropdown
+      // Also check if the click is on a dropdown item (button inside dropdown)
+      const isInActionsContainer = target.closest('.actions-container');
+      const isInDropdown = target.closest('.actions-dropdown');
+      const isDropdownItem = target.closest('.dropdown-item');
+      
+      if (!isInActionsContainer && !isInDropdown && !isDropdownItem) {
         setOpenDropdownId(null);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    // Only use mousedown to avoid conflicts with click handlers
+    document.addEventListener('mousedown', handleClickOutside, true); // Use capture phase
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside, true);
     };
   }, []);
 
@@ -652,8 +659,17 @@ const Dashboard: React.FC = () => {
                   {currentProjects.map((project) => (
                     <tr 
                       key={project.project_id}
-                      className="clickable-row"
-                      onClick={() => handleProjectClick(project)}
+                      className={`clickable-row ${openDropdownId === project.project_id ? 'dropdown-open' : ''} ${openDropdownId ? 'has-open-dropdown' : ''}`}
+                      onClick={(e) => {
+                        // Don't navigate if clicking on actions container or dropdown
+                        const target = e.target as Element;
+                        const isClickingOnActions = target.closest('.actions-container') || target.closest('.actions-dropdown');
+                        
+                        // Don't navigate if any dropdown is open (to prevent accidental clicks)
+                        if (!isClickingOnActions && !openDropdownId) {
+                          handleProjectClick(project);
+                        }
+                      }}
                       style={{ cursor: 'pointer' }}
                     >
                       <td className="project-name">
@@ -679,10 +695,28 @@ const Dashboard: React.FC = () => {
                           </button>
                           
                           {openDropdownId === project.project_id && (
-                            <div className="actions-dropdown">
+                            <div 
+                              className="actions-dropdown"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
+                            >
                               <button 
                                 className="dropdown-item"
-                                onClick={(e) => handleShareProjectClick(project.project_id, e)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  handleShareProjectClick(project.project_id, e);
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }}
                                 disabled={!project.user_permissions.includes('CAN_MANAGE')}
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -695,7 +729,15 @@ const Dashboard: React.FC = () => {
                               </button>
                               <button 
                                 className="dropdown-item"
-                                onClick={(e) => handleEditProject(project.project_id, e)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  handleEditProject(project.project_id, e);
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }}
                                 disabled={!project.user_permissions.includes('CAN_EDIT') && !project.user_permissions.includes('CAN_MANAGE')}
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -706,7 +748,15 @@ const Dashboard: React.FC = () => {
                               </button>
                               <button 
                                 className="dropdown-item delete"
-                                onClick={(e) => handleDeleteProjectClick(project.project_id, e)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  handleDeleteProjectClick(project.project_id, e);
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }}
                                 disabled={!project.user_permissions.includes('CAN_MANAGE')}
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

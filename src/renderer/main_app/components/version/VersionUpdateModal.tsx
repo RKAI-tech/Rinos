@@ -5,6 +5,7 @@ interface VersionUpdateModalProps {
   isOpen: boolean;
   currentVersion: string;
   latestVersion: string;
+  releaseNote?: string;
   onClose: () => void;
   onDownload: () => void;
 }
@@ -13,6 +14,7 @@ const VersionUpdateModal: React.FC<VersionUpdateModalProps> = ({
   isOpen,
   currentVersion,
   latestVersion,
+  releaseNote,
   onClose,
   onDownload,
 }) => {
@@ -44,14 +46,27 @@ const VersionUpdateModal: React.FC<VersionUpdateModalProps> = ({
               You are currently using version <strong>{currentVersion}</strong>
             </p>
             <p className="version-update-text">
-              Latest version: <strong className="version-latest">{latestVersion}</strong>
+              Latest version:{' '}
+              <strong className="version-latest">{latestVersion}</strong>
             </p>
-            <div className="version-update-warning">
-              <p className="version-update-warning-text">
-                ⚠️ Warning: Using an outdated version may cause errors and compatibility issues. 
-                We recommend updating to the latest version for the best experience.
-              </p>
-            </div>
+            {releaseNote && releaseNote.trim() ? (
+              <div className="version-update-release-note">
+                <p className="version-update-release-note-title">
+                  Release notes
+                </p>
+                <p className="version-update-release-note-text">
+                  {releaseNote}
+                </p>
+              </div>
+            ) : (
+              <div className="version-update-warning">
+                <p className="version-update-warning-text">
+                  ⚠️ Warning: Using an outdated version may cause errors and
+                  compatibility issues. We recommend updating to the latest
+                  version for the best experience.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

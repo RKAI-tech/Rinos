@@ -39,6 +39,7 @@ export function handleDragStartEvent(e) {
     action_datas: [{
       value: {
         elementText: elementText,
+        page_index: window.__PAGE_INDEX__ || 0,
       },
     }],
   });
@@ -71,10 +72,6 @@ export function handleDragEndEvent(e) {
     action_datas: [{
       value: {
         elementText: elementText,
-      },
-    },
-    {
-      value: {
         page_index: window.__PAGE_INDEX__ || 0,
       },
     }],
@@ -110,6 +107,7 @@ export function handleDropEvent(e) {
     action_datas: [{
       value: {
         elementText: elementText,
+        page_index: window.__PAGE_INDEX__ || 0,
       },
     }],
   });

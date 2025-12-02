@@ -792,12 +792,20 @@ export class BrowserManager extends EventEmitter {
 
         await this.context.exposeBinding('getVariablesForTracker', async () => {
             try {
-                const projectId = this.projectId;
-                if (!projectId) {
-                    return { success: false, error: 'No project context' };
-                }
-                const resp = await variableService.getVariablesByProject(projectId);
-                return resp;
+              // Get project ID from BrowserManager instance instead of window API
+              const projectId = this.projectId;
+            //   console.log('[BrowserManager] getVariablesForTracker called, projectId:', projectId);
+              if (!projectId) {
+                // console.warn('No project context available for variable loading');
+                return { success: false, error: 'No project context' };
+              }
+            //   console.log('[BrowserManager] Loading variables for project:', projectId);
+              const resp = await variableService.getVariablesWithConnection(projectId);
+            //   console.log('[BrowserManager] Variables API response:', resp);
+              resp.data?.items.forEach((v: any) => {
+                console.log('Variable object:', v);
+              })
+              return resp;
             } catch (e) {
                 return { success: false, error: String(e) };
             }

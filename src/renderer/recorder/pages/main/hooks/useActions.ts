@@ -144,6 +144,7 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
     setIsLoading(true);
     try {
       const response = await actionService.getActionsByTestCase(effectiveId);
+      console.log('hook: reload actions', response);
       if (response.success && response.data) {
         const newActions = response.data.actions || [];
         setActions(newActions);

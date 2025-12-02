@@ -280,7 +280,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
         },
       });
     }
-   
+
     const newAction = {
       testcase_id: testcaseId,
       action_id: Math.random().toString(36),
@@ -347,7 +347,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
       const rawResult = await onReload();
       const normalized = normalizeResult(rawResult);
 
-       if (normalized.success) {
+      if (normalized.success) {
         setReloadSuccessWithTimeout();
       } else {
         setReloadStatus('idle');
@@ -392,7 +392,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
         },
       }
     ];
-    
+
     if (pageInfo) {
       actionDatas.push({
         value: {
@@ -427,7 +427,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
     setNavigateSelectedPageInfo(null);
     onModalStateChange?.('navigate', false);
     onNavigatePageInfoChange?.(null);
-    await(window as any).browserAPI?.browser.navigate(url);
+    await (window as any).browserAPI?.browser.navigate(url);
     // toast.success('Added navigate action');
   }
 
@@ -440,7 +440,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
         },
       }
     ];
-    
+
     if (pageInfo) {
       actionDatas.push({
         value: {
@@ -450,7 +450,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
         }
       });
     }
-    
+
     const newAction = {
       testcase_id: testcaseId,
       action_id: Math.random().toString(36),
@@ -520,7 +520,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
 
     const actionDatas: any[] = [];
-    
+
     if (pageInfo) {
       actionDatas.push({
         value: {
@@ -601,15 +601,13 @@ const ActionTab: React.FC<ActionTabProps> = ({
         },
       }
     ];
-    
+
     if (pageInfo) {
-      actionDatas.push({
-        value: {
-          page_index: pageInfo.page_index,
-          page_url: pageInfo.page_url,
-          page_title: pageInfo.page_title,
-        },
-      });
+      actionDatas[0].value = {
+        page_index: pageInfo.page_index,
+        page_url: pageInfo.page_url,
+        page_title: pageInfo.page_title,
+      };
     }
 
     const newAction = {
@@ -658,7 +656,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
         }
       ]
     }
-    
+
     onActionsChange(prev => {
       const next = receiveActionWithInsert(
         testcaseId,
@@ -677,7 +675,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
       }
       return next;
     });
-    
+
     setIsDatabaseExecutionOpen(false);
     onModalStateChange?.('database_execution', false);
     // toast.success('Added database execution action');
@@ -763,19 +761,19 @@ const ActionTab: React.FC<ActionTabProps> = ({
         setIsBrowserActionOpen(true);
         onModalStateChange?.('browser_action', true);
         return null;
-      
+
       case 'database_execution':
         // This will be handled by the modal
         // console.log("Database execution will be handled by modal");
         handleSelectDatabaseExecution();
         return null;
-      
+
       case 'api_request':
         // This will be handled by the modal
         // console.log("API request will be handled by modal");
         handleSelectApiRequest();
         return null;
-      
+
       case 'visit_url':
         const visitAction = {
           ...baseAction,
@@ -788,7 +786,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
         // console.log("Created visit_url action:", visitAction);
         await (window as any).browserAPI?.browser?.navigate(visitAction.value as string);
         return visitAction;
-      
+
       default:
         // console.error('Unknown action type:', actionType);
         return null;

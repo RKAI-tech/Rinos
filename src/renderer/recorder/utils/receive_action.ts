@@ -191,7 +191,7 @@ export function receiveAction(
         console.log('[receiveAction] Skipping action - modal is open');
         return action_recorded;
     }
-    console.log('[receiveAction] Skipping action - modal is open', skipIfModalOpen);
+    // console.log('[receiveAction] Skipping action - modal is open', skipIfModalOpen);
     
     const receivedAction = {
         action_id: Math.random().toString(36),
@@ -204,6 +204,7 @@ export function receiveAction(
     } as Action;
 
     // console.log('[Action sent from browser]', action_received);
+    // console.log('[Received action]', receivedAction);
 
     const last_action = action_recorded[action_recorded.length - 1];
 
@@ -303,7 +304,6 @@ export function receiveAction(
     //         return action_recorded;
     //     }
     // }
-    // console.log('[Received action]', receivedAction);
     return [...action_recorded, receivedAction];
 }
 

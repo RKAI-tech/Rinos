@@ -137,21 +137,22 @@ const TestSuites: React.FC = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (openDropdownId) {
-        const target = event.target as Element;
-        const actionsContainer = target.closest('.actions-container');
-        if (!actionsContainer) {
-          setOpenDropdownId(null);
-        }
+      const target = event.target as Element;
+      // Close dropdown if clicking outside actions container and dropdown
+      // Also check if the click is on a dropdown item (button inside dropdown)
+      const isInActionsContainer = target.closest('.actions-container');
+      const isInDropdown = target.closest('.actions-dropdown');
+      const isDropdownItem = target.closest('.dropdown-item');
+      
+      if (!isInActionsContainer && !isInDropdown && !isDropdownItem) {
+        setOpenDropdownId(null);
       }
     };
 
-    if (openDropdownId) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
+    // Only use mousedown to avoid conflicts with click handlers
+    document.addEventListener('mousedown', handleClickOutside, true); // Use capture phase
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside, true);
     };
   }, [openDropdownId]);
 
@@ -491,9 +492,18 @@ const TestSuites: React.FC = () => {
                   {currentSuites.map((suite) => (
                     <tr 
                       key={suite.id} 
-                      className={`${runningSuiteIds.has(suite.id) ? 'is-running' : ''} clickable-row`} 
+                      className={`${runningSuiteIds.has(suite.id) ? 'is-running' : ''} clickable-row ${openDropdownId === suite.id ? 'dropdown-open' : ''} ${openDropdownId ? 'has-open-dropdown' : ''}`} 
                       aria-busy={runningSuiteIds.has(suite.id)}
-                      onClick={() => handleViewSuiteResult(suite.id)}
+                      onClick={(e) => {
+                        // Don't open view result if clicking on actions container or dropdown
+                        const target = e.target as Element;
+                        const isClickingOnActions = target.closest('.actions-container') || target.closest('.actions-dropdown');
+                        
+                        // Don't open if any dropdown is open (to prevent accidental clicks)
+                        if (!isClickingOnActions && !openDropdownId) {
+                          handleViewSuiteResult(suite.id);
+                        }
+                      }}
                     >
                       <td className="testsuite-name">{suite.name}</td>
                       <td className="testsuite-testcases">{suite.testcases ?? '-'}</td>
@@ -534,10 +544,28 @@ const TestSuites: React.FC = () => {
                           </button>
 
                           {openDropdownId === suite.id && (
-                            <div className="actions-dropdown" onClick={(e) => e.stopPropagation()}>
+                            <div 
+                              className="actions-dropdown" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
+                            >
                               <button 
                                 className="dropdown-item" 
-                                onClick={(e) => { e.stopPropagation(); handleRunSuite(suite.id); }} 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  handleRunSuite(suite.id);
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }}
                                 disabled={runningSuiteIds.has(suite.id) || !canEditPermission || !suite.testcases || suite.testcases === 0}
                                 title={!suite.testcases || suite.testcases === 0 ? "Cannot run test suite with no testcases" : "Execute this test suite and view results"}
                               >
@@ -560,7 +588,15 @@ const TestSuites: React.FC = () => {
                               </button>
                               <button 
                                 className="dropdown-item" 
-                                onClick={(e) => { e.stopPropagation(); handleAddTestcasesToSuite(suite.id); }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  handleAddTestcasesToSuite(suite.id);
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }}
                                 disabled={!canEditPermission}
                                 title="Add testcases to this test suite"
                               >
@@ -573,7 +609,15 @@ const TestSuites: React.FC = () => {
                               
                               <button 
                                 className="dropdown-item" 
-                                onClick={(e) => { e.stopPropagation(); handleOpenEditSuite(suite.id); }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  handleOpenEditSuite(suite.id);
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }}
                                 disabled={!canEditPermission}
                                 title="Edit test suite name and description"
                               >
@@ -585,7 +629,15 @@ const TestSuites: React.FC = () => {
                               </button>
                               <button 
                                 className="dropdown-item delete" 
-                                onClick={(e) => { e.stopPropagation(); handleRemoveTestcasesFromSuite(suite.id); }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  handleRemoveTestcasesFromSuite(suite.id);
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }}
                                 disabled={!canEditPermission}
                                 title="Remove testcases from this test suite"
                               >
@@ -597,7 +649,15 @@ const TestSuites: React.FC = () => {
                               </button>
                               <button 
                                 className="dropdown-item delete" 
-                                onClick={(e) => { e.stopPropagation(); handleOpenDeleteSuite(suite.id); }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  handleOpenDeleteSuite(suite.id);
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }}
                                 disabled={!canEditPermission}
                                 title="Permanently delete this test suite"
                               >
