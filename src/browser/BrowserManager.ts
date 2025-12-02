@@ -16,7 +16,9 @@ let browsersPath: string;
 if (!app.isPackaged) {
     browsersPath = pathenv.resolve(process.cwd(), "playwright-browsers");
 } else {
-    browsersPath = pathenv.join(process.resourcesPath, "playwright-browsers");
+    // Packaged: tránh ghi vào resources (có thể read-only, nhất là AppImage),
+    // dùng userData giống như trong Playwright IPC.
+    browsersPath = pathenv.join(app.getPath("userData"), "playwright-browsers");
 }
 
 // Set environment variables before importing playwright
@@ -278,7 +280,8 @@ export class BrowserManager extends EventEmitter {
         if (!app.isPackaged) {
             customBrowsersPath = pathenv.resolve(process.cwd(), "my-browsers");
         } else {
-            customBrowsersPath = pathenv.join(process.resourcesPath, "my-browsers");
+            // Packaged: đặt trong userData để đồng bộ với Playwright IPC & edge_install scripts
+            customBrowsersPath = pathenv.join(app.getPath("userData"), "my-browsers");
         }
         
         let edgePath: string;

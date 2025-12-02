@@ -7,12 +7,15 @@ import { app } from "electron";
 
 const execAsync = promisify(exec);
 
-// Get playwright browsers path (same logic as BrowserManager)
+// Get playwright browsers path (dev: project folder, packaged: userData, writable on all OS)
 function getBrowsersPath(): string {
   if (!app.isPackaged) {
+    // Dev mode: dùng thư mục trong project để dễ debug/clean
     return path.resolve(process.cwd(), "playwright-browsers");
   } else {
-    return path.join(process.resourcesPath, "playwright-browsers");
+    // Packaged (Linux AppImage, macOS, Windows): resources thường read-only,
+    // nên dùng userData (vd: ~/.config/<App>/playwright-browsers trên Linux)
+    return path.join(app.getPath("userData"), "playwright-browsers");
   }
 }
 
@@ -21,7 +24,8 @@ function getCustomBrowsersPath(): string {
   if (!app.isPackaged) {
     return path.resolve(process.cwd(), "my-browsers");
   } else {
-    return path.join(process.resourcesPath, "my-browsers");
+    // Packaged: đặt trong userData giống playwright-browsers
+    return path.join(app.getPath("userData"), "my-browsers");
   }
 }
 
@@ -501,7 +505,8 @@ async function installEdgeCustom(
   // Get script directory - handle both packaged and dev modes
   let scriptDir: string;
   if (app.isPackaged) {
-    // In packaged app, scripts should be in resources
+    // In packaged app, scripts are bundled in resources,
+    // nhưng quá trình cài đặt Edge sẽ chạy tại userData (ghi được).
     scriptDir = path.join(process.resourcesPath, "edge_install");
   } else {
     // In dev mode, scripts are in src/main/edge_install
@@ -562,10 +567,10 @@ async function installEdgeCustom(
     
     onProgress?.('edge', 0, `Starting Edge installation...`);
     
-    // Determine working directory - should be project root where my-browsers will be created
-    const workingDir = app.isPackaged 
-      ? process.resourcesPath 
-      : process.cwd(); // In dev mode, use current working directory (should be project root)
+    // Determine working directory - nơi sẽ tạo my-browsers/edge-*
+    const workingDir = app.isPackaged
+      ? app.getPath("userData") // packaged: ghi vào userData
+      : process.cwd(); // dev mode: project root
     
     const child = spawn(command, [], {
       shell: true,

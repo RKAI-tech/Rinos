@@ -102,6 +102,13 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "src/main/edge_install",
+        "to": "edge_install",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "mac": {
