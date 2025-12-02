@@ -44,7 +44,7 @@ export function generateAndValidateSelectors(element, options = {}) {
 
   uniqueSelectors.push(generateCssFallback(element));
 
-  return uniqueSelectors;
+  return uniqueSelectors.map(s => s.replace(/\\/g, '\\\\'));
 }
 
 function generateCandidates(element) {
