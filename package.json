@@ -25,9 +25,6 @@
     "dist:linux-snap": "npm run build && electron-builder --linux snap",
     "dist:mac": "npm run build && electron-builder --mac",
     "dist:mac-universal": "npm run build && electron-builder --mac universal",
-    "dist:mac:app:x64": "npm run build && electron-builder --mac dir --x64",
-    "dist:mac:app:arm64": "npm run build && electron-builder --mac dir --arm64",
-    "dist:mac:app:universal": "npm run build && electron-builder --mac dir --universal",
     "test": "electron .",
     "vite:dev": "vite build --mode development && vite"
   },
