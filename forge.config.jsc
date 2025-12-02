@@ -1,8 +1,6 @@
 module.exports = {
     //if win
-     packagerConfig: {
+    packagerConfig: {
        icon: 'images/icon',
      },
-    //for limux 
-    
   };
