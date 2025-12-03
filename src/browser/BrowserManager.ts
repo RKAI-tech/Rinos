@@ -419,14 +419,8 @@ export class BrowserManager extends EventEmitter {
                 case BrowserType.safari:
                 case 'safari':
                     browserLauncher = webkit;
-                    // Priority: System Safari > Playwright WebKit
-                    if (this.isSystemSafariInstalled()) {
-                        const safariPath = this.getSystemSafariPath();
-                        if (safariPath) {
-                            launchOptions.executablePath = safariPath;
-                        }
-                    }
-                    // If no system Safari, Playwright will use its WebKit
+                    // Safari: Luôn sử dụng Playwright WebKit thay vì Safari hệ thống
+                    // vì Safari hệ thống không cho phép inject script và có hạn chế
                     // WebKit doesn't support Chromium-specific args like --no-sandbox
                     launchOptions.args = [];
                     break;
