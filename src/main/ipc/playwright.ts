@@ -675,6 +675,42 @@ async function installEdgeCustom(
   });
 }
 
+// Get playwright install command (tìm playwright CLI hoặc dùng node executable)
+function getPlaywrightInstallCommand(browser: string): { command: string; useShell: boolean } {
+  if (!app.isPackaged) {
+    // Dev mode: dùng npx bình thường
+    return { command: `npx playwright install ${browser}`, useShell: true };
+  }
+  
+  // Packaged mode: tìm playwright CLI từ node_modules
+  const possiblePlaywrightPaths = [
+    // Từ resourcesPath (nơi electron-builder thường đặt node_modules)
+    path.join(process.resourcesPath, 'node_modules', 'playwright', 'cli.js'),
+    path.join(process.resourcesPath, 'app.asar', 'node_modules', 'playwright', 'cli.js'),
+    // Từ app path
+    path.join(app.getAppPath(), 'node_modules', 'playwright', 'cli.js'),
+    // Từ cwd (nếu có)
+    path.join(process.cwd(), 'node_modules', 'playwright', 'cli.js'),
+  ];
+  
+  // Tìm playwright CLI
+  for (const playwrightPath of possiblePlaywrightPaths) {
+    if (fs.existsSync(playwrightPath)) {
+      // Dùng node từ system PATH (nếu có) hoặc thử tìm node
+      // Trên macOS, node có thể ở /usr/local/bin/node hoặc từ nvm
+      // Dùng shell: true để tìm node trong PATH
+      return { 
+        command: `node "${playwrightPath}" install ${browser}`, 
+        useShell: true 
+      };
+    }
+  }
+  
+  // Fallback: thử dùng npx từ system (có thể không có nhưng thử)
+  console.warn('[Playwright IPC] Could not find playwright CLI in node_modules, trying system npx');
+  return { command: `npx playwright install ${browser}`, useShell: true };
+}
+
 // Install playwright browsers with timeout and progress simulation
 export async function installPlaywrightBrowsers(
   browsers: string[],
@@ -739,9 +775,10 @@ export async function installPlaywrightBrowsers(
       
       updateProgress(browser, i, 0, `Starting installation of ${browser}...`);
       
-      // Use npx playwright install without --with-deps to avoid sudo requirement
+      // Get playwright install command (tự động tìm npx/playwright CLI trong packaged app)
       // Browsers will be installed to PLAYWRIGHT_BROWSERS_PATH (user directory, no sudo needed)
-      const command = `npx playwright install ${browser}`;
+      const { command, useShell } = getPlaywrightInstallCommand(browser);
+      console.log(`[Playwright IPC] Using command: ${command} (shell: ${useShell})`);
       
       let browserProgress = 25; // Progress for this browser only (0-100)
       browserProgresses[i] = 25;
