@@ -1,8 +1,10 @@
 #!/bin/bash
-if [ -f ".env.production" ]; then
-  export $(grep -v '^#' .env.production | xargs)
+if [ -f .env.production ]; then
+  set -o allexport
+  source .env.production
+  set +o allexport
 else
-  echo ".env.production file not found"
+  echo "env file not found"
   exit 1
 fi
 
