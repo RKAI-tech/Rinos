@@ -35,13 +35,15 @@ sign_app() {
   echo "== Start sign playwright and electron app"
   echo "== Signing all executable binaries"
   
-  while IFS= read -r file; do
-    if [[ "$(file -b "$file")" == *"Mach-O"* ]]; then
-       echo "signing: $file"
-       codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$SIGN_ID" "$file"
+  find "$APP_PATH" -type f \( -name "*.node" -o -name "*.dylib" -o -name "*.so" -o -perm +111 \) | while IFS= read -r file; do
+    # Kiểm tra xem file có tồn tại không (đề phòng trường hợp find trả về rỗng hoặc lỗi)
+    if [ -f "$file" ]; then
+        if [[ "$(file -b "$file")" == *"Mach-O"* ]]; then
+           echo "signing: $file"
+           codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$SIGN_ID" "$file"
+        fi
     fi
-  done < <(find "$APP_PATH" -type f \
-      \( -name "*.node" -o -name "*.dylib" -o -name "*.so" -o -perm +111 \))
+  done
   
   PLAYWRIGHT_DIR="$APP_PATH/Contents/Resources/playwright-browsers"
   if [ -d "$PLAYWRIGHT_DIR" ]; then
