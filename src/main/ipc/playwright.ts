@@ -7,6 +7,51 @@ import { app } from "electron";
 
 const execAsync = promisify(exec);
 
+// Get playwright CLI executable path (không cần npx)
+function getPlaywrightCliPath(): string | null {
+  // Tìm playwright executable từ node_modules
+  // Trong packaged app, node_modules có thể ở app.asar hoặc resources
+  const appPath = app.getAppPath();
+  const possiblePaths = [
+    // Dev mode: từ project root
+    path.join(process.cwd(), "node_modules", ".bin", "playwright"),
+    path.join(process.cwd(), "node_modules", "playwright-core", "cli.js"),
+    path.join(process.cwd(), "node_modules", "playwright", "cli.js"),
+    // Packaged: từ app path (có thể là app.asar)
+    path.join(appPath, "node_modules", ".bin", "playwright"),
+    path.join(appPath, "node_modules", "playwright-core", "cli.js"),
+    path.join(appPath, "node_modules", "playwright", "cli.js"),
+    // Packaged: từ resources (nếu node_modules được extract)
+    app.isPackaged
+      ? path.join(process.resourcesPath, "node_modules", ".bin", "playwright")
+      : null,
+    app.isPackaged
+      ? path.join(process.resourcesPath, "node_modules", "playwright-core", "cli.js")
+      : null,
+    app.isPackaged
+      ? path.join(process.resourcesPath, "node_modules", "playwright", "cli.js")
+      : null,
+  ].filter((p): p is string => p !== null);
+
+  for (const cliPath of possiblePaths) {
+    if (fs.existsSync(cliPath)) {
+      console.log(`[Playwright IPC] Found playwright CLI at: ${cliPath}`);
+      return cliPath;
+    }
+    // Thử với .cmd trên Windows
+    if (process.platform === 'win32') {
+      const cmdPath = cliPath + '.cmd';
+      if (fs.existsSync(cmdPath)) {
+        console.log(`[Playwright IPC] Found playwright CLI at: ${cmdPath}`);
+        return cmdPath;
+      }
+    }
+  }
+
+  console.warn('[Playwright IPC] Playwright CLI not found in node_modules');
+  return null;
+}
+
 // Get playwright browsers path (dev: project folder, packaged: userData, writable on all OS)
 function getBrowsersPath(): string {
   if (!app.isPackaged) {
@@ -675,42 +720,6 @@ async function installEdgeCustom(
   });
 }
 
-// Get playwright install command (tìm playwright CLI hoặc dùng node executable)
-function getPlaywrightInstallCommand(browser: string): { command: string; useShell: boolean } {
-  if (!app.isPackaged) {
-    // Dev mode: dùng npx bình thường
-    return { command: `npx playwright install ${browser}`, useShell: true };
-  }
-  
-  // Packaged mode: tìm playwright CLI từ node_modules
-  const possiblePlaywrightPaths = [
-    // Từ resourcesPath (nơi electron-builder thường đặt node_modules)
-    path.join(process.resourcesPath, 'node_modules', 'playwright', 'cli.js'),
-    path.join(process.resourcesPath, 'app.asar', 'node_modules', 'playwright', 'cli.js'),
-    // Từ app path
-    path.join(app.getAppPath(), 'node_modules', 'playwright', 'cli.js'),
-    // Từ cwd (nếu có)
-    path.join(process.cwd(), 'node_modules', 'playwright', 'cli.js'),
-  ];
-  
-  // Tìm playwright CLI
-  for (const playwrightPath of possiblePlaywrightPaths) {
-    if (fs.existsSync(playwrightPath)) {
-      // Dùng node từ system PATH (nếu có) hoặc thử tìm node
-      // Trên macOS, node có thể ở /usr/local/bin/node hoặc từ nvm
-      // Dùng shell: true để tìm node trong PATH
-      return { 
-        command: `node "${playwrightPath}" install ${browser}`, 
-        useShell: true 
-      };
-    }
-  }
-  
-  // Fallback: thử dùng npx từ system (có thể không có nhưng thử)
-  console.warn('[Playwright IPC] Could not find playwright CLI in node_modules, trying system npx');
-  return { command: `npx playwright install ${browser}`, useShell: true };
-}
-
 // Install playwright browsers with timeout and progress simulation
 export async function installPlaywrightBrowsers(
   browsers: string[],
@@ -775,10 +784,47 @@ export async function installPlaywrightBrowsers(
       
       updateProgress(browser, i, 0, `Starting installation of ${browser}...`);
       
-      // Get playwright install command (tự động tìm npx/playwright CLI trong packaged app)
-      // Browsers will be installed to PLAYWRIGHT_BROWSERS_PATH (user directory, no sudo needed)
-      const { command, useShell } = getPlaywrightInstallCommand(browser);
-      console.log(`[Playwright IPC] Using command: ${command} (shell: ${useShell})`);
+      // Tìm playwright CLI để không cần npx (quan trọng cho packaged app trên macOS)
+      const playwrightCli = getPlaywrightCliPath();
+      let command: string;
+      
+      if (playwrightCli) {
+        // Dùng playwright CLI trực tiếp
+        if (playwrightCli.endsWith('.js')) {
+          // Là file .js, cần chạy bằng node
+          command = `"${process.execPath}" "${playwrightCli}" install ${browser}`;
+        } else {
+          // Là executable, chạy trực tiếp
+          command = `"${playwrightCli}" install ${browser}`;
+        }
+      } else {
+        // Fallback: thử dùng node để chạy playwright install script
+        // Tìm playwright package từ nhiều vị trí có thể
+        const appPath = app.getAppPath();
+        const playwrightPkgPaths = [
+          path.join(process.cwd(), "node_modules", "playwright"),
+          path.join(appPath, "node_modules", "playwright"),
+          app.isPackaged ? path.join(process.resourcesPath, "node_modules", "playwright") : null,
+        ].filter((p): p is string => p !== null);
+        
+        let foundScript: string | null = null;
+        for (const pkgPath of playwrightPkgPaths) {
+          if (fs.existsSync(pkgPath)) {
+            const installScript = path.join(pkgPath, "lib", "cli", "cli.js");
+            if (fs.existsSync(installScript)) {
+              foundScript = installScript;
+              break;
+            }
+          }
+        }
+        
+        if (foundScript) {
+          command = `"${process.execPath}" "${foundScript}" install ${browser}`;
+          console.log(`[Playwright IPC] Using playwright install script: ${foundScript}`);
+        } else {
+          throw new Error(`Playwright CLI not found. Please ensure playwright is installed in node_modules.`);
+        }
+      }
       
       let browserProgress = 25; // Progress for this browser only (0-100)
       browserProgresses[i] = 25;
