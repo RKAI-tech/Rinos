@@ -5,7 +5,7 @@ import path, * as pathenv from 'path';
 import { app } from "electron";
 import { Action, AssertType } from "./types";
 import { Controller } from "./controller";
-import { readFileSync, existsSync, accessSync, chmodSync, constants } from "fs";
+import { readFileSync, existsSync, accessSync, chmodSync, constants, readdirSync } from "fs";
 import { VariableService } from "./services/variables";
 import { DatabaseService } from "./services/database";
 import { StatementService } from "./services/statements";
@@ -272,6 +272,70 @@ export class BrowserManager extends EventEmitter {
         return existsSync(path) ? path : null;
     }
 
+    // Get Playwright WebKit executable path từ browsersPath
+    private getPlaywrightWebKitPath(): string | null {
+        if (!existsSync(browsersPath)) {
+            return null;
+        }
+        
+        try {
+            const entries = readdirSync(browsersPath, { withFileTypes: true });
+            for (const entry of entries) {
+                if (entry.isDirectory() && entry.name.startsWith('webkit-')) {
+                    const webkitDir = pathenv.join(browsersPath, entry.name);
+                    
+                    // macOS: tìm pw_run.sh hoặc Playwright.app
+                    if (process.platform === 'darwin') {
+                        const pwRun = pathenv.join(webkitDir, 'pw_run.sh');
+                        if (existsSync(pwRun)) {
+                            try {
+                                accessSync(pwRun, constants.X_OK);
+                            } catch {
+                                chmodSync(pwRun, 0o755);
+                            }
+                            return pwRun;
+                        }
+                        
+                        const playwrightApp = pathenv.join(webkitDir, 'Playwright.app', 'Contents', 'MacOS', 'Playwright');
+                        if (existsSync(playwrightApp)) {
+                            try {
+                                accessSync(playwrightApp, constants.X_OK);
+                            } catch {
+                                chmodSync(playwrightApp, 0o755);
+                            }
+                            return playwrightApp;
+                        }
+                    }
+                    
+                    // Linux: tìm pw_run.sh
+                    if (process.platform === 'linux') {
+                        const pwRun = pathenv.join(webkitDir, 'pw_run.sh');
+                        if (existsSync(pwRun)) {
+                            try {
+                                accessSync(pwRun, constants.X_OK);
+                            } catch {
+                                chmodSync(pwRun, 0o755);
+                            }
+                            return pwRun;
+                        }
+                    }
+                    
+                    // Windows: tìm playwright.exe
+                    if (process.platform === 'win32') {
+                        const playwrightExe = pathenv.join(webkitDir, 'playwright.exe');
+                        if (existsSync(playwrightExe)) {
+                            return playwrightExe;
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('[BrowserManager] Error finding WebKit in browsersPath:', error);
+        }
+        
+        return null;
+    }
+
     // Get custom Edge executable path
     private getCustomEdgePath(): string | null {
         const platform = process.platform;
@@ -421,6 +485,14 @@ export class BrowserManager extends EventEmitter {
                     browserLauncher = webkit;
                     // Safari: Luôn sử dụng Playwright WebKit thay vì Safari hệ thống
                     // vì Safari hệ thống không cho phép inject script và có hạn chế
+                    // Tìm WebKit executable trong browsersPath (PLAYWRIGHT_BROWSERS_PATH) thay vì đường dẫn mặc định
+                    const webkitPath = this.getPlaywrightWebKitPath();
+                    if (webkitPath) {
+                        launchOptions.executablePath = webkitPath;
+                        console.log('[BrowserManager] Using WebKit from browsersPath:', webkitPath);
+                    } else {
+                        console.warn('[BrowserManager] WebKit not found in browsersPath, Playwright will use default path');
+                    }
                     // WebKit doesn't support Chromium-specific args like --no-sandbox
                     launchOptions.args = [];
                     break;
