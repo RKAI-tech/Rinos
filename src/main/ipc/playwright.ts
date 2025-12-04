@@ -76,115 +76,13 @@ function getEdgeExecutablePath(): string | null {
   return null;
 }
 
-// System Edge paths helper
-function getSystemEdgePaths(): string[] {
-  const platform = process.platform;
-  if (platform === 'win32') {
-    return [
-      path.join(process.env.LOCALAPPDATA || '', "Microsoft", "Edge", "Application", "msedge.exe"),
-      path.join(process.env.PROGRAMFILES || '', "Microsoft", "Edge", "Application", "msedge.exe"),
-      path.join(process.env["PROGRAMFILES(X86)"] || '', "Microsoft", "Edge", "Application", "msedge.exe"),
-    ].filter(Boolean);
-  }
-  if (platform === 'darwin') {
-    return [
-      "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-      path.join(process.env.HOME || '', "Applications", "Microsoft Edge.app", "Contents", "MacOS", "Microsoft Edge"),
-    ];
-  }
-  
-  return [
-    "/usr/bin/microsoft-edge",
-    "/usr/bin/microsoft-edge-stable",
-    "/opt/microsoft/msedge/msedge",
-    "/snap/bin/microsoft-edge",
-  ];
-}
-
-// System Chrome paths helper
-function getSystemChromePaths(): string[] {
-  const platform = process.platform;
-  if (platform === 'win32') {
-    return [
-      path.join(process.env.LOCALAPPDATA || '', "Google", "Chrome", "Application", "chrome.exe"),
-      path.join(process.env.PROGRAMFILES || '', "Google", "Chrome", "Application", "chrome.exe"),
-      path.join(process.env["PROGRAMFILES(X86)"] || '', "Google", "Chrome", "Application", "chrome.exe"),
-    ].filter(Boolean);
-  }
-  if (platform === 'darwin') {
-    return [
-      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-      path.join(process.env.HOME || '', "Applications", "Google Chrome.app", "Contents", "MacOS", "Google Chrome"),
-    ];
-  }
-  
-  return [
-    "/usr/bin/google-chrome",
-    "/usr/bin/google-chrome-stable",
-    "/usr/bin/chromium",
-    "/usr/bin/chromium-browser",
-    "/snap/bin/chromium",
-  ];
-}
-
-// System Firefox paths helper
-function getSystemFirefoxPaths(): string[] {
-  const platform = process.platform;
-  if (platform === 'win32') {
-    return [
-      path.join(process.env.LOCALAPPDATA || '', "Mozilla Firefox", "firefox.exe"),
-      path.join(process.env.PROGRAMFILES || '', "Mozilla Firefox", "firefox.exe"),
-      path.join(process.env["PROGRAMFILES(X86)"] || '', "Mozilla Firefox", "firefox.exe"),
-    ].filter(Boolean);
-  }
-  if (platform === 'darwin') {
-    return [
-      "/Applications/Firefox.app/Contents/MacOS/firefox",
-      path.join(process.env.HOME || '', "Applications", "Firefox.app", "Contents", "MacOS", "firefox"),
-    ];
-  }
-  
-  return [
-    "/usr/bin/firefox",
-    "/usr/bin/firefox-esr",
-    "/snap/bin/firefox",
-  ];
-}
-
-// System Safari paths helper (macOS only)
-function getSystemSafariPaths(): string[] {
-  if (process.platform !== 'darwin') {
-    return [];
-  }
-  return [
-    "/Applications/Safari.app/Contents/MacOS/Safari",
-  ];
-}
-
-function getFirstExistingPath(paths: string[]): string | null {
-  for (const target of paths) {
-    if (target && fs.existsSync(target)) {
-      return target;
-    }
-  }
-  return null;
-}
-
-// Check if Chrome is installed (system or playwright)
+// Check if Chrome is installed (Playwright-managed only)
 async function isChromeInstalled(): Promise<boolean> {
-  const systemPath = getFirstExistingPath(getSystemChromePaths());
-  if (systemPath) return true;
-  
-  // Check playwright chromium installation
   return await isBrowserInstalled('chromium');
 }
 
-// Check if Firefox is installed (system or playwright)
+// Check if Firefox is installed (Playwright-managed only)
 async function isFirefoxInstalled(): Promise<boolean> {
-  const systemPath = getFirstExistingPath(getSystemFirefoxPaths());
-  if (systemPath) return true;
-  
-  // Check playwright firefox installation
   return await isBrowserInstalled('firefox');
 }
 
@@ -195,17 +93,10 @@ async function isSafariInstalled(): Promise<boolean> {
   return await isBrowserInstalled('webkit');
 }
 
-// Check if Edge is installed (system or custom)
+// Check if Edge is installed (custom build only – system Edge không được dùng)
 async function isEdgeInstalled(): Promise<boolean> {
-  const systemPath = getFirstExistingPath(getSystemEdgePaths());
-  if (systemPath) return true;
-  
   const customEdgePath = getEdgeExecutablePath();
-  if (customEdgePath) {
-    return true;
-  }
-  
-  return false;
+  return !!customEdgePath;
 }
 
 // Map browser type to playwright browser name
@@ -336,21 +227,9 @@ function getLatestUpdatedAt(paths: string[]): string | undefined {
 
 function getBrowsersInfo(): BrowserInfoResponse[] {
   return MANAGED_BROWSERS.map((browser) => {
-    // Special handling for Edge
+    // Special handling cho Edge: chỉ dùng bản custom do app quản lý
     if (browser.id === 'edge') {
-      const systemPath = getFirstExistingPath(getSystemEdgePaths());
       const customPath = getEdgeExecutablePath();
-      if (systemPath) {
-        return {
-          id: browser.id,
-          label: browser.label,
-          status: 'system',
-          installSource: 'system',
-          paths: [systemPath],
-          updatedAt: getLatestUpdatedAt([systemPath]),
-          note: 'Using system Edge installation',
-        };
-      }
       if (customPath) {
         return {
           id: browser.id,
@@ -371,42 +250,7 @@ function getBrowsersInfo(): BrowserInfoResponse[] {
       };
     }
     
-    // Check for system Chrome
-    if (browser.id === 'chrome') {
-      const systemPath = getFirstExistingPath(getSystemChromePaths());
-      if (systemPath) {
-        return {
-          id: browser.id,
-          label: browser.label,
-          status: 'system',
-          installSource: 'system',
-          paths: [systemPath],
-          updatedAt: getLatestUpdatedAt([systemPath]),
-          note: 'Using system Chrome installation',
-        };
-      }
-    }
-    
-    // Check for system Firefox
-    if (browser.id === 'firefox') {
-      const systemPath = getFirstExistingPath(getSystemFirefoxPaths());
-      if (systemPath) {
-        return {
-          id: browser.id,
-          label: browser.label,
-          status: 'system',
-          installSource: 'system',
-          paths: [systemPath],
-          updatedAt: getLatestUpdatedAt([systemPath]),
-          note: 'Using system Firefox installation',
-        };
-      }
-    }
-    
-    // Safari: Chỉ check Playwright WebKit, không dùng Safari hệ thống
-    // vì Safari hệ thống không cho phép inject script và có hạn chế
-    
-    // Check Playwright installations
+    // Tất cả browser khác: chỉ kiểm tra bản do Playwright quản lý
     const playwrightName = browser.playwrightName;
     const paths = getPlaywrightInstallPaths(playwrightName);
     
@@ -472,17 +316,17 @@ export async function checkBrowsersInstalled(browserTypes: string[]): Promise<{ 
   for (const browserType of browserTypes) {
     const normalized = browserType.toLowerCase();
     if (normalized === 'edge') {
-      // Special handling for Edge: check both custom and system installation
+      // Edge: chỉ coi là installed nếu có custom Edge
       result[browserType] = await isEdgeInstalled();
     } else if (normalized === 'chrome') {
-      // Check system Chrome or Playwright Chromium
-      result[browserType] = await isChromeInstalled();
+      // Chrome: chỉ dùng Chromium do Playwright tải
+      result[browserType] = await isBrowserInstalled('chromium');
     } else if (normalized === 'firefox') {
-      // Check system Firefox or Playwright Firefox
-      result[browserType] = await isFirefoxInstalled();
+      // Firefox: chỉ dùng Firefox do Playwright tải
+      result[browserType] = await isBrowserInstalled('firefox');
     } else if (normalized === 'safari') {
-      // Check system Safari or Playwright WebKit
-      result[browserType] = await isSafariInstalled();
+      // Safari/WebKit: chỉ dùng WebKit do Playwright tải
+      result[browserType] = await isBrowserInstalled('webkit');
     } else {
       const playwrightBrowser = mapBrowserTypeToPlaywright(browserType);
       result[browserType] = await isBrowserInstalled(playwrightBrowser);

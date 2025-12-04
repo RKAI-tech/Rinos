@@ -102,193 +102,10 @@ export class BrowserManager extends EventEmitter {
         apiRouter.setAuthToken(token);
     }
 
-    // Check if system Edge is installed
-    private isSystemEdgeInstalled(): boolean {
-        const platform = process.platform;
-        
-        if (platform === 'win32') {
-            // Windows: Check common Edge installation paths
-            const systemPaths = [
-                pathenv.join(process.env.LOCALAPPDATA || '', "Microsoft", "Edge", "Application", "msedge.exe"),
-                pathenv.join(process.env.PROGRAMFILES || '', "Microsoft", "Edge", "Application", "msedge.exe"),
-                pathenv.join(process.env["PROGRAMFILES(X86)"] || '', "Microsoft", "Edge", "Application", "msedge.exe"),
-            ];
-            
-            for (const systemPath of systemPaths) {
-                if (existsSync(systemPath)) {
-                    return true;
-                }
-            }
-        } else if (platform === 'darwin') {
-            // macOS: Check if Edge.app exists
-            const systemPaths = [
-                "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-                pathenv.join(process.env.HOME || '', "Applications", "Microsoft Edge.app", "Contents", "MacOS", "Microsoft Edge"),
-            ];
-            
-            for (const systemPath of systemPaths) {
-                if (existsSync(systemPath)) {
-                    return true;
-                }
-            }
-        } else {
-            // Linux: Check common installation paths
-            const systemPaths = [
-                "/usr/bin/microsoft-edge",
-                "/usr/bin/microsoft-edge-stable",
-                "/opt/microsoft/msedge/msedge",
-                "/snap/bin/microsoft-edge",
-            ];
-            
-            for (const systemPath of systemPaths) {
-                if (existsSync(systemPath)) {
-                    return true;
-                }
-            }
-        }
-        
-        return false;
-    }
-
-    // Check if system Chrome is installed
-    private isSystemChromeInstalled(): boolean {
-        const platform = process.platform;
-        
-        if (platform === 'win32') {
-            const systemPaths = [
-                pathenv.join(process.env.LOCALAPPDATA || '', "Google", "Chrome", "Application", "chrome.exe"),
-                pathenv.join(process.env.PROGRAMFILES || '', "Google", "Chrome", "Application", "chrome.exe"),
-                pathenv.join(process.env["PROGRAMFILES(X86)"] || '', "Google", "Chrome", "Application", "chrome.exe"),
-            ];
-            for (const systemPath of systemPaths) {
-                if (existsSync(systemPath)) return true;
-            }
-        } else if (platform === 'darwin') {
-            const systemPaths = [
-                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-                pathenv.join(process.env.HOME || '', "Applications", "Google Chrome.app", "Contents", "MacOS", "Google Chrome"),
-            ];
-            for (const systemPath of systemPaths) {
-                if (existsSync(systemPath)) return true;
-            }
-        } else {
-            const systemPaths = [
-                "/usr/bin/google-chrome",
-                "/usr/bin/google-chrome-stable",
-                "/usr/bin/chromium",
-                "/usr/bin/chromium-browser",
-                "/snap/bin/chromium",
-            ];
-            for (const systemPath of systemPaths) {
-                if (existsSync(systemPath)) return true;
-            }
-        }
-        return false;
-    }
-
-    // Check if system Firefox is installed
-    private isSystemFirefoxInstalled(): boolean {
-        const platform = process.platform;
-        
-        if (platform === 'win32') {
-            const systemPaths = [
-                pathenv.join(process.env.LOCALAPPDATA || '', "Mozilla Firefox", "firefox.exe"),
-                pathenv.join(process.env.PROGRAMFILES || '', "Mozilla Firefox", "firefox.exe"),
-                pathenv.join(process.env["PROGRAMFILES(X86)"] || '', "Mozilla Firefox", "firefox.exe"),
-            ];
-            for (const systemPath of systemPaths) {
-                if (existsSync(systemPath)) return true;
-            }
-        } else if (platform === 'darwin') {
-            const systemPaths = [
-                "/Applications/Firefox.app/Contents/MacOS/firefox",
-                pathenv.join(process.env.HOME || '', "Applications", "Firefox.app", "Contents", "MacOS", "firefox"),
-            ];
-            for (const systemPath of systemPaths) {
-                if (existsSync(systemPath)) return true;
-            }
-        } else {
-            const systemPaths = [
-                "/usr/bin/firefox",
-                "/usr/bin/firefox-esr",
-                "/snap/bin/firefox",
-            ];
-            for (const systemPath of systemPaths) {
-                if (existsSync(systemPath)) return true;
-            }
-        }
-        return false;
-    }
-
-    // Check if system Safari is installed (macOS only)
-    private isSystemSafariInstalled(): boolean {
-        if (process.platform !== 'darwin') return false;
-        const systemPaths = [
-            "/Applications/Safari.app/Contents/MacOS/Safari",
-        ];
-        for (const systemPath of systemPaths) {
-            if (existsSync(systemPath)) return true;
-        }
-        return false;
-    }
-
-    // Get system Chrome executable path
-    private getSystemChromePath(): string | null {
-        const platform = process.platform;
-        const paths = platform === 'win32' 
-            ? [
-                pathenv.join(process.env.LOCALAPPDATA || '', "Google", "Chrome", "Application", "chrome.exe"),
-                pathenv.join(process.env.PROGRAMFILES || '', "Google", "Chrome", "Application", "chrome.exe"),
-                pathenv.join(process.env["PROGRAMFILES(X86)"] || '', "Google", "Chrome", "Application", "chrome.exe"),
-            ]
-            : platform === 'darwin'
-            ? [
-                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-                pathenv.join(process.env.HOME || '', "Applications", "Google Chrome.app", "Contents", "MacOS", "Google Chrome"),
-            ]
-            : [
-                "/usr/bin/google-chrome",
-                "/usr/bin/google-chrome-stable",
-                "/usr/bin/chromium",
-                "/usr/bin/chromium-browser",
-            ];
-        
-        for (const p of paths) {
-            if (existsSync(p)) return p;
-        }
-        return null;
-    }
-
-    // Get system Firefox executable path
-    private getSystemFirefoxPath(): string | null {
-        const platform = process.platform;
-        const paths = platform === 'win32'
-            ? [
-                pathenv.join(process.env.LOCALAPPDATA || '', "Mozilla Firefox", "firefox.exe"),
-                pathenv.join(process.env.PROGRAMFILES || '', "Mozilla Firefox", "firefox.exe"),
-            ]
-            : platform === 'darwin'
-            ? [
-                "/Applications/Firefox.app/Contents/MacOS/firefox",
-                pathenv.join(process.env.HOME || '', "Applications", "Firefox.app", "Contents", "MacOS", "firefox"),
-            ]
-            : [
-                "/usr/bin/firefox",
-                "/usr/bin/firefox-esr",
-            ];
-        
-        for (const p of paths) {
-            if (existsSync(p)) return p;
-        }
-        return null;
-    }
-
-    // Get system Safari executable path (macOS only)
-    private getSystemSafariPath(): string | null {
-        if (process.platform !== 'darwin') return null;
-        const path = "/Applications/Safari.app/Contents/MacOS/Safari";
-        return existsSync(path) ? path : null;
-    }
+    // *** LƯU Ý ***
+    // Từ đây trở đi, ta KHÔNG còn dùng browser hệ thống cho automation nữa.
+    // Mọi browser (Chrome/Firefox/Safari) đều dùng bản do Playwright tải về
+    // (PLAYWRIGHT_BROWSERS_PATH), riêng Edge dùng bản custom trong my-browsers.
 
     // Get custom Edge executable path
     private getCustomEdgePath(): string | null {
@@ -392,17 +209,7 @@ export class BrowserManager extends EventEmitter {
                 case 'chrome':
                 default:
                     browserLauncher = chromium;
-                    // Priority: System Chrome > Playwright Chromium
-                    if (this.isSystemChromeInstalled()) {
-                        const chromePath = this.getSystemChromePath();
-                        if (chromePath) {
-                            launchOptions.executablePath = chromePath;
-                        } else {
-                            // Fallback to channel if path not found
-                            launchOptions.channel = 'chrome';
-                        }
-                    }
-                    // If no system Chrome, Playwright will use its bundled Chromium
+                    // Luôn dùng Chromium do Playwright quản lý (không dùng Chrome hệ thống)
                     launchOptions.args = [
                         '--no-sandbox',
                         '--disable-setuid-sandbox',
@@ -415,14 +222,7 @@ export class BrowserManager extends EventEmitter {
                 case BrowserType.firefox:
                 case 'firefox':
                     browserLauncher = firefox;
-                    // Priority: System Firefox > Playwright Firefox
-                    if (this.isSystemFirefoxInstalled()) {
-                        const firefoxPath = this.getSystemFirefoxPath();
-                        if (firefoxPath) {
-                            launchOptions.executablePath = firefoxPath;
-                        }
-                    }
-                    // If no system Firefox, Playwright will download its Firefox
+                    // Luôn dùng Firefox do Playwright quản lý (không dùng Firefox hệ thống)
                     launchOptions.args = [
                         '--no-sandbox',
                     ];
@@ -437,28 +237,22 @@ export class BrowserManager extends EventEmitter {
                 case BrowserType.safari:
                 case 'safari':
                     browserLauncher = webkit;
-                    // Safari: Luôn sử dụng Playwright WebKit thay vì Safari hệ thống
-                    // vì Safari hệ thống không cho phép inject script và có hạn chế
+                    // Safari: Luôn sử dụng Playwright WebKit (Safari hệ thống không được dùng)
                     // WebKit doesn't support Chromium-specific args like --no-sandbox
                     launchOptions.args = [];
                     break;
                 case BrowserType.edge:
                 case 'edge':
                     browserLauncher = chromium;
-                    // Priority: 1. System Edge, 2. Custom Edge, 3. Fallback to channel (will fail if not installed)
-                    if (this.isSystemEdgeInstalled()) {
-                        // Use system Edge via channel (preferred)
-                        launchOptions.channel = 'msedge';
+                    // Edge: CHỈ dùng bản custom đã được cài bởi app (my-browsers)
+                    const customEdgePath = this.getCustomEdgePath();
+                    if (customEdgePath) {
+                        launchOptions.executablePath = customEdgePath;
                     } else {
-                        // Try custom Edge installation
-                        const customEdgePath = this.getCustomEdgePath();
-                        if (customEdgePath) {
-                            // Use custom Edge installation
-                            launchOptions.executablePath = customEdgePath;
-                        } else {
-                            // Fallback to channel (may fail if Edge not installed)
-                            launchOptions.channel = 'msedge';
-                        }
+                        throw new Error(
+                            "Microsoft Edge is not installed via Browser Manager. " +
+                            "Please install Edge from the Browser Manager first."
+                        );
                     }
                     launchOptions.args = [
                         '--no-sandbox',
