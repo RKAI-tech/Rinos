@@ -1,4 +1,11 @@
-
+if [ -f ".env.production" ]; then
+   set -o allexport
+   source .env.production
+   set +o allexport
+else
+   echo ".env.production file not found"
+   exit 1
+fi
 if [ -z "$APPLE_ID" ] || [ -z "$APPLE_PASSWORD" ] || [ -z "$TEAM_ID" ]; then
   echo "missing APPLE_ID, APPLE_PASSWORD or TEAM_ID!"
   exit 1
