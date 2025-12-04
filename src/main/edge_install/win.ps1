@@ -2,23 +2,22 @@
  
 $TargetDir = Join-Path $PWD "my-browsers\edge-win"
 $MsiFile = "edge.msi"
-# Link MSI 64-bit Stable
 $Url = "https://go.microsoft.com/fwlink/?linkid=2068605"
  
-Write-Host "🪟 Đang tải Microsoft Edge cho Windows..."
+Write-Host "Downloading Microsoft Edge (Windows)..."
 Invoke-WebRequest -Uri $Url -OutFile $MsiFile
  
-# Tạo thư mục đích (Phải dùng đường dẫn tuyệt đối cho msiexec)
+# Create target directory (need absolute path for msiexec)
 New-Item -ItemType Directory -Force -Path $TargetDir | Out-Null
 $AbsTargetDir = (Resolve-Path $TargetDir).Path
  
-Write-Host "📦 Đang giải nén MSI..."
-# /a : Administrative install (giải nén)
-# /qb : Giao diện cơ bản (hiển thị thanh tiến trình nhỏ rồi tắt)
+Write-Host "Extracting MSI..."
+# /a : Administrative install (extracts files)
+# /qb : Basic UI (shows progress bar then exits)
 Start-Process msiexec.exe -ArgumentList "/a $MsiFile /qb TARGETDIR=""$AbsTargetDir""" -Wait
  
-# Dọn dẹp file msi
+# Clean up MSI file
 Remove-Item $MsiFile
  
-Write-Host "✅ Hoàn tất! Executable path:"
+Write-Host "Done! Executable path:"
 Write-Host "$AbsTargetDir\Microsoft\Edge\Application\msedge.exe"
