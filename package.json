@@ -81,6 +81,11 @@
     "directories": {
       "output": "release"
     },
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/playwright-core/**",
+      "**/node_modules/playwright/**"
+    ],
     "files": [
       "dist/**/*",
       "node_modules/**/*",
