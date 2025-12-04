@@ -1,12 +1,26 @@
 import { ipcMain } from "electron";
-import { exec, spawn, ChildProcess } from "child_process";
+import { exec, spawn, fork, ChildProcess } from "child_process";
 import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
 import { app } from "electron";
 
 const execAsync = promisify(exec);
-
+async function fixPermissions(browserPath: string) {
+  if (process.platform !== 'darwin' && process.platform !== 'linux') return;
+  console.log(`[Permission] Fixing permissions for: ${browserPath}`);
+  
+  // Lệnh: chmod +x và xóa xattr com.apple.quarantine
+  const command = `chmod -R 755 "${browserPath}" && xattr -r -d com.apple.quarantine "${browserPath}" || true`;
+  
+  return new Promise<void>((resolve) => {
+    exec(command, (err) => {
+      // Lỗi xattr là bình thường nếu file không bị gắn nhãn, chỉ cần log warning
+      if (err) console.log("[Permission] Note:", err.message); 
+      resolve();
+    });
+  });
+}
 // Get playwright browsers path (dev: project folder, packaged: userData, writable on all OS)
 function getBrowsersPath(): string {
   if (!app.isPackaged) {
@@ -722,199 +736,130 @@ function getPlaywrightInstallCommand(browser: string): { command: string; useShe
     throw new Error(`Cannot find Playwright CLI: ${errorMessage}`);
   }
 }
-// Install playwright browsers with timeout and progress simulation
 export async function installPlaywrightBrowsers(
   browsers: string[],
   onProgress?: (browser: string, progress: number, status: string) => void
 ): Promise<void> {
   const browsersPath = getBrowsersPath();
-  const INSTALL_TIMEOUT = 30 * 60 * 1000; // 30 minutes
-  const PROGRESS_UPDATE_INTERVAL = 5000; // 5 seconds
-  const PROGRESS_INCREMENT = 2; // 2% per interval
-  const cliPath = getPlaywrightCLIPath();
-  // Ensure directory exists
+  const cliPath = getPlaywrightCLIPath(); // Hàm này của bạn đã viết đúng
+  
+  // Đảm bảo thư mục tồn tại
   if (!fs.existsSync(browsersPath)) {
     fs.mkdirSync(browsersPath, { recursive: true });
   }
-  
-  // Set environment variable
-  process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
-  process.env.PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = '1';
-  
+
+  // Cấu hình môi trường QUAN TRỌNG
+  const env = {
+    ...process.env,
+    PLAYWRIGHT_BROWSERS_PATH: browsersPath,
+    PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS: '1',
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '0',
+    // Dòng này cực quan trọng: Biến App Electron thành Node.js runtime để chạy script
+    ELECTRON_RUN_AS_NODE: '1' 
+  };
+
   const totalBrowsers = browsers.length;
-  let completedBrowsers = 0;
-  let browserProgresses: number[] = new Array(totalBrowsers).fill(0); // Track progress of each browser (0-100)
-  
-  // Helper function to calculate overall progress
+  let browserProgresses: number[] = new Array(totalBrowsers).fill(0);
+
+  // Helper tính tổng tiến độ (giữ nguyên logic của bạn)
   const calculateOverallProgress = (browserIndex: number, browserProgress: number): number => {
-    // Update the progress for this browser
     browserProgresses[browserIndex] = browserProgress;
-    
-    // Each browser gets an equal share of the total progress
     const progressPerBrowser = 100 / totalBrowsers;
     let totalProgress = 0;
-    
-    // Sum up progress from all browsers
     for (let i = 0; i < totalBrowsers; i++) {
       totalProgress += (browserProgresses[i] / 100) * progressPerBrowser;
     }
-    
     return Math.min(Math.round(totalProgress), 100);
   };
-  
-  // Helper function to update progress
+
   const updateProgress = (browser: string, browserIndex: number, browserProgress: number, status: string) => {
     const overallProgress = calculateOverallProgress(browserIndex, browserProgress);
     onProgress?.(browser, overallProgress, status);
   };
-  
+
   for (let i = 0; i < browsers.length; i++) {
     const browser = browsers[i];
-    
-    try {
-      // Special handling for Edge: use custom installation script
-      if (browser.toLowerCase() === 'edge' || browser.toLowerCase() === 'msedge') {
-        // Create a wrapper progress callback for Edge
-        const edgeProgressWrapper = (browserName: string, browserProgress: number, status: string) => {
-          updateProgress(browserName, i, browserProgress, status);
-        };
-        await installEdgeCustom(edgeProgressWrapper);
-        browserProgresses[i] = 100; // Mark as complete
-        completedBrowsers++;
-        continue;
-      }
-      
-      updateProgress(browser, i, 0, `Starting installation of ${browser}...`);
-      
-      // Get playwright install command (tự động tìm npx/playwright CLI trong packaged app)
-      // Browsers will be installed to PLAYWRIGHT_BROWSERS_PATH (user directory, no sudo needed)
-      const { command, useShell } = getPlaywrightInstallCommand(browser);
-      console.log(`[Playwright IPC] Using command: ${command} (shell: ${useShell})`);
-      
-      let browserProgress = 25; // Progress for this browser only (0-100)
-      browserProgresses[i] = 25;
-      updateProgress(browser, i, 25, `Downloading ${browser}...`);
-      
-      let lastProgressUpdate = Date.now();
-      let progressInterval: NodeJS.Timeout | null = null;
-      let execProcess: ChildProcess | null = null;
-      let timeoutId: NodeJS.Timeout | null = null;
-      
-      // Progress simulation
-      const startProgressSimulation = () => {
-        if (progressInterval) clearInterval(progressInterval);
-        progressInterval = setInterval(() => {
-          const timeSinceLastUpdate = Date.now() - lastProgressUpdate;
-          if (timeSinceLastUpdate > PROGRESS_UPDATE_INTERVAL && browserProgress < 95) {
-            browserProgress = Math.min(browserProgress + PROGRESS_INCREMENT, 95);
-            browserProgresses[i] = browserProgress;
-            updateProgress(browser, i, browserProgress, `Installing ${browser}...`);
-          }
-        }, PROGRESS_UPDATE_INTERVAL);
+
+    // Xử lý Edge (giữ nguyên logic của bạn)
+    if (browser.toLowerCase() === 'edge' || browser.toLowerCase() === 'msedge') {
+      const edgeProgressWrapper = (browserName: string, browserProgress: number, status: string) => {
+        updateProgress(browserName, i, browserProgress, status);
       };
-      
-      // Create a promise with timeout
-      const installPromise = new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
-        execProcess = exec(command, {
-          cwd: process.cwd(),
-          env: {
-            ...process.env,
-            PLAYWRIGHT_BROWSERS_PATH: browsersPath,
-            PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS: '1',
-            PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '0',
-          },
-          maxBuffer: 1024 * 1024 * 100, // 100MB buffer
-        }, (error, stdout, stderr) => {
-          // Clean up on completion
-          if (timeoutId) clearTimeout(timeoutId);
-          if (progressInterval) clearInterval(progressInterval);
-          
-          if (error) {
-            reject(error);
-          } else {
-            resolve({ stdout, stderr });
-          }
-        });
-        
-        // Monitor stdout/stderr for progress updates
-        if (execProcess.stdout) {
-          execProcess.stdout.on('data', () => {
-            lastProgressUpdate = Date.now();
-            if (browserProgress < 75) {
-              browserProgress = Math.min(browserProgress + 5, 75);
-              browserProgresses[i] = browserProgress;
-              updateProgress(browser, i, browserProgress, `Downloading ${browser}...`);
-            }
-          });
-        }
-        
-        if (execProcess.stderr) {
-          execProcess.stderr.on('data', () => {
-            lastProgressUpdate = Date.now();
-          });
-        }
-      });
-      
-      // Timeout promise
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(() => {
-          if (execProcess && !execProcess.killed && execProcess.pid) {
-            console.error(`[Playwright IPC] ${browser} installation timeout, killing process...`);
-            try {
-              if (process.platform === 'win32') {
-                exec(`taskkill /F /T /PID ${execProcess.pid}`, () => {});
-              } else {
-                process.kill(-execProcess.pid, 'SIGKILL');
-              }
-            } catch (err) {
-              console.error(`[Playwright IPC] Error killing process:`, err);
-            }
-            if (progressInterval) clearInterval(progressInterval);
-            reject(new Error(`${browser} installation timeout after 30 minutes`));
-          }
-        }, INSTALL_TIMEOUT);
-      });
-      
-      // Start progress simulation
-      startProgressSimulation();
-      
-      // Race between install and timeout
-      const { stdout, stderr } = await Promise.race([installPromise, timeoutPromise]);
-      
-      // Clean up (should already be cleaned in promise, but just in case)
-      if (timeoutId) clearTimeout(timeoutId);
-      if (progressInterval) clearInterval(progressInterval);
-      
-      // Only set 75% if current progress is less than 75%, otherwise keep current progress
-      if (browserProgress < 75) {
-        browserProgress = 75;
-        browserProgresses[i] = 75;
-        updateProgress(browser, i, 75, `Extracting ${browser}...`);
-      } else {
-        // If already past 75%, just update status without changing progress
-        updateProgress(browser, i, browserProgress, `Extracting ${browser}...`);
-      }
-      
-      // Wait a bit to ensure installation completes
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      browserProgress = 100;
+      await installEdgeCustom(edgeProgressWrapper);
       browserProgresses[i] = 100;
-      completedBrowsers++;
-      updateProgress(browser, i, 100, `${browser} installed successfully`);
-      
-      // Note: System dependencies (--with-deps) are not installed to avoid requiring sudo
-      // Browsers should work if system dependencies are already installed
-      
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const overallProgressError = calculateOverallProgress(i, 0);
-      onProgress?.(browser, overallProgressError, `Error installing ${browser}: ${errorMessage}`);
-      throw new Error(`Failed to install ${browser}: ${errorMessage}`);
+      continue;
     }
+
+    updateProgress(browser, i, 0, `Starting installation of ${browser}...`);
+    console.log(`[Playwright IPC] Forking CLI: ${cliPath} to install ${browser}`);
+
+    await new Promise<void>((resolve, reject) => {
+      // SỬ DỤNG FORK THAY VÌ EXEC
+      // Fork sẽ tự động dùng process.execPath nhưng kèm theo IPC channel
+      // và quan trọng là ta truyền env có ELECTRON_RUN_AS_NODE
+      const child = fork(cliPath, ["install", browser], {
+        env: env,
+        cwd: process.cwd(),
+        stdio: ['ignore', 'pipe', 'pipe', 'ipc'] // Pipe để bắt log
+      });
+
+      let currentProgress = 0;
+
+      // Xử lý log từ stdout để giả lập progress
+      child.stdout?.on('data', (data) => {
+        const output = data.toString();
+        
+        // Playwright CLI in ra dạng: "Downloading FFMpeg (10%)" hoặc "Downloading Chromium"
+        if (output.includes("Downloading")) {
+          if (currentProgress < 20) currentProgress = 20;
+          updateProgress(browser, i, currentProgress, `Downloading ${browser}...`);
+        } else if (output.includes("%")) {
+            // Nếu bắt được số % (tùy version CLI), có thể parse ở đây
+            // Đơn giản hóa: cứ có data là nhích progress
+            if (currentProgress < 80) currentProgress += 5;
+            updateProgress(browser, i, currentProgress, `Downloading ${browser}...`);
+        } else if (output.includes("Extracting")) {
+          currentProgress = 80;
+          updateProgress(browser, i, 80, `Extracting ${browser}...`);
+        }
+      });
+
+      child.stderr?.on('data', (data) => {
+        // Playwright thường in progress bar vào stderr
+        const output = data.toString();
+        // Cập nhật progress dựa trên stderr nếu cần
+        if (currentProgress < 80) {
+            currentProgress += 2;
+            updateProgress(browser, i, currentProgress, `Installing ${browser}...`);
+        }
+      });
+
+      child.on('close', async (code) => {
+        if (code === 0) {
+          updateProgress(browser, i, 90, `Verifying ${browser}...`);
+          
+          // FIX QUYỀN CHO MACOS (Đặc biệt là Webkit/Safari)
+          const paths = getPlaywrightInstallPaths(mapBrowserTypeToPlaywright(browser));
+          for (const p of paths) {
+            await fixPermissions(p);
+          }
+
+          updateProgress(browser, i, 100, `Installed ${browser} successfully`);
+          resolve();
+        } else {
+          const err = new Error(`Installation failed with code ${code}`);
+          console.error(`[Playwright IPC]`, err);
+          reject(err);
+        }
+      });
+
+      child.on('error', (err) => {
+        console.error(`[Playwright IPC] Child process error:`, err);
+        reject(err);
+      });
+    });
   }
 }
-
 // Export function to get Edge executable path
 export function getEdgeExecutablePathForBrowser(): string | null {
   return getEdgeExecutablePath();
