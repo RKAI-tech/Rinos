@@ -14,9 +14,9 @@ fi
 echo "APPLE_ID=$APPLE_ID"
 echo "TEAM_ID=$TEAM_ID"
 
-APP="release/mac/Automation Test Execution.app"
-ZIP="release/mac/Automation_Test_Execution.zip"
-DMG="release/mac/Automation_Test_Execution.dmg"
+APP="release/mac-universal/Automation Test Execution.app"
+ZIP="release/mac-universal/Automation_Test_Execution_2.1.0_universal.zip"
+DMG="release/mac-universal/Automation_Test_Execution_2.1.0_universal.dmg"
 
 echo "== Packaging zip from signed app"
 rm -f "$ZIP"
@@ -25,7 +25,7 @@ echo "== Zip file is created: $ZIP"
 
 echo "== Uploading zip file to Apple to notarize"
 xcrun notarytool submit "$ZIP" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$TEAM_ID" --wait > notarize_zip_result.txt
-
+/Users/servermac/Documents/ai_project/rikkei-automation-test-script-app/notarize_Automation Test Execution-2.1.0-mac-x64.zip.txt
 echo "== Notarize (zip) is processed"
 cat notarize_zip_result.txt
 

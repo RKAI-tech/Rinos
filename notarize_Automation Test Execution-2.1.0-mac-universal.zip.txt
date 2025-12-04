@@ -1,0 +1,3 @@
+Conducting pre-submission checks for Automation Test Execution-2.1.0-mac-universal.zip and initiating connection to the Apple notary service...
+Submission ID received
+  id: 4e93ef3f-884c-4925-b350-badabf8aac58

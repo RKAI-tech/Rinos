@@ -14,7 +14,7 @@ if [ -z "$SIGN_ID" ]; then
   exit 1
 fi
 echo "SIGN ID: $SIGN_ID"
-APP_PATH="release/mac/Automation Test Execution.app"
+APP_PATH="release/mac-universal/Automation Test Execution.app"
 ENTITLEMENTS="build_mac/entitlements.mac.plist"
 echo "== Start sign playwright  and electron app"
 echo "==signing all executable binaries"
