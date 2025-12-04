@@ -174,12 +174,10 @@ async function isFirefoxInstalled(): Promise<boolean> {
   return await isBrowserInstalled('firefox');
 }
 
-// Check if Safari is installed (system or playwright)
+// Check if Safari is installed (chỉ Playwright WebKit, không dùng Safari hệ thống)
 async function isSafariInstalled(): Promise<boolean> {
-  const systemPath = getFirstExistingPath(getSystemSafariPaths());
-  if (systemPath) return true;
-  
-  // Check playwright webkit installation
+  // Safari: Chỉ check Playwright WebKit, không dùng Safari hệ thống
+  // vì Safari hệ thống không cho phép inject script và có hạn chế
   return await isBrowserInstalled('webkit');
 }
 
@@ -391,21 +389,8 @@ function getBrowsersInfo(): BrowserInfoResponse[] {
       }
     }
     
-    // Check for system Safari
-    if (browser.id === 'safari') {
-      const systemPath = getFirstExistingPath(getSystemSafariPaths());
-      if (systemPath) {
-        return {
-          id: browser.id,
-          label: browser.label,
-          status: 'system',
-          installSource: 'system',
-          paths: [systemPath],
-          updatedAt: getLatestUpdatedAt([systemPath]),
-          note: 'Using system Safari installation',
-        };
-      }
-    }
+    // Safari: Chỉ check Playwright WebKit, không dùng Safari hệ thống
+    // vì Safari hệ thống không cho phép inject script và có hạn chế
     
     // Check Playwright installations
     const playwrightName = browser.playwrightName;
