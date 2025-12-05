@@ -188,6 +188,28 @@ const BrowserManagerModal: React.FC<BrowserManagerModalProps> = ({ isOpen, onClo
   };
 
   const handleInstall = async (browserId: BrowserId) => {
+    // Trên Windows, Edge mở link web thay vì cài đặt
+    if (browserId === 'edge' && normalizedPlatform === 'win32') {
+      try {
+        const edgeDownloadUrl = 'https://www.microsoft.com/edge';
+        const electronAPI = (window as any).electronAPI;
+        if (electronAPI?.system?.openExternalUrl) {
+          await electronAPI.system.openExternalUrl(edgeDownloadUrl);
+          toast.info('Edge download page opened in your browser');
+        } else {
+          // Fallback: mở bằng window.open
+          window.open(edgeDownloadUrl, '_blank');
+          toast.info('Edge download page opened in your browser');
+        }
+        return;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to open Edge download page';
+        toast.error(message);
+        return;
+      }
+    }
+    
+    // Các browser khác hoặc Edge trên Mac/Linux: cài đặt bình thường
     if (!playwrightAPI?.installBrowsers) return;
     setCurrentAction({ browserId, type: 'install' });
     try {
@@ -197,7 +219,7 @@ const BrowserManagerModal: React.FC<BrowserManagerModalProps> = ({ isOpen, onClo
           case 'chrome':
             return 'chromium';
           case 'edge':
-            return 'edge'; // Edge uses custom installation
+            return 'edge'; // Edge uses custom installation on Mac/Linux
           case 'firefox':
             return 'firefox';
           case 'safari':

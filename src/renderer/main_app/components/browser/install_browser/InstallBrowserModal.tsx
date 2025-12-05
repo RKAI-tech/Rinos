@@ -131,6 +131,39 @@ const InstallBrowserModal: React.FC<InstallBrowserModalProps> = ({
     if (selectedBrowsers.length === 0) return;
     setInstallError(null);
     
+    // Trên Windows, nếu có Edge trong danh sách, mở link web
+    if (normalizedPlatform === 'win32' && selectedBrowsers.includes(BrowserType.edge)) {
+      try {
+        const edgeDownloadUrl = 'https://www.microsoft.com/edge';
+        const electronAPI = (window as any).electronAPI;
+        if (electronAPI?.system?.openExternalUrl) {
+          await electronAPI.system.openExternalUrl(edgeDownloadUrl);
+        } else {
+          window.open(edgeDownloadUrl, '_blank');
+        }
+        
+        // Loại bỏ Edge khỏi danh sách để không gọi onInstall cho Edge
+        const browsersWithoutEdge = selectedBrowsers.filter(b => b !== BrowserType.edge);
+        if (browsersWithoutEdge.length > 0) {
+          // Map browser types to playwright browser names
+          const playwrightBrowsers = new Set<string>();
+          browsersWithoutEdge.forEach(browserType => {
+            const browser = availableBrowsers.find(b => b.value === browserType);
+            if (browser) {
+              playwrightBrowsers.add(browser.playwrightName);
+            }
+          });
+          await onInstall(Array.from(playwrightBrowsers));
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to open Edge download page';
+        console.error('[InstallBrowserModal] Error opening Edge download page:', error);
+        setInstallError(message);
+      }
+      return;
+    }
+    
+    // Các browser khác hoặc Edge trên Mac/Linux: cài đặt bình thường
     // Map browser types to playwright browser names
     // Group by playwright name to avoid installing same browser multiple times
     const playwrightBrowsers = new Set<string>();
@@ -148,7 +181,7 @@ const InstallBrowserModal: React.FC<InstallBrowserModalProps> = ({
       console.error('[InstallBrowserModal] Install error:', error);
       setInstallError(message);
     }
-  }, [selectedBrowsers, onInstall]);
+  }, [selectedBrowsers, onInstall, normalizedPlatform, availableBrowsers]);
 
   const handleClose = useCallback(() => {
     if (!isInstalling) {

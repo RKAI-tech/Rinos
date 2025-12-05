@@ -1,34 +1,39 @@
-# install-edge-win.ps1
- 
-$TargetDir = Join-Path $PWD "my-browsers\edge-win"
-$MsiFile = "edge.msi"
-$Url = "https://go.microsoft.com/fwlink/?LinkID=2093504"
- 
-Write-Host "Downloading Microsoft Edge (Windows)..."
-Invoke-WebRequest -Uri $Url -OutFile $MsiFile
-if (-not (Test-Path $MsiFile)) {
-    Write-Error "Failed to download Edge installer."
+$AppDataDir = "$env:LOCALAPPDATA\AutomationTestExecution" 
+$TargetDir = Join-Path $AppDataDir "edge-win"
+$MsiFile = Join-Path $AppDataDir "edge.msi"
+$Url = "https://go.microsoft.com/fwlink/?LinkID=2093437"
+if (-not (Test-Path $AppDataDir)) {
+    New-Item -ItemType Directory -Force -Path $AppDataDir | Out-Null
+}
+try {
+    Invoke-WebRequest -Uri $Url -OutFile $MsiFile -ErrorAction Stop
+} catch {
+    Write-Error "Download failed: $_"
     exit 1
 }
+
 $AbsMsi = (Resolve-Path $MsiFile).Path
- 
-# Create target directory (need absolute path for msiexec)
-New-Item -ItemType Directory -Force -Path $TargetDir | Out-Null
-$AbsTargetDir = (Resolve-Path $TargetDir).Path
- 
-Write-Host "Extracting MSI..."
-# /a : Administrative install (extracts files)
-# /qb : Basic UI (shows progress bar then exits)
-Write-Host "Running msiexec to unpack (this may take a while)..."
-$Args = "/a `"$AbsMsi`" /qb TARGETDIR=`"$AbsTargetDir`""
-Start-Process -FilePath "msiexec.exe" -ArgumentList $Args -Wait -NoNewWindow
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "msiexec failed with exit code $LASTEXITCODE"
-    exit $LASTEXITCODE
+$AbsTargetDir = $TargetDir # AppData luôn là đường dẫn tuyệt đối rồi
+
+# Tạo thư mục đích để giải nén
+if (-not (Test-Path $TargetDir)) {
+    New-Item -ItemType Directory -Force -Path $TargetDir | Out-Null
 }
- 
-# Clean up MSI file
-Remove-Item $MsiFile
- 
-Write-Host "Done! Executable path:"
-Write-Host "$AbsTargetDir\Microsoft\Edge\Application\msedge.exe"
+
+# CHẠY MSIEXEC
+# /a : Giải nén
+# /qn : Hoàn toàn im lặng (Quiet No UI) - Tốt cho App
+$Args = "/a `"$AbsMsi`" /qn TARGETDIR=`"$AbsTargetDir`""
+
+$Process = Start-Process -FilePath "msiexec.exe" -ArgumentList $Args -Wait -NoNewWindow -PassThru
+
+if ($Process.ExitCode -ne 0) {
+    Write-Error "msiexec failed with exit code $($Process.ExitCode)"
+    exit $Process.ExitCode
+}
+
+# Dọn dẹp file MSI
+Remove-Item $MsiFile -ErrorAction SilentlyContinue
+
+# Trả về đường dẫn exe cho App của bạn sử dụng
+Write-Output "$AbsTargetDir\Microsoft\Edge\Application\msedge.exe"

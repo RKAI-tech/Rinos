@@ -107,11 +107,28 @@ export class BrowserManager extends EventEmitter {
     // Mọi browser (Chrome/Firefox/Safari) đều dùng bản do Playwright tải về
     // (PLAYWRIGHT_BROWSERS_PATH), riêng Edge dùng bản custom trong my-browsers.
 
-    // Get custom Edge executable path
+    // Get Edge executable path (system Edge on Windows, custom on Mac/Linux)
     private getCustomEdgePath(): string | null {
         const platform = process.platform;
-        let customBrowsersPath: string;
         
+        // Trên Windows: tìm Edge hệ thống
+        if (platform === 'win32') {
+            const possiblePaths = [
+                pathenv.join(process.env['ProgramFiles(x86)'] || '', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+                pathenv.join(process.env.ProgramFiles || '', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+                pathenv.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+            ];
+            
+            for (const edgePath of possiblePaths) {
+                if (existsSync(edgePath)) {
+                    return edgePath;
+                }
+            }
+            return null;
+        }
+        
+        // Mac và Linux: tìm custom installation
+        let customBrowsersPath: string;
         if (!app.isPackaged) {
             customBrowsersPath = pathenv.resolve(process.cwd(), "my-browsers");
         } else {
@@ -120,10 +137,7 @@ export class BrowserManager extends EventEmitter {
         }
         
         let edgePath: string;
-        
-        if (platform === 'win32') {
-            edgePath = pathenv.join(customBrowsersPath, "edge-win", "Microsoft", "Edge", "Application", "msedge.exe");
-        } else if (platform === 'darwin') {
+        if (platform === 'darwin') {
             edgePath = pathenv.join(customBrowsersPath, "edge-mac", "Microsoft Edge.app", "Contents", "MacOS", "Microsoft Edge");
         } else {
             // Linux
@@ -134,13 +148,11 @@ export class BrowserManager extends EventEmitter {
         try {
             if (existsSync(edgePath)) {
                 // On Linux/Mac, check if file is executable
-                if (platform !== 'win32') {
-                    try {
-                        accessSync(edgePath, constants.X_OK);
-                    } catch {
-                        // Make executable if not
-                        chmodSync(edgePath, 0o755);
-                    }
+                try {
+                    accessSync(edgePath, constants.X_OK);
+                } catch {
+                    // Make executable if not
+                    chmodSync(edgePath, 0o755);
                 }
                 return edgePath;
             }
@@ -244,15 +256,23 @@ export class BrowserManager extends EventEmitter {
                 case BrowserType.edge:
                 case 'edge':
                     browserLauncher = chromium;
-                    // Edge: CHỈ dùng bản custom đã được cài bởi app (my-browsers)
+                    // Edge: trên Windows dùng hệ thống, Mac/Linux dùng custom
                     const customEdgePath = this.getCustomEdgePath();
                     if (customEdgePath) {
                         launchOptions.executablePath = customEdgePath;
                     } else {
-                        throw new Error(
-                            "Microsoft Edge is not installed via Browser Manager. " +
-                            "Please install Edge from the Browser Manager first."
-                        );
+                        const platform = process.platform;
+                        if (platform === 'win32') {
+                            throw new Error(
+                                "Microsoft Edge is not installed on this system. " +
+                                "Please install Edge from Microsoft's website."
+                            );
+                        } else {
+                            throw new Error(
+                                "Microsoft Edge is not installed via Browser Manager. " +
+                                "Please install Edge from the Browser Manager first."
+                            );
+                        }
                     }
                     launchOptions.args = [
                         '--no-sandbox',

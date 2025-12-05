@@ -1,4 +1,4 @@
-import { ipcMain } from "electron";
+import { ipcMain, shell } from "electron";
 import { exec, spawn, fork, ChildProcess } from "child_process";
 import { promisify } from "util";
 import * as fs from "fs";
@@ -43,16 +43,47 @@ function getCustomBrowsersPath(): string {
   }
 }
 
+// Get system Edge executable path on Windows
+function getSystemEdgePath(): string | null {
+  if (process.platform !== 'win32') {
+    return null;
+  }
+  
+  // Các đường dẫn phổ biến của Edge trên Windows
+  const possiblePaths = [
+    path.join(process.env['ProgramFiles(x86)'] || '', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+    path.join(process.env.ProgramFiles || '', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+    path.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+  ];
+  
+  for (const edgePath of possiblePaths) {
+    if (fs.existsSync(edgePath)) {
+      return edgePath;
+    }
+  }
+  
+  return null;
+}
+
 // Get Edge executable path for custom installation
 function getEdgeExecutablePath(): string | null {
-  const customBrowsersPath = getCustomBrowsersPath();
   const platform = process.platform;
   
+  // Trên Windows: ưu tiên tìm Edge hệ thống
+  if (platform === 'win32') {
+    const systemEdgePath = getSystemEdgePath();
+    if (systemEdgePath) {
+      return systemEdgePath;
+    }
+    // Nếu không có Edge hệ thống, không tìm custom (vì không tải về nữa)
+    return null;
+  }
+  
+  // Mac và Linux: vẫn dùng custom installation
+  const customBrowsersPath = getCustomBrowsersPath();
   let edgePath: string;
   
-  if (platform === 'win32') {
-    edgePath = path.join(customBrowsersPath, "edge-win", "Microsoft", "Edge", "Application", "msedge.exe");
-  } else if (platform === 'darwin') {
+  if (platform === 'darwin') {
     edgePath = path.join(customBrowsersPath, "edge-mac", "Microsoft Edge.app", "Contents", "MacOS", "Microsoft Edge");
   } else {
     // Linux
@@ -62,13 +93,11 @@ function getEdgeExecutablePath(): string | null {
   // Check if executable exists and is accessible
   if (fs.existsSync(edgePath)) {
     // On Linux/Mac, check if file is executable
-    if (platform !== 'win32') {
-      try {
-        fs.accessSync(edgePath, fs.constants.X_OK);
-      } catch {
-        // Make executable if not
-        fs.chmodSync(edgePath, 0o755);
-      }
+    try {
+      fs.accessSync(edgePath, fs.constants.X_OK);
+    } catch {
+      // Make executable if not
+      fs.chmodSync(edgePath, 0o755);
     }
     return edgePath;
   }
@@ -93,8 +122,16 @@ async function isSafariInstalled(): Promise<boolean> {
   return await isBrowserInstalled('webkit');
 }
 
-// Check if Edge is installed (custom build only – system Edge không được dùng)
+// Check if Edge is installed
 async function isEdgeInstalled(): Promise<boolean> {
+  const platform = process.platform;
+  
+  // Trên Windows: kiểm tra Edge hệ thống
+  if (platform === 'win32') {
+    return !!getSystemEdgePath();
+  }
+  
+  // Mac và Linux: kiểm tra custom installation
   const customEdgePath = getEdgeExecutablePath();
   return !!customEdgePath;
 }
@@ -227,8 +264,34 @@ function getLatestUpdatedAt(paths: string[]): string | undefined {
 
 function getBrowsersInfo(): BrowserInfoResponse[] {
   return MANAGED_BROWSERS.map((browser) => {
-    // Special handling cho Edge: chỉ dùng bản custom do app quản lý
+    // Special handling cho Edge
     if (browser.id === 'edge') {
+      const platform = process.platform;
+      
+      // Trên Windows: sử dụng Edge hệ thống
+      if (platform === 'win32') {
+        const systemEdgePath = getSystemEdgePath();
+        if (systemEdgePath) {
+          return {
+            id: browser.id,
+            label: browser.label,
+            status: 'system',
+            installSource: 'system',
+            paths: [systemEdgePath],
+            updatedAt: getLatestUpdatedAt([systemEdgePath]),
+            note: 'System Edge browser (managed by Windows)',
+          };
+        }
+        return {
+          id: browser.id,
+          label: browser.label,
+          status: 'not-installed',
+          installSource: null,
+          paths: [],
+        };
+      }
+      
+      // Mac và Linux: dùng custom installation
       const customPath = getEdgeExecutablePath();
       if (customPath) {
         return {
@@ -281,12 +344,17 @@ async function removeBrowserInstallation(browserType: string): Promise<string[]>
   
   if (normalized === 'edge') {
     const platform = process.platform;
+    
+    // Trên Windows: không cho phép xóa Edge hệ thống
+    if (platform === 'win32') {
+      throw new Error('Cannot remove system Edge on Windows. Edge is managed by the operating system.');
+    }
+    
+    // Mac và Linux: cho phép xóa custom installation
     const customBase =
-      platform === 'win32'
-        ? path.join(getCustomBrowsersPath(), 'edge-win')
-        : platform === 'darwin'
-          ? path.join(getCustomBrowsersPath(), 'edge-mac')
-          : path.join(getCustomBrowsersPath(), 'edge-linux');
+      platform === 'darwin'
+        ? path.join(getCustomBrowsersPath(), 'edge-mac')
+        : path.join(getCustomBrowsersPath(), 'edge-linux');
     
     if (!fs.existsSync(customBase)) {
       throw new Error('Edge custom installation not found.');
@@ -316,7 +384,7 @@ export async function checkBrowsersInstalled(browserTypes: string[]): Promise<{ 
   for (const browserType of browserTypes) {
     const normalized = browserType.toLowerCase();
     if (normalized === 'edge') {
-      // Edge: chỉ coi là installed nếu có custom Edge
+      // Edge: trên Windows kiểm tra hệ thống, Mac/Linux kiểm tra custom
       result[browserType] = await isEdgeInstalled();
     } else if (normalized === 'chrome') {
       // Chrome: chỉ dùng Chromium do Playwright tải
@@ -340,10 +408,26 @@ export async function checkBrowsersInstalled(browserTypes: string[]): Promise<{ 
 async function installEdgeCustom(
   onProgress?: (browser: string, progress: number, status: string) => void
 ): Promise<void> {
+  const platform = process.platform;
+  
+  // Trên Windows: mở link web để tải Edge
+  if (platform === 'win32') {
+    onProgress?.('edge', 0, 'Opening Edge download page...');
+    const edgeDownloadUrl = 'https://www.microsoft.com/edge';
+    try {
+      await shell.openExternal(edgeDownloadUrl);
+      onProgress?.('edge', 100, 'Edge download page opened in browser');
+      // Không reject, chỉ mở link
+      return;
+    } catch (error) {
+      throw new Error(`Failed to open Edge download page: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+  
+  // Mac và Linux: tiếp tục dùng script cài đặt
   const INSTALL_TIMEOUT = 30 * 60 * 1000; // 30 minutes
   const PROGRESS_UPDATE_INTERVAL = 5000; // 5 seconds
   const PROGRESS_INCREMENT = 2; // 2% per interval
-  const platform = process.platform;
   
   // Get script directory - handle both packaged and dev modes
   let scriptDir: string;
@@ -372,14 +456,8 @@ async function installEdgeCustom(
     let scriptPath: string;
     let command: string;
     
-    if (platform === 'win32') {
-      scriptPath = path.join(scriptDir, "win.ps1");
-      if (!fs.existsSync(scriptPath)) {
-        reject(new Error(`Edge installation script not found: ${scriptPath}`));
-        return;
-      }
-      command = `powershell -ExecutionPolicy Bypass -File "${scriptPath}"`;
-    } else if (platform === 'darwin') {
+    // Chỉ xử lý Mac và Linux ở đây (Windows đã được xử lý ở trên)
+    if (platform === 'darwin') {
       scriptPath = path.join(scriptDir, "mac.sh");
       if (!fs.existsSync(scriptPath)) {
         reject(new Error(`Edge installation script not found: ${scriptPath}`));
@@ -453,12 +531,8 @@ async function installEdgeCustom(
       if (child && !child.killed && child.pid) {
         console.error('[Playwright IPC] Edge installation timeout, killing process...');
         try {
-          // Kill the process and all its children
-          if (platform === 'win32') {
-            exec(`taskkill /F /T /PID ${child.pid}`, () => {});
-          } else {
-            process.kill(-child.pid, 'SIGKILL');
-          }
+          // Kill the process and all its children (Mac/Linux only)
+          process.kill(-child.pid, 'SIGKILL');
         } catch (err) {
           console.error('[Playwright IPC] Error killing process:', err);
         }
