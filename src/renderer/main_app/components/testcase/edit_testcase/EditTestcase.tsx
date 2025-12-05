@@ -92,6 +92,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
           action_type: a.action_type,
           description: a.description,
           elements: (a.elements || []).map((el: any) => ({
+            element_id: el?.element_id, // giữ lại element_id nếu có
             selectors: ((el?.selectors || []) as any[])
               .map((s: any) => {
                 const val = typeof s === 'string' ? s : (s?.value || '');
