@@ -2,7 +2,7 @@ import { createHoverOverlay, enableHoverEffects, disableHoverEffects, showHoverE
 import { initializeErrorHandlers } from './errorHandler.js';
 import { initializeNavigationPrevention, setAssertMode as setNavAssertMode } from './navigationPrevention.js';
 import { handleClickEvent } from './eventHandlers.js';
-import { setPauseMode } from '../actions/baseAction.js';
+import { setPauseMode, buildElement } from '../actions/baseAction.js';
 import { handleDoubleClickEvent, handleRightClickEvent, handleShiftClickEvent } from '../actions/click_handle.js';
 import { generateSelector, validateAndImproveSelector, generateAndValidateSelectors } from '../selector_generator/selectorGenerator.js';
 import { previewNode, extractElementText } from '../dom/domUtils.js';
@@ -192,12 +192,18 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
         } : undefined
       } : undefined;
     };
+    // Build element với đầy đủ thông tin
+    const element = DOMelement 
+      ? buildElement(DOMelement, selector, 1)
+      : {
+          selectors: selector.map((s) => ({ value: s })),
+          order_index: 1,
+        };
+    
     const action = {
       action_type: 'assert',
       assert_type: assertType,
-      elements: [{
-        selectors: selector.map((selector) => ({ value: selector })),
-      }],
+      elements: [element],
       action_datas: [action_datas]
     }
     window.sendActionToMain(action);

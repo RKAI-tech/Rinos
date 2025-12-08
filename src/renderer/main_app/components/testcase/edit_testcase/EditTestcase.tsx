@@ -91,7 +91,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
           testcase_id: a.testcase_id,
           action_type: a.action_type,
           description: a.description,
-          elements: (a.elements || []).map((el: any) => ({
+          elements: (a.elements || []).map((el: any, idx: number) => ({
             element_id: el?.element_id, // giữ lại element_id nếu có
             selectors: ((el?.selectors || []) as any[])
               .map((s: any) => {
@@ -99,6 +99,10 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
                 return val && val.length > 0 ? { value: val } : null;
               })
               .filter(Boolean) as { value: string }[],
+            order_index: idx+1, // Set order_index theo thứ tự mới (1, 2, 3, ...)
+            element_data: el?.element_data, // giữ lại element_data nếu có
+            created_at: el?.created_at, // giữ lại created_at nếu có
+            updated_at: el?.updated_at, // giữ lại updated_at nếu có
           })),
           assert_type: a.assert_type as any,
           action_datas: a.action_datas,

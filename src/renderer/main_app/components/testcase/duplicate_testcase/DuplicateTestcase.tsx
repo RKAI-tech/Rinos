@@ -81,11 +81,19 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
       return;
     }
 
-    // TODO: clone actions without action_id and testcase_id
+    // Clone actions without action_id, testcase_id, và element_id (vì là testcase mới)
+    // Nhưng giữ lại element_data và set lại order_index
     const preparedActions = actions.map(a => ({
       ...a,
       action_id: '',
       testcase_id: '',
+      elements: (a.elements || []).map((el: any, idx: number) => ({
+        // Không giữ element_id vì là testcase mới
+        selectors: el?.selectors || [],
+        order_index: idx+1, // Set lại order_index theo thứ tự mới (1, 2, 3, ...)
+        element_data: el?.element_data, // Giữ lại element_data
+        // Không giữ created_at, updated_at vì là bản ghi mới
+      })),
     }));
     // Prepare actions for createTestCaseWithActions
     // const preparedActions: Action[] = (actions || []).map(a => ({

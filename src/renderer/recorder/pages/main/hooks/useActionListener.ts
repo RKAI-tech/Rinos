@@ -392,6 +392,8 @@ export const useActionListener = ({
         const selectors = action.elements?.[0]?.selectors?.map((s: any) => s.value) || [];
         const domHtml = action.action_datas?.[0]?.value?.htmlDOM || '';
         const elementText = action.action_datas?.[0]?.value?.elementText || '';
+        // Lấy element_data từ action element nếu có
+        const elementData = action.elements?.[0]?.element_data || undefined;
 
         if (!selectors.length && !domHtml) {
           toast.warn('Failed to capture element. Please click again.');
@@ -462,6 +464,7 @@ export const useActionListener = ({
             pageIndex,
             pageUrl: pageUrl || null,
             pageTitle: pageTitle || null,
+            element_data: elementData, // Lưu element_data từ browser action
           };
           return next;
         });

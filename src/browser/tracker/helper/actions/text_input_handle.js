@@ -3,6 +3,7 @@ import {
   shouldIgnoreTarget,
   buildSelectors,
   buildCommonActionData,
+  buildElement,
   sendAction
 } from './baseAction.js';
 import { previewNode, extractElementText } from '../dom/domUtils.js';
@@ -22,12 +23,12 @@ export function handleInputLikeBase(e, actionType = 'input', eventLabel = 'Input
   const selectors = buildSelectors(e?.target);
   const value = e?.target?.value;
   const elementText = extractElementText(e?.target);
+  const element = buildElement(e?.target, selectors, 1);
+  
   // console.log(`${eventLabel} event - generated selectors:`, selectors, 'value:', value);
   sendAction({
     action_type: actionType,
-    elements: [{
-      selectors: selectors.map((selector) => ({ value: selector })),
-    }],
+    elements: [element],
     action_datas: [{
       value: { 
         value: value, 

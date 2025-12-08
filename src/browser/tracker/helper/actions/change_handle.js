@@ -1,4 +1,4 @@
-import { buildSelectors, sendAction } from './baseAction.js';
+import { buildSelectors, buildElement, sendAction } from './baseAction.js';
 import { previewNode, extractElementText } from '../dom/domUtils.js';
 import {shouldIgnoreTarget} from './baseAction.js';
 // Xử lý sự kiện change cho checkbox, radio, select
@@ -24,11 +24,10 @@ export function handleCheckboxRadioChangeEvent(e) {
   //add page index
   if (tag === 'input' && type === 'checkbox') {
     const normalizedValue = isChecked ? 'on' : 'off';
+    const element = buildElement(el, selectors, 1);
     sendAction({
       action_type: 'change',
-      elements: [{
-        selectors: selectors.map((selector) => ({ value: selector })),
-      }],
+      elements: [element],
       action_datas: [{
         value: {
           value: normalizedValue,
@@ -45,11 +44,10 @@ export function handleCheckboxRadioChangeEvent(e) {
   if (tag === 'input' && type === 'radio') {
     // Radio: giá trị là value của option được chọn; checked = true
     const radioValue = el.value || 'on';
+    const element = buildElement(el, selectors, 1);
     sendAction({
       action_type: 'change',
-      elements: [{
-        selectors: selectors.map((selector) => ({ value: selector })),
-      }],
+      elements: [element],
       action_datas: [{
         value: {
           value: radioValue,

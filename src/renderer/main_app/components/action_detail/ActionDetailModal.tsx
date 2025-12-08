@@ -126,11 +126,12 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave,
   const normalizeActionForSave = (source: Action): Action => {
     const cloned: Action = {
       ...source,
-      elements: (source.elements || []).map(el => ({
+      elements: (source.elements || []).map((el, idx) => ({
         ...el,
         selectors: (el.selectors || [])
           .map(s => ({ value: (s.value || '').trim() }))
           .filter(s => s.value.length > 0),
+        order_index: idx+1, // Set order_index theo thứ tự nếu chưa có
       })),
     };
 

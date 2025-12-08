@@ -17,11 +17,12 @@ export const normalizeInputAction = (source: Action): Action => {
   const cloned: Action = {
     ...source,
     // Ensure elements selectors are trimmed and non-empty
-    elements: (source.elements || []).map(el => ({
+    elements: (source.elements || []).map((el, idx) => ({
       ...el,
       selectors: (el.selectors || [])
         .map((s: any) => ({ value: (s.value || '').trim() }))
-        .filter((s: any) => s.value.length > 0)
+        .filter((s: any) => s.value.length > 0),
+      order_index: idx+1, // Set order_index theo thứ tự nếu chưa có
     })),
   };
 

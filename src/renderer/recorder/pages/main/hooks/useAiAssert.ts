@@ -15,6 +15,7 @@ export interface AiElement {
   pageIndex?: number | null;
   pageUrl?: string | null;
   pageTitle?: string | null;
+  element_data?: Record<string, any>; // Element data từ browser action
   connectionId?: string;
   connection?: Connection;
   query?: string;
@@ -97,7 +98,7 @@ export const useAiAssert = ({
     setAiElements(prev =>
       prev.map(el =>
         el.id === elementId && el.type === 'Browser'
-          ? { ...el, selector: [], value: '', domHtml: '', pageIndex: null }
+          ? { ...el, selector: [], value: '', domHtml: '', pageIndex: null, element_data: undefined }
           : el
       )
     );
@@ -276,12 +277,15 @@ export const useAiAssert = ({
         }
         actionDatas.push(actionData);
       }
-      var html_element_action = []
-      for (const htmlElement of HTMLElements) {
-        html_element_action.push({
-          selectors: htmlElement.selectors
-        });
-      }
+      // Tạo elements với đầy đủ thông tin (selectors, order_index, element_data)
+      const html_element_action = browserElements.map((item, idx) => {
+        const aiElement = item.el;
+        return {
+          selectors: aiElement.selector?.map(s => ({ value: s })) || [],
+          order_index: idx + 1, // Set order_index theo thứ tự (1, 2, 3, ...)
+          element_data: aiElement.element_data, // Giữ lại element_data từ browser action
+        };
+      });
       const aiAction = {
         action_type: ActionType.assert,
         assert_type: AssertType.ai,

@@ -3,6 +3,7 @@ import {
   shouldIgnoreTarget,
   buildSelectors,
   buildCommonActionData,
+  buildElement,
   sendAction
 } from './baseAction.js';
 import { extractElementText } from '../dom/domUtils.js';
@@ -38,11 +39,11 @@ export function handleClickLikeBase(e, actionType, eventLabel = 'Click') {
   if (!shouldSkipElementForClick(e?.target)) {
     const selectors = buildSelectors(e?.target, { minScore: 100, validate: true });
     const elementText = extractElementText(e?.target);
+    const element = buildElement(e?.target, selectors, 1);
+    
     sendAction({
       action_type: actionType,
-      elements: [{
-        selectors: selectors.map((selector) => ({ value: selector })),
-      }],
+      elements: [element],
       action_datas: [{
         value: {
           elementText: elementText,

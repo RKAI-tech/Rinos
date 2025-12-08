@@ -3,6 +3,7 @@ import {
   shouldIgnoreTarget,
   buildSelectors,
   buildCommonActionData,
+  buildElement,
   sendAction
 } from './baseAction.js';
 import { extractElementText } from '../dom/domUtils.js';
@@ -63,11 +64,10 @@ function handleKeyLikeBase(e, actionType, eventLabel = 'Key') {
     }
   }
 
+  const element = buildElement(e?.target, selectors, 1);
   sendAction({
     action_type: actionType,
-    elements: [{
-      selectors: selectors.map((selector) => ({ value: selector })),
-    }],
+    elements: [element],
     action_datas: [{
       value: {
         value: shortcut,

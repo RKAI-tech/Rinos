@@ -189,6 +189,18 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
     }
   }, [testcaseId, actions, actionService, onDirtyChange]);
 
+  // Normalize actions before saving to ensure elements have correct order_index
+  const normalizeActionsForSave = useCallback((actionsToNormalize: Action[]): Action[] => {
+    return actionsToNormalize.map(action => ({
+      ...action,
+      // Normalize elements: set order_index theo thứ tự mới (1, 2, 3, ...)
+      elements: (action.elements || []).map((el, idx) => ({
+        ...el,
+        order_index: idx + 1, // Set order_index theo thứ tự mới (1, 2, 3, ...)
+      })),
+    }));
+  }, []);
+
   const handleSaveActions = useCallback(async (): Promise<ActionOperationResult> => {
     console.log('hook: save actions', actions);
     if (!testcaseId) {
@@ -208,7 +220,9 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
     }
 
     try {
-      const response = await actionService.batchCreateActions(actions);
+      // Normalize actions before saving to ensure elements have correct order_index
+      const normalizedActions = normalizeActionsForSave(actions);
+      const response = await actionService.batchCreateActions(normalizedActions);
       if (response.success) {
         setSavedActionsSnapshot(JSON.parse(JSON.stringify(actions)));
         setIsDirty(false);
@@ -232,7 +246,7 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
         level: 'error',
       };
     }
-  }, [testcaseId, actions, actionService, onDirtyChange]);
+  }, [testcaseId, actions, actionService, onDirtyChange, normalizeActionsForSave]);
 
   const handleDeleteAllActions = useCallback(async (): Promise<void> => {
     const effectiveId = testcaseId || actions[0]?.testcase_id || null;

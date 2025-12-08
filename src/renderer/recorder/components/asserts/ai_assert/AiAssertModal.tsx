@@ -22,6 +22,7 @@ interface AiElementItem {
   pageIndex?: number | null;
   pageUrl?: string | null;
   pageTitle?: string | null;
+  element_data?: Record<string, any>; // Element data từ browser action
   // Database fields
   connectionId?: string;
   connection?: Connection;
