@@ -193,6 +193,18 @@ export function extractElementData(element) {
     const src = element.src || element.getAttribute('src') || null;
     const linkTarget = href || src;
 
+    // Lấy URL của page hiện tại
+    let pageUrl = null;
+    try {
+      if (element.ownerDocument && element.ownerDocument.defaultView) {
+        pageUrl = element.ownerDocument.defaultView.location?.href || null;
+      } else if (typeof window !== 'undefined' && window.location) {
+        pageUrl = window.location.href || null;
+      }
+    } catch (e) {
+      // CORS hoặc lỗi khác khi truy cập location
+    }
+
     const elementData = {
       // 1. Tag name
       tagName: element.tagName?.toLowerCase() || null,
@@ -284,6 +296,9 @@ export function extractElementData(element) {
       
       // 28. Z-index (thứ tự xếp chồng)
       zIndex: style?.zIndex || null,
+      
+      // 29. URL của page mà element thuộc về
+      pageUrl: pageUrl,
     };
 
     // Loại bỏ các giá trị null để giảm kích thước dữ liệu

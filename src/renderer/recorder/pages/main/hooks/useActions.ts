@@ -201,7 +201,9 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
     }));
   }, []);
 
-  const handleSaveActions = useCallback(async (): Promise<ActionOperationResult> => {
+  const handleSaveActions = useCallback(async (
+    checkDuplicates?: (actions: Action[]) => Promise<Action[]>
+  ): Promise<ActionOperationResult> => {
     console.log('hook: save actions', actions);
     if (!testcaseId) {
       return {
@@ -221,10 +223,20 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
 
     try {
       // Normalize actions before saving to ensure elements have correct order_index
-      const normalizedActions = normalizeActionsForSave(actions);
-      const response = await actionService.batchCreateActions(normalizedActions);
+      let actionsToSave = normalizeActionsForSave(actions);
+      
+      // Kiểm tra duplicate elements nếu có callback
+      if (checkDuplicates) {
+        actionsToSave = await checkDuplicates(actionsToSave);
+        // Cập nhật actions nếu có thay đổi
+        if (JSON.stringify(actionsToSave) !== JSON.stringify(normalizeActionsForSave(actions))) {
+          setActions(actionsToSave);
+        }
+      }
+      
+      const response = await actionService.batchCreateActions(actionsToSave);
       if (response.success) {
-        setSavedActionsSnapshot(JSON.parse(JSON.stringify(actions)));
+        setSavedActionsSnapshot(JSON.parse(JSON.stringify(actionsToSave)));
         setIsDirty(false);
         onDirtyChange?.(false);
         return {

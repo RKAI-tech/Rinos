@@ -25,6 +25,8 @@ import { useAiAssert } from './hooks/useAiAssert';
 import { usePageSelection } from './hooks/usePageSelection';
 import { useUnsavedChanges } from './hooks/useUnsavedChanges';
 import { useActionListener } from './hooks/useActionListener';
+import { useDuplicateElementCheck } from './hooks/useDuplicateElementCheck';
+import CheckDuplicateElementModal from '../../components/check_duplicate_element/CheckDuplicateElementModal';
 
 interface MainProps {
   projectId?: string | null;
@@ -130,6 +132,13 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
     savedActionsSnapshot: actionsHook.savedActionsSnapshot,
     basicAuth: basicAuthHook.basicAuth,
     savedBasicAuthSnapshot: basicAuthHook.savedBasicAuthSnapshot,
+  });
+
+  const duplicateCheck = useDuplicateElementCheck({
+    onDuplicateResolved: (updatedActions) => {
+      // Cập nhật actions sau khi xử lý duplicate
+      actionsHook.handleActionsChange(updatedActions);
+    },
   });
 
   // Computed state để track xem có modal/popup nào đang mở không
@@ -333,7 +342,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
   const saveAll = async (): Promise<ActionOperationResult> => {
     actionsHook.setIsSaving(true);
     try {
-      const result = await actionsHook.handleSaveActions();
+      const result = await actionsHook.handleSaveActions(duplicateCheck.checkDuplicates);
       await basicAuthHook.handleSaveBasicAuth();
       return result;
     } finally {
@@ -386,7 +395,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
   const handleSaveAndClose = async () => {
     modals.setIsConfirmCloseOpen(false);
     try {
-      const saveResult = await actionsHook.handleSaveActions();
+      const saveResult = await actionsHook.handleSaveActions(duplicateCheck.checkDuplicates);
 
       if (!saveResult.success) {
         if (saveResult.level === 'warning') {
@@ -771,6 +780,14 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
         onClearPage={() => {
           pageSelection.setTitleInputSelectedPageInfo(null);
         }}
+      />
+      <CheckDuplicateElementModal
+        isOpen={duplicateCheck.isModalOpen}
+        duplicateGroup={duplicateCheck.currentGroup}
+        currentGroupIndex={duplicateCheck.currentGroupIndex}
+        totalGroups={duplicateCheck.totalGroups}
+        onConfirm={duplicateCheck.handleConfirm}
+        onCancel={duplicateCheck.handleCancel}
       />
     </div>
   );
