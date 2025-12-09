@@ -261,6 +261,7 @@ export const useAiAssert = ({
             statement: {
               statement_text: databaseElement.query,
               connection_id: databaseElement.connection?.connection_id,
+              connection: databaseElement?.connection,
             }
           });
         }

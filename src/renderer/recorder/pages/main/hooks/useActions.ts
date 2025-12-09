@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Action } from '../../../types/actions';
+import { Action, Element as ActionElement } from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
 import { ActionOperationResult } from '../../../components/action_tab/ActionTab';
 import { receiveActionWithInsert } from '../../../utils/receive_action';
@@ -280,7 +280,42 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
 
   const handleUpdateAction = useCallback((updatedAction: Action) => {
     setActions(prev => {
-      const next = prev.map(a => a.action_id === updatedAction.action_id ? { ...a, ...updatedAction } : a);
+      // Map element_id -> element (từ action đã chỉnh sửa) để đồng bộ cho các action khác
+      const elementById: Record<string, ActionElement> = {};
+      (updatedAction.elements || []).forEach((el) => {
+        if (el.element_id) {
+          elementById[el.element_id] = el;
+        }
+      });
+
+      const next = prev.map(a => {
+        if (a.action_id === updatedAction.action_id) {
+          // Action đang sửa: thay bằng bản mới
+          return { ...a, ...updatedAction };
+        }
+
+        if (!a.elements || Object.keys(elementById).length === 0) {
+          return a;
+        }
+
+        // Action khác: cập nhật các element trùng element_id
+        const updatedElements = a.elements.map((el) => {
+          if (el.element_id && elementById[el.element_id]) {
+            const source = elementById[el.element_id];
+            return {
+              ...el,
+              ...source,
+              element_id: el.element_id, // giữ nguyên id
+              // giữ order_index gốc của action hiện tại nếu có
+              order_index: el.order_index ?? source.order_index,
+            };
+          }
+          return el;
+        });
+
+        return { ...a, elements: updatedElements };
+      });
+
       setIsDirty(true);
       onDirtyChange?.(true);
       return next;

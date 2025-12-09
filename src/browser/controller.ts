@@ -496,9 +496,7 @@ export class Controller {
                                 break;
                             }
                         }
-                        if (activePage) {
-                            await activePage.waitForTimeout(Number(value_wait) || 0);
-                        }
+                        await new Promise(resolve => setTimeout(resolve, Number(value_wait) || 0));
                         break;
                     case ActionType.drag_and_drop:
                         if (activePage && action.elements && action.elements.length === 2) {
