@@ -3,7 +3,7 @@ import './ActionTab.css';
 import RenderedAction from '../action/Action';
 import AddActionModal from '../add_action_modal/AddActionModal';
 import DatabaseExecutionModal from '../add_action_modal/database_execution_modal/DatabaseExecutionModal';
-import WaitModal, { SelectedPageInfo } from '../add_action_modal/wait_modal/WaitModal';
+import WaitModal from '../add_action_modal/wait_modal/WaitModal';
 import NavigateModal, { SelectedPageInfo as NavigateSelectedPageInfo } from '../add_action_modal/navigate_modal/NavigateModal';
 import ApiRequestModal, { SelectedPageInfo as ApiRequestSelectedPageInfo } from '../add_action_modal/api_request_modal/ApiRequestModal';
 import BrowserActionModal, { BrowserActionType, SelectedPageInfo as BrowserActionSelectedPageInfo } from '../add_action_modal/browser_action_modal/BrowserActionModal';
@@ -50,8 +50,6 @@ interface ActionTabProps {
   basicAuthStatus?: 'idle' | 'success';
   onBasicAuthStatusClear?: () => void;
   onModalStateChange?: (modalType: 'wait' | 'navigate' | 'api_request' | 'add_browser_storage' | 'database_execution' | 'browser_action', isOpen: boolean) => void;
-  waitSelectedPageInfo?: SelectedPageInfo | null;
-  onWaitPageInfoChange?: (pageInfo: SelectedPageInfo | null) => void;
   navigateSelectedPageInfo?: NavigateSelectedPageInfo | null;
   onNavigatePageInfoChange?: (pageInfo: NavigateSelectedPageInfo | null) => void;
   browserActionSelectedPageInfo?: BrowserActionSelectedPageInfo | null;
@@ -93,8 +91,6 @@ const ActionTab: React.FC<ActionTabProps> = ({
   basicAuthStatus,
   onBasicAuthStatusClear,
   onModalStateChange,
-  waitSelectedPageInfo: propWaitSelectedPageInfo,
-  onWaitPageInfoChange,
   navigateSelectedPageInfo: propNavigateSelectedPageInfo,
   onNavigatePageInfoChange,
   browserActionSelectedPageInfo: propBrowserActionSelectedPageInfo,
@@ -113,7 +109,6 @@ const ActionTab: React.FC<ActionTabProps> = ({
   const [isAddBrowserStorageOpen, setIsAddBrowserStorageOpen] = useState(false);
   const [isBrowserActionOpen, setIsBrowserActionOpen] = useState(false);
   const [browserActionType, setBrowserActionType] = useState<BrowserActionType>('back');
-  const [waitSelectedPageInfo, setWaitSelectedPageInfo] = useState<SelectedPageInfo | null>(null);
   const [navigateSelectedPageInfo, setNavigateSelectedPageInfo] = useState<NavigateSelectedPageInfo | null>(null);
   const [browserActionSelectedPageInfo, setBrowserActionSelectedPageInfo] = useState<BrowserActionSelectedPageInfo | null>(null);
   const [addBrowserStorageSelectedPageInfo, setAddBrowserStorageSelectedPageInfo] = useState<AddBrowserStorageSelectedPageInfo | null>(null);
@@ -431,7 +426,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
     // toast.success('Added navigate action');
   }
 
-  const handleWaitConfirm = async (ms: any, pageInfo?: SelectedPageInfo) => {
+  const handleWaitConfirm = async (ms: any) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
     const actionDatas: any[] = [
       {
@@ -441,22 +436,12 @@ const ActionTab: React.FC<ActionTabProps> = ({
       }
     ];
 
-    if (pageInfo) {
-      actionDatas.push({
-        value: {
-          page_index: pageInfo.page_index,
-          page_url: pageInfo.page_url,
-          page_title: pageInfo.page_title,
-        }
-      });
-    }
-
     const newAction = {
       testcase_id: testcaseId,
       action_id: Math.random().toString(36),
       action_type: ActionType.wait,
       action_datas: actionDatas,
-      description: pageInfo ? `Wait for ${ms} ms on page ${pageInfo.page_title || pageInfo.page_url}` : `Wait for ${ms} ms`,
+      description: `Wait for ${ms} ms`,
     };
     onActionsChange(prev => {
       const next = receiveActionWithInsert(
@@ -474,19 +459,9 @@ const ActionTab: React.FC<ActionTabProps> = ({
       return next;
     });
     setIsWaitOpen(false);
-    setWaitSelectedPageInfo(null);
     onModalStateChange?.('wait', false);
-    onWaitPageInfoChange?.(null);
     // toast.success('Added wait action');
   }
-
-  // Reset page info khi modal đóng
-  useEffect(() => {
-    if (!isWaitOpen) {
-      setWaitSelectedPageInfo(null);
-      onWaitPageInfoChange?.(null);
-    }
-  }, [isWaitOpen, onWaitPageInfoChange]);
 
   useEffect(() => {
     if (!isNavigateOpen) {
@@ -893,16 +868,9 @@ const ActionTab: React.FC<ActionTabProps> = ({
               isOpen={isWaitOpen}
               onClose={() => {
                 setIsWaitOpen(false);
-                setWaitSelectedPageInfo(null);
                 onModalStateChange?.('wait', false);
-                onWaitPageInfoChange?.(null);
               }}
               onConfirm={handleWaitConfirm}
-              selectedPageInfo={propWaitSelectedPageInfo || waitSelectedPageInfo}
-              onClearPage={() => {
-                setWaitSelectedPageInfo(null);
-                onWaitPageInfoChange?.(null);
-              }}
             />
             <NavigateModal
               isOpen={isNavigateOpen}

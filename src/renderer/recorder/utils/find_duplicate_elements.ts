@@ -90,17 +90,50 @@ export function findDuplicateElementGroups(
 
     // Chỉ thêm nhóm nếu có ít nhất 2 element
     if (similarElements.length >= 2) {
-      groups.push({
-        elements: similarElements.map(el => ({
-          element: el.element,
-          actionIndex: el.actionIndex,
-          elementIndex: el.elementIndex,
-          actionType: el.actionType,
-          actionDescription: el.actionDescription,
-        })),
-        similarityScore: minSimilarity,
+      // Tính lại minSimilarity bằng cách so sánh tất cả các cặp element trong nhóm
+      // để đảm bảo đây là giá trị nhỏ nhất thực sự giữa tất cả các cặp
+      let actualMinSimilarity = 1.0;
+      for (let k = 0; k < similarElements.length; k++) {
+        for (let l = k + 1; l < similarElements.length; l++) {
+          const score = getElementSimilarityScore(
+            similarElements[k].element,
+            similarElements[l].element
+          );
+          actualMinSimilarity = Math.min(actualMinSimilarity, score);
+        }
+      }
+      
+      // Kiểm tra xem các element trong nhóm đã có cùng element_id chưa
+      const elementIds = similarElements.map(el => {
+        const id = el.element.element_id;
+        // Chuẩn hóa: null, undefined, empty string đều coi là rỗng
+        return (id && id.trim() !== '') ? id : null;
       });
-      processed.add(i);
+      
+      // Lọc ra các element_id không rỗng
+      const nonEmptyIds = elementIds.filter(id => id !== null);
+      
+      // Chỉ cảnh báo nếu tất cả element chưa có cùng element_id
+      // Tức là: có element rỗng HOẶC có nhiều hơn 1 element_id khác nhau
+      const hasEmptyIds = nonEmptyIds.length < elementIds.length; // Có ít nhất 1 element rỗng
+      const hasDifferentIds = new Set(nonEmptyIds).size > 1; // Có nhiều hơn 1 element_id khác nhau
+      
+      // Nếu tất cả đều có cùng element_id (và không rỗng) thì không cảnh báo
+      const allHaveSameId = !hasEmptyIds && !hasDifferentIds && nonEmptyIds.length === elementIds.length;
+      
+      if (!allHaveSameId) {
+        groups.push({
+          elements: similarElements.map(el => ({
+            element: el.element,
+            actionIndex: el.actionIndex,
+            elementIndex: el.elementIndex,
+            actionType: el.actionType,
+            actionDescription: el.actionDescription,
+          })),
+          similarityScore: actualMinSimilarity,
+        });
+        processed.add(i);
+      }
     }
   }
 

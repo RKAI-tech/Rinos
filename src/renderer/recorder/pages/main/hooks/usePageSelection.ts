@@ -7,7 +7,6 @@ export interface PageInfo {
 }
 
 export const usePageSelection = () => {
-  const [waitSelectedPageInfo, setWaitSelectedPageInfo] = useState<PageInfo | null>(null);
   const [navigateSelectedPageInfo, setNavigateSelectedPageInfo] = useState<PageInfo | null>(null);
   const [browserActionSelectedPageInfo, setBrowserActionSelectedPageInfo] = useState<PageInfo | null>(null);
   const [addBrowserStorageSelectedPageInfo, setAddBrowserStorageSelectedPageInfo] = useState<PageInfo | null>(null);
@@ -17,8 +16,6 @@ export const usePageSelection = () => {
   const [aiAssertSelectedPageInfo, setAiAssertSelectedPageInfo] = useState<PageInfo | null>(null);
 
   return {
-    waitSelectedPageInfo,
-    setWaitSelectedPageInfo,
     navigateSelectedPageInfo,
     setNavigateSelectedPageInfo,
     browserActionSelectedPageInfo,

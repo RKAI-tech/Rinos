@@ -27,7 +27,6 @@ interface UseActionListenerProps {
   isUrlInputOpen: boolean;
   isTitleInputOpen: boolean;
   isAiAssertOpen: boolean;
-  setWaitSelectedPageInfo: (info: PageInfo | null) => void;
   setNavigateSelectedPageInfo: (info: PageInfo | null) => void;
   setBrowserActionSelectedPageInfo: (info: PageInfo | null) => void;
   setAddBrowserStorageSelectedPageInfo: (info: PageInfo | null) => void;
@@ -60,7 +59,6 @@ export const useActionListener = ({
   isUrlInputOpen,
   isTitleInputOpen,
   isAiAssertOpen,
-  setWaitSelectedPageInfo,
   setNavigateSelectedPageInfo,
   setBrowserActionSelectedPageInfo,
   setAddBrowserStorageSelectedPageInfo,
@@ -187,33 +185,6 @@ export const useActionListener = ({
       if (isPaused) return;
       if (!testcaseId) return;
       
-      // Handle page selection for WaitModal
-      if (isActionTabWaitOpen && action?.action_type === 'click') {
-        console.log('[useActionListener] Click event received while WaitModal is open:', action);
-        let pageInfo = null;
-        if (action?.action_datas && Array.isArray(action.action_datas)) {
-          for (const ad of action.action_datas) {
-            if (ad.value?.page_index !== undefined) {
-              pageInfo = ad.value;
-              break;
-            }
-          }
-        }
-        
-        if (pageInfo) {
-          const pageData: PageInfo = {
-            page_index: pageInfo.page_index || 0,
-            page_url: pageInfo.page_url || '',
-            page_title: pageInfo.page_title || '',
-          };
-          console.log('[useActionListener] Page selected/updated for WaitModal:', pageData);
-          setWaitSelectedPageInfo(pageData);
-          return;
-        } else {
-          console.warn('[useActionListener] No page info found in click action. action_datas:', action?.action_datas);
-        }
-      }
-
       // Handle page selection for NavigateModal
       if (isActionTabNavigateOpen && action?.action_type === 'click') {
         console.log('[useActionListener] Click event received while NavigateModal is open:', action);
@@ -495,7 +466,6 @@ export const useActionListener = ({
     isUrlInputOpen,
     isTitleInputOpen,
     isAiAssertOpen,
-    setWaitSelectedPageInfo,
     setNavigateSelectedPageInfo,
     setBrowserActionSelectedPageInfo,
     setAddBrowserStorageSelectedPageInfo,

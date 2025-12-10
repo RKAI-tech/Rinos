@@ -45,7 +45,7 @@ const CheckDuplicateElementModal: React.FC<CheckDuplicateElementModalProps> = ({
               The system has detected <strong>{duplicateGroup.elements.length} element</strong> that may be duplicated 
               (similarity score: <strong>{(duplicateGroup.similarityScore * 100).toFixed(1)}%</strong>).
             </p>
-            <p>Do you want to assign the same <strong>element_id</strong> to these elements?</p>
+            <p>Do you want to assign the same <strong>selector</strong> to these elements?</p>
           </div>
 
           <div className="cde-elements-list">

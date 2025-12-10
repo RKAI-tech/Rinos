@@ -276,7 +276,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
     isUrlInputOpen: modals.isUrlInputOpen,
     isTitleInputOpen: modals.isTitleInputOpen,
     isAiAssertOpen: modals.isAiModalOpen,
-    setWaitSelectedPageInfo: pageSelection.setWaitSelectedPageInfo,
     setNavigateSelectedPageInfo: pageSelection.setNavigateSelectedPageInfo,
     setBrowserActionSelectedPageInfo: pageSelection.setBrowserActionSelectedPageInfo,
     setAddBrowserStorageSelectedPageInfo: pageSelection.setAddBrowserStorageSelectedPageInfo,
@@ -620,10 +619,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
             basicAuthStatus={basicAuthHook.basicAuthStatus}
             onBasicAuthStatusClear={basicAuthHook.handleBasicAuthStatusClear}
             projectId={projectId}
-            waitSelectedPageInfo={pageSelection.waitSelectedPageInfo}
-            onWaitPageInfoChange={(pageInfo) => {
-              pageSelection.setWaitSelectedPageInfo(pageInfo);
-            }}
             navigateSelectedPageInfo={pageSelection.navigateSelectedPageInfo}
             onNavigatePageInfoChange={(pageInfo) => {
               pageSelection.setNavigateSelectedPageInfo(pageInfo);
@@ -644,9 +639,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
               switch (modalType) {
                 case 'wait':
                   modals.setIsActionTabWaitOpen(isOpen);
-                  if (!isOpen) {
-                    pageSelection.setWaitSelectedPageInfo(null);
-                  }
                   break;
                 case 'navigate':
                   modals.setIsActionTabNavigateOpen(isOpen);
