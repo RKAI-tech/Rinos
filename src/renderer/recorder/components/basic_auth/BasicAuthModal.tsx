@@ -128,7 +128,6 @@ const BasicAuthModal: React.FC<BasicAuthModalProps> = ({
         justifyContent: 'center',
         zIndex: 1000,
       }}
-      onClick={onClose}
     >
       <div
         style={{

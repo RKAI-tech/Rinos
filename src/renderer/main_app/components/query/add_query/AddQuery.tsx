@@ -97,7 +97,7 @@ const AddQuery: React.FC<AddQueryProps> = ({ isOpen, projectId, onClose, onSave 
   };
 
   return (
-    <div className="aq-modal-overlay" onClick={handleClose}>
+    <div className="aq-modal-overlay">
       <div className="aq-modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="aq-modal-header">
           <h2 className="aq-modal-title">Add Query</h2>

@@ -228,7 +228,7 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave,
   if (!isOpen || !draft) return null;
 
   return (
-    <div className="ma-action-detail-overlay" onClick={onClose}>
+    <div className="ma-action-detail-overlay">
       <div className="ma-action-detail-container" onClick={e => e.stopPropagation()}>
         <div className="ma-action-detail-header">
           <h3 className="ma-action-detail-title">Action Detail</h3>

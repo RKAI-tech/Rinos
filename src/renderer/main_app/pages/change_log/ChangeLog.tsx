@@ -27,6 +27,7 @@ const ChangeLog: React.FC = () => {
   const [searchText, setSearchText] = useState<string>('');
   const [entityFilter, setEntityFilter] = useState<'all' | 'testcase' | 'suite'>('all');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
@@ -100,6 +101,16 @@ const ChangeLog: React.FC = () => {
       newExpanded.add(historyId);
     }
     setExpandedItems(newExpanded);
+  };
+
+  const toggleDateCollapsed = (date: string) => {
+    const next = new Set(collapsedDates);
+    if (next.has(date)) {
+      next.delete(date);
+    } else {
+      next.add(date);
+    }
+    setCollapsedDates(next);
   };
 
   const formatDataObject = (data: any): string[] => {
@@ -264,9 +275,6 @@ const ChangeLog: React.FC = () => {
                       aria-label="To date"
                     />
                   </div>
-                </div>
-
-                <div className="toolbar-row toolbar-middle">
                   <div className="type-filter">
                     <div className="filter-label" style={{ fontSize: '14px', fontWeight: 'bold' }}>Type</div>
                     <select
@@ -308,12 +316,18 @@ const ChangeLog: React.FC = () => {
                       Clear All
                     </button>
                     <button
-                      className="btn primary"
+                      className={`reload-btn ${isLoading ? 'is-loading' : ''}`}
                       onClick={() => loadHistories()}
                       disabled={isLoading}
-                      title="Refresh"
+                      title="Reload activities"
+                      aria-label="Reload activities"
                     >
-                      {isLoading ? 'Loading…' : 'Refresh'}
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 11a8.1 8.1 0 0 0-15.5-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M4 5v4h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M4 13a8.1 8.1 0 0 0 15.5 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 19v-4h-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -342,89 +356,98 @@ const ChangeLog: React.FC = () => {
                   {groupedByDate.map((group) => (
                     <div key={group.date} className="timeline-day-group">
                       <div className="timeline-day-header">
+                        <button
+                          className="timeline-day-toggle"
+                          onClick={() => toggleDateCollapsed(group.date)}
+                          aria-label={`Toggle ${group.date}`}
+                        >
+                          <span className={`chevron ${collapsedDates.has(group.date) ? 'collapsed' : ''}`}>▾</span>
+                        </button>
                         <div className="timeline-day-date">{group.date}</div>
                         <div className="timeline-day-line"></div>
                       </div>
                       
-                      <div className="timeline-items">
-                        {group.items.map((item, index) => (
-                          <div key={item.history_id} className="timeline-item">
-                            <div className="timeline-item-time">
-                              {formatTimeOnly(item.created_at)}
-                            </div>
-                            <div className="timeline-item-content">
-                              <div 
-                                className={`timeline-item-header ${(item.old_data || item.new_data) ? 'clickable' : ''}`}
-                                onClick={(item.old_data || item.new_data) ? () => toggleExpanded(item.history_id) : undefined}
-                                style={{ cursor: (item.old_data || item.new_data) ? 'pointer' : 'default' }}
-                              >
-                                <div className="timeline-item-main">
-                                  <div className="timeline-item-content-text">
-                                    {item.entity_name && (
-                                      <span className="timeline-item-description">
-                                        {item.entity_name}
-                                      </span>
-                                    )}
-                                    <span className="timeline-item-was"> was </span>
-                                    <span className="timeline-item-action">
-                                      {item.action_type}
-                                    </span>
-                                    <span className="timeline-item-by"> by </span>
-                                    <span className="timeline-item-user">
-                                      {item.user_name || item.user_id}
-                                    </span>
-                                  </div>
-                                </div>
-                                <button
-                                  className="timeline-item-delete"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (!canManagePermission) return;
-                                    setShowDeleteConfirm(item.history_id);
-                                  }}
-                                  title="Delete this history item"
-                                  disabled={isLoading || !canManagePermission}
-                                >
-                                  ✕
-                                </button>
+                      {!collapsedDates.has(group.date) && (
+                        <div className="timeline-items">
+                          {group.items.map((item) => (
+                            <div key={item.history_id} className="timeline-item">
+                              <div className="timeline-item-time">
+                                {formatTimeOnly(item.created_at)}
                               </div>
-                              
-                              {expandedItems.has(item.history_id) && (item.old_data || item.new_data) && (
-                                <div className="timeline-item-details">
-                                  <div className="data-comparison">
-                                    {item.old_data && (
-                                      <div className="data-section old-data">
-                                        <div className="data-section-header">Old Data</div>
-                                        <div className="data-section-content">
-                                          {Object.entries(item.old_data).map(([key, value]) => (
-                                            <div key={key} className="data-entry">
-                                              <span className="data-key">{key}:</span>
-                                              <span className="data-value">{String(value).replace(/\\n/g, '\n')}</span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                    {item.new_data && (
-                                      <div className="data-section new-data">
-                                        <div className="data-section-header">New Data</div>
-                                        <div className="data-section-content">
-                                          {Object.entries(item.new_data).map(([key, value]) => (
-                                            <div key={key} className="data-entry">
-                                              <span className="data-key">{key}:</span>
-                                              <span className="data-value">{String(value)}</span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
+                              <div className="timeline-item-content">
+                                <div 
+                                  className={`timeline-item-header ${(item.old_data || item.new_data) ? 'clickable' : ''}`}
+                                  onClick={(item.old_data || item.new_data) ? () => toggleExpanded(item.history_id) : undefined}
+                                  style={{ cursor: (item.old_data || item.new_data) ? 'pointer' : 'default' }}
+                                >
+                                  <div className="timeline-item-main">
+                                    <div className="timeline-item-content-text">
+                                      {item.entity_name && (
+                                        <span className="timeline-item-description">
+                                          {item.entity_name}
+                                        </span>
+                                      )}
+                                      <span className="timeline-item-was"> was </span>
+                                      <span className="timeline-item-action">
+                                        {item.action_type}
+                                      </span>
+                                      <span className="timeline-item-by"> by </span>
+                                      <span className="timeline-item-user">
+                                        {item.user_name || item.user_id}
+                                      </span>
+                                    </div>
                                   </div>
+                                  <button
+                                    className="timeline-item-delete"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (!canManagePermission) return;
+                                      setShowDeleteConfirm(item.history_id);
+                                    }}
+                                    title="Delete this history item"
+                                    disabled={isLoading || !canManagePermission}
+                                  >
+                                    ✕
+                                  </button>
                                 </div>
-                              )}
+                                
+                                {expandedItems.has(item.history_id) && (item.old_data || item.new_data) && (
+                                  <div className="timeline-item-details">
+                                    <div className="data-comparison">
+                                      {item.old_data && (
+                                        <div className="data-section old-data">
+                                          <div className="data-section-header">Old Data</div>
+                                          <div className="data-section-content">
+                                            {Object.entries(item.old_data).map(([key, value]) => (
+                                              <div key={key} className="data-entry">
+                                                <span className="data-key">{key}:</span>
+                                                <span className="data-value">{String(value).replace(/\\n/g, '\n')}</span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                      {item.new_data && (
+                                        <div className="data-section new-data">
+                                          <div className="data-section-header">New Data</div>
+                                          <div className="data-section-content">
+                                            {Object.entries(item.new_data).map(([key, value]) => (
+                                              <div key={key} className="data-entry">
+                                                <span className="data-key">{key}:</span>
+                                                <span className="data-value">{String(value)}</span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

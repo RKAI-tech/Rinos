@@ -211,7 +211,7 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
   };
 
   return (
-    <div className="rcd-action-detail-overlay" onClick={onClose}>
+    <div className="rcd-action-detail-overlay">
       <div className="rcd-action-detail-container" onClick={(e) => e.stopPropagation()}>
         <div className="rcd-action-detail-header">
           <h2 className="rcd-action-detail-title">Action Detail</h2>

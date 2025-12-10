@@ -77,7 +77,7 @@ const URLInputModal: React.FC<URLInputModalProps> = ({ isOpen, onClose, onConfir
   if (!isOpen) return null;
 
   return (
-    <div className="url-input-modal-overlay" onClick={handleCancel}>
+    <div className="url-input-modal-overlay">
       <div className="url-input-modal" onClick={(e) => e.stopPropagation()}>
         <div className="url-input-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0 }}>Assert Page Has URL</h3>

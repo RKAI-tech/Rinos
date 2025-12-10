@@ -41,7 +41,7 @@ const DeleteConnection: React.FC<DeleteConnectionProps> = ({ isOpen, onClose, on
   if (!isOpen || !connection) return null;
 
   return (
-    <div className="dc-modal-overlay" onClick={onClose}>
+    <div className="dc-modal-overlay">
       <div className="dc-modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="dc-modal-header">
           <h2 className="dc-modal-title">Confirm Delete Connection</h2>

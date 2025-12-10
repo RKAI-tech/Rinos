@@ -36,7 +36,7 @@ const DeleteVariable: React.FC<DeleteVariableProps> = ({ isOpen, onClose, onDele
   }, [isOpen, onClose]);
 
   return (
-    <div className="dv-modal-overlay" onClick={onClose}>
+    <div className="dv-modal-overlay">
       <div className="dv-modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="dv-modal-header">
           <h2 className="dv-modal-title">Confirm Delete Variable</h2>

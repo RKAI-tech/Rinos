@@ -67,7 +67,7 @@ const CreateProject: React.FC<CreateProjectProps> = ({ isOpen, onClose, onSave }
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
+    <div className="modal-overlay">
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="modal-header">

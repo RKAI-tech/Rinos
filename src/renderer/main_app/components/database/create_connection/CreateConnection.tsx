@@ -199,7 +199,7 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
   };
 
   return (
-    <div className="cc-modal-overlay" onClick={handleClose}>
+    <div className="cc-modal-overlay">
       <div className="cc-modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="cc-modal-header">
           <h2 className="cc-modal-title">Create Database Connection</h2>

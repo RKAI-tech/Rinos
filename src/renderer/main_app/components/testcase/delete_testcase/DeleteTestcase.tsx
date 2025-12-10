@@ -41,7 +41,7 @@ const DeleteTestcase: React.FC<DeleteTestcaseProps> = ({ isOpen, onClose, onDele
   if (!isOpen || !testcase) return null;
 
   return (
-    <div className="tcase-delete-modal-overlay" onClick={onClose}>
+    <div className="tcase-delete-modal-overlay">
       <div className="tcase-delete-modal-container" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="tcase-delete-modal-header">

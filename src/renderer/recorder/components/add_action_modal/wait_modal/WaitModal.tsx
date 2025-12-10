@@ -89,7 +89,6 @@ const WaitModal: React.FC<WaitModalProps> = ({
         justifyContent: 'center',
         zIndex: 1000,
       }}
-      onClick={onClose}
     >
       <div
         style={{

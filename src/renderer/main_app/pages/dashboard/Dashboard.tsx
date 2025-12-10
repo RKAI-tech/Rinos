@@ -20,6 +20,7 @@ const Dashboard: React.FC = () => {
   // State for projects data from API
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isReloading, setIsReloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [filterText, setFilterText] = useState('');
@@ -41,13 +42,23 @@ const Dashboard: React.FC = () => {
   // Helper function to reload projects
   const reloadProjects = async () => {
     try {
+      setIsReloading(true);
+      setError(null);
       const response = await projectService.getProjects();
       if (response.success && response.data) {
         // console.log('Reloaded projects:', response.data.projects);
         setProjects(response.data.projects);
+      } else {
+        setError(response.error || 'Failed to load projects');
+        toast.error(response.error || 'Failed to load projects');
       }
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
+      toast.error('Failed to load projects');
       // console.error('Error reloading projects:', err);
+    } finally {
+      setIsReloading(false);
     }
   };
 
@@ -389,7 +400,7 @@ const Dashboard: React.FC = () => {
 
   // Show loading state
   if (isLoading) {
-    return (
+      return (
       <div className="dashboard">
         <Header />
         <main className="dashboard-main">
@@ -544,6 +555,21 @@ const Dashboard: React.FC = () => {
               </div>
 
               <div className="controls-section">
+                <button
+                  className={`reload-btn ${isReloading ? 'is-loading' : ''}`}
+                  onClick={reloadProjects}
+                  disabled={isLoading || isReloading}
+                  title="Reload project list"
+                  aria-label="Reload projects"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 11a8.1 8.1 0 0 0-15.5-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M4 5v4h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M4 13a8.1 8.1 0 0 0 15.5 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M20 19v-4h-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+
                 <select
                   value={itemsPerPage}
                   onChange={(e) => setItemsPerPage(e.target.value)}

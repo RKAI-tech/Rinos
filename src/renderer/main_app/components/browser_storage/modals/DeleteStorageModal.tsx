@@ -11,7 +11,7 @@ interface DeleteBrowserStorageModalProps {
 const DeleteBrowserStorageModal: React.FC<DeleteBrowserStorageModalProps> = ({ isOpen, onClose, onConfirm, isDeleting, cookieName }) => {
   if (!isOpen) return null;
   return (
-    <div className="cookies-modal-overlay" onClick={onClose}>
+    <div className="cookies-modal-overlay">
       <div className="cookies-modal" onClick={e => e.stopPropagation()}>
         <div className="cookies-modal-header">
           Delete Browser Storage

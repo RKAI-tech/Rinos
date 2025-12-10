@@ -76,7 +76,7 @@ const TitleInputModal: React.FC<TitleInputModalProps> = ({ isOpen, onClose, onCo
   if (!isOpen) return null;
 
   return (
-    <div className="title-input-modal-overlay" onClick={handleCancel}>
+    <div className="title-input-modal-overlay">
       <div className="title-input-modal" onClick={(e) => e.stopPropagation()}>
         <div className="title-input-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0 }}>Assert Page Has Title</h3>

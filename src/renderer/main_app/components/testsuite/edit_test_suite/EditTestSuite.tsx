@@ -81,7 +81,7 @@ const EditTestSuite: React.FC<EditTestSuiteProps> = ({ isOpen, onClose, onSave, 
   if (!isOpen || !testsuite) return null;
 
   return (
-    <div className="tsuite-edit-modal-overlay" onClick={handleClose}>
+    <div className="tsuite-edit-modal-overlay">
       <div className="tsuite-edit-modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="tsuite-edit-modal-header">
           <h2 className="tsuite-edit-modal-title">Edit Test Suite</h2>

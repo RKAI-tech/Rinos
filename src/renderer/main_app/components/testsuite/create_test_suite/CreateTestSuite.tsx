@@ -72,7 +72,7 @@ const CreateTestSuite: React.FC<CreateTestSuiteProps> = ({ isOpen, onClose, onSa
   if (!isOpen) return null;
 
   return (
-    <div className="tsuite-modal-overlay" onClick={handleClose}>
+    <div className="tsuite-modal-overlay">
       <div className="tsuite-modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="tsuite-modal-header">
           <h2 className="tsuite-modal-title">Create New Test Suite</h2>

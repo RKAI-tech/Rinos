@@ -90,7 +90,6 @@ const BrowserActionModal: React.FC<BrowserActionModalProps> = ({
         justifyContent: 'center', 
         zIndex: 1000 
       }}
-      onClick={onClose}
     >
       <div
         ref={modalRef}

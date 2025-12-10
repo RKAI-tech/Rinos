@@ -477,7 +477,7 @@ export class BrowserManager extends EventEmitter {
             this.pages.set(pageId, newPage);
             this.pages_index.set(pageId, initialPageIndex);
             this.activePageId = pageId;
-            newPage.setDefaultTimeout(0);
+            newPage.setDefaultTimeout(3000);
             await newPage.waitForLoadState('domcontentloaded');
             await this.basicSetupPage(pageId)
             await newPage.waitForLoadState('domcontentloaded');

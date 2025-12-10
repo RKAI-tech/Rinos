@@ -386,7 +386,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
   const isValidUrl = url && url !== 'https://' && url.trim() !== '';
 
   return (
-    <div className="arm-overlay" onClick={handleClose}>
+    <div className="arm-overlay">
       <div className="arm-modal" onClick={(e) => e.stopPropagation()}>
         <div className="arm-header">
           <h3 className="arm-title">API Request</h3>

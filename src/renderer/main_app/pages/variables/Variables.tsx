@@ -38,32 +38,37 @@ const Variables: React.FC = () => {
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedVar, setSelectedVar] = useState<{ id: string; name?: string } | null>(null);
+  const [isReloading, setIsReloading] = useState(false);
 
-  useEffect(() => {
-    const loadVariables = async () => {
-      if (!projectId) return;
-      try {
-        const svc = new VariableService();
-        const resp = await svc.getVariablesByProject(projectId);
-        if (resp.success && resp.data) {
-          const items: VariableItem[] = resp.data.items.map(v => ({
-            id: v.variable_id,
-            customName: v.user_defined_name || v.original_name,
-            originalName: v.original_name,
-            value: v.value,
-            databaseName: v.database_name,
-            databaseType: v.database_type,
-            queryName: v.query_name,
-          }));
-          setVariables(items);
-        } else {
-          setVariables([]);
-        }
-      } catch (e) {
+  const reloadVariables = async () => {
+    if (!projectId) return;
+    try {
+      setIsReloading(true);
+      const svc = new VariableService();
+      const resp = await svc.getVariablesByProject(projectId);
+      if (resp.success && resp.data) {
+        const items: VariableItem[] = resp.data.items.map(v => ({
+          id: v.variable_id,
+          customName: v.user_defined_name || v.original_name,
+          originalName: v.original_name,
+          value: v.value,
+          databaseName: v.database_name,
+          databaseType: v.database_type,
+          queryName: v.query_name,
+        }));
+        setVariables(items);
+      } else {
         setVariables([]);
       }
-    };
-    loadVariables();
+    } catch (e) {
+      setVariables([]);
+    } finally {
+      setIsReloading(false);
+    }
+  };
+
+  useEffect(() => {
+    reloadVariables();
   }, [projectId]);
 
   useEffect(() => {
@@ -209,6 +214,21 @@ const Variables: React.FC = () => {
               </div>
 
               <div className="vars-controls-section">
+                <button
+                  className={`reload-btn ${isReloading ? 'is-loading' : ''}`}
+                  onClick={reloadVariables}
+                  disabled={isReloading}
+                  title="Reload variables"
+                  aria-label="Reload variables"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 11a8.1 8.1 0 0 0-15.5-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M4 5v4h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M4 13a8.1 8.1 0 0 0 15.5 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M20 19v-4h-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+
                 <select
                   value={itemsPerPage}
                   onChange={(e) => { setItemsPerPage(e.target.value); setCurrentPage(1); }}

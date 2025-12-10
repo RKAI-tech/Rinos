@@ -72,7 +72,7 @@ const CreateTestcase: React.FC<CreateTestcaseProps> = ({ isOpen, onClose, onSave
   if (!isOpen) return null;
 
   return (
-    <div className="testcase-modal-overlay" onClick={handleClose}>
+    <div className="testcase-modal-overlay">
       <div className="testcase-modal-container" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="testcase-modal-header">
