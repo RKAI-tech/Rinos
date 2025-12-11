@@ -14,6 +14,16 @@ export const usePageSelection = () => {
   const [urlInputSelectedPageInfo, setUrlInputSelectedPageInfo] = useState<PageInfo | null>(null);
   const [titleInputSelectedPageInfo, setTitleInputSelectedPageInfo] = useState<PageInfo | null>(null);
   const [aiAssertSelectedPageInfo, setAiAssertSelectedPageInfo] = useState<PageInfo | null>(null);
+  const [cssInputSelectedPageInfo, setCssInputSelectedPageInfo] = useState<PageInfo | null>(null);
+  const [cssInputSelectedElement, setCssInputSelectedElement] = useState<{
+    selectors: string[];
+    domHtml: string;
+    value: string;
+    pageIndex?: number | null;
+    pageUrl?: string | null;
+    pageTitle?: string | null;
+    element_data?: Record<string, any>;
+  } | null>(null);
 
   return {
     navigateSelectedPageInfo,
@@ -30,6 +40,10 @@ export const usePageSelection = () => {
     setTitleInputSelectedPageInfo,
     aiAssertSelectedPageInfo,
     setAiAssertSelectedPageInfo,
+    cssInputSelectedPageInfo,
+    setCssInputSelectedPageInfo,
+    cssInputSelectedElement,
+    setCssInputSelectedElement,
   };
 };
 

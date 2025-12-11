@@ -47,6 +47,11 @@ function handleKeyLikeBase(e, actionType, eventLabel = 'Key') {
   // Bỏ qua modifier đơn lẻ
   if (SKIP_KEYS.has(e?.key)) return;
 
+  // Bỏ qua các phím tắt copy/paste (Ctrl+C, Ctrl+V)
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'v' || e.code === 'KeyC' || e.code === 'KeyV')) {
+    return;
+  }
+
   // Nếu đang pause thì skip
   if (getPauseMode && getPauseMode()) {
     // console.log(`Skipping ${eventLabel} recording - recording is paused`);

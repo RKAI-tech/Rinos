@@ -10,6 +10,7 @@ import DeleteAllActions from '../../components/delete_all_action/DeleteAllAction
 import ConfirmCloseModal from '../../components/confirm_close/ConfirmCloseModal';
 import URLInputModal from '../../components/asserts/url_input_modal/URLInputModal';
 import TitleInputModal from '../../components/asserts/title_input_modal/TitleInputModal';
+import CSSAssertModal from '../../components/asserts/css_input_modal/CSSAssertModal';
 import { Action } from '../../types/actions';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
@@ -91,6 +92,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
     setIsAiModalOpen: modals.setIsAiModalOpen,
     setIsUrlInputOpen: modals.setIsUrlInputOpen,
     setIsTitleInputOpen: modals.setIsTitleInputOpen,
+    setIsCssInputOpen: modals.setIsCssInputOpen,
   });
 
   const browserHook = useBrowser({
@@ -148,6 +150,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
            modals.isAiModalOpen || 
            modals.isUrlInputOpen || 
            modals.isTitleInputOpen || 
+           modals.isCssInputOpen ||
            modals.isBasicAuthOpen || 
            modals.isDetailOpen ||
            modals.isConfirmCloseOpen ||
@@ -275,6 +278,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
     isActionTabApiRequestOpen: modals.isActionTabApiRequestOpen,
     isUrlInputOpen: modals.isUrlInputOpen,
     isTitleInputOpen: modals.isTitleInputOpen,
+    isCssInputOpen: modals.isCssInputOpen,
     isAiAssertOpen: modals.isAiModalOpen,
     setNavigateSelectedPageInfo: pageSelection.setNavigateSelectedPageInfo,
     setBrowserActionSelectedPageInfo: pageSelection.setBrowserActionSelectedPageInfo,
@@ -282,6 +286,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
     setApiRequestSelectedPageInfo: pageSelection.setApiRequestSelectedPageInfo,
     setUrlInputSelectedPageInfo: pageSelection.setUrlInputSelectedPageInfo,
     setTitleInputSelectedPageInfo: pageSelection.setTitleInputSelectedPageInfo,
+    setCssInputSelectedPageInfo: pageSelection.setCssInputSelectedPageInfo,
+    setCssInputSelectedElement: pageSelection.setCssInputSelectedElement,
     aiAssertSelectedPageInfo: pageSelection.aiAssertSelectedPageInfo,
     setAiAssertSelectedPageInfo: pageSelection.setAiAssertSelectedPageInfo,
     setAiElements: aiAssertHook.setAiElements,
@@ -771,6 +777,23 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
         selectedPageInfo={pageSelection.titleInputSelectedPageInfo}
         onClearPage={() => {
           pageSelection.setTitleInputSelectedPageInfo(null);
+        }}
+      />
+      <CSSAssertModal
+        isOpen={modals.isCssInputOpen}
+        onClose={() => {
+          assertHook.handleCssCancel();
+          pageSelection.setCssInputSelectedPageInfo(null);
+          pageSelection.setCssInputSelectedElement(null);
+        }}
+        onConfirm={assertHook.handleCssConfirm}
+        selectedPageInfo={pageSelection.cssInputSelectedPageInfo}
+        selectedElement={pageSelection.cssInputSelectedElement}
+        onClearPage={() => {
+          pageSelection.setCssInputSelectedPageInfo(null);
+        }}
+        onClearElement={() => {
+          pageSelection.setCssInputSelectedElement(null);
         }}
       />
       <CheckDuplicateElementModal

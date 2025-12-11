@@ -26,6 +26,7 @@ interface UseActionListenerProps {
   isActionTabApiRequestOpen: boolean;
   isUrlInputOpen: boolean;
   isTitleInputOpen: boolean;
+  isCssInputOpen: boolean;
   isAiAssertOpen: boolean;
   setNavigateSelectedPageInfo: (info: PageInfo | null) => void;
   setBrowserActionSelectedPageInfo: (info: PageInfo | null) => void;
@@ -33,6 +34,16 @@ interface UseActionListenerProps {
   setApiRequestSelectedPageInfo: (info: PageInfo | null) => void;
   setUrlInputSelectedPageInfo: (info: PageInfo | null) => void;
   setTitleInputSelectedPageInfo: (info: PageInfo | null) => void;
+  setCssInputSelectedPageInfo: (info: PageInfo | null) => void;
+  setCssInputSelectedElement: (element: {
+    selectors: string[];
+    domHtml: string;
+    value: string;
+    pageIndex?: number | null;
+    pageUrl?: string | null;
+    pageTitle?: string | null;
+    element_data?: Record<string, any>;
+  } | null) => void;
   aiAssertSelectedPageInfo: PageInfo | null;
   setAiAssertSelectedPageInfo: (info: PageInfo | null) => void;
   // AI Assert
@@ -58,6 +69,7 @@ export const useActionListener = ({
   isActionTabApiRequestOpen,
   isUrlInputOpen,
   isTitleInputOpen,
+  isCssInputOpen,
   isAiAssertOpen,
   setNavigateSelectedPageInfo,
   setBrowserActionSelectedPageInfo,
@@ -65,6 +77,8 @@ export const useActionListener = ({
   setApiRequestSelectedPageInfo,
   setUrlInputSelectedPageInfo,
   setTitleInputSelectedPageInfo,
+  setCssInputSelectedPageInfo,
+  setCssInputSelectedElement,
   aiAssertSelectedPageInfo,
   setAiAssertSelectedPageInfo,
   setAiElements,
@@ -344,6 +358,61 @@ export const useActionListener = ({
           console.warn('[useActionListener] No page info found in click action. action_datas:', action?.action_datas);
         }
       }
+
+      // Handle element and page selection for CSSAssertModal (assert CSS)
+      if (isCssInputOpen && action?.action_type === 'click') {
+        console.log('[useActionListener] Click event received while CSSAssertModal is open:', action);
+        
+        // Extract element info
+        const selectors = action.elements?.[0]?.selectors?.map((s: any) => s.value) || [];
+        const domHtml = action.action_datas?.[0]?.value?.htmlDOM || '';
+        const elementText = action.action_datas?.[0]?.value?.elementText || '';
+        const elementData = action.elements?.[0]?.element_data || undefined;
+        
+        // Extract page info
+        let pageIndex: number | null = null;
+        let pageUrl: string | null = null;
+        let pageTitle: string | null = null;
+        if (action?.action_datas && Array.isArray(action.action_datas)) {
+          for (const ad of action.action_datas) {
+            if (ad.value?.page_index !== undefined) {
+              pageIndex = Number(ad.value.page_index);
+              pageUrl = ad.value.page_url || null;
+              pageTitle = ad.value.page_title || null;
+              break;
+            }
+          }
+        }
+        
+        if (selectors.length > 0 || domHtml) {
+          // Update element
+          setCssInputSelectedElement({
+            selectors,
+            domHtml,
+            value: elementText,
+            pageIndex,
+            pageUrl,
+            pageTitle,
+            element_data: elementData,
+          });
+          
+          // Update page info if available
+          if (pageIndex !== null) {
+            const pageData: PageInfo = {
+              page_index: pageIndex,
+              page_url: pageUrl || '',
+              page_title: pageTitle || '',
+            };
+            setCssInputSelectedPageInfo(pageData);
+            toast.success('Element and page selected successfully');
+          } else {
+            toast.success('Element selected successfully');
+          }
+          return;
+        } else {
+          toast.warn('Failed to capture element. Please click again.');
+        }
+      }
       
       // AI assert goes to modal only
       if ((action?.action_type === 'assert') && (action?.assert_type === 'AI')) {
@@ -465,6 +534,7 @@ export const useActionListener = ({
     isActionTabApiRequestOpen,
     isUrlInputOpen,
     isTitleInputOpen,
+    isCssInputOpen,
     isAiAssertOpen,
     setNavigateSelectedPageInfo,
     setBrowserActionSelectedPageInfo,
@@ -472,6 +542,8 @@ export const useActionListener = ({
     setApiRequestSelectedPageInfo,
     setUrlInputSelectedPageInfo,
     setTitleInputSelectedPageInfo,
+    setCssInputSelectedPageInfo,
+    setCssInputSelectedElement,
     aiAssertSelectedPageInfo,
     setAiAssertSelectedPageInfo,
     setAiElements,
