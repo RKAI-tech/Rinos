@@ -49,6 +49,7 @@ export enum AssertType {
   toBeFocused = "toBeFocused",
   toBeHidden = "toBeHidden",
   toBeVisible = "toBeVisible",
+  toHaveCSS = "toHaveCSS",
   toContainText = "toContainText",
   toHaveAccessibleDescription = "toHaveAccessibleDescription",
   toHaveAccessibleName = "toHaveAccessibleName",

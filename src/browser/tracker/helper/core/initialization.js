@@ -162,6 +162,7 @@ function processAssertClick(e) {
     const elementPreview = previewNode(e.target);
     const elementText = extractElementText(e.target);
     const DOMelement = e.target.outerHTML;
+    const targetElement = e.target; // Lưu element thực tế để extract element_data
 
     const types = ['toHaveText', 'toContainText', 'toHaveValue', 'toHaveAccessibleDescription', 'toHaveAccessibleName', 'toHaveCount', 'toHaveRole'];
     
@@ -182,19 +183,19 @@ function processAssertClick(e) {
         defaultValue,
         rect,
         (finalValue, connection, connection_id, query, apiRequest) => {
-          sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement, apiRequest);
+          sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement, apiRequest, targetElement);
         },
         () => {
         }
       );
     } else {
-      sendAssertAction(selector, assertType, '', elementType, elementPreview, elementText, undefined, undefined, undefined, DOMelement, undefined);
+      sendAssertAction(selector, assertType, '', elementType, elementPreview, elementText, undefined, undefined, undefined, DOMelement, undefined, targetElement);
     }
   } catch (error) {
   }
 }
 
-function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection_id, connection, query, DOMelement, apiRequest) {
+function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection_id, connection, query, DOMelement, apiRequest, targetElement) {
   if (window.sendActionToMain) {
     var action_datas = {};
     action_datas.value = {
@@ -265,9 +266,9 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
         } : undefined
       } : undefined;
     };
-    // Build element với đầy đủ thông tin
-    const element = DOMelement 
-      ? buildElement(DOMelement, selector, 1)
+    // Build element với đầy đủ thông tin - sử dụng targetElement thực tế để extract element_data
+    const element = targetElement 
+      ? buildElement(targetElement, selector, 1)
       : {
           selectors: selector.map((s) => ({ value: s })),
           order_index: 1,
@@ -286,116 +287,6 @@ function sendAssertAction(selector, assertType, value, elementType, elementPrevi
   }
 }
 
-/**
- * Send assert toHaveValues action với list value objects
- * Mỗi value object chứa: {value, connection, connectionId, query, apiRequest}
- * Mỗi value object sẽ được chuyển thành một action_data giống như sendAssertAction
- */
-function sendAssertToHaveValuesAction(selector, assertType, valueObjects, elementType, elementPreview, elementText, DOMelement) {
-  if (window.sendActionToMain) {
-    // Build element với đầy đủ thông tin
-    const element = DOMelement 
-      ? buildElement(DOMelement, selector, 1)
-      : {
-          selectors: selector.map((s) => ({ value: s })),
-          order_index: 1,
-        };
-    
-    // Tạo action_datas cho mỗi value object, giống như sendAssertAction
-    const action_datas_array = valueObjects.map((valueObj) => {
-      // Tạo action_data giống như sendAssertAction
-      const action_data = {};
-      
-      // Thêm value
-      action_data.value = {
-        value: valueObj.value ? valueObj.value : undefined,
-        htmlDOM: DOMelement ? DOMelement : undefined,
-        elementText: elementText ? elementText : undefined,
-        page_index: window.__PAGE_INDEX__ || 0,
-        page_url: window.location.href || '',
-        page_title: document.title || '',
-      };
-      
-      // Thêm statement nếu có query (giống sendAssertAction)
-      if (valueObj.query && valueObj.connection) {
-        action_data.statement = {
-          statement_id: Math.random().toString(36),
-          statement_text: valueObj.query,
-          connection_id: valueObj.connectionId,
-          connection: {
-            ...valueObj.connection,
-            port: valueObj.connection && valueObj.connection.port !== undefined ? String(valueObj.connection.port) : undefined,
-          }
-        };
-      }
-      
-      // Thêm api_request nếu có (giống sendAssertAction)
-      if (valueObj.apiRequest) {
-        action_data.api_request = {
-          api_request_id: valueObj.apiRequest.api_request_id,
-          createType: valueObj.apiRequest.createType || 'system',
-          url: valueObj.apiRequest.url,
-          method: valueObj.apiRequest.method,
-          params: valueObj.apiRequest.params && valueObj.apiRequest.params.length > 0 ? valueObj.apiRequest.params.map(p => ({
-            api_request_param_id: p.api_request_param_id,
-            key: p.key,
-            value: p.value
-          })) : undefined,
-          headers: valueObj.apiRequest.headers && valueObj.apiRequest.headers.length > 0 ? valueObj.apiRequest.headers.map(h => ({
-            api_request_header_id: h.api_request_header_id,
-            key: h.key,
-            value: h.value
-          })) : undefined,
-          auth: valueObj.apiRequest.auth ? {
-            apiRequestId: valueObj.apiRequest.auth.apiRequestId,
-            type: valueObj.apiRequest.auth.type,
-            storage_enabled: valueObj.apiRequest.auth.storage_enabled,
-            username: valueObj.apiRequest.auth.username,
-            password: valueObj.apiRequest.auth.password,
-            token: valueObj.apiRequest.auth.token,
-            token_storages: valueObj.apiRequest.auth.token_storages && valueObj.apiRequest.auth.token_storages.length > 0 ? valueObj.apiRequest.auth.token_storages.map(ts => ({
-              api_request_token_storage_id: ts.api_request_token_storage_id,
-              type: ts.type,
-              key: ts.key
-            })) : undefined,
-            basic_auth_storages: valueObj.apiRequest.auth.basic_auth_storages && valueObj.apiRequest.auth.basic_auth_storages.length > 0 ? valueObj.apiRequest.auth.basic_auth_storages.map(bs => ({
-              api_request_basic_auth_storage_id: bs.api_request_basic_auth_storage_id,
-              type: bs.type,
-              usernameKey: bs.usernameKey,
-              passwordKey: bs.passwordKey,
-              enabled: bs.enabled
-            })) : undefined
-          } : undefined,
-          body: valueObj.apiRequest.body ? {
-            api_request_id: valueObj.apiRequest.body.api_request_id,
-            type: valueObj.apiRequest.body.type,
-            content: valueObj.apiRequest.body.content,
-            formData: valueObj.apiRequest.body.formData && valueObj.apiRequest.body.formData.length > 0 ? valueObj.apiRequest.body.formData.map(fd => ({
-              api_request_body_form_data_id: fd.api_request_body_form_data_id,
-              name: fd.name,
-              value: fd.value,
-              orderIndex: fd.orderIndex
-            })) : undefined
-          } : undefined
-        };
-      }
-      
-      return action_data;
-    });
-    
-    const action = {
-      action_type: 'assert',
-      assert_type: assertType,
-      elements: [element],
-      action_datas: action_datas_array
-    };
-    
-    window.sendActionToMain(action);
-    closeAssertToHaveValuesModal();
-  } else {
-    console.error('window.sendActionToMain is not defined');
-  }
-}
 
 export function initBrowserControls() {
   if (!document.querySelector('link[href*="font-awesome"]')) {
@@ -503,7 +394,6 @@ export function initializeTracking() {
     } else {
       unfreezeEntireScreen();
       closeAssertInputModal();
-      closeAssertToHaveValuesModal();
     }
   };
 

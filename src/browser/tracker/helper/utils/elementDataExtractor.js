@@ -285,19 +285,28 @@ export function extractElementData(element) {
       // 24. Color (RGBA)
       color: getRGBAValue(style, 'color'),
       
-      // 25. Visibility (trạng thái hiển thị)
+      // 25. Font size (lấy từ computed style)
+      fontSize: style?.getPropertyValue('font-size') || style?.fontSize || null,
+      
+      // 26. Font family (lấy từ computed style)
+      fontFamily: style?.getPropertyValue('font-family') || style?.fontFamily || null,
+      
+      // 27. Font weight (lấy từ computed style)
+      fontWeight: style?.getPropertyValue('font-weight') || style?.fontWeight || null,
+      
+      // 28. Visibility (trạng thái hiển thị)
       visibility: style?.visibility || null,
       
-      // 26. Disabled hay không
+      // 29. Disabled hay không
       disabled: element.disabled !== undefined ? Boolean(element.disabled) : null,
       
-      // 27. Display (kiểu hiển thị layout)
+      // 30. Display (kiểu hiển thị layout)
       display: style?.display || null,
       
-      // 28. Z-index (thứ tự xếp chồng)
+      // 31. Z-index (thứ tự xếp chồng)
       zIndex: style?.zIndex || null,
       
-      // 29. URL của page mà element thuộc về
+      // 32. URL của page mà element thuộc về
       pageUrl: pageUrl,
     };
 

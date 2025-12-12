@@ -24,6 +24,7 @@ interface CSSAssertModalProps {
   }, pageInfo?: SelectedPageInfo) => void;
   selectedPageInfo?: SelectedPageInfo | null;
   onClearPage?: () => void;
+  onPageInfoChange?: (pageInfo: SelectedPageInfo) => void;
   selectedElement?: {
     selectors: string[];
     domHtml: string;
@@ -50,6 +51,7 @@ const CSSAssertModal: React.FC<CSSAssertModalProps> = ({
   onConfirm,
   selectedPageInfo,
   onClearPage,
+  onPageInfoChange,
   selectedElement,
   onClearElement,
 }) => {
@@ -57,17 +59,53 @@ const CSSAssertModal: React.FC<CSSAssertModalProps> = ({
   const [cssValue, setCssValue] = useState('');
   const cssValueInputRef = useRef<HTMLInputElement>(null);
 
+  // Tự động cập nhật page info từ element khi element được chọn
+  useEffect(() => {
+    if (selectedElement && selectedElement.pageIndex !== null && selectedElement.pageIndex !== undefined) {
+      // Tự động set page info từ element nếu chưa có hoặc khác với element
+      if (!selectedPageInfo || selectedPageInfo.page_index !== selectedElement.pageIndex) {
+        const pageData: SelectedPageInfo = {
+          page_index: selectedElement.pageIndex,
+          page_url: selectedElement.pageUrl || '',
+          page_title: selectedElement.pageTitle || '',
+        };
+        // Gọi callback để cập nhật page info
+        if (onPageInfoChange) {
+          onPageInfoChange(pageData);
+        }
+      }
+    }
+  }, [selectedElement, selectedPageInfo, onPageInfoChange]);
+
   // Lấy giá trị CSS từ element_data nếu có
   useEffect(() => {
-    if (selectedElement && selectedElement.element_data && !cssValue) {
+    if (selectedElement && selectedElement.element_data) {
       try {
         // Lấy giá trị từ element_data nếu có
         const elementData = selectedElement.element_data;
         let valueFromData = '';
         
-        // Kiểm tra xem có CSS value trong element_data không
-        // Có thể lấy từ computed styles nếu có trong element_data
-        if (elementData.computedStyles) {
+        // Lấy trực tiếp từ element_data (theo cấu trúc từ elementDataExtractor)
+        switch (cssProperty) {
+          case 'background-color':
+            valueFromData = elementData.backgroundColor || elementData['background-color'] || '';
+            break;
+          case 'color':
+            valueFromData = elementData.color || '';
+            break;
+          case 'font-size':
+            valueFromData = elementData.fontSize || elementData['font-size'] || '';
+            break;
+          case 'font-family':
+            valueFromData = elementData.fontFamily || elementData['font-family'] || '';
+            break;
+          case 'font-weight':
+            valueFromData = elementData.fontWeight || elementData['font-weight'] || '';
+            break;
+        }
+        
+        // Nếu không tìm thấy trực tiếp, thử tìm trong computedStyles
+        if (!valueFromData && elementData.computedStyles) {
           const styles = elementData.computedStyles;
           switch (cssProperty) {
             case 'background-color':
@@ -88,7 +126,7 @@ const CSSAssertModal: React.FC<CSSAssertModalProps> = ({
           }
         }
         
-        // Hoặc lấy từ inline style nếu có
+        // Nếu vẫn không tìm thấy, thử tìm trong inlineStyles
         if (!valueFromData && elementData.inlineStyles) {
           const inlineStyles = elementData.inlineStyles;
           switch (cssProperty) {
@@ -110,19 +148,24 @@ const CSSAssertModal: React.FC<CSSAssertModalProps> = ({
           }
         }
         
+        // Nếu tìm thấy giá trị, tự động điền vào input
         if (valueFromData) {
           setCssValue(valueFromData);
+        } else {
+          // Nếu không tìm thấy, reset về rỗng
+          setCssValue('');
         }
       } catch (error) {
         console.error('Error extracting CSS value from element_data:', error);
+        setCssValue('');
       }
+    } else {
+      // Nếu không có element_data, reset về rỗng
+      setCssValue('');
     }
   }, [selectedElement, cssProperty]);
 
-  // Reset khi property thay đổi
-  useEffect(() => {
-    setCssValue('');
-  }, [cssProperty]);
+  // Không cần reset riêng nữa vì đã xử lý trong useEffect trên
 
   const handleConfirm = () => {
     if (!cssProperty) {
@@ -293,43 +336,17 @@ const CSSAssertModal: React.FC<CSSAssertModalProps> = ({
               Page <span style={{ color: '#ef4444' }}>*</span>
             </label>
             {hasSelectedPage ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '13px', fontWeight: '500', color: '#111827', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {selectedPageInfo.page_title || `Page ${selectedPageInfo.page_index + 1}`}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {selectedPageInfo.page_url}
-                  </div>
+              <div style={{ padding: '8px 12px', backgroundColor: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                <div style={{ fontSize: '13px', fontWeight: '500', color: '#111827', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {selectedPageInfo.page_title || `Page ${selectedPageInfo.page_index + 1}`}
                 </div>
-                <button
-                  onClick={onClearPage}
-                  style={{
-                    marginLeft: '8px',
-                    padding: '4px 8px',
-                    fontSize: '12px',
-                    color: '#6b7280',
-                    backgroundColor: 'transparent',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f3f4f6';
-                    e.currentTarget.style.color = '#374151';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = '#6b7280';
-                  }}
-                >
-                  Clear
-                </button>
+                <div style={{ fontSize: '12px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {selectedPageInfo.page_url}
+                </div>
               </div>
             ) : (
               <div style={{ padding: '12px', backgroundColor: '#fef3c7', borderRadius: '6px', border: '1px solid #fbbf24', fontSize: '13px', color: '#92400e' }}>
-                Please click on a page in the browser to select it
+                Please click on an element in the browser to select it (page will be selected automatically)
               </div>
             )}
           </div>

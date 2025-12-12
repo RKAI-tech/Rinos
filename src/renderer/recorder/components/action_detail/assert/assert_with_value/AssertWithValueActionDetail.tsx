@@ -12,7 +12,6 @@ const ASSERT_WITH_VALUE_TYPES: AssertType[] = [
   AssertType.toHaveText,
   AssertType.toContainText,
   AssertType.toHaveValue,
-  AssertType.toHaveValues,
   AssertType.pageHasATitle,
   AssertType.pageHasAURL,
 ];

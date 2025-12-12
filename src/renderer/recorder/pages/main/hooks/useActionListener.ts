@@ -360,15 +360,23 @@ export const useActionListener = ({
       }
 
       // Handle element and page selection for CSSAssertModal (assert CSS)
+      // Chỉ xử lý click action, không xử lý assert action (assert action sẽ bị chặn ở dưới)
       if (isCssInputOpen && action?.action_type === 'click') {
         console.log('[useActionListener] Click event received while CSSAssertModal is open:', action);
         
         // Extract element info
         const selectors = action.elements?.[0]?.selectors?.map((s: any) => s.value) || [];
-        const domHtml = action.action_datas?.[0]?.value?.htmlDOM || '';
-        const elementText = action.action_datas?.[0]?.value?.elementText || '';
+        let domHtml =  '';
+        let elementText =  '';
         const elementData = action.elements?.[0]?.element_data || undefined;
-        
+        for (const ad of action.action_datas) {
+          if (ad.value?.htmlDOM !== undefined) {
+            domHtml = ad.value.htmlDOM;
+          }
+          if (ad.value?.elementText !== undefined) {
+            elementText = ad.value.elementText;
+          }
+        }
         // Extract page info
         let pageIndex: number | null = null;
         let pageUrl: string | null = null;
@@ -396,8 +404,8 @@ export const useActionListener = ({
             element_data: elementData,
           });
           
-          // Update page info if available
-          if (pageIndex !== null) {
+          // Tự động cập nhật page info từ element (luôn set nếu có page info)
+          if (pageIndex !== null && pageIndex !== undefined) {
             const pageData: PageInfo = {
               page_index: pageIndex,
               page_url: pageUrl || '',
@@ -408,12 +416,27 @@ export const useActionListener = ({
           } else {
             toast.success('Element selected successfully');
           }
-          return;
+          return; // Quan trọng: return để không xử lý action này như action thông thường
         } else {
           toast.warn('Failed to capture element. Please click again.');
+          return; // Return ngay cả khi fail để không xử lý action này
         }
       }
+
+      // Chặn action assert toHaveCSS khi CSS modal đang mở (phải đặt sau phần xử lý click)
+      if (isCssInputOpen && (action?.action_type === 'assert') && (action?.assert_type === 'toHaveCSS')) {
+        console.log('[useActionListener] Assert toHaveCSS action received while CSSAssertModal is open - ignoring to prevent auto-creation');
+        // Không xử lý action này, chỉ capture element thông qua click action
+        return;
+      }
       
+      // CSS assert goes to modal only - chặn action assert toHaveCSS khi CSS modal đang mở
+      if (isCssInputOpen && (action?.action_type === 'assert') && (action?.assert_type === 'toHaveCSS')) {
+        console.log('[useActionListener] Assert toHaveCSS action received while CSSAssertModal is open - ignoring');
+        // Không xử lý action này, chỉ capture element thông qua click action
+        return;
+      }
+
       // AI assert goes to modal only
       if ((action?.action_type === 'assert') && (action?.assert_type === 'AI')) {
         let pageIndex: number | null = null;

@@ -29,6 +29,10 @@ import AssertAiActionDetail, {
   isAiAssertType,
   normalizeAssertAiAction,
 } from './assert/ai/AssertAiActionDetail';
+import AssertToHaveCssActionDetail, {
+  isToHaveCssAssertType,
+  normalizeAssertToHaveCssAction,
+} from './assert/to_have_css/AssertToHaveCssActionDetail';
 import DefaultActionDetail from './default/DefaultActionDetail';
 
 interface ActionDetailModalProps {
@@ -130,6 +134,11 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
         isAiAssertType(draft.assert_type)
       ) {
         normalized = normalizeAssertAiAction(draft);
+      } else if (
+        draft.action_type === ActionType.assert &&
+        isToHaveCssAssertType(draft.assert_type)
+      ) {
+        normalized = normalizeAssertToHaveCssAction(draft);
       } else if (
         draft.action_type === ActionType.assert &&
         isAssertWithValueType(draft.assert_type)
@@ -374,6 +383,15 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
             isAiAssertType(draft.assert_type)
           ) ? (
             <AssertAiActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+            />
+          ) : (
+            draft.action_type === ActionType.assert &&
+            isToHaveCssAssertType(draft.assert_type)
+          ) ? (
+            <AssertToHaveCssActionDetail
               draft={draft}
               updateDraft={updateDraft}
               updateField={updateField}

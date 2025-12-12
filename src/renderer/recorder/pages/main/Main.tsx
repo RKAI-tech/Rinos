@@ -789,6 +789,9 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
         onConfirm={assertHook.handleCssConfirm}
         selectedPageInfo={pageSelection.cssInputSelectedPageInfo}
         selectedElement={pageSelection.cssInputSelectedElement}
+        onPageInfoChange={(pageInfo) => {
+          pageSelection.setCssInputSelectedPageInfo(pageInfo);
+        }}
         onClearPage={() => {
           pageSelection.setCssInputSelectedPageInfo(null);
         }}
