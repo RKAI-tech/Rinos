@@ -36,7 +36,7 @@ const DeleteProject: React.FC<DeleteProjectProps> = ({ isOpen, onClose, onDelete
   if (!isOpen || !project) return null;
 
   return (
-    <div className="delete-modal-overlay" onClick={onClose}>
+    <div className="delete-modal-overlay">
       <div className="delete-modal-container" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="delete-modal-header">

@@ -415,7 +415,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
   };
 
   return (
-    <div className="aiam-overlay" onClick={() => { if (!isGenerating) onClose(); }}>
+    <div className="aiam-overlay">
       <div className="aiam-modal" onClick={(e) => e.stopPropagation()}>
         <div className="aiam-header">
           <div className="aiam-title">AI Assert</div>

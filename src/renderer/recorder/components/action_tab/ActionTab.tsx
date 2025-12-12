@@ -769,13 +769,6 @@ const ActionTab: React.FC<ActionTabProps> = ({
   };
 
   useEffect(() => {
-    if (!listRef.current) return;
-    try {
-      const container = listRef.current;
-      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
-    } catch { }
-  }, [actions.length]);
-  useEffect(() => {
     if (recordingFromActionIndex == null) return;
     const node = itemRefs.current[recordingFromActionIndex];
     if (!node) return;

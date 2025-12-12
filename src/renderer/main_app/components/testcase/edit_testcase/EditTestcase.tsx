@@ -206,7 +206,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
   if (!isOpen || !testcase) return null;
 
   return (
-    <div className="tcase-edit-modal-overlay" onClick={handleClose}>
+    <div className="tcase-edit-modal-overlay">
       <div className="tcase-edit-modal-container" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="tcase-edit-modal-header">

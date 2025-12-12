@@ -38,30 +38,35 @@ const Databases: React.FC = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<{ id: string; name?: string } | null>(null);
+  const [isReloading, setIsReloading] = useState(false);
 
-  useEffect(() => {
-    const loadConnections = async () => {
-      if (!projectId) return;
-      try {
-        const svc = new DatabaseService();
-        const resp = await svc.getDatabaseConnections({ project_id: projectId });
-        if (resp.success && resp.data) {
-          const items: DatabaseItem[] = resp.data.connections.map((c) => ({
-            id: c.connection_id,
-            name: c.db_name,
-            type: c.db_type,
-            host: c.host,
-            port: c.port,
-          }));
-          setDatabases(items);
-        } else {
-          setDatabases([]);
-        }
-      } catch (e) {
+  const reloadConnections = async () => {
+    if (!projectId) return;
+    try {
+      setIsReloading(true);
+      const svc = new DatabaseService();
+      const resp = await svc.getDatabaseConnections({ project_id: projectId });
+      if (resp.success && resp.data) {
+        const items: DatabaseItem[] = resp.data.connections.map((c) => ({
+          id: c.connection_id,
+          name: c.db_name,
+          type: c.db_type,
+          host: c.host,
+          port: c.port,
+        }));
+        setDatabases(items);
+      } else {
         setDatabases([]);
       }
-    };
-    loadConnections();
+    } catch (e) {
+      setDatabases([]);
+    } finally {
+      setIsReloading(false);
+    }
+  };
+
+  useEffect(() => {
+    reloadConnections();
   }, [projectId]);
 
   useEffect(() => {
@@ -214,6 +219,21 @@ const Databases: React.FC = () => {
               </div>
 
               <div className="controls-section">
+                <button
+                  className={`reload-btn ${isReloading ? 'is-loading' : ''}`}
+                  onClick={reloadConnections}
+                  disabled={isReloading}
+                  title="Reload database connections"
+                  aria-label="Reload database connections"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 11a8.1 8.1 0 0 0-15.5-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M4 5v4h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M4 13a8.1 8.1 0 0 0 15.5 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M20 19v-4h-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+
                 <select
                   value={itemsPerPage}
                   onChange={(e) => { setItemsPerPage(e.target.value); setCurrentPage(1); }}

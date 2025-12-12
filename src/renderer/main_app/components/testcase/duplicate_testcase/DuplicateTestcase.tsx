@@ -213,7 +213,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
   if (!isOpen || !testcase) return null;
 
   return (
-    <div className="tcase-dup-modal-overlay" onClick={handleClose}>
+    <div className="tcase-dup-modal-overlay">
       <div className="tcase-dup-modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="tcase-dup-modal-header">
           <h2 className="tcase-dup-modal-title">Duplicate Testcase</h2>

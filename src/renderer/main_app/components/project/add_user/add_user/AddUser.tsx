@@ -228,7 +228,7 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
   if (!isOpen) return null;
 
   return (
-    <div className="add-user-modal-overlay" onClick={onClose}>
+    <div className="add-user-modal-overlay">
       <div
         className="add-user-modal-container"
         onClick={(e) => e.stopPropagation()}

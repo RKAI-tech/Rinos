@@ -28,23 +28,120 @@ function getClassesWithoutFreezer(element) {
 }
 
 export function generateAndValidateSelectors(element, options = {}) {
+  const iframeChain = getFrameChain(element);
+
+  // Không ở trong iframe: giữ logic cũ nhưng truyền context root
+  if (iframeChain.length === 0) {
+    return generateSelectorsForElement(element, options.root || element.ownerDocument || document);
+  }
+
+  // Sinh selector cho từng iframe tổ tiên (outer -> inner) và validate unique theo document cha
+  const frameSelectorsList = iframeChain.map(frameEl => {
+    const parentDoc = frameEl.ownerDocument || document;
+    const selectors = generateIframeSelectors(frameEl, parentDoc);
+    return filterUniqueSelectors(selectors, frameEl, parentDoc);
+  });
+
+  // Sinh selector cho element trong context của iframe sâu nhất
+  const elementSelectors = generateSelectorsForElement(
+    element,
+    element.ownerDocument || document
+  );
+
+  const combinedSelectors = [];
+  const combineFrames = (idx, prefix) => {
+    if (idx === frameSelectorsList.length) {
+      for (const elSelector of elementSelectors) {
+        const finalSelector = prefix ? `${prefix}.${elSelector}` : elSelector;
+        combinedSelectors.push(finalSelector);
+      }
+      return;
+    }
+    for (const frameSel of frameSelectorsList[idx]) {
+      const nextPrefix = prefix
+        ? `${prefix}.frameLocator('${frameSel}')`
+        : `frameLocator('${frameSel}')`;
+      combineFrames(idx + 1, nextPrefix);
+    }
+  };
+
+  combineFrames(0, '');
+
+  // Loại trùng và escape backslash
+  return [...new Set(combinedSelectors)].map(s => s.replace(/\\/g, '\\\\'));
+}
+
+function generateSelectorsForElement(element, root = document) {
   const candidates = generateCandidates(element);
 
   const uniqueSelectors = [];
 
-  // Validate uniqueness
+  // Validate uniqueness trong phạm vi root
   for (const candidate of candidates) {
-    if (isUnique(candidate, element)) {
+    if (isUnique(candidate, element, root)) {
       uniqueSelectors.push(candidateToCode(candidate));
     }
   }
 
-  const chained = tryChaining(element);
+  const chained = tryChaining(element, root);
   if (chained) uniqueSelectors.push(chained);
 
-  uniqueSelectors.push(generateCssFallback(element));
+  uniqueSelectors.push(generateCssFallback(element, root));
 
   return uniqueSelectors.map(s => s.replace(/\\/g, '\\\\'));
+}
+
+// Lấy danh sách iframe tổ tiên từ outer -> inner
+function getFrameChain(element) {
+  const chain = [];
+  let currentDoc = element?.ownerDocument;
+  while (currentDoc?.defaultView && currentDoc.defaultView.frameElement) {
+    const frameEl = currentDoc.defaultView.frameElement;
+    chain.push(frameEl);
+    currentDoc = frameEl.ownerDocument;
+  }
+  return chain.reverse();
+}
+
+// Sinh CSS selector cho iframe để dùng với frameLocator()
+function generateIframeSelectors(iframeEl, root = document) {
+  const selectors = [];
+  const tag = iframeEl.tagName ? iframeEl.tagName.toLowerCase() : 'iframe';
+
+  const addSelector = sel => {
+    if (sel && !selectors.includes(sel)) selectors.push(sel);
+  };
+
+  for (const attr of TEST_ID_ATTRIBUTES) {
+    const val = iframeEl.getAttribute && iframeEl.getAttribute(attr);
+    if (val) addSelector(`[${attr}="${escapeSelector(val)}"]`);
+  }
+
+  const id = iframeEl.getAttribute && iframeEl.getAttribute('id');
+  if (id) addSelector(`${tag}#${escapeSelector(id)}`);
+
+  const nameAttr = iframeEl.getAttribute && iframeEl.getAttribute('name');
+  if (nameAttr) addSelector(`${tag}[name="${escapeSelector(nameAttr)}"]`);
+
+  const titleAttr = iframeEl.getAttribute && iframeEl.getAttribute('title');
+  if (titleAttr) addSelector(`${tag}[title="${escapeSelector(titleAttr)}"]`);
+
+  const cssFallback = generateCssFallback(iframeEl, root, { returnCssOnly: true });
+  if (cssFallback) addSelector(cssFallback);
+
+  return selectors;
+}
+
+// Giữ lại những selector CSS unique cho element trong phạm vi root
+function filterUniqueSelectors(selectors, element, root = document) {
+  const unique = [];
+  for (const sel of selectors) {
+    if (isUnique({ selector: sel }, element, root)) {
+      unique.push(sel);
+    }
+  }
+  // Nếu tất cả đều không unique, trả về selector gốc để vẫn có kết quả
+  return unique.length > 0 ? unique : selectors;
 }
 
 function generateCandidates(element) {
@@ -131,14 +228,14 @@ function generateCandidates(element) {
   return candidates;
 }
 
-function isUnique(candidate, targetElement) {
+function isUnique(candidate, targetElement, root = document) {
   let matches = [];
 
   if (candidate.query) {
-    matches = queryShadowAll(candidate.query);
+    matches = queryShadowAll(candidate.query, root);
   }
   else if (candidate.queryRole) {
-    const allElements = queryShadowAll('*');
+    const allElements = queryShadowAll('*', root);
     matches = allElements.filter(el => {
       if (getElementRole(el) !== candidate.role) return false;
       if (candidate.name) {
@@ -148,7 +245,7 @@ function isUnique(candidate, targetElement) {
     });
   }
   else if (candidate.queryText) {
-    const allElements = queryShadowAll('*');
+    const allElements = queryShadowAll('*', root);
     matches = allElements.filter(el => {
       return el.textContent.includes(candidate.text) && isVisible(el);
     });
@@ -158,19 +255,19 @@ function isUnique(candidate, targetElement) {
   }
   else if (candidate.queryLabel) {
     // Find all input/textarea/select
-    const inputs = queryShadowAll('input, textarea, select');
+    const inputs = queryShadowAll('input, textarea, select', root);
     // Filter to find the one with an explicit label that matches
     matches = inputs.filter(el => getExplicitLabelText(el) === candidate.text);
   }
   else if (candidate.selector) {
     // Fallback CSS
-    matches = queryShadowAll(candidate.selector);
+    matches = queryShadowAll(candidate.selector, root);
   }
 
   return matches.length === 1 && matches[0] === targetElement;
 }
 
-function tryChaining(element) {
+function tryChaining(element, root = document) {
   let parent = element.parentElement;
   let depth = 0;
 
@@ -189,7 +286,7 @@ function tryChaining(element) {
     }
 
     if (parentSelector) {
-      const parentMatches = queryShadowAll(parentSelector);
+      const parentMatches = queryShadowAll(parentSelector, root);
       if (parentMatches.length === 1) {
         const tag = element.tagName.toLowerCase();
         // Improve chaining: add attributes to make it more unique
@@ -210,7 +307,7 @@ function tryChaining(element) {
   return null;
 }
 
-function generateCssFallback(element) {
+function generateCssFallback(element, root = document, options = {}) {
   const path = [];
   let current = element;
 
@@ -228,7 +325,7 @@ function generateCssFallback(element) {
     const stableClasses = getStableClasses(current);
     if (stableClasses.length > 0) {
       // Try different combinations of classes to find a unique selector
-      const classSelector = tryClassSelector(current, stableClasses);
+      const classSelector = tryClassSelector(current, stableClasses, root);
       if (classSelector) {
         path.unshift(classSelector);
         current = current.parentElement;
@@ -251,6 +348,7 @@ function generateCssFallback(element) {
   }
 
   const css = path.join(' > ');
+  if (options.returnCssOnly) return css;
   return `locator('${css}')`;
 }
 
@@ -283,14 +381,14 @@ function getStableClasses(element) {
  * Try to create a unique selector using CSS classes
  * Returns the selector string if unique, null otherwise
  */
-function tryClassSelector(element, stableClasses) {
+function tryClassSelector(element, stableClasses, root = document) {
   if (stableClasses.length === 0) return null;
 
   const tag = element.tagName.toLowerCase();
   
   // Strategy 1: Try all classes combined (most specific)
   const allClassesSelector = `${tag}.${stableClasses.map(c => escapeSelector(c)).join('.')}`;
-  const allMatches = queryShadowAll(allClassesSelector);
+  const allMatches = queryShadowAll(allClassesSelector, root);
   if (allMatches.length === 1 && allMatches[0] === element) {
     return allClassesSelector;
   }
@@ -300,7 +398,7 @@ function tryClassSelector(element, stableClasses) {
   for (let i = stableClasses.length; i >= 1; i--) {
     const classCombination = stableClasses.slice(0, i);
     const selector = `${tag}.${classCombination.map(c => escapeSelector(c)).join('.')}`;
-    const matches = queryShadowAll(selector);
+    const matches = queryShadowAll(selector, root);
     
     if (matches.length === 1 && matches[0] === element) {
       return selector;
@@ -312,7 +410,7 @@ function tryClassSelector(element, stableClasses) {
   const sortedClasses = [...stableClasses].sort((a, b) => b.length - a.length);
   for (const className of sortedClasses) {
     const selector = `${tag}.${escapeSelector(className)}`;
-    const matches = queryShadowAll(selector);
+    const matches = queryShadowAll(selector, root);
     
     // Check if this selector uniquely identifies the element in its parent context
     const parent = element.parentElement;

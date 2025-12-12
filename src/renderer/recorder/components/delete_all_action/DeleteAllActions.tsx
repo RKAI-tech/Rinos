@@ -17,7 +17,7 @@ const DeleteAllActions: React.FC<DeleteAllActionsProps> = ({ isOpen, onClose, on
   if (!isOpen) return null;
 
   return (
-    <div className="rcd-delete-modal-overlay" onClick={onClose}>
+    <div className="rcd-delete-modal-overlay">
       <div className="rcd-delete-modal-container" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="rcd-delete-modal-header">

@@ -41,7 +41,7 @@ const DeleteTestSuite: React.FC<DeleteTestSuiteProps> = ({ isOpen, onClose, onDe
   if (!isOpen || !testsuite) return null;
 
   return (
-    <div className="tsuite-delete-modal-overlay" onClick={onClose}>
+    <div className="tsuite-delete-modal-overlay">
       <div className="tsuite-delete-modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="tsuite-delete-modal-header">
           <h2 className="tsuite-delete-modal-title">Confirm Deletion</h2>

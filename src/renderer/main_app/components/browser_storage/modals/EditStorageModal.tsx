@@ -26,7 +26,7 @@ const EditBrowserStorageModal: React.FC<EditBrowserStorageModalProps> = ({ isOpe
     !type;
 
   return (
-    <div className="cookies-modal-overlay" onClick={onClose}>
+    <div className="cookies-modal-overlay">
       <div className="cookies-modal" onClick={e => e.stopPropagation()}>
         <div className="cookies-modal-header">
           Edit Browser Storage

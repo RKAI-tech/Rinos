@@ -532,7 +532,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
 
   return (
     <>
-      <div className="vtsr-overlay" onClick={onClose}>
+      <div className="vtsr-overlay">
         <div className="vtsr-container" onClick={(e) => e.stopPropagation()}>
           <ToastContainer
             containerId="vtsr-toast-container"

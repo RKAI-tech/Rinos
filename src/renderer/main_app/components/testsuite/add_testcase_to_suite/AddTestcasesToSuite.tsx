@@ -128,7 +128,7 @@ const AddTestcasesToSuite: React.FC<AddTestcasesToSuiteProps> = ({ isOpen, onClo
   if (!isOpen) return null;
 
   return (
-    <div className="tsuite-add-modal-overlay" onClick={onClose}>
+    <div className="tsuite-add-modal-overlay">
       <div className="tsuite-add-modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="tsuite-add-modal-header">
           <h2 className="tsuite-add-modal-title">Add Testcases to Suite</h2>

@@ -91,7 +91,7 @@ const RunQuery: React.FC<RunQueryProps> = ({ isOpen, sql, queryName, items, onCl
   }, [isOpen, onClose]);
 
   return (
-    <div className="rqr-modal-overlay" onClick={onClose}>
+    <div className="rqr-modal-overlay">
       <div className="rqr-modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="rqr-modal-header">
           <h2 className="rqr-modal-title">{queryName || 'Run query results'}</h2>

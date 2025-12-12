@@ -21,7 +21,7 @@ const VersionUpdateModal: React.FC<VersionUpdateModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="version-update-overlay" onClick={onClose}>
+    <div className="version-update-overlay">
       <div className="version-update-modal" onClick={(e) => e.stopPropagation()}>
         <div className="version-update-header">
           <h2 className="version-update-title">

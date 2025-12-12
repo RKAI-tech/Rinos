@@ -210,7 +210,7 @@ const InstallBrowserModal: React.FC<InstallBrowserModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="install-browser-modal-overlay" onClick={handleClose}>
+    <div className="install-browser-modal-overlay">
       <div 
         className="install-browser-modal-container" 
         onClick={(e) => e.stopPropagation()}

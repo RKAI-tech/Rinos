@@ -323,7 +323,7 @@ const BrowserManagerModal: React.FC<BrowserManagerModalProps> = ({ isOpen, onClo
   if (!isOpen) return null;
 
   return (
-    <div className="browser-manager-modal-overlay" onClick={closeModal}>
+    <div className="browser-manager-modal-overlay">
       <div className="browser-manager-modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="browser-manager-modal-header">
           <div>
@@ -457,7 +457,7 @@ const BrowserManagerModal: React.FC<BrowserManagerModalProps> = ({ isOpen, onClo
           </button>
         </div>
         {pendingConfirm && (
-          <div className="browser-confirm-modal-overlay" onClick={closeConfirmModal}>
+          <div className="browser-confirm-modal-overlay">
             <div className="browser-confirm-modal-container" onClick={(e) => e.stopPropagation()}>
               <div className="browser-confirm-modal-header">
                 <h2 className="browser-confirm-modal-title">{ACTION_COPY[pendingConfirm.type].title}</h2>

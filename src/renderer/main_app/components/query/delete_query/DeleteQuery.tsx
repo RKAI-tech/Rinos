@@ -36,7 +36,7 @@ const DeleteQuery: React.FC<DeleteQueryProps> = ({ isOpen, onClose, onDelete, qu
   }, [isOpen, onClose]);
 
   return (
-    <div className="dq-modal-overlay" onClick={onClose}>
+    <div className="dq-modal-overlay">
       <div className="dq-modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="dq-modal-header">
           <h2 className="dq-modal-title">Confirm Delete Query</h2>
