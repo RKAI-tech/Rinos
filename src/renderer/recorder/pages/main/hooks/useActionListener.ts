@@ -182,7 +182,6 @@ export const useActionListener = ({
   
   useEffect(() => {
     return (window as any).browserAPI?.browser?.onAction(async (action: any) => {
-      console.log("NewActionReceived", action);
 
       if (isPaused) return;
       if (!testcaseId) return;

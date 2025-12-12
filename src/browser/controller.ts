@@ -20,7 +20,7 @@ export class Controller {
     private fileService: FileService;
     private statementService: StatementService;
     private onActionExecuting?: (index: number) => void;
-    private onActionFailed?: (index: number) => void;
+    private onActionFailed?: (index: number, message?: string) => void;
     public browserManager?: any; // Reference to BrowserManager for window operations
 
     constructor() {
@@ -29,7 +29,7 @@ export class Controller {
         this.statementService = new StatementService();
     }
 
-    setExecutionCallbacks(onExecuting?: (index: number) => void, onFailed?: (index: number) => void) {
+    setExecutionCallbacks(onExecuting?: (index: number) => void, onFailed?: (index: number, message?: string) => void) {
         this.onActionExecuting = onExecuting;
         this.onActionFailed = onFailed;
     }
@@ -231,7 +231,7 @@ export class Controller {
 
     async getPage(pageIndex: number): Promise<Page> {
         if (!this.browserManager) {
-            throw new Error('Browser manager not available');
+            throw new Error('The browser is not available. Please check if the browser is opened or contact support.');
         }
 
         for (const [pageId, index] of this.browserManager.pages_index.entries()) {
@@ -244,7 +244,7 @@ export class Controller {
             this.browserManager.pages.delete(pageId);
             this.browserManager.pages_index.delete(pageId);
         }
-        throw new Error(`Page with index ${pageIndex} not found`);
+        throw new Error(`The page is not found. Please check if the page is opened or contact support.`);
     }
 
     async resolveUniqueSelector(page: Page | null, selectors: string[]): Promise<any> {
@@ -273,7 +273,7 @@ export class Controller {
         if (minIndex !== -1) {
             return locators[minIndex].first();
         }
-        throw new Error('No unique selector found.');
+        throw new Error('The selector is broken. Please check the selector or contact support.');
     }
 
     /**
@@ -487,15 +487,15 @@ export class Controller {
                 return;
             }
         }
-        throw new Error(`Force action failed for all selectors (action=${action})`);
+        throw new Error(`This action is failed. Please check the selector or contact support.`);
     }
 
     async executeMultipleActions(context: BrowserContext, actions: Action[]): Promise<void> {
         if (!context) {
-            throw new Error('Context is required');
+            throw new Error('The browser context is not available. Please check if the browser is opened or contact support.');
         }
         if (!Array.isArray(actions) || actions.length === 0) {
-            throw new Error('Actions array is required and cannot be empty');
+            throw new Error('The actions array is required and cannot be empty. Please check the actions or contact support.');
         }
         for (let i = 0; i < actions.length; i++) {
             const action = actions[i];
@@ -822,12 +822,12 @@ export class Controller {
                     case ActionType.database_execution:
                         const statementData = (action.action_datas || []).find(d => d.statement)?.statement;
                         if (!statementData) {
-                            throw new Error('Statement is required for database execution action');
+                            throw new Error('Query is required for database execution action');
                         }
 
                         const connectionId = statementData.connection?.connection_id;
                         if (!connectionId) {
-                            throw new Error('connection_id is required for database execution action');
+                            throw new Error('The connection is not available. Please check if the connection is opened or contact support.');
                         }
 
                         const query = (statementData as any).statement_text || statementData.query;
@@ -857,7 +857,7 @@ export class Controller {
                             }
                         }
                         if (!pageIndex) {
-                            throw new Error('Page index is required for page create action');
+                            throw new Error('The browser page is not available. Please check the page or contact support.');
                         }
                         let url: string | undefined;
                         for (const action_data of action.action_datas || []) {
@@ -905,9 +905,12 @@ export class Controller {
 
 
             } catch (error) {
-                console.error(`[Controller] Error executing action ${i + 1} (${action.action_type}):`, error);
-                this.onActionFailed?.(i);
-
+                const message = error instanceof Error ? error.message : String(error);
+                console.error(`[Controller] Error executing action ${i + 1} (${action.action_type}):`, message);
+                this.onActionFailed?.(i, message);
+                // break; // stop executing further actions on failure
+                this.onActionExecuting?.(-1);
+                return;
             }
         }
         this.onActionExecuting?.(-1); // Use -1 to indicate all actions completed

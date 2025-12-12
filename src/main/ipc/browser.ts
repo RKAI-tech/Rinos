@@ -45,7 +45,7 @@ function getOrCreateManagerForWindow(win: BrowserWindow): BrowserManager {
             win.webContents.send('browser:action-executing', data);
         }
     });
-    manager.on('action-failed', (data: { index: number }) => {
+    manager.on('action-failed', (data: { index: number; message?: string }) => {
         if (!win.isDestroyed()) {
             win.webContents.send('browser:action-failed', data);
         }

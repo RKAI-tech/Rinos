@@ -7,12 +7,14 @@ interface ActionProps {
   onDelete?: (actionId: string) => void;
   onClick?: (action: ActionType) => void;
   onStartRecording?: () => void;
+  onContinueExecution?: () => void;
   isBrowserOpen?: boolean;
   isRecordingFromThisAction?: boolean;
+  failedMessage?: string | null;
   index?: number;
 }
 
-export default function RenderedAction({ action, onDelete, onClick, onStartRecording, isBrowserOpen, isRecordingFromThisAction, index }: ActionProps) {
+export default function RenderedAction({ action, onDelete, onClick, onStartRecording, onContinueExecution, isBrowserOpen, isRecordingFromThisAction, failedMessage, index }: ActionProps) {
   // Format action type for display
   const formatActionType = (type: string) => {
     return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
@@ -158,17 +160,35 @@ export default function RenderedAction({ action, onDelete, onClick, onStartRecor
         {/* <div className="rcd-action-meta">{getSelector()}</div> */}
         {renderValue() && <div className="rcd-action-value">{renderValue()}</div>}
         {/* <div className="rcd-action-time">Order: {action.order_index}</div> */}
+        {failedMessage && (
+          <div className="rcd-action-error">
+            {failedMessage}
+          </div>
+        )}
       </div>
       <div className="rcd-action-actions">
         <button
           className={`rcd-action-record ${isRecordingFromThisAction ? 'active' : ''}`}
-          title={isRecordingFromThisAction ? "Stop recording from this action" : "Start recording from this action"}
+          title={isBrowserOpen ? "Browser is open. Close browser to start from this action" : (isRecordingFromThisAction ? "Stop recording from this action" : "Start recording from this action")}
           onClick={(e) => { e.stopPropagation(); onStartRecording && onStartRecording(); }}
+          disabled={isBrowserOpen}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <polygon points="6,3 20,12 6,21" fill="currentColor" />
           </svg>
         </button>
+        {isRecordingFromThisAction && isBrowserOpen && onContinueExecution && (
+          <button
+            className="rcd-action-continue"
+            title="Continue execution from this action"
+            onClick={(e) => { e.stopPropagation(); onContinueExecution(); }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="6,5 16,12 6,19" fill="currentColor" opacity="0.8" />
+              <polygon points="10,5 20,12 10,19" fill="currentColor" />
+            </svg>
+          </button>
+        )}
         <button
           className="rcd-action-edit"
           title="Edit"

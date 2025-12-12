@@ -524,7 +524,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
           <div className="rcd-assert-container">
             <button
               className={`rcd-ctrl rcd-assert ${assertHook.isAssertDropdownOpen || assertHook.selectedAssert ? 'active' : ''}`}
-              disabled={!browserIsOpen}
+              disabled={!browserIsOpen || browserExecutingActionIndex !== null }
               title="Assert"
               onClick={assertHook.handleAssertClick}
             >
@@ -596,8 +596,10 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
             onSelectInsertPosition={handleSelectInsertPosition}
             onSelectAction={handleSelectAction}
             onStartRecording={browserHook.handleStartRecordingFromAction}
+            onContinueExecution={browserHook.continueExecution}
             isBrowserOpen={browserIsOpen}
             recordingFromActionIndex={browserRecordingFromActionIndex}
+            failedActionMessage={browserHook.failedActionMessage}
             onAddAction={handleAddAction}
             isAddActionOpen={modals.isAddActionOpen}
             onCloseAddAction={() => modals.setIsAddActionOpen(false)}

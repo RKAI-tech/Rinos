@@ -14,9 +14,10 @@ interface EditBrowserStorageModalProps {
   setDescription: (value: string) => void;
   setValue: (value: string) => void;
   setType: (value: BrowserStorageType) => void;
+  valueError?: string;
 }
 
-const EditBrowserStorageModal: React.FC<EditBrowserStorageModalProps> = ({ isOpen, onClose, onSave, isSaving, name, description, value, type, setName, setDescription, setValue, setType }) => {
+const EditBrowserStorageModal: React.FC<EditBrowserStorageModalProps> = ({ isOpen, onClose, onSave, isSaving, name, description, value, type, setName, setDescription, setValue, setType, valueError }) => {
   if (!isOpen) return null;
 
   const isSaveDisabled =
@@ -62,7 +63,18 @@ const EditBrowserStorageModal: React.FC<EditBrowserStorageModalProps> = ({ isOpe
           <label className="cookies-modal-label">
             Value <span style={{ color: '#dc2626' }}>*</span>
           </label>
-          <textarea className="cookies-modal-textarea" rows={6} value={value} onChange={e => setValue(e.target.value)} placeholder='Enter value (JSON or text)'></textarea>
+          <textarea 
+            className={`cookies-modal-textarea ${valueError ? 'error' : ''}`} 
+            rows={6} 
+            value={value} 
+            onChange={e => setValue(e.target.value)} 
+            placeholder='Enter value (JSON or text)'
+          ></textarea>
+          {valueError && (
+            <div style={{ color: '#dc2626', fontSize: '13px', marginTop: '4px', lineHeight: '1.4' }}>
+              {valueError}
+            </div>
+          )}
         </div>
         <div className="cookies-modal-footer">
           <button className="cookies-btn-secondary" onClick={onClose} disabled={isSaving}>Cancel</button>

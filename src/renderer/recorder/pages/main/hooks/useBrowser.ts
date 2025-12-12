@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { Action, ActionType } from '../../../types/actions';
 import { BasicAuthentication } from '../../../types/basic_auth';
@@ -54,6 +54,10 @@ export const useBrowser = ({
   const [recordingFromActionIndexLocal, setRecordingFromActionIndexLocal] = useState<number | null>(null);
   const [executingActionIndexLocal, setExecutingActionIndexLocal] = useState<number | null>(null);
   const [failedActionIndexLocal, setFailedActionIndexLocal] = useState<number | null>(null);
+  const [failedActionMessage, setFailedActionMessage] = useState<string | null>(null);
+  
+  // Track execution start index offset for continue execution
+  const executionStartIndexRef = useRef<number | null>(null);
   
   // Sync with parent setters
   useEffect(() => {
@@ -172,6 +176,58 @@ export const useBrowser = ({
     }
   }, [isBrowserOpen, actions.length, basicAuth, browserType, selectedInsertPosition, setSelectedInsertPosition, setDisplayInsertPosition, setActions, setIsDirty, testcaseId, checkBrowserCompatibility]);
 
+  const continueExecution = useCallback(async (actionIndex: number) => {
+    // Kiểm tra browser đã mở chưa
+    if (!isBrowserOpen) {
+      toast.warning('Browser is not open. Please start from an action first.');
+      return;
+    }
+
+    // Kiểm tra actionIndex hợp lệ
+    if (actionIndex < 0 || actionIndex >= actions.length) {
+      toast.error('Invalid action index');
+      return;
+    }
+
+    // Tính toán vị trí bắt đầu: tiếp tục từ actionIndex + 1
+    const startIndex = actionIndex + 1;
+    
+    // Kiểm tra còn actions nào để chạy không
+    if (startIndex >= actions.length) {
+      toast.info('All actions have been executed.');
+      return;
+    }
+
+    const remainingActions = actions.slice(startIndex);
+    if (remainingActions.length === 0) {
+      toast.info('No remaining actions to execute.');
+      return;
+    }
+
+    try {
+      setIsPaused(true);
+      executionStartIndexRef.current = startIndex;
+      await (window as any).browserAPI?.browser?.executeActions(remainingActions);
+
+      setRecordingFromActionIndexLocal(null);
+      setSelectedInsertPosition(actions.length);
+      setDisplayInsertPosition(actions.length);
+
+      setIsPaused(false);
+    } catch (error) {
+      executionStartIndexRef.current = null;
+      setIsPaused(false);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to continue execution: ${errorMessage}`);
+      throw error;
+    }
+  }, [
+    isBrowserOpen, 
+    actions,
+    setIsPaused,
+    setRecordingFromActionIndexLocal
+  ]);
+
   const pauseBrowser = useCallback(async () => {
     setIsPaused(!isPaused);
   }, [isPaused]);
@@ -187,6 +243,8 @@ export const useBrowser = ({
       setRecordingFromActionIndexLocal(null);
       setExecutingActionIndexLocal(null);
       setFailedActionIndexLocal(null);
+      // Reset execution start index offset
+      executionStartIndexRef.current = null;
     await (window as any).browserAPI?.browser?.stop();
   }, [setSelectedAssert, setIsAssertDropdownOpen, setAssertSearch, setIsAssertMode]);
 
@@ -264,6 +322,8 @@ export const useBrowser = ({
       setRecordingFromActionIndexLocal(null);
       setExecutingActionIndexLocal(null);
       setFailedActionIndexLocal(null);
+      // Reset execution start index offset
+      executionStartIndexRef.current = null;
     };
 
     const removeListener = (window as any).browserAPI?.browser?.onBrowserClose?.(handleBrowserClose);
@@ -280,15 +340,31 @@ export const useBrowser = ({
     const handleActionExecuting = (data: { index: number }) => {
       if (data.index === -1) {
         setExecutingActionIndexLocal(null);
-        setFailedActionIndexLocal(null);
+        if (executionStartIndexRef.current !== null) {
+          executionStartIndexRef.current = null;
+        }
+        return;
+      }
+    
+      if (executionStartIndexRef.current !== null) {
+        const adjustedIndex = data.index + executionStartIndexRef.current;
+        setExecutingActionIndexLocal(adjustedIndex);
       } else {
         setExecutingActionIndexLocal(data.index);
-        setFailedActionIndexLocal(null);
       }
+      setFailedActionIndexLocal(null);
+      setFailedActionMessage(null);
     };
 
-    const handleActionFailed = (data: { index: number }) => {
-      setFailedActionIndexLocal(data.index);
+    const handleActionFailed = (data: { index: number; message?: string }) => {
+      if (executionStartIndexRef.current !== null) {
+        const adjustedIndex = data.index + executionStartIndexRef.current;
+        setFailedActionIndexLocal(adjustedIndex);
+        setFailedActionMessage(data.message || 'Action failed');
+      } else {
+        setFailedActionIndexLocal(data.index);
+        setFailedActionMessage(data.message || 'Action failed');
+      }
       setExecutingActionIndexLocal(null);
     };
 
@@ -318,6 +394,8 @@ export const useBrowser = ({
     setExecutingActionIndex: setExecutingActionIndexLocal,
     failedActionIndex: failedActionIndexLocal,
     setFailedActionIndex: setFailedActionIndexLocal,
+    failedActionMessage,
+    setFailedActionMessage,
     isGeneratingCode,
     setIsGeneratingCode,
     isRunningScript,
@@ -326,6 +404,7 @@ export const useBrowser = ({
     stopBrowser,
     handleStartRecordingFromAction,
     handleRunScript,
+    continueExecution,
   };
 };
 

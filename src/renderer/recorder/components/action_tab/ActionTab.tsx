@@ -34,6 +34,7 @@ interface ActionTabProps {
   onSelectInsertPosition?: (position: number | null) => void;
   onSelectAction?: (action: Action) => void;
   onStartRecording?: (actionIndex: number) => void;
+  onContinueExecution?: (actionIndex: number) => void;
   isBrowserOpen?: boolean;
   recordingFromActionIndex?: number | null;
   onAddAction?: () => void;
@@ -45,6 +46,7 @@ interface ActionTabProps {
   onDisplayPositionChange?: (position: number) => void;
   executingActionIndex?: number | null;
   failedActionIndex?: number | null;
+  failedActionMessage?: string | null;
   onOpenBasicAuth?: () => void;
   projectId?: string | null;
   basicAuthStatus?: 'idle' | 'success';
@@ -77,6 +79,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
   onSelectInsertPosition,
   onSelectAction,
   onStartRecording,
+  onContinueExecution,
   isBrowserOpen,
   recordingFromActionIndex,
   onAddAction,
@@ -88,6 +91,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
   onDisplayPositionChange,
   executingActionIndex,
   failedActionIndex,
+  failedActionMessage,
   onOpenBasicAuth,
   projectId,
   basicAuthStatus,
@@ -182,6 +186,8 @@ const ActionTab: React.FC<ActionTabProps> = ({
 
   const shouldShowReloadSpinner = reloadStatus === 'loading' || (reloadStatus === 'idle' && !!isReloading);
   const shouldShowSaveSpinner = saveStatus === 'loading' || (saveStatus === 'idle' && !!isSaving);
+  const isAddActionDisabled = !!executingActionIndex || isBrowserOpen === false;
+  const isExecutingAction = executingActionIndex != null;
 
   const setReloadSuccessWithTimeout = () => {
     clearReloadTimeout();
@@ -336,7 +342,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
       return;
     }
 
-    if (reloadStatus === 'loading' || isReloading) {
+    if (reloadStatus === 'loading' || isReloading || isExecutingAction) {
       return;
     }
 
@@ -846,7 +852,12 @@ const ActionTab: React.FC<ActionTabProps> = ({
             )}
           </button>
           <div className="rcd-add-action-container">
-            <button className="rcd-action-btn add" title="Add new action" onClick={() => onAddAction && onAddAction()}>
+            <button
+              className="rcd-action-btn add"
+              title="Add new action"
+              onClick={() => onAddAction && onAddAction()}
+              disabled={isAddActionDisabled}
+            >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
                 <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -945,7 +956,12 @@ const ActionTab: React.FC<ActionTabProps> = ({
               }}
             />
           </div>
-          <button className="rcd-action-btn reset" title="Reload actions" onClick={handleReloadClick} disabled={shouldShowReloadSpinner}>
+          <button
+            className="rcd-action-btn reset"
+            title="Reload actions"
+            onClick={handleReloadClick}
+            disabled={shouldShowReloadSpinner || isExecutingAction}
+          >
             {reloadStatus === 'success' && !shouldShowReloadSpinner ? (
               successIcon
             ) : shouldShowReloadSpinner ? (
@@ -970,7 +986,12 @@ const ActionTab: React.FC<ActionTabProps> = ({
               </svg>
             )}
           </button>
-          <button className="rcd-action-btn delete" title="Delete all actions" onClick={() => onDeleteAll && onDeleteAll()}>
+          <button
+            className="rcd-action-btn delete"
+            title="Delete all actions"
+            onClick={() => onDeleteAll && onDeleteAll()}
+            disabled={isExecutingAction}
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -1006,8 +1027,10 @@ const ActionTab: React.FC<ActionTabProps> = ({
                     onDelete={onDeleteAction}
                     onClick={(a) => onSelectAction && onSelectAction(a)}
                     onStartRecording={() => onStartRecording && onStartRecording(index)}
+                    onContinueExecution={() => onContinueExecution && onContinueExecution(index)}
                     isBrowserOpen={isBrowserOpen}
                     isRecordingFromThisAction={recordingFromActionIndex === index}
+                    failedMessage={failedActionIndex === index ? failedActionMessage : null}
                     index={index}
                   />
                 </div>

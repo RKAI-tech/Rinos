@@ -67,8 +67,8 @@ export class BrowserManager extends EventEmitter {
                     this.emit('action-executing', { index });
                 }
             },
-            (index: number) => {
-                this.emit('action-failed', { index });
+            (index: number, message?: string) => {
+                this.emit('action-failed', { index, message });
             }
         );
     }
@@ -477,7 +477,7 @@ export class BrowserManager extends EventEmitter {
             this.pages.set(pageId, newPage);
             this.pages_index.set(pageId, initialPageIndex);
             this.activePageId = pageId;
-            newPage.setDefaultTimeout(3000);
+            newPage.setDefaultTimeout(10000);
             await newPage.waitForLoadState('domcontentloaded');
             await this.basicSetupPage(pageId)
             await newPage.waitForLoadState('domcontentloaded');

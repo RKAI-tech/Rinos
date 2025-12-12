@@ -40,7 +40,7 @@ export enum AssertType {
   toHaveText = "toHaveText",
   toContainText = "toContainText",
   toHaveValue = "toHaveValue",
-  toHaveValues = "toHaveValues",
+  // toHaveValues = "toHaveValues",
   pageHasATitle = "pageHasATitle",
   pageHasAURL = "pageHasAURL",
   ai = "AI",

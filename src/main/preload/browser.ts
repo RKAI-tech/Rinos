@@ -28,8 +28,8 @@ const browserMethods = {
             ipcRenderer.removeListener("browser:action-executing", listener);
         };
     },
-    onActionFailed: (handler: (data: { index: number }) => void) => {
-        const listener = (_: unknown, data: { index: number }) => handler(data);
+    onActionFailed: (handler: (data: { index: number; message?: string }) => void) => {
+        const listener = (_: unknown, data: { index: number; message?: string }) => handler(data);
         ipcRenderer.on("browser:action-failed", listener);
         return () => {
             ipcRenderer.removeListener("browser:action-failed", listener);

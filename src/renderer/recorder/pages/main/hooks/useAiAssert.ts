@@ -205,6 +205,7 @@ export const useAiAssert = ({
     setIsGeneratingAi(true);
     try {
       const response = await actionService.generateAiAssert(request);
+      console.log('[useAiAssert] generateAiAssert response:', response);
 
       if (!response.success) {
         const errorMessage =

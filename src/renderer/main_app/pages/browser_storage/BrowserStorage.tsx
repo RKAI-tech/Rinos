@@ -22,6 +22,165 @@ interface CookieItem {
   type?: BrowserStorageType;
 }
 
+// Validation types
+type ValidValueType = string | number | boolean | null | ValidValueType[] | { [key: string]: ValidValueType };
+
+interface CookieDict {
+  name?: string;
+  value?: string;
+  domain?: string;
+  path?: string;
+  expires?: number;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: "Strict" | "Lax" | "None";
+  partitionKey?: string;
+  [key: string]: ValidValueType | undefined;
+}
+
+// Normalization functions
+const normalizeCookieDict = (cookie: any): any => {
+  if (typeof cookie !== 'object' || cookie === null || Array.isArray(cookie)) {
+    return cookie;
+  }
+  
+  const normalized = { ...cookie };
+  
+  // Normalize sameSite: lowercase and convert to proper case
+  if (normalized.sameSite !== undefined && typeof normalized.sameSite === 'string') {
+    const lowerSameSite = normalized.sameSite.toLowerCase();
+    if (lowerSameSite === 'lax') {
+      normalized.sameSite = 'Lax';
+    } else if (lowerSameSite === 'strict') {
+      normalized.sameSite = 'Strict';
+    } else if (lowerSameSite === 'none') {
+      normalized.sameSite = 'None';
+    }
+  }
+  
+  // Normalize boolean fields: httpOnly and secure
+  const booleanFields = ['httpOnly', 'secure'];
+  for (const field of booleanFields) {
+    if (normalized[field] !== undefined && typeof normalized[field] === 'string') {
+      const lowerValue = normalized[field].toLowerCase();
+      if (lowerValue === 'true') {
+        normalized[field] = true;
+      } else if (lowerValue === 'false') {
+        normalized[field] = false;
+      }
+    }
+  }
+  
+  return normalized;
+};
+
+// Validation functions
+const validateValueType = (value: any): value is ValidValueType => {
+  if (value === null) return true;
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return true;
+  if (Array.isArray(value)) {
+    return value.every(item => validateValueType(item));
+  }
+  if (typeof value === 'object') {
+    return Object.values(value).every(v => validateValueType(v));
+  }
+  return false;
+};
+
+const validateCookieDict = (cookie: any, index?: number): { valid: boolean; error?: string } => {
+  if (typeof cookie !== 'object' || cookie === null || Array.isArray(cookie)) {
+    return { valid: false, error: `Cookie${index !== undefined ? ` at index ${index}` : ''} must be an object` };
+  }
+  
+  // Validate specific cookie fields if present
+  if (cookie.name !== undefined && typeof cookie.name !== 'string') {
+    return { valid: false, error: `Cookie${index !== undefined ? ` at index ${index}` : ''}: field "name" must be a string` };
+  }
+  if (cookie.value !== undefined && typeof cookie.value !== 'string') {
+    return { valid: false, error: `Cookie${index !== undefined ? ` at index ${index}` : ''}: field "value" must be a string` };
+  }
+  if (cookie.domain !== undefined && typeof cookie.domain !== 'string') {
+    return { valid: false, error: `Cookie${index !== undefined ? ` at index ${index}` : ''}: field "domain" must be a string` };
+  }
+  if (cookie.path !== undefined && typeof cookie.path !== 'string') {
+    return { valid: false, error: `Cookie${index !== undefined ? ` at index ${index}` : ''}: field "path" must be a string` };
+  }
+  if (cookie.expires !== undefined && typeof cookie.expires !== 'number') {
+    return { valid: false, error: `Cookie${index !== undefined ? ` at index ${index}` : ''}: field "expires" must be a number (Unix time in seconds)` };
+  }
+  if (cookie.httpOnly !== undefined && typeof cookie.httpOnly !== 'boolean') {
+    return { valid: false, error: `Cookie${index !== undefined ? ` at index ${index}` : ''}: field "httpOnly" must be a boolean` };
+  }
+  if (cookie.secure !== undefined && typeof cookie.secure !== 'boolean') {
+    return { valid: false, error: `Cookie${index !== undefined ? ` at index ${index}` : ''}: field "secure" must be a boolean` };
+  }
+  if (cookie.sameSite !== undefined && !["Strict", "Lax", "None"].includes(cookie.sameSite)) {
+    return { valid: false, error: `Cookie${index !== undefined ? ` at index ${index}` : ''}: field "sameSite" must be one of "Strict", "Lax", or "None"` };
+  }
+  if (cookie.partitionKey !== undefined && typeof cookie.partitionKey !== 'string') {
+    return { valid: false, error: `Cookie${index !== undefined ? ` at index ${index}` : ''}: field "partitionKey" must be a string` };
+  }
+  
+  // Validate all values (including arbitrary keys)
+  for (const key in cookie) {
+    if (!validateValueType(cookie[key])) {
+      return { valid: false, error: `Cookie${index !== undefined ? ` at index ${index}` : ''}: field "${key}" has invalid type. Values must be string, number, boolean, null, array, or object` };
+    }
+  }
+  
+  return { valid: true };
+};
+
+const validateCookieValue = (value: any, normalize: boolean = true): { valid: boolean; error?: string; normalizedValue?: any } => {
+  if (!Array.isArray(value)) {
+    return { valid: false, error: 'Cookie value must be an array of objects' };
+  }
+  
+  const normalizedArray = normalize ? [...value] : value;
+  
+  for (let i = 0; i < normalizedArray.length; i++) {
+    // Normalize cookie dict first
+    if (normalize) {
+      normalizedArray[i] = normalizeCookieDict(normalizedArray[i]);
+    }
+    
+    const cookie = normalizedArray[i];
+    const validation = validateCookieDict(cookie, i);
+    if (!validation.valid) {
+      return validation;
+    }
+  }
+  
+  return { valid: true, normalizedValue: normalize ? normalizedArray : undefined };
+};
+
+const validateStorageValue = (value: any): { valid: boolean; error?: string } => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return { valid: false, error: 'Local/Session storage value must be an object (dictionary)' };
+  }
+  
+  // Validate all keys are strings
+  for (const key in value) {
+    if (typeof key !== 'string') {
+      return { valid: false, error: 'All keys must be strings' };
+    }
+    if (!validateValueType(value[key])) {
+      return { valid: false, error: `Value for key "${key}" has invalid type. Values must be string, number, boolean, null, array, or object.` };
+    }
+  }
+  
+  return { valid: true };
+};
+
+const validateBrowserStorageValue = (value: any, type: BrowserStorageType, normalize: boolean = true): { valid: boolean; error?: string; normalizedValue?: any } => {
+  if (type === BrowserStorageType.COOKIE) {
+    return validateCookieValue(value, normalize);
+  } else if (type === BrowserStorageType.LOCAL_STORAGE || type === BrowserStorageType.SESSION_STORAGE) {
+    return validateStorageValue(value);
+  }
+  return { valid: false, error: 'Unknown storage type' };
+};
+
 const BrowserStorage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -54,6 +213,8 @@ const BrowserStorage: React.FC = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedCookie, setSelectedCookie] = useState<CookieItem | null>(null);
   const [isReloading, setIsReloading] = useState(false);
+  const [valueError, setValueError] = useState<string>('');
+  const [editValueError, setEditValueError] = useState<string>('');
 
   const reloadCookies = async () => {
     if (!projectId) return;
@@ -297,6 +458,7 @@ const BrowserStorage: React.FC = () => {
     setNewName('');
     setNewDescription('');
     setNewValue('');
+    setValueError('');
   };
 
   const handleOpenCreate = () => {
@@ -331,22 +493,44 @@ const BrowserStorage: React.FC = () => {
     setEditDescription('');
     setEditValue('');
     setEditType(BrowserStorageType.COOKIE);
+    setEditValueError('');
   };
 
   const handleSaveEdit = async () => {
     if (!editingCookie?.id) return;
     try {
       setIsUpdating(true);
+      setEditValueError('');
+      
       let parsed: any = editValue;
       const t = editValue.trim();
       if ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'))) {
-        try { parsed = JSON.parse(t); } catch { parsed = editValue; }
+        try { 
+          parsed = JSON.parse(t); 
+        } catch (e) {
+          setEditValueError('Invalid JSON format. Please check your value syntax.');
+          return;
+        }
+      } else {
+        setEditValueError('Value must be a valid JSON object or array');
+        return;
       }
+      
+      // Validate and normalize the parsed value based on storage type
+      const validation = validateBrowserStorageValue(parsed, editType, true);
+      if (!validation.valid) {
+        setEditValueError(validation.error || 'Invalid value format');
+        return;
+      }
+      
+      // Use normalized value if available
+      const finalValue = validation.normalizedValue !== undefined ? validation.normalizedValue : parsed;
+      
       const svc = new BrowserStorageService();
       const resp = await svc.updateBrowserStorage(editingCookie.id, {
         name: editName.trim() || undefined,
         description: editDescription.trim() || undefined,
-        value: parsed,
+        value: finalValue,
         storage_type: editType,
       });
       if (resp.success) {
@@ -374,13 +558,34 @@ const BrowserStorage: React.FC = () => {
     }
     try {
       setIsSaving(true);
+      setValueError('');
+      
       let parsedValue: any = newValue;
       const trimmed = newValue.trim();
       if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-        try { parsedValue = JSON.parse(trimmed); } catch { parsedValue = newValue; }
+        try { 
+          parsedValue = JSON.parse(trimmed); 
+        } catch (e) {
+          setValueError('Invalid JSON format. Please check your value syntax.');
+          return;
+        }
+      } else {
+        setValueError('Value must be a valid JSON object or array');
+        return;
       }
+      
+      // Validate and normalize the parsed value based on storage type
+      const validation = validateBrowserStorageValue(parsedValue, newType, true);
+      if (!validation.valid) {
+        setValueError(validation.error || 'Invalid value format');
+        return;
+      }
+      
+      // Use normalized value if available
+      const finalValue = validation.normalizedValue !== undefined ? validation.normalizedValue : parsedValue;
+      
       const svc = new BrowserStorageService();
-      const resp = await svc.createBrowserStorage({ project_id: projectId, name: newName.trim(), description: newDescription.trim() || undefined, value: parsedValue, storage_type: newType });
+      const resp = await svc.createBrowserStorage({ project_id: projectId, name: newName.trim(), description: newDescription.trim() || undefined, value: finalValue, storage_type: newType });
       if (resp.success) {
         toast.success('Browser storage created');
         handleCloseCreate();
@@ -677,8 +882,12 @@ const BrowserStorage: React.FC = () => {
         type={newType}
         setName={setNewName}
         setDescription={setNewDescription}
-        setValue={setNewValue}
+        setValue={(val) => {
+          setNewValue(val);
+          setValueError(''); // Clear error when user types
+        }}
         setType={setNewType}
+        valueError={valueError}
       />
       <EditBrowserStorageModal
         isOpen={isEditOpen}
@@ -691,8 +900,12 @@ const BrowserStorage: React.FC = () => {
         type={editType}
         setName={setEditName}
         setDescription={setEditDescription}
-        setValue={setEditValue}
+        setValue={(val) => {
+          setEditValue(val);
+          setEditValueError(''); // Clear error when user types
+        }}
         setType={setEditType}
+        valueError={editValueError}
       />
       <DeleteBrowserStorageModal
         isOpen={isDeleteOpen}
@@ -706,5 +919,6 @@ const BrowserStorage: React.FC = () => {
 };
 
 export default BrowserStorage;
+
 
 

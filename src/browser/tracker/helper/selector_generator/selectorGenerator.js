@@ -88,6 +88,9 @@ function generateSelectorsForElement(element, root = document) {
 
   uniqueSelectors.push(generateCssFallback(element, root));
 
+  const fullXPath = generateFullXPath(element);
+  if (fullXPath) uniqueSelectors.push(fullXPath);
+
   return uniqueSelectors.map(s => s.replace(/\\/g, '\\\\'));
 }
 
@@ -101,6 +104,23 @@ function getFrameChain(element) {
     currentDoc = frameEl.ownerDocument;
   }
   return chain.reverse();
+}
+
+function generateFullXPath(element) {
+  const segments = [];
+  let current = element;
+  while (current && current.nodeType === Node.ELEMENT_NODE) {
+    const tag = current.tagName.toLowerCase();
+    let index = 1;
+    let sibling = current.previousElementSibling;
+    while (sibling) {
+      if (sibling.tagName === current.tagName) index++;
+      sibling = sibling.previousElementSibling;
+    }
+    segments.unshift(`${tag}[${index}]`);
+    current = current.parentElement;
+  }
+  return `locator('//${segments.join('/')}')`;
 }
 
 // Sinh CSS selector cho iframe để dùng với frameLocator()

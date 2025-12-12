@@ -14,9 +14,10 @@ interface CreateBrowserStorageModalProps {
   setDescription: (value: string) => void;
   setValue: (value: string) => void;
   setType: (value: BrowserStorageType) => void;
+  valueError?: string;
 }
 
-const CreateBrowserStorageModal: React.FC<CreateBrowserStorageModalProps> = ({ isOpen, onClose, onSave, isSaving, name, description, value, type, setName, setDescription, setValue, setType }) => {
+const CreateBrowserStorageModal: React.FC<CreateBrowserStorageModalProps> = ({ isOpen, onClose, onSave, isSaving, name, description, value, type, setName, setDescription, setValue, setType, valueError }) => {
   if (!isOpen) return null;
 
   const handleValuePlaceholder = (type: BrowserStorageType) => {
@@ -116,12 +117,17 @@ const CreateBrowserStorageModal: React.FC<CreateBrowserStorageModalProps> = ({ i
             </div>
           </label>
           <textarea
-            className="cookies-modal-textarea-placeholder"
+            className={`cookies-modal-textarea-placeholder ${valueError ? 'error' : ''}`}
             rows={6}
             value={value}
             onChange={e => setValue(e.target.value)}
             placeholder={handleValuePlaceholder(type)}
           ></textarea>
+          {valueError && (
+            <div style={{ color: '#dc2626', fontSize: '13px', marginTop: '4px', lineHeight: '1.4' }}>
+              {valueError}
+            </div>
+          )}
         </div>
         <div className="cookies-modal-footer">
           <button className="cookies-btn-secondary" onClick={onClose} disabled={isSaving}>Cancel</button>
