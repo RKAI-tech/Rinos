@@ -224,6 +224,7 @@ export function initializeEventListeners() {
   document.addEventListener('input', handleTextInputEvent, true);
   // document.addEventListener('change', handleCheckboxRadioChangeEvent);
   document.addEventListener('change', handleSelectChangeEvent, true);
+  document.addEventListener('mouseup', handleClickEvent, true); // hotfix: D2 issues
   document.addEventListener('click', handleClickEvent, true);
   document.addEventListener('dblclick', handleDoubleClickEvent, true);
   document.addEventListener('keydown', handleKeyDownEvent, true);

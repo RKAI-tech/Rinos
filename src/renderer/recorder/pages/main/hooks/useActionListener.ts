@@ -163,8 +163,17 @@ export const useActionListener = ({
           currentIsAnyModalOpen
         );
 
+        // currentSetSelectedInsertPosition(() => {
+        //   const updatedPos = next.length;
+        //   latestPropsRef.current.selectedInsertPosition = updatedPos;
+        //   return updatedPos;
+        // });
+        const insertedCount = next.length - prev.length;
         currentSetSelectedInsertPosition(() => {
-          const updatedPos = next.length;
+          const updatedPos = Math.min(
+            currentInsertPosition + insertedCount,
+            next.length
+          );
           latestPropsRef.current.selectedInsertPosition = updatedPos;
           return updatedPos;
         });
