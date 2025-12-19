@@ -5,13 +5,14 @@ import ActionDetailModal from '../../components/action_detail/ActionDetailModal'
 import TestScriptTab from '../../components/code_convert/TestScriptTab';
 import ActionToCodeTab from '../../components/action_to_code_tab/ActionToCodeTab';
 import AiAssertModal from '../../components/asserts/ai_assert/AiAssertModal';
+import AssertWithValueModal from '../../components/asserts/assert_with_value/AssertWithValueModal';
 import BasicAuthModal from '../../components/basic_auth/BasicAuthModal';
 import DeleteAllActions from '../../components/delete_all_action/DeleteAllActions';
 import ConfirmCloseModal from '../../components/confirm_close/ConfirmCloseModal';
 import URLInputModal from '../../components/asserts/url_input_modal/URLInputModal';
 import TitleInputModal from '../../components/asserts/title_input_modal/TitleInputModal';
 import CSSAssertModal from '../../components/asserts/css_input_modal/CSSAssertModal';
-import { Action } from '../../types/actions';
+import { Action, AssertType } from '../../types/actions';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
 import { GenerationCodeRequest } from '../../types/executeScripts';
@@ -23,6 +24,7 @@ import { useModals } from './hooks/useModals';
 import { useAssert } from './hooks/useAssert';
 import { useBasicAuth } from './hooks/useBasicAuth';
 import { useAiAssert } from './hooks/useAiAssert';
+import { useAssertWithValue } from './hooks/useAssertWithValue';
 import { usePageSelection } from './hooks/usePageSelection';
 import { useUnsavedChanges } from './hooks/useUnsavedChanges';
 import { useActionListener } from './hooks/useActionListener';
@@ -93,6 +95,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
     setIsUrlInputOpen: modals.setIsUrlInputOpen,
     setIsTitleInputOpen: modals.setIsTitleInputOpen,
     setIsCssInputOpen: modals.setIsCssInputOpen,
+    setIsAssertWithValueModalOpen: modals.setIsAssertWithValueModalOpen,
   });
 
   const browserHook = useBrowser({
@@ -127,6 +130,19 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
     selectedPageInfo: pageSelection.aiAssertSelectedPageInfo,
   });
 
+  const assertWithValueHook = useAssertWithValue({
+    testcaseId: testcaseId || null,
+    assertType: (assertHook.selectedAssert as any) || AssertType.toHaveText,
+    selectedInsertPosition: actionsHook.selectedInsertPosition,
+    setSelectedInsertPosition: actionsHook.setSelectedInsertPosition,
+    setDisplayInsertPosition: actionsHook.setDisplayInsertPosition,
+    setActions: actionsHook.handleActionsChange,
+    setIsDirty: (dirty) => actionsHook.setIsDirty(dirty),
+    setSelectedAssert: assertHook.setSelectedAssert,
+    setIsAssertMode: assertHook.setIsAssertMode,
+    selectedPageInfo: pageSelection.assertWithValueSelectedPageInfo,
+  });
+
   const unsavedChanges = useUnsavedChanges({
     testcaseId: testcaseId || null,
     isDirty: actionsHook.isDirty,
@@ -151,6 +167,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
            modals.isUrlInputOpen || 
            modals.isTitleInputOpen || 
            modals.isCssInputOpen ||
+           modals.isAssertWithValueModalOpen ||
            modals.isBasicAuthOpen || 
            modals.isDetailOpen ||
            modals.isConfirmCloseOpen ||
@@ -165,6 +182,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
     modals.isAiModalOpen, 
     modals.isUrlInputOpen, 
     modals.isTitleInputOpen, 
+    modals.isCssInputOpen,
+    modals.isAssertWithValueModalOpen,
     modals.isBasicAuthOpen, 
     modals.isDetailOpen, 
     modals.isConfirmCloseOpen,
@@ -280,6 +299,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
     isTitleInputOpen: modals.isTitleInputOpen,
     isCssInputOpen: modals.isCssInputOpen,
     isAiAssertOpen: modals.isAiModalOpen,
+    isAssertWithValueModalOpen: modals.isAssertWithValueModalOpen,
     setNavigateSelectedPageInfo: pageSelection.setNavigateSelectedPageInfo,
     setBrowserActionSelectedPageInfo: pageSelection.setBrowserActionSelectedPageInfo,
     setAddBrowserStorageSelectedPageInfo: pageSelection.setAddBrowserStorageSelectedPageInfo,
@@ -291,13 +311,17 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
     aiAssertSelectedPageInfo: pageSelection.aiAssertSelectedPageInfo,
     setAiAssertSelectedPageInfo: pageSelection.setAiAssertSelectedPageInfo,
     setAiElements: aiAssertHook.setAiElements,
+    assertWithValueSelectedPageInfo: pageSelection.assertWithValueSelectedPageInfo,
+    setAssertWithValueSelectedPageInfo: pageSelection.setAssertWithValueSelectedPageInfo,
+    setAssertWithValueSelectedElement: pageSelection.setAssertWithValueSelectedElement,
   });
 
+  // Gửi lại projectId sang process browser mỗi khi mở browser (vì mỗi lần mở là một phiên mới)
   useEffect(() => {
-    if (projectId) {
+    if (projectId && browserIsOpen) {
       (window as any).browserAPI?.browser?.setProjectId?.(projectId);
     }
-  }, [projectId]);
+  }, [projectId, browserIsOpen]);
 
   // Check browser compatibility on mount and show warning if needed
   useEffect(() => {
@@ -797,6 +821,40 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
         }}
         onClearElement={() => {
           pageSelection.setCssInputSelectedElement(null);
+        }}
+      />
+      <AssertWithValueModal
+        isOpen={modals.isAssertWithValueModalOpen}
+        testcaseId={testcaseId}
+        assertType={assertHook.selectedAssert || 'toHaveText'}
+        onClose={async () => { 
+          modals.setIsAssertWithValueModalOpen(false); 
+          assertHook.setSelectedAssert(null);
+          assertHook.setIsAssertMode(false);
+          assertHook.setIsAssertDropdownOpen(false);
+          assertHook.setAssertSearch('');
+          pageSelection.setAssertWithValueSelectedPageInfo(null);
+          pageSelection.setAssertWithValueSelectedElement(null);
+          await (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
+        }}
+        onConfirm={async (value, element, pageInfo, statement, apiRequest) => {
+          const result = await assertWithValueHook.handleConfirm(value, element, pageInfo, statement, apiRequest);
+          if (result) {
+            modals.setIsAssertWithValueModalOpen(false);
+            pageSelection.setAssertWithValueSelectedPageInfo(null);
+            pageSelection.setAssertWithValueSelectedElement(null);
+          }
+        }}
+        selectedPageInfo={pageSelection.assertWithValueSelectedPageInfo}
+        onPageInfoChange={(pageInfo) => {
+          pageSelection.setAssertWithValueSelectedPageInfo(pageInfo);
+        }}
+        onClearPage={() => {
+          pageSelection.setAssertWithValueSelectedPageInfo(null);
+        }}
+        selectedElement={pageSelection.assertWithValueSelectedElement}
+        onClearElement={() => {
+          pageSelection.setAssertWithValueSelectedElement(null);
         }}
       />
       <CheckDuplicateElementModal

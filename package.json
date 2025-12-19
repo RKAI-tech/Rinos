@@ -142,7 +142,7 @@
       "entitlementsInherit": "build_mac/entitlements.mac.inherit.plist",
       "gatekeeperAssess": false,
       "identity": null,
-      "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
+      "artifactName": "${productName}-mac-${arch}-${version}.${ext}"
     },
     "linux": {
       "target": [
@@ -169,7 +169,7 @@
       "category": "Development",
       "synopsis": "Automation Test Execution",
       "maintainer": "Rikkeisoft Corporation <pr@rikkeisoft.com>",
-      "artifactName": "${productName}-${version}-linux-${arch}.${ext}"
+      "artifactName": "${productName}-linux-${arch}-${version}.${ext}"
     },
     "win": {
       "target": [
@@ -189,7 +189,7 @@
       "icon": "images/icon.ico",
       "requestedExecutionLevel": "asInvoker",
       "signAndEditExecutable": false,
-      "artifactName": "${productName}-${version}-win-${arch}.${ext}"
+      "artifactName": "${productName}-win-${arch}-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -201,7 +201,7 @@
       "uninstallerIcon": "images/icon.ico"
     },
     "portable": {
-      "artifactName": "${productName}-${version}-portable-${arch}.${ext}"
+      "artifactName": "${productName}-portable-${arch}-${version}.${ext}"
     }
   }
 }

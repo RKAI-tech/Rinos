@@ -395,6 +395,10 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
               draft={draft}
               updateDraft={updateDraft}
               updateField={updateField}
+            updateElement={updateElement}
+            addNewSelector={addNewSelector}
+            updateSelector={updateSelector}
+            removeSelector={removeSelector}
             />
           ) : (
             draft.action_type === ActionType.page_create ||
@@ -414,6 +418,10 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
               draft={draft}
               updateDraft={updateDraft}
               updateField={updateField}
+            updateElement={updateElement}
+            addNewSelector={addNewSelector}
+            updateSelector={updateSelector}
+            removeSelector={removeSelector}
             />
           ) : (
             draft.action_type === ActionType.assert &&
@@ -423,6 +431,10 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
               draft={draft}
               updateDraft={updateDraft}
               updateField={updateField}
+            updateElement={updateElement}
+            addNewSelector={addNewSelector}
+            updateSelector={updateSelector}
+            removeSelector={removeSelector}
             />
           ) : (
             <DefaultActionDetail

@@ -15,6 +15,12 @@ fi
 echo "APPLE_ID=$APPLE_ID"
 echo "TEAM_ID=$TEAM_ID"
 
+# Lấy version từ package.json để đặt tên file theo cấu trúc chuẩn
+APP_VERSION=$(node -p "require('./package.json').version" 2>/dev/null)
+if [ -z "$APP_VERSION" ]; then
+  APP_VERSION="0.0.0"
+fi
+
 # Danh sách các thư mục Mac cần notarize
 MAC_DIRS=("mac" "mac-arm64" "mac-universal")
 
@@ -22,26 +28,29 @@ MAC_DIRS=("mac" "mac-arm64" "mac-universal")
 notarize_app() {
   local DIR="$1"
   local APP="release/$DIR/Automation Test Execution.app"
-  local SUFFIX=""
+  local PLATFORM="mac"
+  local ARCH=""
 
-  # Đặt hậu tố tên file theo loại build
+  # Xác định kiến trúc theo tên thư mục build
   case "$DIR" in
     "mac")
-      SUFFIX="macos_x64"
+      ARCH="x64"
       ;;
-    "mac_arm64")
-      SUFFIX="macos_arm64"
+    "mac-arm64")
+      ARCH="arm64"
       ;;
     "mac-universal")
-      SUFFIX="macos_universal"
+      ARCH="universal"
       ;;
     *)
-      SUFFIX="$DIR"
+      ARCH="$DIR"
       ;;
   esac
 
-  local ZIP="release/$DIR/Automation_Test_Execution_${SUFFIX}.zip"
-  local DMG="release/$DIR/Automation_Test_Execution_${SUFFIX}.dmg"
+  # Đặt tên file theo cấu trúc: <AppName>-<Platform>-<Architecture>-<Version>.<extension>
+  # Ở đây AppName dùng dạng slug: Automation_Test_Execution
+  local ZIP="release/$DIR/Automation_Test_Execution-${PLATFORM}-${ARCH}-${APP_VERSION}.zip"
+  local DMG="release/$DIR/Automation_Test_Execution-${PLATFORM}-${ARCH}-${APP_VERSION}.dmg"
   local ZIP_RESULT="notarize_zip_result_${DIR}.txt"
   local DMG_RESULT="notarize_dmg_result_${DIR}.txt"
   

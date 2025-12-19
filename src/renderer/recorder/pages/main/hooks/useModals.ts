@@ -8,6 +8,7 @@ export const useModals = () => {
   const [isUrlInputOpen, setIsUrlInputOpen] = useState(false);
   const [isTitleInputOpen, setIsTitleInputOpen] = useState(false);
   const [isCssInputOpen, setIsCssInputOpen] = useState(false);
+  const [isAssertWithValueModalOpen, setIsAssertWithValueModalOpen] = useState(false);
   const [isAddActionOpen, setIsAddActionOpen] = useState(false);
   const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
   const [isDatabaseExecutionOpen, setIsDatabaseExecutionOpen] = useState(false);
@@ -34,6 +35,8 @@ export const useModals = () => {
     setIsTitleInputOpen,
     isCssInputOpen,
     setIsCssInputOpen,
+    isAssertWithValueModalOpen,
+    setIsAssertWithValueModalOpen,
     isAddActionOpen,
     setIsAddActionOpen,
     isDeleteAllOpen,

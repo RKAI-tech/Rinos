@@ -364,15 +364,39 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave,
           ) : draft.action_type === ActionType.assert && isAiAssertType(draft.assert_type) ? (
             <AssertAiActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
           ) : draft.action_type === ActionType.assert && isToHaveCssAssertType(draft.assert_type) ? (
-            <AssertToHaveCssActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+            <AssertToHaveCssActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+              updateElement={updateElement}
+              addNewSelector={addNewSelector}
+              updateSelector={updateSelector}
+              removeSelector={removeSelector}
+            />
           ) : draft.action_type === ActionType.page_create ||
             draft.action_type === ActionType.page_close ||
             draft.action_type === ActionType.page_focus ? (
             <PageActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
           ) : draft.action_type === ActionType.assert && isAssertWithoutValueType(draft.assert_type) ? (
-            <AssertWithoutValueActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+            <AssertWithoutValueActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+              updateElement={updateElement}
+              addNewSelector={addNewSelector}
+              updateSelector={updateSelector}
+              removeSelector={removeSelector}
+            />
           ) : draft.action_type === ActionType.assert && isAssertWithValueType(draft.assert_type) ? (
-            <AssertWithValueActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+            <AssertWithValueActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+              updateElement={updateElement}
+              addNewSelector={addNewSelector}
+              updateSelector={updateSelector}
+              removeSelector={removeSelector}
+            />
           ) : (
             <DefaultActionDetail draft={draft} updateField={updateField} />
           )}

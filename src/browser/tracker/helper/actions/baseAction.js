@@ -40,8 +40,8 @@ export function shouldIgnoreTarget(target, label = 'Event') {
       // console.log(`Skipping ${label} - inside query panel`);
     }
     // Ignore and log for controls and assert modal only
-    if (target.closest('#rikkei-browser-controls') || target.closest('#rikkei-assert-input-modal')) {
-      // console.log(`Skipping ${label} - inside browser controls or assert modal`);
+    if (target.closest('#rikkei-browser-controls')) {
+      // console.log(`Skipping ${label} - inside browser controls`);
       return true;
     }
   } catch { }

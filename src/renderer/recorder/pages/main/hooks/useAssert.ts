@@ -12,6 +12,7 @@ interface UseAssertProps {
   setIsUrlInputOpen: (open: boolean) => void;
   setIsTitleInputOpen: (open: boolean) => void;
   setIsCssInputOpen: (open: boolean) => void;
+  setIsAssertWithValueModalOpen: (open: boolean) => void;
 }
 
 export const useAssert = ({
@@ -23,6 +24,7 @@ export const useAssert = ({
   setIsUrlInputOpen,
   setIsTitleInputOpen,
   setIsCssInputOpen,
+  setIsAssertWithValueModalOpen,
 }: UseAssertProps) => {
   const [isAssertDropdownOpen, setIsAssertDropdownOpen] = useState(false);
   const [assertSearch, setAssertSearch] = useState('');
@@ -72,9 +74,11 @@ export const useAssert = ({
       setIsTitleInputOpen(true);
     } else if (assertType === AssertType.toHaveCSS) {
       setIsCssInputOpen(true);
+    } else if (assertType === AssertType.toHaveText || assertType === AssertType.toContainText || assertType === AssertType.toHaveValue) {
+      setIsAssertWithValueModalOpen(true);
     }
     await (window as any).browserAPI?.browser?.setAssertMode(true, assertType as AssertType);
-  }, [setIsAiModalOpen, setIsUrlInputOpen, setIsTitleInputOpen, setIsCssInputOpen]);
+  }, [setIsAiModalOpen, setIsUrlInputOpen, setIsTitleInputOpen, setIsCssInputOpen, setIsAssertWithValueModalOpen]);
 
   const handleUrlConfirm = useCallback((url: string, pageInfo?: { page_index: number; page_url: string; page_title: string }) => {
     setActions(prev => {

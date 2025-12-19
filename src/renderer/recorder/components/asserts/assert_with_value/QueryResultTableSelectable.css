@@ -1,0 +1,57 @@
+@import '../ai_assert/QueryResultTable.css';
+
+.qrt-cell {
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+.qrt-cell:hover {
+  background-color: #f3f4f6;
+}
+
+.qrt-cell-selected {
+  background-color: #dbeafe !important;
+  border: 2px solid #3b82f6;
+}
+
+.qrt-cell-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: space-between;
+}
+
+.qrt-cell-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qrt-select-btn {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 4px;
+  background: #e5e7eb;
+  color: #111827;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  transition: background-color 0.2s;
+}
+
+.qrt-select-btn:hover {
+  background: #d1d5db;
+}
+
+.qrt-cell-selected .qrt-select-btn {
+  background: #3b82f6;
+  color: #fff;
+}
+

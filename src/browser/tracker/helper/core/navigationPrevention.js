@@ -197,8 +197,6 @@ export function preventNavigation(e) {
  */
 export function preventFormSubmission(e) {
   if (isAssertMode) {
-    const inAssertModal = e.target && typeof e.target.closest === 'function' && e.target.closest('#rikkei-assert-input-modal');
-    if (inAssertModal) return;
     e.preventDefault();
     e.stopPropagation();
     // console.log('Prevented form submission - assert mode is active');
@@ -212,8 +210,6 @@ export function preventFormSubmission(e) {
  */
 export function preventKeyEvents(e) {
   if (isAssertMode) {
-    const inAssertModal = e.target && typeof e.target.closest === 'function' && e.target.closest('#rikkei-assert-input-modal');
-    if (inAssertModal) return;
     e.preventDefault();
     e.stopPropagation();
     // console.log('Prevented keydown - assert mode is active');

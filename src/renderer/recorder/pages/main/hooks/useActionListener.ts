@@ -28,6 +28,7 @@ interface UseActionListenerProps {
   isTitleInputOpen: boolean;
   isCssInputOpen: boolean;
   isAiAssertOpen: boolean;
+  isAssertWithValueModalOpen: boolean;
   setNavigateSelectedPageInfo: (info: PageInfo | null) => void;
   setBrowserActionSelectedPageInfo: (info: PageInfo | null) => void;
   setAddBrowserStorageSelectedPageInfo: (info: PageInfo | null) => void;
@@ -48,6 +49,18 @@ interface UseActionListenerProps {
   setAiAssertSelectedPageInfo: (info: PageInfo | null) => void;
   // AI Assert
   setAiElements: React.Dispatch<React.SetStateAction<AiElement[]>>;
+  // Assert With Value
+  assertWithValueSelectedPageInfo: PageInfo | null;
+  setAssertWithValueSelectedPageInfo: (info: PageInfo | null) => void;
+  setAssertWithValueSelectedElement: (element: {
+    selectors: string[];
+    domHtml: string;
+    value: string;
+    pageIndex?: number | null;
+    pageUrl?: string | null;
+    pageTitle?: string | null;
+    element_data?: Record<string, any>;
+  } | null) => void;
 }
 
 export const useActionListener = ({
@@ -71,6 +84,7 @@ export const useActionListener = ({
   isTitleInputOpen,
   isCssInputOpen,
   isAiAssertOpen,
+  isAssertWithValueModalOpen,
   setNavigateSelectedPageInfo,
   setBrowserActionSelectedPageInfo,
   setAddBrowserStorageSelectedPageInfo,
@@ -82,6 +96,9 @@ export const useActionListener = ({
   aiAssertSelectedPageInfo,
   setAiAssertSelectedPageInfo,
   setAiElements,
+  assertWithValueSelectedPageInfo,
+  setAssertWithValueSelectedPageInfo,
+  setAssertWithValueSelectedElement,
 }: UseActionListenerProps) => {
   // Ref để tránh duplicate toast
   const lastPageInfoUpdateRef = useRef<{ pageIndex: number | null; timestamp: number } | null>(null);
@@ -437,6 +454,63 @@ export const useActionListener = ({
         return;
       }
 
+      // Assert with value (toHaveText, toContainText, toHaveValue) goes to modal only
+      if ((action?.action_type === 'assert') && 
+          (action?.assert_type === 'toHaveText' || action?.assert_type === 'toContainText' || action?.assert_type === 'toHaveValue')) {
+        let pageIndex: number | null = null;
+        let pageUrl: string | null = null;
+        let pageTitle: string | null = null;
+        if (Array.isArray(action?.action_datas)) {
+          for (const ad of action.action_datas) {
+            if (ad?.value?.page_index !== undefined && ad?.value?.page_index !== null) {
+              pageIndex = Number(ad.value.page_index);
+              pageUrl = ad.value.page_url || null;
+              pageTitle = ad.value.page_title || null;
+              break;
+            }
+          }
+        }
+        const selectors = action.elements?.[0]?.selectors?.map((s: any) => s.value) || [];
+        const domHtml = action.action_datas?.[0]?.value?.htmlDOM || '';
+        const elementText = action.action_datas?.[0]?.value?.elementText || '';
+        const elementData = action.elements?.[0]?.element_data || undefined;
+
+        if (!selectors.length && !domHtml) {
+          toast.warn('Failed to capture element. Please click again.');
+          return;
+        }
+
+        // Chỉ xử lý khi AssertWithValueModal đang mở
+        if (!isAssertWithValueModalOpen) {
+          return;
+        }
+
+        // Set selected element
+        setAssertWithValueSelectedElement({
+          selectors,
+          domHtml,
+          value: elementText,
+          pageIndex,
+          pageUrl: pageUrl || null,
+          pageTitle: pageTitle || null,
+          element_data: elementData,
+        });
+        
+        // Auto-update page info if available
+        if (pageIndex !== null && pageIndex !== undefined) {
+          const pageData: PageInfo = {
+            page_index: pageIndex,
+            page_url: pageUrl || '',
+            page_title: pageTitle || '',
+          };
+          setAssertWithValueSelectedPageInfo(pageData);
+          toast.success('Element and page selected successfully');
+        } else {
+          toast.success('Element selected successfully');
+        }
+        return;
+      }
+
       // AI assert goes to modal only
       if ((action?.action_type === 'assert') && (action?.assert_type === 'AI')) {
         let pageIndex: number | null = null;
@@ -559,6 +633,7 @@ export const useActionListener = ({
     isTitleInputOpen,
     isCssInputOpen,
     isAiAssertOpen,
+    isAssertWithValueModalOpen,
     setNavigateSelectedPageInfo,
     setBrowserActionSelectedPageInfo,
     setAddBrowserStorageSelectedPageInfo,
@@ -570,6 +645,9 @@ export const useActionListener = ({
     aiAssertSelectedPageInfo,
     setAiAssertSelectedPageInfo,
     setAiElements,
+    assertWithValueSelectedPageInfo,
+    setAssertWithValueSelectedPageInfo,
+    setAssertWithValueSelectedElement,
     processActionQueue,
   ]);
 };
