@@ -183,9 +183,7 @@ export const useAssert = ({
         action_type: ActionType.assert,
         assert_type: AssertType.toHaveCSS,
         value: cssValue,
-        description: pageInfo 
-          ? `Verify element on page ${pageInfo.page_title || pageInfo.page_url} has CSS ${cssProperty}: ${cssValue}`
-          : `Verify element has CSS ${cssProperty}: ${cssValue}`,
+        description: `Verify element has CSS ${cssProperty}: ${cssValue}`,
         elements: [
           {
             selectors: element.selectors.map(s => ({ value: s })),

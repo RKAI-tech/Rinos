@@ -115,8 +115,22 @@ const AssertToHaveCssActionDetail: React.FC<AssertToHaveCssActionDetailProps> = 
 
   const handleValueChange = (value: string) => {
     const selectedProp = CSS_PROPERTIES.find(p => p.value === cssProperty);
-    if (selectedProp?.isNumber) {
-      // Chỉ cho phép số và các ký tự đặc biệt cho đơn vị (px, em, rem, %, etc.)
+    if (cssProperty === 'font-size') {
+      // Font-size: chỉ chấp nhận số + px (ví dụ: 16px, 14.5px)
+      const fontSizePattern = /^[\d.]*px?$/i;
+      if (value === '' || fontSizePattern.test(value)) {
+        setCssValue(value);
+        updateCssData({ css_value: value });
+      }
+    } else if (cssProperty === 'font-weight') {
+      // Font-weight: chỉ chấp nhận số (ví dụ: 400, 700)
+      const fontWeightPattern = /^[\d]*$/;
+      if (value === '' || fontWeightPattern.test(value)) {
+        setCssValue(value);
+        updateCssData({ css_value: value });
+      }
+    } else if (selectedProp?.isNumber) {
+      // Các number property khác (nếu có)
       const numberPattern = /^[\d.]*[a-z%]*$/i;
       if (value === '' || numberPattern.test(value)) {
         setCssValue(value);
@@ -131,6 +145,8 @@ const AssertToHaveCssActionDetail: React.FC<AssertToHaveCssActionDetailProps> = 
   const selectedProp = CSS_PROPERTIES.find(p => p.value === cssProperty);
   const isColorInput = selectedProp?.isColor || false;
   const isNumberInput = selectedProp?.isNumber || false;
+  const isFontSize = cssProperty === 'font-size';
+  const isFontWeight = cssProperty === 'font-weight';
 
   const renderElements = () => {
     if (!draft.elements || draft.elements.length === 0) {
@@ -280,12 +296,17 @@ const AssertToHaveCssActionDetail: React.FC<AssertToHaveCssActionDetailProps> = 
               CSS Value <span style={{ color: '#ef4444' }}>*</span>
               {isColorInput && (
                 <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '8px', fontWeight: 'normal' }}>
-                  (RGB, hex, or color name)
+                  (only support rgba/rgb format)
                 </span>
               )}
-              {isNumberInput && (
+              {isFontSize && (
                 <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '8px', fontWeight: 'normal' }}>
-                  (Numbers only, e.g., 16px, 1.5em, 400)
+                  (Only support px value, e.g., 16px)
+                </span>
+              )}
+              {isFontWeight && (
+                <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '8px', fontWeight: 'normal' }}>
+                  (Only support number value, e.g., 400)
                 </span>
               )}
             </label>
@@ -297,9 +318,11 @@ const AssertToHaveCssActionDetail: React.FC<AssertToHaveCssActionDetailProps> = 
               placeholder={
                 isColorInput 
                   ? 'e.g., #ff0000, rgb(255,0,0), red' 
-                  : isNumberInput 
-                    ? 'e.g., 16px, 1.5em, 400'
-                    : 'Enter CSS value'
+                  : isFontSize 
+                    ? 'e.g., 16px'
+                    : isFontWeight
+                      ? 'e.g., 400'
+                      : 'Enter CSS value'
               }
             />
           </div>
