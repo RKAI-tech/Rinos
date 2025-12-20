@@ -490,6 +490,16 @@ export class Controller {
         throw new Error(`This action is failed. Please check the selector or contact support.`);
     }
 
+    async waitForPageLoaded(page: Page): Promise<void> {
+        // if (page) {
+        //     await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+        //     await page.waitForLoadState('networkidle', { timeout: 10000 });
+        //     await page.waitForLoadState('load', { timeout: 10000 });
+        // }
+        await this.waitForAppIdle();
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
     async executeMultipleActions(context: BrowserContext, actions: Action[]): Promise<void> {
         if (!context) {
             throw new Error('The browser context is not available. Please check if the browser is opened or contact support.');
@@ -514,6 +524,9 @@ export class Controller {
                     activePage = await this.getPage(pageIndex);
                     activePage.bringToFront();
                 }
+                // if (activePage) {
+                //     await this.waitForPageLoaded(activePage);
+                // }
                 switch (action.action_type) {
                     case ActionType.navigate:
                         let url_navigated = ""
@@ -893,14 +906,7 @@ export class Controller {
                 }
 
                 if (activePage) {
-                    await activePage.waitForLoadState('domcontentloaded');
-                    await activePage.waitForLoadState('networkidle');
-                    await activePage.waitForLoadState('load');
-                }
-                await this.waitForAppIdle();
-
-                if (i < actions.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    await this.waitForPageLoaded(activePage);
                 }
 
 

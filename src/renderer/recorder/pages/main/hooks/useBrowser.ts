@@ -190,7 +190,7 @@ export const useBrowser = ({
     }
 
     // Tính toán vị trí bắt đầu: tiếp tục từ actionIndex + 1
-    const startIndex = actionIndex + 1;
+    const startIndex = Math.max(actionIndex + 1, selectedInsertPosition);
     
     // Kiểm tra còn actions nào để chạy không
     if (startIndex >= actions.length) {

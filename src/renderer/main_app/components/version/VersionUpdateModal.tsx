@@ -1,4 +1,6 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import './VersionUpdateModal.css';
 
 interface VersionUpdateModalProps {
@@ -54,9 +56,11 @@ const VersionUpdateModal: React.FC<VersionUpdateModalProps> = ({
                 <p className="version-update-release-note-title">
                   Release notes
                 </p>
-                <p className="version-update-release-note-text">
-                  {releaseNote}
-                </p>
+                <div className="version-update-release-note-text">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {releaseNote}
+                  </ReactMarkdown>
+                </div>
               </div>
             ) : (
               <div className="version-update-warning">
