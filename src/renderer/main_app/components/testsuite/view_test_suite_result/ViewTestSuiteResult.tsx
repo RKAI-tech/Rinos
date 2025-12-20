@@ -23,6 +23,7 @@ interface CaseItem {
   output?: string; // placeholder for terminal-like logs
   url?: string;
   screenshots?: string[];
+  level?: number;
 }
 
 interface LogModalProps {
@@ -272,13 +273,12 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
   const [searchText, setSearchText] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'status'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [testSuiteName, setTestSuiteName] = useState<string>('');
   const svc = useMemo(() => new TestSuiteService(), []);
   const tcs = useMemo(() => new TestCaseService(), []);
   const [isRetryingAll, setIsRetryingAll] = useState(false);
   const canEditPermission = canEdit(projectId);
+  const [expandedLevels, setExpandedLevels] = useState<Set<number>>(new Set());
   const hasProcessingCases = useMemo(() => {
     const processingStatuses = new Set(['running', 'pending', 'queued', 'waiting', 'processing', 'in_progress']);
     return cases.some((c) => processingStatuses.has(String(c.status || '').toLowerCase()));
@@ -290,7 +290,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       if (!silent) setIsLoading(true);
       setError(null);
       const resp = await svc.getTestCasesBySuite({ test_suite_id: testSuiteId });
-      // console.log('response:', resp);
+      console.log('Testcases by suite:', resp.data?.testcases || []);
       if (resp.success && resp.data) {
         const mapped: CaseItem[] = (resp.data.testcases || []).map((tc) => {
           // Extract screenshots - handle both array of strings and array of objects
@@ -317,7 +317,8 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
             status: (tc as any).status,
             output: tc.logs || '',
             url: (tc as any).url_video,
-            screenshots
+            screenshots,
+            level: (tc as any).level ?? 0
           };
         });
         setCases(mapped);
@@ -427,44 +428,86 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
     return Math.round((nonRunning / total) * 100);
   }, [cases]);
 
-  // Filter and sort cases
-  const filteredAndSortedCases = useMemo(() => {
-    let filtered = cases.filter(c => 
-      c.name.toLowerCase().includes(searchText.toLowerCase())
-    );
-
-    filtered.sort((a, b) => {
-      let aVal: string | number;
-      let bVal: string | number;
-
-      if (sortBy === 'name') {
-        aVal = a.name.toLowerCase();
-        bVal = b.name.toLowerCase();
-      } else {
-        aVal = (a.status || '').toLowerCase();
-        bVal = (b.status || '').toLowerCase();
+  // Group cases by level
+  const groupedCases = useMemo(() => {
+    const groups: Map<number, CaseItem[]> = new Map();
+    
+    cases.forEach(c => {
+      const level = c.level ?? 0;
+      if (!groups.has(level)) {
+        groups.set(level, []);
       }
+      groups.get(level)!.push(c);
+    });
 
-      let comparison = 0;
-      if (aVal < bVal) comparison = -1;
-      else if (aVal > bVal) comparison = 1;
+    // Sort cases within each group
+    groups.forEach((groupCases, level) => {
+      groupCases.sort((a, b) => {
+        let aVal: string | number;
+        let bVal: string | number;
 
-      return sortOrder === 'asc' ? comparison : -comparison;
+        if (sortBy === 'name') {
+          aVal = a.name.toLowerCase();
+          bVal = b.name.toLowerCase();
+        } else {
+          aVal = (a.status || '').toLowerCase();
+          bVal = (b.status || '').toLowerCase();
+        }
+
+        let comparison = 0;
+        if (aVal < bVal) comparison = -1;
+        else if (aVal > bVal) comparison = 1;
+
+        return sortOrder === 'asc' ? comparison : -comparison;
+      });
+    });
+
+    return groups;
+  }, [cases, sortBy, sortOrder]);
+
+  // Filter grouped cases by search text
+  const filteredGroupedCases = useMemo(() => {
+    const filtered: Map<number, CaseItem[]> = new Map();
+    
+    groupedCases.forEach((groupCases, level) => {
+      const filteredCases = groupCases.filter(c => 
+        c.name.toLowerCase().includes(searchText.toLowerCase())
+      );
+      if (filteredCases.length > 0) {
+        filtered.set(level, filteredCases);
+      }
     });
 
     return filtered;
-  }, [cases, searchText, sortBy, sortOrder]);
+  }, [groupedCases, searchText]);
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredAndSortedCases.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedCases = filteredAndSortedCases.slice(startIndex, endIndex);
+  // Levels are collapsed by default - no auto-expand
 
-  // Reset to first page when search or sort changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchText, sortBy, sortOrder]);
+  const toggleLevel = (level: number) => {
+    setExpandedLevels(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(level)) {
+        newSet.delete(level);
+      } else {
+        newSet.add(level);
+      }
+      return newSet;
+    });
+  };
+
+  // Get all visible cases (from expanded groups) for statistics
+  const visibleCases = useMemo(() => {
+    const visible: CaseItem[] = [];
+    const sortedLevels = Array.from(filteredGroupedCases.keys()).sort((a, b) => a - b);
+    
+    sortedLevels.forEach(level => {
+      if (expandedLevels.has(level)) {
+        visible.push(...(filteredGroupedCases.get(level) || []));
+      }
+    });
+    
+    return visible;
+  }, [filteredGroupedCases, expandedLevels]);
 
   const handleSort = (column: 'name' | 'status') => {
     if (sortBy === column) {
@@ -473,27 +516,6 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       setSortBy(column);
       setSortOrder('asc');
     }
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handlePreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  const handleItemsPerPageChange = (value: string) => {
-    setItemsPerPage(parseInt(value));
-    setCurrentPage(1);
   };
 
   const handleExport = async () => {
@@ -627,7 +649,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
                   />
                 </div>
 
-                {/* Table */}
+                {/* Grouped Table */}
                 <div className="vtsr-table-container">
                   <table className="vtsr-table">
                     <thead>
@@ -659,88 +681,79 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
                       </tr>
                     </thead>
                     <tbody>
-                      {paginatedCases.map((c) => (
-                        <tr 
-                          key={c.id} 
-                          className="vtsr-table-row"
-                          onClick={() => handleCaseClick(c)}
-                        >
-                          <td className="vtsr-table-name">{c.name}</td>
-                          <td className="vtsr-table-status">
-                            <span className={`vtsr-status-badge ${String(c.status || '').toLowerCase()}`}>
-                              {String(c.status || '').toLowerCase() === 'running' ? (
-                                <span className="vtsr-loading-inline">
-                                  <span className="vtsr-spinner" />
-                                  Running
-                                </span>
-                              ) : (
-                                 ((c.status && c.status.toLowerCase() !== 'draft') ? c.status : 'N/A')
-                              )}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
+                      {Array.from(filteredGroupedCases.keys())
+                        .sort((a, b) => a - b)
+                        .map((level) => {
+                          const levelCases = filteredGroupedCases.get(level) || [];
+                          const isExpanded = expandedLevels.has(level);
+                          const levelStats = {
+                            total: levelCases.length,
+                            passed: levelCases.filter(c => c.status?.toLowerCase() === 'success' || c.status?.toLowerCase() === 'passed').length,
+                            failed: levelCases.filter(c => c.status?.toLowerCase() === 'failed' || c.status?.toLowerCase() === 'error').length,
+                          };
+
+                          return (
+                            <React.Fragment key={`level-${level}`}>
+                              {/* Level Header Row */}
+                              <tr 
+                                className="vtsr-level-header-row"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleLevel(level);
+                                }}
+                              >
+                                <td colSpan={2} className="vtsr-level-header">
+                                  <div className="vtsr-level-header-content">
+                                    <button 
+                                      className="vtsr-level-toggle"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleLevel(level);
+                                      }}
+                                    >
+                                      <span className={`vtsr-level-arrow ${isExpanded ? 'expanded' : ''}`}>▶</span>
+                                    </button>
+                                    <span className="vtsr-level-label">Level {level}</span>
+                                    <span className="vtsr-level-stats">
+                                      {levelStats.passed} passed, {levelStats.failed} failed, {levelStats.total} total
+                                    </span>
+                                  </div>
+                                </td>
+                              </tr>
+                              {/* Level Cases */}
+                              {isExpanded && levelCases.map((c) => (
+                                <tr 
+                                  key={c.id} 
+                                  className="vtsr-table-row vtsr-level-case-row"
+                                  onClick={() => handleCaseClick(c)}
+                                >
+                                  <td className="vtsr-table-name vtsr-level-case-name">{c.name}</td>
+                                  <td className="vtsr-table-status">
+                                    <span className={`vtsr-status-badge ${String(c.status || '').toLowerCase()}`}>
+                                      {String(c.status || '').toLowerCase() === 'running' ? (
+                                        <span className="vtsr-loading-inline">
+                                          <span className="vtsr-spinner" />
+                                          Running
+                                        </span>
+                                      ) : (
+                                         ((c.status && c.status.toLowerCase() !== 'draft') ? c.status : 'N/A')
+                                      )}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </React.Fragment>
+                          );
+                        })}
                     </tbody>
                   </table>
                 </div>
 
-                {/* Pagination Controls */}
-                {filteredAndSortedCases.length > 0 && (
+                {/* Summary Info */}
+                {visibleCases.length > 0 && (
                   <div className="vtsr-pagination">
                     <div className="vtsr-pagination-info">
-                      Showing {filteredAndSortedCases.length === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, filteredAndSortedCases.length)} of {filteredAndSortedCases.length} testcases
-                    </div>
-                    <div className="vtsr-pagination-controls">
-                      <select
-                        value={itemsPerPage}
-                        onChange={(e) => handleItemsPerPageChange(e.target.value)}
-                        className="vtsr-pagination-dropdown"
-                      >
-                        <option value="10">10 rows/page</option>
-                        <option value="20">20 rows/page</option>
-                        <option value="30">30 rows/page</option>
-                      </select>
-                      
-                      <button 
-                        className="vtsr-pagination-btn" 
-                        onClick={handlePreviousPage} 
-                        disabled={currentPage === 1}
-                      >
-                        Previous
-                      </button>
-                      
-                      <div className="vtsr-pagination-pages">
-                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                          let pageNum;
-                          if (totalPages <= 5) {
-                            pageNum = i + 1;
-                          } else if (currentPage <= 3) {
-                            pageNum = i + 1;
-                          } else if (currentPage >= totalPages - 2) {
-                            pageNum = totalPages - 4 + i;
-                          } else {
-                            pageNum = currentPage - 2 + i;
-                          }
-                          
-                          return (
-                            <button
-                              key={pageNum}
-                              className={`vtsr-pagination-page ${currentPage === pageNum ? 'vtsr-active' : ''}`}
-                              onClick={() => handlePageChange(pageNum)}
-                            >
-                              {pageNum}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      
-                      <button 
-                        className="vtsr-pagination-btn" 
-                        onClick={handleNextPage} 
-                        disabled={currentPage === totalPages}
-                      >
-                        Next
-                      </button>
+                      Showing {visibleCases.length} testcases from {filteredGroupedCases.size} level(s)
                     </div>
                   </div>
                 )}

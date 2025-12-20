@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './DeleteTestcasesFromSuite.css';
 import { TestSuiteService } from '../../../services/testsuites';
+import { TestCaseInSuite } from '../../../types/testsuites';
 
 interface Props {
   isOpen: boolean;
@@ -9,21 +10,49 @@ interface Props {
   onRemove?: (testcaseIds: string[]) => void | Promise<void>;
 }
 
-const DeleteTestcasesFromSuite: React.FC<Props> = ({ isOpen, onClose, testSuiteId, onRemove }) => {
+interface GroupedTestCases {
+  [level: number]: TestCaseInSuite[];
+}
+
+const EditTestcaseFromSuite: React.FC<Props> = ({ isOpen, onClose, testSuiteId, onRemove }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [items, setItems] = useState<{ id: string; name: string; tag?: string }[]>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [search, setSearch] = useState('');
+  const [testCases, setTestCases] = useState<TestCaseInSuite[]>([]);
+  const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [draggedTestcaseId, setDraggedTestcaseId] = useState<string | null>(null);
+  const [dragOverLevel, setDragOverLevel] = useState<number | null>(null);
+  const [updatingLevelIds, setUpdatingLevelIds] = useState<Set<string>>(new Set());
   const svc = useMemo(() => new TestSuiteService(), []);
 
-  const filtered = items.filter(it => {
-    const q = search.toLowerCase();
-    return it.name.toLowerCase().includes(q) || (it.tag || '').toLowerCase().includes(q);
-  });
+  // Group test cases by level
+  const groupedByLevel = useMemo(() => {
+    const grouped: GroupedTestCases = {};
+    testCases.forEach(tc => {
+      const level = tc.level ?? 0;
+      if (!grouped[level]) {
+        grouped[level] = [];
+      }
+      grouped[level].push(tc);
+    });
+    return grouped;
+  }, [testCases]);
 
-  const allSelected = filtered.length > 0 && filtered.every(it => selected.has(it.id));
+  // Get sorted levels
+  const levels = useMemo(() => {
+    return Object.keys(groupedByLevel)
+      .map(Number)
+      .sort((a, b) => a - b);
+  }, [groupedByLevel]);
 
+  // Auto-select first level when levels are loaded
+  useEffect(() => {
+    if (levels.length > 0 && selectedLevel === null) {
+      setSelectedLevel(levels[0]);
+    }
+  }, [levels, selectedLevel]);
+
+  // Load test cases
   useEffect(() => {
     const load = async () => {
       if (!isOpen || !testSuiteId) return;
@@ -32,21 +61,30 @@ const DeleteTestcasesFromSuite: React.FC<Props> = ({ isOpen, onClose, testSuiteI
         setError(null);
         const resp = await svc.getTestCasesBySuite({ test_suite_id: testSuiteId });
         if (resp.success && resp.data) {
-          const mapped = (resp.data.testcases || []).map(tc => ({ id: tc.testcase_id, name: tc.name, tag: (tc as any).tag }));
-          setItems(mapped);
+          setTestCases(resp.data.testcases || []);
         } else {
           setError(resp.error || 'Failed to load testcases');
-          setItems([]);
+          setTestCases([]);
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'An error occurred');
-        setItems([]);
+        setTestCases([]);
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [isOpen, testSuiteId]);
+  }, [isOpen, testSuiteId, svc]);
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setTestCases([]);
+      setSelectedLevel(null);
+      setDeletingIds(new Set());
+      setError(null);
+    }
+  }, [isOpen]);
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -65,91 +103,272 @@ const DeleteTestcasesFromSuite: React.FC<Props> = ({ isOpen, onClose, testSuiteI
     };
   }, [isOpen, onClose]);
 
-  const toggle = (id: string) => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+  // Handle drag start
+  const handleDragStart = (e: React.DragEvent, testcaseId: string) => {
+    setDraggedTestcaseId(testcaseId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', testcaseId);
   };
 
-  const toggleAll = () => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      if (allSelected) {
-        filtered.forEach(it => next.delete(it.id));
+  // Handle drag end
+  const handleDragEnd = () => {
+    setDraggedTestcaseId(null);
+    setDragOverLevel(null);
+  };
+
+  // Handle drag over level
+  const handleDragOver = (e: React.DragEvent, level: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverLevel(level);
+  };
+
+  // Handle drag leave
+  const handleDragLeave = () => {
+    setDragOverLevel(null);
+  };
+
+  // Handle drop on level
+  const handleDropOnLevel = async (e: React.DragEvent, targetLevel: number) => {
+    e.preventDefault();
+    setDragOverLevel(null);
+
+    if (!testSuiteId || !draggedTestcaseId) return;
+
+    // Find the test case
+    const testCase = testCases.find(tc => tc.testcase_id === draggedTestcaseId);
+    if (!testCase) return;
+
+    // Check if level is actually changing
+    const currentLevel = testCase.level ?? 0;
+    if (currentLevel === targetLevel) {
+      setDraggedTestcaseId(null);
+      return;
+    }
+
+    try {
+      setUpdatingLevelIds(prev => new Set(prev).add(draggedTestcaseId));
+      setError(null);
+
+      // Call API to update level
+      const resp = await svc.updateTestCaseLevel({
+        test_suite_id: testSuiteId,
+        testcase_ids: [{
+          testcase_id: draggedTestcaseId,
+          level: targetLevel
+        }]
+      });
+
+      if (resp.success) {
+        // Update local state
+        setTestCases(prev => prev.map(tc => 
+          tc.testcase_id === draggedTestcaseId 
+            ? { ...tc, level: targetLevel }
+            : tc
+        ));
+
+        // If we moved from current level, switch to target level if current level becomes empty
+        if (selectedLevel === currentLevel) {
+          const remainingInCurrentLevel = testCases.filter(
+            tc => tc.testcase_id !== draggedTestcaseId && (tc.level ?? 0) === currentLevel
+          );
+          if (remainingInCurrentLevel.length === 0) {
+            setSelectedLevel(targetLevel);
+          }
+        } else if (selectedLevel === targetLevel) {
+          // If we moved to current level, it will show up automatically
+        }
       } else {
-        filtered.forEach(it => next.add(it.id));
+        setError(resp.error || 'Failed to update test case level');
       }
-      return next;
-    });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'An error occurred while updating level');
+    } finally {
+      setUpdatingLevelIds(prev => {
+        const next = new Set(prev);
+        next.delete(draggedTestcaseId);
+        return next;
+      });
+      setDraggedTestcaseId(null);
+    }
   };
 
-  const handleRemove = async () => {
-    if (!onRemove) return;
-    await onRemove(Array.from(selected));
-    setSelected(new Set());
+  // Handle delete test case
+  const handleDelete = async (testcaseId: string) => {
+    if (!testSuiteId || deletingIds.has(testcaseId)) return;
+
+    // Find the test case to get its level
+    const testCase = testCases.find(tc => tc.testcase_id === testcaseId);
+    const testCaseLevel = testCase?.level ?? 0;
+
+    try {
+      setDeletingIds(prev => new Set(prev).add(testcaseId));
+      const resp = await svc.removeTestCaseFromTestSuite(testcaseId, testSuiteId);
+      
+      if (resp.success) {
+        // Remove from local state
+        const updatedTestCases = testCases.filter(tc => tc.testcase_id !== testcaseId);
+        setTestCases(updatedTestCases);
+        
+        // Check if current level becomes empty after deletion
+        const remainingInLevel = updatedTestCases.filter(tc => (tc.level ?? 0) === testCaseLevel);
+        if (remainingInLevel.length === 0 && selectedLevel === testCaseLevel) {
+          // Current level is now empty, switch to another level
+          const remainingLevels = [...new Set(updatedTestCases.map(tc => tc.level ?? 0))].sort((a, b) => a - b);
+          if (remainingLevels.length > 0) {
+            setSelectedLevel(remainingLevels[0]);
+          } else {
+            setSelectedLevel(null);
+          }
+        }
+        
+        // Call onRemove callback if provided
+        if (onRemove) {
+          await onRemove([testcaseId]);
+        }
+      } else {
+        setError(resp.error || 'Failed to remove test case');
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'An error occurred while removing test case');
+    } finally {
+      setDeletingIds(prev => {
+        const next = new Set(prev);
+        next.delete(testcaseId);
+        return next;
+      });
+    }
   };
 
   if (!isOpen) return null;
 
+  const currentLevelTestCases = selectedLevel !== null ? (groupedByLevel[selectedLevel] || []) : [];
+
   return (
-    <div className="tsuite-add-modal-overlay">
-      <div className="tsuite-add-modal-container" onClick={(e) => e.stopPropagation()}>
-        <div className="tsuite-add-modal-header">
-          <h2 className="tsuite-add-modal-title">Remove Testcases from Suite</h2>
-          <button className="tsuite-add-modal-close-btn" onClick={onClose}>✕</button>
-        </div>
-        <div style={{ padding: '0 20px', color: '#6b7280', fontSize: 14, marginTop: 4, marginBottom: 8 }}>Select one or more testcases to remove from this suite.</div>
-
-        <div className="tsuite-add-controls">
-          <input
-            className="tsuite-add-search"
-            type="text"
-            placeholder="Search by name or tag..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+    <div className="tsuite-edit-modal-overlay">
+      <div className="tsuite-edit-modal-container" onClick={(e) => e.stopPropagation()}>
+        <div className="tsuite-edit-modal-header">
+          <h2 className="tsuite-edit-modal-title">Edit Testcases in Suite</h2>
+          <button className="tsuite-edit-modal-close-btn" onClick={onClose}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
 
-        <div style={{ padding: '4px 20px' }}>
-          <label className="tsuite-add-selectall">
-            <input type="checkbox" checked={allSelected} onChange={toggleAll} />
-            <span>Select All (filtered)</span>
-          </label>
-        </div>
-
-        <div className="tsuite-add-list">
-          {loading && <div className="tsuite-add-loading">Loading testcases...</div>}
-          {error && !loading && <div className="tsuite-add-error">{error}</div>}
-          {!loading && !error && items.filter(it => it.name.toLowerCase().includes(search.toLowerCase()) || (it.tag || '').toLowerCase().includes(search.toLowerCase())).length === 0 && (
-            <div className="tsuite-add-empty">No testcases found.</div>
-          )}
-          {!loading && !error && (
-            <ul className="tsuite-add-items">
-              {items
-                .filter(it => it.name.toLowerCase().includes(search.toLowerCase()) || (it.tag || '').toLowerCase().includes(search.toLowerCase()))
-                .map(it => (
-                <li key={it.id} className="tsuite-add-item">
-                  <label className="tsuite-add-item-row">
-                    <input type="checkbox" checked={selected.has(it.id)} onChange={() => toggle(it.id)} />
-                    <span className="tsuite-add-item-name">{it.name}</span>
-                    {it.tag ? <span className="tsuite-add-item-tag">{it.tag}</span> : null}
-                  </label>
-                </li>
+        <div className="tsuite-edit-content">
+          {/* Sidebar with levels */}
+          <div className="tsuite-edit-sidebar">
+            <div className="tsuite-edit-sidebar-header">Levels</div>
+            <div className="tsuite-edit-levels-list">
+              {loading && <div className="tsuite-edit-loading">Loading...</div>}
+              {!loading && levels.length === 0 && (
+                <div className="tsuite-edit-empty">No levels found</div>
+              )}
+              {!loading && levels.map(level => (
+                <button
+                  key={level}
+                  className={`tsuite-edit-level-item ${selectedLevel === level ? 'active' : ''} ${dragOverLevel === level ? 'drag-over' : ''}`}
+                  onClick={() => setSelectedLevel(level)}
+                  onDragOver={(e) => handleDragOver(e, level)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDropOnLevel(e, level)}
+                >
+                  <span className="tsuite-edit-level-number">Level {level}</span>
+                  <span className="tsuite-edit-level-count">({groupedByLevel[level]?.length || 0})</span>
+                </button>
               ))}
-            </ul>
-          )}
+            </div>
+          </div>
+
+          {/* Main content area */}
+          <div className="tsuite-edit-main">
+            {error && <div className="tsuite-edit-error">{error}</div>}
+            
+            {loading && (
+              <div className="tsuite-edit-loading">Loading testcases...</div>
+            )}
+
+            {!loading && selectedLevel === null && (
+              <div className="tsuite-edit-empty">Select a level to view testcases</div>
+            )}
+
+            {!loading && selectedLevel !== null && currentLevelTestCases.length === 0 && (
+              <div className="tsuite-edit-empty">No testcases found for Level {selectedLevel}</div>
+            )}
+
+            {!loading && selectedLevel !== null && currentLevelTestCases.length > 0 && (
+              <div className="tsuite-edit-testcases-list">
+                {currentLevelTestCases.map(tc => (
+                  <div 
+                    key={tc.testcase_id} 
+                    className={`tsuite-edit-testcase-item ${draggedTestcaseId === tc.testcase_id ? 'dragging' : ''} ${updatingLevelIds.has(tc.testcase_id) ? 'updating' : ''}`}
+                    draggable={!deletingIds.has(tc.testcase_id) && !updatingLevelIds.has(tc.testcase_id)}
+                    onDragStart={(e) => handleDragStart(e, tc.testcase_id)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <div className="tsuite-edit-testcase-drag-handle" title="Drag to change level">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="9" cy="5" r="1.5" fill="currentColor" opacity="0.4"/>
+                        <circle cx="15" cy="5" r="1.5" fill="currentColor" opacity="0.4"/>
+                        <circle cx="9" cy="12" r="1.5" fill="currentColor" opacity="0.4"/>
+                        <circle cx="15" cy="12" r="1.5" fill="currentColor" opacity="0.4"/>
+                        <circle cx="9" cy="19" r="1.5" fill="currentColor" opacity="0.4"/>
+                        <circle cx="15" cy="19" r="1.5" fill="currentColor" opacity="0.4"/>
+                      </svg>
+                    </div>
+                    <div className="tsuite-edit-testcase-info">
+                      <span className="tsuite-edit-testcase-name">{tc.name}</span>
+                      {tc.description && (
+                        <span className="tsuite-edit-testcase-desc">{tc.description}</span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {updatingLevelIds.has(tc.testcase_id) && (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ animation: 'spin 1s linear infinite' }}>
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="32" strokeDashoffset="32">
+                            <animate attributeName="stroke-dasharray" dur="1s" values="0 32;16 16;0 32;0 32" repeatCount="indefinite"/>
+                            <animate attributeName="stroke-dashoffset" dur="1s" values="0;-16;-32;-32" repeatCount="indefinite"/>
+                          </circle>
+                        </svg>
+                      )}
+                      <button
+                        className="tsuite-edit-delete-btn"
+                        onClick={() => handleDelete(tc.testcase_id)}
+                        disabled={deletingIds.has(tc.testcase_id) || updatingLevelIds.has(tc.testcase_id)}
+                        title="Remove from suite"
+                      >
+                        {deletingIds.has(tc.testcase_id) ? (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="32" strokeDashoffset="32">
+                              <animate attributeName="stroke-dasharray" dur="1s" values="0 32;16 16;0 32;0 32" repeatCount="indefinite"/>
+                              <animate attributeName="stroke-dashoffset" dur="1s" values="0;-16;-32;-32" repeatCount="indefinite"/>
+                            </circle>
+                          </svg>
+                        ) : (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        <div className="tsuite-add-modal-actions">
-          <button className="tsuite-add-btn-cancel" onClick={onClose}>Cancel</button>
-          <button className="tsuite-add-btn-save" onClick={handleRemove} disabled={selected.size === 0}>Remove Selected</button>
+
+        <div className="tsuite-edit-modal-actions">
+          <button className="tsuite-edit-btn-close" onClick={onClose}>Close</button>
         </div>
       </div>
     </div>
   );
 };
 
-export default DeleteTestcasesFromSuite;
+export default EditTestcaseFromSuite;
 
 

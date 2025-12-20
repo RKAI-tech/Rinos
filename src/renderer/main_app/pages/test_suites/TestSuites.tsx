@@ -7,6 +7,7 @@ import SidebarNavigator from '../../components/sidebar_navigator/SidebarNavigato
 import './TestSuites.css';
 import { ProjectService } from '../../services/projects';
 import { TestSuiteService } from '../../services/testsuites';
+import { AddTestCasesToSuiteRequest, TestcaseId } from '../../types/testsuites';
 // import { ExecuteScriptsService } from '../../services/executeScripts';
 // import { ActionService } from '../../services/actions';
 import { toast } from 'react-toastify';
@@ -14,8 +15,8 @@ import CreateTestSuite from '../../components/testsuite/create_test_suite/Create
 import EditTestSuite from '../../components/testsuite/edit_test_suite/EditTestSuite';
 import DeleteTestSuite from '../../components/testsuite/delete_test_suite/DeleteTestSuite';
 import AddTestcasesToSuite from '../../components/testsuite/add_testcase_to_suite/AddTestcasesToSuite';
-// New modal for deleting testcases from suite
-import DeleteTestcasesFromSuite from '../../components/testsuite/delete_testcase_to_suite/DeleteTestcasesFromSuite';
+// Edit testcases in suite modal
+import EditTestcaseFromSuite from '../../components/testsuite/delete_testcase_to_suite/DeleteTestcasesFromSuite';
 import ViewTestSuiteResult from '../../components/testsuite/view_test_suite_result/ViewTestSuiteResult';
 import { canEdit } from '../../hooks/useProjectPermissions';
 
@@ -640,10 +641,10 @@ const TestSuites: React.FC = () => {
                                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
-                                Edit
+                                Edit Suite
                               </button>
                               <button 
-                                className="dropdown-item delete" 
+                                className="dropdown-item" 
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   e.preventDefault();
@@ -654,13 +655,12 @@ const TestSuites: React.FC = () => {
                                   e.preventDefault();
                                 }}
                                 disabled={!canEditPermission}
-                                title="Remove testcases from this test suite"
+                                title="Manage testcases in this test suite"
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
-                                Remove Test Cases
+                                Manage Cases
                               </button>
                               <button 
                                 className="dropdown-item delete" 
@@ -754,11 +754,16 @@ const TestSuites: React.FC = () => {
         }}
         projectId={projectId}
         testSuiteId={selectedSuite?.id}
-        onSave={async (testcaseIds: string[]) => {
+        onSave={async (testcaseIds: TestcaseId[]) => {
           try {
             if (!selectedSuite) return;
             const svc = new TestSuiteService();
-            const resp = await svc.addTestCasesToSuite({ test_suite_id: selectedSuite.id, testcase_ids: testcaseIds });
+            const payload: AddTestCasesToSuiteRequest = {
+              test_suite_id: selectedSuite.id,
+              testcase_ids: testcaseIds
+            };
+            console.log('payload', payload);
+            const resp = await svc.addTestCasesToSuite(payload);
             if (resp.success) {
               toast.success('Added testcases to suite');
               setIsAddOpen(false);
@@ -772,8 +777,8 @@ const TestSuites: React.FC = () => {
         }}
       />
 
-      {/* Delete Testcases From Suite Modal */}
-      <DeleteTestcasesFromSuite
+      {/* Edit Testcases in Suite Modal */}
+      <EditTestcaseFromSuite
         isOpen={isRemoveOpen}
         onClose={() => {
           setIsRemoveOpen(false);
@@ -781,18 +786,8 @@ const TestSuites: React.FC = () => {
         }}
         testSuiteId={selectedSuite?.id}
         onRemove={async (testcaseIds: string[]) => {
-          try {
-            if (!selectedSuite) return;
-            const svc = new TestSuiteService();
-            for (const tcId of testcaseIds) {
-              await svc.removeTestCaseFromTestSuite(tcId, selectedSuite.id);
-            }
-            toast.success('Removed testcases from suite');
-            setIsRemoveOpen(false);
-            await fetchSuites();
-          } catch (e) {
-            toast.error('Failed to remove testcases. Please try again.');
-          }
+          // Component handles deletion internally, this callback is for parent refresh
+          await fetchSuites();
         }}
       />
 

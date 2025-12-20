@@ -1,25 +1,349 @@
-.tsuite-add-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
-.tsuite-add-modal-container { background: #fff; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); width: 100%; max-width: 640px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
-.tsuite-add-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; }
-.tsuite-add-modal-title { font-size: 18px; font-weight: 600; color: #1a1a1a; margin: 0; }
-.tsuite-add-modal-close-btn { background: none; border: none; padding: 8px; border-radius: 6px; cursor: pointer; color: #6b7280; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
-.tsuite-add-modal-close-btn:hover { background: #f3f4f6; color: #374151; }
-.tsuite-add-controls { display: flex; align-items: center; gap: 12px; padding: 12px 20px; }
-.tsuite-add-search { flex: 1; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
-.tsuite-add-search:focus { outline: none; border-color: #5549f5; box-shadow: 0 0 0 3px rgba(85,73,245,0.1); }
-.tsuite-add-selectall { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #374151; }
-.tsuite-add-list { flex: 1; overflow: auto; padding: 8px 20px; max-height: 460px; }
-.tsuite-add-loading, .tsuite-add-error, .tsuite-add-empty { padding: 16px; color: #6b7280; }
-.tsuite-add-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.tsuite-add-item { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; }
-.tsuite-add-item-row { display: flex; align-items: center; gap: 12px; }
-.tsuite-add-item-name { font-weight: 600; color: #1a1a1a; }
-.tsuite-add-item-tag { font-size: 12px; color: #6b7280; background: #f3f4f6; padding: 2px 8px; border-radius: 9999px; }
-.tsuite-add-modal-actions { display: flex; justify-content: flex-end; gap: 12px; padding: 12px 20px; border-top: 1px solid #e5e7eb; }
-.tsuite-add-btn-cancel, .tsuite-add-btn-save { padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; border: none; }
-.tsuite-add-btn-cancel { background: white; color: #374151; border: 1px solid #d1d5db; }
-.tsuite-add-btn-cancel:hover { background: #f9fafb; border-color: #9ca3af; }
-.tsuite-add-btn-save { background: #5549f5; color: #fff; box-shadow: 0 4px 12px rgba(85,73,245,0.3); }
-.tsuite-add-btn-save:hover { background: #4338ca; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(85,73,245,0.4); }
-.tsuite-add-modal-container { max-width: 640px; }
+/* Overlay */
+.tsuite-edit-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+/* Container - Larger size */
+.tsuite-edit-modal-container {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  max-width: 1200px;
+  height: 85vh;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.tsuite-edit-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.tsuite-edit-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.tsuite-edit-modal-close-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tsuite-edit-modal-close-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* Content area with sidebar */
+.tsuite-edit-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Sidebar */
+.tsuite-edit-sidebar {
+  width: 240px;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  background: #f9fafb;
+}
+
+.tsuite-edit-sidebar-header {
+  padding: 16px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.tsuite-edit-levels-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.tsuite-edit-level-item {
+  width: 100%;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  border: none;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  font-size: 14px;
+  color: #374151;
+}
+
+.tsuite-edit-level-item:hover {
+  background: #f3f4f6;
+}
+
+.tsuite-edit-level-item.active {
+  background: #5549f5;
+  color: #fff;
+}
+
+.tsuite-edit-level-item.active:hover {
+  background: #4338ca;
+}
+
+.tsuite-edit-level-number {
+  font-weight: 500;
+}
+
+.tsuite-edit-level-count {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.tsuite-edit-level-item.active .tsuite-edit-level-count {
+  opacity: 0.9;
+}
+
+.tsuite-edit-level-item.drag-over {
+  background: #e0e7ff;
+  border: 2px dashed #5549f5;
+  transform: scale(1.02);
+}
+
+.tsuite-edit-level-item.drag-over.active {
+  background: #6366f1;
+  border-color: #4338ca;
+}
+
+/* Main content area */
+.tsuite-edit-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  min-height: 0;
+}
+
+.tsuite-edit-error {
+  padding: 12px 24px;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 14px;
+  border-bottom: 1px solid #fee2e2;
+  flex-shrink: 0;
+}
+
+.tsuite-edit-loading,
+.tsuite-edit-empty {
+  padding: 40px 24px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tsuite-edit-testcases-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 24px;
+  min-height: 0;
+}
+
+.tsuite-edit-testcase-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  margin-bottom: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  gap: 12px;
+}
+
+.tsuite-edit-testcase-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  cursor: grab;
+  flex-shrink: 0;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.tsuite-edit-testcase-drag-handle:hover {
+  color: #5549f5;
+  background: #f3f4f6;
+}
+
+.tsuite-edit-testcase-item.dragging .tsuite-edit-testcase-drag-handle {
+  cursor: grabbing;
+}
+
+.tsuite-edit-testcase-item:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.tsuite-edit-testcase-item.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.tsuite-edit-testcase-item.updating {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.tsuite-edit-testcase-item {
+  cursor: grab;
+}
+
+.tsuite-edit-testcase-item:active {
+  cursor: grabbing;
+}
+
+.tsuite-edit-testcase-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tsuite-edit-testcase-name {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 14px;
+}
+
+.tsuite-edit-testcase-desc {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.tsuite-edit-delete-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #dc2626;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tsuite-edit-delete-btn:hover:not(:disabled) {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.tsuite-edit-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Actions */
+.tsuite-edit-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  flex-shrink: 0;
+}
+
+.tsuite-edit-btn-close {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background: #5549f5;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(85, 73, 245, 0.3);
+}
+
+.tsuite-edit-btn-close:hover {
+  background: #4338ca;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(85, 73, 245, 0.4);
+}
+
+@media (max-width: 768px) {
+  .tsuite-edit-modal-container {
+    max-width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .tsuite-edit-content {
+    flex-direction: column;
+  }
+
+  .tsuite-edit-sidebar {
+    width: 100%;
+    max-height: 200px;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .tsuite-edit-levels-list {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .tsuite-edit-level-item {
+    min-width: 120px;
+    margin-bottom: 0;
+  }
+}
 

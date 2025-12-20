@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import './AddTestcasesToSuite.css';
 import { TestCaseService } from '../../../services/testcases';
 import { TestSuiteService } from '../../../services/testsuites';
+import { TestcaseId } from '../../../types/testsuites';
 
 interface TestcaseItem {
   id: string;
@@ -12,7 +13,7 @@ interface TestcaseItem {
 interface AddTestcasesToSuiteProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (testcaseIds: string[]) => void;
+  onSave: (testcaseIds: TestcaseId[]) => void;
   projectId?: string;
   testSuiteId?: string;
 }
@@ -22,6 +23,7 @@ const AddTestcasesToSuite: React.FC<AddTestcasesToSuiteProps> = ({ isOpen, onClo
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<TestcaseItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [levels, setLevels] = useState<Map<string, number>>(new Map());
   const [search, setSearch] = useState('');
   const testCaseService = useMemo(() => new TestCaseService(), []);
   const testSuiteService = useMemo(() => new TestSuiteService(), []);
@@ -70,6 +72,7 @@ const AddTestcasesToSuite: React.FC<AddTestcasesToSuiteProps> = ({ isOpen, onClo
   useEffect(() => {
     if (!isOpen) {
       setSelectedIds(new Set());
+      setLevels(new Map());
       setSearch('');
       setError(null);
       setIsLoading(false);
@@ -104,7 +107,21 @@ const AddTestcasesToSuite: React.FC<AddTestcasesToSuiteProps> = ({ isOpen, onClo
   const toggleOne = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+        setLevels(prevLevels => {
+          const nextLevels = new Map(prevLevels);
+          nextLevels.delete(id);
+          return nextLevels;
+        });
+      } else {
+        next.add(id);
+        setLevels(prevLevels => {
+          const nextLevels = new Map(prevLevels);
+          nextLevels.set(id, 1); // Default level is 1
+          return nextLevels;
+        });
+      }
       return next;
     });
   };
@@ -113,16 +130,79 @@ const AddTestcasesToSuite: React.FC<AddTestcasesToSuiteProps> = ({ isOpen, onClo
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (allSelected) {
-        filtered.forEach(it => next.delete(it.id));
+        filtered.forEach(it => {
+          next.delete(it.id);
+        });
+        setLevels(prevLevels => {
+          const nextLevels = new Map(prevLevels);
+          filtered.forEach(it => nextLevels.delete(it.id));
+          return nextLevels;
+        });
       } else {
-        filtered.forEach(it => next.add(it.id));
+        filtered.forEach(it => {
+          next.add(it.id);
+        });
+        setLevels(prevLevels => {
+          const nextLevels = new Map(prevLevels);
+          filtered.forEach(it => nextLevels.set(it.id, 1)); // Default level is 1
+          return nextLevels;
+        });
       }
       return next;
     });
   };
 
+  const handleLevelChange = (id: string, value: string) => {
+    // Allow empty string for editing
+    if (value === '') {
+      setLevels(prev => {
+        const next = new Map(prev);
+        next.delete(id);
+        return next;
+      });
+      // Clear validation error if user is fixing the level
+      if (error && error.includes('valid level')) {
+        setError(null);
+      }
+      return;
+    }
+    
+    // Only allow positive integers
+    const numValue = parseInt(value, 10);
+    if (!isNaN(numValue) && numValue > 0 && Number.isInteger(numValue)) {
+      setLevels(prev => {
+        const next = new Map(prev);
+        next.set(id, numValue);
+        return next;
+      });
+      // Clear validation error if user is fixing the level
+      if (error && error.includes('valid level')) {
+        setError(null);
+      }
+    }
+  };
+
+  const validateLevels = (): boolean => {
+    for (const id of selectedIds) {
+      const level = levels.get(id);
+      if (!level || level <= 0 || !Number.isInteger(level)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleSave = () => {
-    onSave(Array.from(selectedIds));
+    setError(null); // Clear any previous errors
+    if (!validateLevels()) {
+      setError('All selected testcases must have a valid level (positive integer > 0)');
+      return;
+    }
+    const testcaseIds: TestcaseId[] = Array.from(selectedIds).map(id => ({
+      testcase_id: id,
+      level: levels.get(id) || 1
+    }));
+    onSave(testcaseIds);
   };
 
   if (!isOpen) return null;
@@ -167,26 +247,58 @@ const AddTestcasesToSuite: React.FC<AddTestcasesToSuiteProps> = ({ isOpen, onClo
           )}
           {!isLoading && !error && filtered.length > 0 && (
             <ul className="tsuite-add-items">
-              {filtered.map(it => (
-                <li key={it.id} className="tsuite-add-item">
-                  <label className="tsuite-add-item-row">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(it.id)}
-                      onChange={() => toggleOne(it.id)}
-                    />
-                    <span className="tsuite-add-item-name">{it.name}</span>
-                    {it.tag ? <span className="tsuite-add-item-tag">{it.tag}</span> : null}
-                  </label>
-                </li>
-              ))}
+              {filtered.map(it => {
+                const isSelected = selectedIds.has(it.id);
+                const level = levels.get(it.id) || '';
+                return (
+                  <li key={it.id} className="tsuite-add-item">
+                    <div className="tsuite-add-item-row">
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleOne(it.id)}
+                        />
+                        <span className="tsuite-add-item-name">{it.name}</span>
+                        {it.tag ? <span className="tsuite-add-item-tag">{it.tag}</span> : null}
+                      </label>
+                      {isSelected && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <label style={{ fontSize: '12px', color: '#6b7280', whiteSpace: 'nowrap' }}>Level:</label>
+                          <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={level}
+                            onChange={(e) => handleLevelChange(it.id, e.target.value)}
+                            style={{
+                              width: '60px',
+                              padding: '4px 8px',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              fontSize: '14px'
+                            }}
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
 
         <div className="tsuite-add-modal-actions">
           <button className="tsuite-add-btn-cancel" onClick={onClose}>Cancel</button>
-          <button className="tsuite-add-btn-save" onClick={handleSave} disabled={selectedIds.size === 0}>Add Selected</button>
+          <button 
+            className="tsuite-add-btn-save" 
+            onClick={handleSave} 
+            disabled={selectedIds.size === 0 || !validateLevels()}
+          >
+            Add Selected
+          </button>
         </div>
       </div>
     </div>

@@ -11,7 +11,8 @@ import {
     ExecuteTestSuiteRequest,
     GetTestCasesBySuiteResponse,
     ExportTestSuiteRequest,
-    ExportTestSuiteResponse
+    ExportTestSuiteResponse,
+    UpdateTestCaseLevelRequest
 } from '../types/testsuites';
 import { DefaultResponse } from '../types/api_responses';
 
@@ -133,6 +134,20 @@ export class TestSuiteService {
 
         return await apiRouter.request<AddTestCasesToSuiteResponse>(`/test-suites/${request.test_suite_id}/add_test_cases`, {
             method: 'POST',
+            body: JSON.stringify(request),
+        });
+    }
+
+    async updateTestCaseLevel(request: UpdateTestCaseLevelRequest): Promise<ApiResponse<AddTestCasesToSuiteRequest>> {
+        if (!request.test_suite_id) {
+            return {
+                success: false,
+                error: 'Test suite ID is required'
+            };
+        }
+
+        return await apiRouter.request<AddTestCasesToSuiteRequest>(`/test-suites/${request.test_suite_id}/update_test_case_level`, {
+            method: 'PUT',
             body: JSON.stringify(request),
         });
     }

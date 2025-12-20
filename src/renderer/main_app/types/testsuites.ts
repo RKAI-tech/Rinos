@@ -32,9 +32,18 @@ export interface TestSuiteGetAllRequest {
 }
 
 // Add test cases to test suite
+export interface TestcaseId {
+    testcase_id: string;
+    level: number;
+}
 export interface AddTestCasesToSuiteRequest {
     test_suite_id: string;
-    testcase_ids: string[];
+    testcase_ids: TestcaseId[];
+}
+
+export interface UpdateTestCaseLevelRequest {
+    test_suite_id: string;
+    testcase_ids: TestcaseId[];
 }
 
 export interface AddTestCasesToSuiteResponse {
@@ -56,6 +65,7 @@ export interface TestCaseInSuite {
     created_at: string;
     updated_at: string;
     url_video: string;
+    level: number;
 }
 
 export interface GetTestCasesBySuiteResponse {
