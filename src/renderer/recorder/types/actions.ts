@@ -41,6 +41,7 @@ export enum AssertType {
   toContainText = "toContainText",
   toHaveValue = "toHaveValue",
   // toHaveValues = "toHaveValues",
+  toHaveCSS = "toHaveCSS",
   pageHasATitle = "pageHasATitle",
   pageHasAURL = "pageHasAURL",
   ai = "AI",
@@ -94,8 +95,12 @@ export interface Selector {
 }
 
 export interface Element {
+  element_id?: string;
   selectors?: Selector[];
   order_index?: number;
+  element_data?: Record<string, any>; // JSON data dạng key-value, optional
+  created_at?: string;
+  updated_at?: string;
 }
 
 

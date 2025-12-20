@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Action } from '../../../types/actions';
+import { Action, Element as ActionElement } from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
 import { ActionOperationResult } from '../../../components/action_tab/ActionTab';
 import { receiveActionWithInsert } from '../../../utils/receive_action';
@@ -189,7 +189,21 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
     }
   }, [testcaseId, actions, actionService, onDirtyChange]);
 
-  const handleSaveActions = useCallback(async (): Promise<ActionOperationResult> => {
+  // Normalize actions before saving to ensure elements have correct order_index
+  const normalizeActionsForSave = useCallback((actionsToNormalize: Action[]): Action[] => {
+    return actionsToNormalize.map(action => ({
+      ...action,
+      // Normalize elements: set order_index theo thứ tự mới (1, 2, 3, ...)
+      elements: (action.elements || []).map((el, idx) => ({
+        ...el,
+        order_index: idx + 1, // Set order_index theo thứ tự mới (1, 2, 3, ...)
+      })),
+    }));
+  }, []);
+
+  const handleSaveActions = useCallback(async (
+    checkDuplicates?: (actions: Action[]) => Promise<Action[]>
+  ): Promise<ActionOperationResult> => {
     console.log('hook: save actions', actions);
     if (!testcaseId) {
       return {
@@ -208,9 +222,21 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
     }
 
     try {
-      const response = await actionService.batchCreateActions(actions);
+      // Normalize actions before saving to ensure elements have correct order_index
+      let actionsToSave = normalizeActionsForSave(actions);
+      
+      // Kiểm tra duplicate elements nếu có callback
+      if (checkDuplicates) {
+        actionsToSave = await checkDuplicates(actionsToSave);
+        // Cập nhật actions nếu có thay đổi
+        if (JSON.stringify(actionsToSave) !== JSON.stringify(normalizeActionsForSave(actions))) {
+          setActions(actionsToSave);
+        }
+      }
+      
+      const response = await actionService.batchCreateActions(actionsToSave);
       if (response.success) {
-        setSavedActionsSnapshot(JSON.parse(JSON.stringify(actions)));
+        setSavedActionsSnapshot(JSON.parse(JSON.stringify(actionsToSave)));
         setIsDirty(false);
         onDirtyChange?.(false);
         return {
@@ -232,7 +258,7 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
         level: 'error',
       };
     }
-  }, [testcaseId, actions, actionService, onDirtyChange]);
+  }, [testcaseId, actions, actionService, onDirtyChange, normalizeActionsForSave]);
 
   const handleDeleteAllActions = useCallback(async (): Promise<void> => {
     const effectiveId = testcaseId || actions[0]?.testcase_id || null;
@@ -254,7 +280,42 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
 
   const handleUpdateAction = useCallback((updatedAction: Action) => {
     setActions(prev => {
-      const next = prev.map(a => a.action_id === updatedAction.action_id ? { ...a, ...updatedAction } : a);
+      // Map element_id -> element (từ action đã chỉnh sửa) để đồng bộ cho các action khác
+      const elementById: Record<string, ActionElement> = {};
+      (updatedAction.elements || []).forEach((el) => {
+        if (el.element_id) {
+          elementById[el.element_id] = el;
+        }
+      });
+
+      const next = prev.map(a => {
+        if (a.action_id === updatedAction.action_id) {
+          // Action đang sửa: thay bằng bản mới
+          return { ...a, ...updatedAction };
+        }
+
+        if (!a.elements || Object.keys(elementById).length === 0) {
+          return a;
+        }
+
+        // Action khác: cập nhật các element trùng element_id
+        const updatedElements = a.elements.map((el) => {
+          if (el.element_id && elementById[el.element_id]) {
+            const source = elementById[el.element_id];
+            return {
+              ...el,
+              ...source,
+              element_id: el.element_id, // giữ nguyên id
+              // giữ order_index gốc của action hiện tại nếu có
+              order_index: el.order_index ?? source.order_index,
+            };
+          }
+          return el;
+        });
+
+        return { ...a, elements: updatedElements };
+      });
+
       setIsDirty(true);
       onDirtyChange?.(true);
       return next;

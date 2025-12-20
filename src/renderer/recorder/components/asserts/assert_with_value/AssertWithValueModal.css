@@ -1,0 +1,19 @@
+/* Reuse styles from CSSAssertModal */
+@import '../css_input_modal/CSSAssertModal.css';
+
+/* Enable scroll when content is too long */
+.css-assert-modal {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.css-assert-modal-body {
+  /* Header + footer khoảng ~140px, phần còn lại cho body */
+  max-height: calc(90vh - 140px);
+  overflow-y: auto;
+}
+
+.css-assert-modal-footer {
+  flex-shrink: 0;
+}

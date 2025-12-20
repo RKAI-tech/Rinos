@@ -7,7 +7,6 @@ export interface PageInfo {
 }
 
 export const usePageSelection = () => {
-  const [waitSelectedPageInfo, setWaitSelectedPageInfo] = useState<PageInfo | null>(null);
   const [navigateSelectedPageInfo, setNavigateSelectedPageInfo] = useState<PageInfo | null>(null);
   const [browserActionSelectedPageInfo, setBrowserActionSelectedPageInfo] = useState<PageInfo | null>(null);
   const [addBrowserStorageSelectedPageInfo, setAddBrowserStorageSelectedPageInfo] = useState<PageInfo | null>(null);
@@ -15,10 +14,28 @@ export const usePageSelection = () => {
   const [urlInputSelectedPageInfo, setUrlInputSelectedPageInfo] = useState<PageInfo | null>(null);
   const [titleInputSelectedPageInfo, setTitleInputSelectedPageInfo] = useState<PageInfo | null>(null);
   const [aiAssertSelectedPageInfo, setAiAssertSelectedPageInfo] = useState<PageInfo | null>(null);
+  const [assertWithValueSelectedPageInfo, setAssertWithValueSelectedPageInfo] = useState<PageInfo | null>(null);
+  const [assertWithValueSelectedElement, setAssertWithValueSelectedElement] = useState<{
+    selectors: string[];
+    domHtml: string;
+    value: string;
+    pageIndex?: number | null;
+    pageUrl?: string | null;
+    pageTitle?: string | null;
+    element_data?: Record<string, any>;
+  } | null>(null);
+  const [cssInputSelectedPageInfo, setCssInputSelectedPageInfo] = useState<PageInfo | null>(null);
+  const [cssInputSelectedElement, setCssInputSelectedElement] = useState<{
+    selectors: string[];
+    domHtml: string;
+    value: string;
+    pageIndex?: number | null;
+    pageUrl?: string | null;
+    pageTitle?: string | null;
+    element_data?: Record<string, any>;
+  } | null>(null);
 
   return {
-    waitSelectedPageInfo,
-    setWaitSelectedPageInfo,
     navigateSelectedPageInfo,
     setNavigateSelectedPageInfo,
     browserActionSelectedPageInfo,
@@ -33,6 +50,14 @@ export const usePageSelection = () => {
     setTitleInputSelectedPageInfo,
     aiAssertSelectedPageInfo,
     setAiAssertSelectedPageInfo,
+    assertWithValueSelectedPageInfo,
+    setAssertWithValueSelectedPageInfo,
+    assertWithValueSelectedElement,
+    setAssertWithValueSelectedElement,
+    cssInputSelectedPageInfo,
+    setCssInputSelectedPageInfo,
+    cssInputSelectedElement,
+    setCssInputSelectedElement,
   };
 };
 

@@ -520,7 +520,7 @@ export class Controller {
             this.onActionExecuting?.(i);
             try {
                 let activePage: Page | null = null;
-                if (action.action_type !== ActionType.page_create) {
+                if (action.action_type !== ActionType.page_create && action.action_type !== ActionType.wait) {
                     activePage = await this.getPage(pageIndex);
                     activePage.bringToFront();
                 }
@@ -742,9 +742,7 @@ export class Controller {
                                 break;
                             }
                         }
-                        if (activePage) {
-                            await activePage.waitForTimeout(Number(value_wait) || 0);
-                        }
+                        await new Promise(resolve => setTimeout(resolve, Number(value_wait) || 0));
                         break;
                     case ActionType.drag_and_drop:
                         if (activePage && action.elements && action.elements.length === 2) {

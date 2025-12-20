@@ -3,6 +3,7 @@ import {
   shouldIgnoreTarget,
   buildSelectors,
   buildCommonActionData,
+  buildElement,
   sendAction
 } from './baseAction.js';
 import { previewNode, extractElementText } from '../dom/domUtils.js';
@@ -43,11 +44,11 @@ export async function handleUploadChangeEvent(e) {
   );
 
   const elementText = extractElementText(el);
+  const element = buildElement(el, selectors, 1);
+  
   sendAction({
     action_type: 'upload',
-    elements: [{
-      selectors: selectors.map((selector) => ({ value: selector })),
-    }],
+    elements: [element],
     action_datas: [
       {
         value: {

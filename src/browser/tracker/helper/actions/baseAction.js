@@ -1,5 +1,6 @@
 import { generateAndValidateSelectors } from '../selector_generator/selectorGenerator.js';
 import { previewNode, extractElementText } from '../dom/domUtils.js';
+import { extractElementData } from '../utils/elementDataExtractor.js';
 
 // Trạng thái chung
 let isPaused = false;
@@ -39,8 +40,8 @@ export function shouldIgnoreTarget(target, label = 'Event') {
       // console.log(`Skipping ${label} - inside query panel`);
     }
     // Ignore and log for controls and assert modal only
-    if (target.closest('#rikkei-browser-controls') || target.closest('#rikkei-assert-input-modal')) {
-      // console.log(`Skipping ${label} - inside browser controls or assert modal`);
+    if (target.closest('#rikkei-browser-controls')) {
+      // console.log(`Skipping ${label} - inside browser controls`);
       return true;
     }
   } catch { }
@@ -61,12 +62,29 @@ export function buildSelectors(target, options = {}) {
 }
 
 
+/**
+ * Build element object với đầy đủ thông tin theo cấu trúc mới
+ * @param {HTMLElement} target - DOM element
+ * @param {Array<string>} selectors - Array các selectors
+ * @param {number} orderIndex - Thứ tự của element (bắt đầu từ 1)
+ * @returns {Object} Element object với selectors, order_index, element_data
+ */
+export function buildElement(target, selectors, orderIndex = 1) {
+  const elementData = extractElementData(target);
+  
+  return {
+    selectors: selectors.map((selector) => ({ value: selector })),
+    order_index: orderIndex,
+    element_data: Object.keys(elementData).length > 0 ? elementData : undefined,
+  };
+}
+
 export function buildCommonActionData(e, selectors, extra = {}, actionType = 'unknown') {
+  const element = buildElement(e?.target, selectors, 1);
+  
   return {
     action_type: actionType,
-    elements: [{
-      selectors: selectors.map((selector) => ({ value: selector })),
-    }],
+    elements: [element],
     action_datas: [{
       value: {
         coordinates: (typeof e?.clientX === 'number' && typeof e?.clientY === 'number')

@@ -3,7 +3,7 @@ import './EditTestcase.css';
 import '../../../../../renderer/recorder/components/action/Action.css';
 import '../../../../../renderer/recorder/components/action_tab/ActionTab.css';
 import MAAction from '../../action/Action';
-import { Action } from '../../../types/actions';
+import { Action, Element as ActionElement } from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
 import MAActionDetailModal from '../../action_detail/ActionDetailModal';
 import { BrowserType } from '../../../types/testcases';
@@ -73,6 +73,42 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
     }
   }, [testcase]);
 
+  // Đồng bộ element theo element_id cho tất cả actions khi một action được chỉnh sửa
+  const syncActionsWithUpdatedElement = (currentActions: Action[], updatedAction: Action): Action[] => {
+    const elementMap: Record<string, ActionElement> = {};
+    (updatedAction.elements || []).forEach(el => {
+      if (el.element_id) {
+        elementMap[el.element_id] = el;
+      }
+    });
+
+    if (Object.keys(elementMap).length === 0) {
+      return currentActions.map(a => a.action_id === updatedAction.action_id ? { ...a, ...updatedAction } : a);
+    }
+
+    return currentActions.map(a => {
+      if (a.action_id === updatedAction.action_id) {
+        return { ...a, ...updatedAction };
+      }
+      if (!a.elements || a.elements.length === 0) return a;
+
+      const updatedElements = a.elements.map(el => {
+        if (el.element_id && elementMap[el.element_id]) {
+          const src = elementMap[el.element_id];
+          return {
+            ...el,
+            ...src,
+            element_id: el.element_id, // giữ nguyên id đang có
+            order_index: el.order_index ?? src.order_index,
+          };
+        }
+        return el;
+      });
+
+      return { ...a, elements: updatedElements };
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!testcase) return;
@@ -91,13 +127,18 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
           testcase_id: a.testcase_id,
           action_type: a.action_type,
           description: a.description,
-          elements: (a.elements || []).map((el: any) => ({
+          elements: (a.elements || []).map((el: any, idx: number) => ({
+            element_id: el?.element_id, // giữ lại element_id nếu có
             selectors: ((el?.selectors || []) as any[])
               .map((s: any) => {
                 const val = typeof s === 'string' ? s : (s?.value || '');
                 return val && val.length > 0 ? { value: val } : null;
               })
               .filter(Boolean) as { value: string }[],
+            order_index: idx+1, // Set order_index theo thứ tự mới (1, 2, 3, ...)
+            element_data: el?.element_data, // giữ lại element_data nếu có
+            created_at: el?.created_at, // giữ lại created_at nếu có
+            updated_at: el?.updated_at, // giữ lại updated_at nếu có
           })),
           assert_type: a.assert_type as any,
           action_datas: a.action_datas,
@@ -383,7 +424,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
           isOpen={!!selectedAction}
           action={selectedAction}
           onClose={() => setSelectedAction(null)}
-          onSave={(updated) => setActions(prev => prev.map(x => x.action_id === updated.action_id ? updated : x))}
+          onSave={(updated) => setActions(prev => syncActionsWithUpdatedElement(prev, updated as Action))}
           projectId={projectId}
         />
       </div>

@@ -3,6 +3,7 @@ import {
   shouldIgnoreTarget,
   buildSelectors,
   buildCommonActionData,
+  buildElement,
   sendAction
 } from './baseAction.js';
 import { previewNode, extractElementText } from '../dom/domUtils.js';
@@ -30,12 +31,11 @@ export function handleSelectChangeEvent(e) {
   const selectedValue = e?.target?.value || '';
   const selectedText = el.selectedOptions && el.selectedOptions[0] ? (el.selectedOptions[0].text || '') : '';
   const elementText = extractElementText(el);
+  const element = buildElement(el, selectors, 1);
 
   sendAction({
     action_type: 'select',
-    elements: [{
-      selectors: selectors.map((selector) => ({ value: selector })),
-    }],
+    elements: [element],
     action_datas: [{
       value: {
         value: selectedValue,

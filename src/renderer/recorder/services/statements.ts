@@ -3,6 +3,7 @@ import { ApiResponse } from '../types/api_responses';
 import {
     StatementRunResponse,
     RunWithoutCreateRequest,
+    StatementResponse,
 } from '../types/statements';
 
 export class StatementService {
@@ -13,6 +14,15 @@ export class StatementService {
         return await apiRouter.request<StatementRunResponse>('/statements/run_without_create', {
             method: 'POST',
             body: JSON.stringify(payload)
+        });
+    }
+
+    async getStatementById(statementId: string): Promise<ApiResponse<StatementResponse>> {
+        if (!statementId) {
+            return { success: false, error: 'statement_id is required' };
+        }
+        return await apiRouter.request<StatementResponse>(`/statements/get_by_id/${statementId}`, {
+            method: 'GET'
         });
     }
 }

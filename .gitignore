@@ -21,6 +21,7 @@ release/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
 
 # IDE and editor files
 .vscode/
@@ -116,5 +117,4 @@ README.md
 oldversion/
 injectedScript.ts
 playwright-browsers
-
 _gpgorigin

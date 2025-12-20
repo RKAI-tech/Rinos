@@ -2,11 +2,10 @@ import { createHoverOverlay, enableHoverEffects, disableHoverEffects, showHoverE
 import { initializeErrorHandlers } from './errorHandler.js';
 import { initializeNavigationPrevention, setAssertMode as setNavAssertMode } from './navigationPrevention.js';
 import { handleClickEvent } from './eventHandlers.js';
-import { setPauseMode } from '../actions/baseAction.js';
+import { setPauseMode, buildElement } from '../actions/baseAction.js';
 import { handleDoubleClickEvent, handleRightClickEvent, handleShiftClickEvent } from '../actions/click_handle.js';
 import { generateSelector, validateAndImproveSelector, generateAndValidateSelectors } from '../selector_generator/selectorGenerator.js';
 import { previewNode, extractElementText } from '../dom/domUtils.js';
-import { showAssertInputModal, closeAssertInputModal } from '../components/modals/assertInputModal.js';
 import { handleTextInputEvent } from '../actions/text_input_handle.js';
 import { initializeElementFreezer, freezeEntireScreen, unfreezeEntireScreen, unfreezeAllElements } from '../dom/elementFreezer.js';
 // import { handleCheckboxRadioChangeEvent } from '../actions/change_handle.js';
@@ -26,20 +25,35 @@ function handleAssertCaptureBlocking(e) {
     return;
   }
 
-  // Allow interactions with assert modal
-  if (e.target && e.target.closest && e.target.closest('#rikkei-assert-input-modal')) {
+  const target = e.target;
+  if (!target) {
     return;
   }
+
+  // Check trực tiếp tagName và parent để tránh vấn đề với closest
+  const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
+  const isContentEditable = target.isContentEditable || target.getAttribute('contenteditable') === 'true';
+  
+  // Check activeElement (element đang được focus) để đảm bảo input trong panel được phép
+  const activeElement = document.activeElement;
+  const activeIsInput = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'SELECT');
+  
+  // Nếu activeElement là input/textarea trong query panel, cho phép tất cả events
+  if (activeIsInput && activeElement.closest && activeElement.closest('#rikkei-query-panel')) {
+    return;
+  }
+  
+  // Nếu activeElement là input/textarea trong API request panel, cho phép tất cả events
+  if (activeIsInput && activeElement.closest && activeElement.closest('#rikkei-api-request-panel')) {
+    return;
+  }
+  
 
   // Allow interactions with browser controls
-  if (e.target && e.target.closest && e.target.closest('#rikkei-browser-controls')) {
+  if (target.closest && target.closest('#rikkei-browser-controls')) {
     return;
   }
 
-  // Allow interactions with query panel
-  if (e.target && e.target.closest && e.target.closest('#rikkei-query-panel')) {
-    return;
-  }
 
   // Only block specific events that could trigger unwanted actions
   const blockableEvents = [
@@ -68,144 +82,46 @@ function handleAssertCaptureBlocking(e) {
 
     if (e.type === 'click') {
       const clickTarget = e.target;
-      queueMicrotask(() => {
-        if (clickTarget) {
-          handleAssertClick({ target: clickTarget });
-        }
-      });
-    }
-  } else {
-  }
-}
-
-function handleAssertClick(e) {
-  processAssertClick(e);
-}
-
-function processAssertClick(e) {
-  const assertType = window.currentAssertType || 'toBeVisible';
-  try {
-    const selector = generateAndValidateSelectors(e.target, { minScore: 0, validate: true });
-    const elementType = e.target.tagName.toLowerCase();
-    const elementPreview = previewNode(e.target);
-    const elementText = extractElementText(e.target);
-    const DOMelement = e.target.outerHTML;
-
-    const types = ['toHaveText', 'toContainText', 'toHaveValue', 'toHaveAccessibleDescription', 'toHaveAccessibleName', 'toHaveCount', 'toHaveRole'];
-    if (types.includes(assertType)) {
-      let defaultValue = '';
-      if (assertType === 'toHaveValue') {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
-          defaultValue = e.target.value || '';
-        } else {
-          defaultValue = e.target.getAttribute('value') || e.target.textContent?.trim() || '';
-        }
-      } else {
-        defaultValue = e.target.textContent?.trim() || e.target.innerText?.trim() || '';
+      const assertType = window.currentAssertType || 'toBeVisible';
+      
+      // For assert types with value, send action to recorder (similar to click action)
+      // Recorder will handle the modal and value input
+        queueMicrotask(() => {
+          if (clickTarget && window.sendActionToMain) {
+            try {
+              const selector = generateAndValidateSelectors(clickTarget, { minScore: 0, validate: true });
+              const elementText = extractElementText(clickTarget);
+              const DOMelement = clickTarget.outerHTML;
+              const targetElement = clickTarget;
+              
+              const element = buildElement(targetElement, selector, 1);
+              
+              const action = {
+                action_type: 'assert',
+                assert_type: assertType,
+                elements: [element],
+                action_datas: [{
+                  value: {
+                    htmlDOM: DOMelement,
+                    elementText: elementText,
+                    page_index: window.__PAGE_INDEX__ || 0,
+                    page_url: window.location.href || '',
+                    page_title: document.title || '',
+                  }
+                }]
+              };
+              window.sendActionToMain(action);
+            } catch (error) {
+              console.error('Error sending assert action:', error);
+            }
+          }
+        });
       }
-      const rect = e.target.getBoundingClientRect();
-      showAssertInputModal(
-        assertType,
-        defaultValue,
-        rect,
-        (finalValue, connection, connection_id, query, apiRequest) => {
-          sendAssertAction(selector, assertType, finalValue, elementType, elementPreview, elementText, connection, connection_id, query, DOMelement, apiRequest);
-        },
-        () => {
-        }
-      );
-    } else {
-      sendAssertAction(selector, assertType, '', elementType, elementPreview, elementText, undefined, undefined, undefined, DOMelement, undefined);
     }
-  } catch (error) {
-  }
+ 
 }
 
-function sendAssertAction(selector, assertType, value, elementType, elementPreview, elementText, connection_id, connection, query, DOMelement, apiRequest) {
-  if (window.sendActionToMain) {
-    var action_datas = {};
-    action_datas.value = {
-      value: value ? value : undefined,
-      htmlDOM: DOMelement ? DOMelement : undefined,
-      elementText: elementText ? elementText : undefined,
-      page_index: window.__PAGE_INDEX__ || 0,
-      page_url: window.location.href || '',
-      page_title: document.title || '',
-    };
-    if (query) {
-      action_datas.statement = {
-        statement_id: Math.random().toString(36),
-        statement_text: query,
-        connection_id: connection_id,
-        connection: {
-          ...connection,
-          port: connection && connection.port !== undefined ? String(connection.port) : undefined,
-        }
-      };
-    }
-    if (apiRequest) {
-      action_datas.api_request = apiRequest ? {
-        api_request_id: apiRequest.api_request_id,
-        createType: apiRequest.createType || 'system',
-        url: apiRequest.url,
-        method: apiRequest.method,
-        params: apiRequest.params && apiRequest.params.length > 0 ? apiRequest.params.map(p => ({
-          api_request_param_id: p.api_request_param_id,
-          key: p.key,
-          value: p.value
-        })) : undefined,
-        headers: apiRequest.headers && apiRequest.headers.length > 0 ? apiRequest.headers.map(h => ({
-          api_request_header_id: h.api_request_header_id,
-          key: h.key,
-          value: h.value
-        })) : undefined,
-        auth: apiRequest.auth ? {
-          apiRequestId: apiRequest.auth.apiRequestId,
-          type: apiRequest.auth.type,
-          storage_enabled: apiRequest.auth.storage_enabled,
-          username: apiRequest.auth.username,
-          password: apiRequest.auth.password,
-          token: apiRequest.auth.token,
-          token_storages: apiRequest.auth.token_storages && apiRequest.auth.token_storages.length > 0 ? apiRequest.auth.token_storages.map(ts => ({
-            api_request_token_storage_id: ts.api_request_token_storage_id,
-            type: ts.type,
-            key: ts.key
-          })) : undefined,
-          basic_auth_storages: apiRequest.auth.basic_auth_storages && apiRequest.auth.basic_auth_storages.length > 0 ? apiRequest.auth.basic_auth_storages.map(bs => ({
-            api_request_basic_auth_storage_id: bs.api_request_basic_auth_storage_id,
-            type: bs.type,
-            usernameKey: bs.usernameKey,
-            passwordKey: bs.passwordKey,
-            enabled: bs.enabled
-          })) : undefined
-        } : undefined,
-        body: apiRequest.body ? {
-          api_request_id: apiRequest.body.api_request_id,
-          type: apiRequest.body.type,
-          content: apiRequest.body.content,
-          formData: apiRequest.body.formData && apiRequest.body.formData.length > 0 ? apiRequest.body.formData.map(fd => ({
-            api_request_body_form_data_id: fd.api_request_body_form_data_id,
-            name: fd.name,
-            value: fd.value,
-            orderIndex: fd.orderIndex
-          })) : undefined
-        } : undefined
-      } : undefined;
-    };
-    const action = {
-      action_type: 'assert',
-      assert_type: assertType,
-      elements: [{
-        selectors: selector.map((selector) => ({ value: selector })),
-      }],
-      action_datas: [action_datas]
-    }
-    window.sendActionToMain(action);
-    closeAssertInputModal();
-  } else {
-    console.error('window.sendActionToMain is not defined');
-  }
-}
+
 
 export function initBrowserControls() {
   if (!document.querySelector('link[href*="font-awesome"]')) {
@@ -313,7 +229,6 @@ export function initializeTracking() {
       freezeEntireScreen();
     } else {
       unfreezeEntireScreen();
-      closeAssertInputModal();
     }
   };
 

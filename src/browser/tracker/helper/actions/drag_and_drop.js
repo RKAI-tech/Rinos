@@ -3,6 +3,7 @@ import {
   shouldIgnoreTarget,
   buildSelectors,
   buildCommonActionData,
+  buildElement,
   sendAction
 } from './baseAction.js';
 import { previewNode, extractElementText } from '../dom/domUtils.js';
@@ -27,15 +28,14 @@ export function handleDragStartEvent(e) {
 
   const selectors = buildSelectors(e?.target);
   const elementText = extractElementText(e?.target);
+  const element = buildElement(e?.target, selectors, 1);
   // Đánh dấu đang drag
   isDragging = true;
   
   // console.log('Drag start event - generated selectors:', selectors);
   sendAction({
     action_type: 'drag_start',
-    elements: [{
-      selectors: selectors,
-    }],
+    elements: [element],
     action_datas: [{
       value: {
         elementText: elementText,
@@ -62,13 +62,12 @@ export function handleDragEndEvent(e) {
   
   const selectors = buildSelectors(e?.target);
   const elementText = extractElementText(e?.target);
+  const element = buildElement(e?.target, selectors, 1);
     
   // console.log('Drag end event - generated selectors:', selectors);
   sendAction({
     action_type: 'drag_end',
-    elements: [{
-      selectors: selectors,
-    }],
+    elements: [element],
     action_datas: [{
       value: {
         elementText: elementText,
@@ -98,12 +97,11 @@ export function handleDropEvent(e) {
   
   const selectors = buildSelectors(e?.target);
   const elementText = extractElementText(e?.target);
+  const element = buildElement(e?.target, selectors, 1);
   // console.log('Drop event - generated selectors:', selectors);
   sendAction({
     action_type: 'drop',
-    elements: [{
-      selectors: selectors.map((selector) => ({ value: selector })),
-    }],
+    elements: [element],
     action_datas: [{
       value: {
         elementText: elementText,

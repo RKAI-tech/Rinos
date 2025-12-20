@@ -23,6 +23,8 @@
     "dist:linux-appimage": "npm run build && electron-builder --linux AppImage",
     "dist:linux-deb": "npm run build && electron-builder --linux deb",
     "dist:linux-snap": "npm run build && electron-builder --linux snap",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:mac-universal": "npm run build && electron-builder --mac universal",
     "test": "electron .",
     "vite:dev": "vite build --mode development && vite"
   },
@@ -39,6 +41,7 @@
   "license": "ISC",
   "dependencies": {
     "@azure/msal-node": "^3.7.4",
+    "@electron/notarize": "^2.5.0",
     "@monaco-editor/react": "^4.7.0",
     "chromium-bidi": "^9.1.0",
     "dompurify": "^3.3.0",
@@ -66,8 +69,8 @@
     "cross-env": "^7.0.3",
     "electron": "^38.1.2",
     "electron-builder": "^26.0.12",
-    "png2icons": "^2.0.1",
     "esbuild": "^0.23.1",
+    "png2icons": "^2.0.1",
     "typescript": "^5.9.2",
     "vite": "^6.3.6",
     "wait-on": "^9.0.1"
@@ -78,6 +81,11 @@
     "directories": {
       "output": "release"
     },
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/playwright-core/**",
+      "**/node_modules/playwright/**"
+    ],
     "files": [
       "dist/**/*",
       "node_modules/**/*",
@@ -99,8 +107,43 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "src/main/edge_install",
+        "to": "edge_install",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64",
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64",
+            "universal"
+          ]
+        }
+      ],
+      "icon": "images/icon.icns",
+      "category": "public.app-category.developer-tools",
+      "hardenedRuntime": true,
+      "entitlements": "build_mac/entitlements.mac.plist",
+      "entitlementsInherit": "build_mac/entitlements.mac.inherit.plist",
+      "gatekeeperAssess": false,
+      "identity": null,
+      "artifactName": "${productName}-mac-${arch}-${version}.${ext}"
+    },
     "linux": {
       "target": [
         {
@@ -125,7 +168,8 @@
       "icon": "images/icon.png",
       "category": "Development",
       "synopsis": "Automation Test Execution",
-      "maintainer": "Rikkeisoft Corporation <pr@rikkeisoft.com>"
+      "maintainer": "Rikkeisoft Corporation <pr@rikkeisoft.com>",
+      "artifactName": "${productName}-linux-${arch}-${version}.${ext}"
     },
     "win": {
       "target": [
@@ -144,7 +188,8 @@
       ],
       "icon": "images/icon.ico",
       "requestedExecutionLevel": "asInvoker",
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "artifactName": "${productName}-win-${arch}-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -156,7 +201,7 @@
       "uninstallerIcon": "images/icon.ico"
     },
     "portable": {
-      "artifactName": "${productName}-${version}-portable.${ext}"
+      "artifactName": "${productName}-portable-${arch}-${version}.${ext}"
     }
   }
 }

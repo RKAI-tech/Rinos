@@ -1,24 +1,39 @@
-# install-edge-win.ps1
- 
-$TargetDir = Join-Path $PWD "my-browsers\edge-win"
-$MsiFile = "edge.msi"
-# Link MSI 64-bit Stable
-$Url = "https://go.microsoft.com/fwlink/?linkid=2068605"
- 
-Write-Host "🪟 Đang tải Microsoft Edge cho Windows..."
-Invoke-WebRequest -Uri $Url -OutFile $MsiFile
- 
-# Tạo thư mục đích (Phải dùng đường dẫn tuyệt đối cho msiexec)
-New-Item -ItemType Directory -Force -Path $TargetDir | Out-Null
-$AbsTargetDir = (Resolve-Path $TargetDir).Path
- 
-Write-Host "📦 Đang giải nén MSI..."
-# /a : Administrative install (giải nén)
-# /qb : Giao diện cơ bản (hiển thị thanh tiến trình nhỏ rồi tắt)
-Start-Process msiexec.exe -ArgumentList "/a $MsiFile /qb TARGETDIR=""$AbsTargetDir""" -Wait
- 
-# Dọn dẹp file msi
-Remove-Item $MsiFile
- 
-Write-Host "✅ Hoàn tất! Executable path:"
-Write-Host "$AbsTargetDir\Microsoft\Edge\Application\msedge.exe"
+$AppDataDir = "$env:LOCALAPPDATA\AutomationTestExecution" 
+$TargetDir = Join-Path $AppDataDir "edge-win"
+$MsiFile = Join-Path $AppDataDir "edge.msi"
+$Url = "https://go.microsoft.com/fwlink/?LinkID=2093437"
+if (-not (Test-Path $AppDataDir)) {
+    New-Item -ItemType Directory -Force -Path $AppDataDir | Out-Null
+}
+try {
+    Invoke-WebRequest -Uri $Url -OutFile $MsiFile -ErrorAction Stop
+} catch {
+    Write-Error "Download failed: $_"
+    exit 1
+}
+
+$AbsMsi = (Resolve-Path $MsiFile).Path
+$AbsTargetDir = $TargetDir # AppData luôn là đường dẫn tuyệt đối rồi
+
+# Tạo thư mục đích để giải nén
+if (-not (Test-Path $TargetDir)) {
+    New-Item -ItemType Directory -Force -Path $TargetDir | Out-Null
+}
+
+# CHẠY MSIEXEC
+# /a : Giải nén
+# /qn : Hoàn toàn im lặng (Quiet No UI) - Tốt cho App
+$Args = "/a `"$AbsMsi`" /qn TARGETDIR=`"$AbsTargetDir`""
+
+$Process = Start-Process -FilePath "msiexec.exe" -ArgumentList $Args -Wait -NoNewWindow -PassThru
+
+if ($Process.ExitCode -ne 0) {
+    Write-Error "msiexec failed with exit code $($Process.ExitCode)"
+    exit $Process.ExitCode
+}
+
+# Dọn dẹp file MSI
+Remove-Item $MsiFile -ErrorAction SilentlyContinue
+
+# Trả về đường dẫn exe cho App của bạn sử dụng
+Write-Output "$AbsTargetDir\Microsoft\Edge\Application\msedge.exe"

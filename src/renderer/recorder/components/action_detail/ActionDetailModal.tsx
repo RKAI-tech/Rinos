@@ -29,6 +29,10 @@ import AssertAiActionDetail, {
   isAiAssertType,
   normalizeAssertAiAction,
 } from './assert/ai/AssertAiActionDetail';
+import AssertToHaveCssActionDetail, {
+  isToHaveCssAssertType,
+  normalizeAssertToHaveCssAction,
+} from './assert/to_have_css/AssertToHaveCssActionDetail';
 import DefaultActionDetail from './default/DefaultActionDetail';
 
 interface ActionDetailModalProps {
@@ -132,6 +136,11 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
         normalized = normalizeAssertAiAction(draft);
       } else if (
         draft.action_type === ActionType.assert &&
+        isToHaveCssAssertType(draft.assert_type)
+      ) {
+        normalized = normalizeAssertToHaveCssAction(draft);
+      } else if (
+        draft.action_type === ActionType.assert &&
         isAssertWithValueType(draft.assert_type)
       ) {
         normalized = normalizeAssertWithValueAction(draft);
@@ -187,11 +196,12 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
     const cloned: Action = {
       ...source,
       // Ensure elements selectors are trimmed and non-empty
-      elements: (source.elements || []).map(el => ({
+      elements: (source.elements || []).map((el, idx) => ({
         ...el,
         selectors: (el.selectors || [])
           .map((s: any) => ({ value: (s.value || '').trim() }))
-          .filter((s: any) => s.value.length > 0)
+          .filter((s: any) => s.value.length > 0),
+        order_index: idx + 1, // Set order_index theo thứ tự mới (1, 2, 3, ...)
       })),
     };
 
@@ -378,6 +388,19 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
               updateField={updateField}
             />
           ) : (
+            draft.action_type === ActionType.assert &&
+            isToHaveCssAssertType(draft.assert_type)
+          ) ? (
+            <AssertToHaveCssActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+            updateElement={updateElement}
+            addNewSelector={addNewSelector}
+            updateSelector={updateSelector}
+            removeSelector={removeSelector}
+            />
+          ) : (
             draft.action_type === ActionType.page_create ||
             draft.action_type === ActionType.page_close ||
             draft.action_type === ActionType.page_focus
@@ -395,6 +418,10 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
               draft={draft}
               updateDraft={updateDraft}
               updateField={updateField}
+            updateElement={updateElement}
+            addNewSelector={addNewSelector}
+            updateSelector={updateSelector}
+            removeSelector={removeSelector}
             />
           ) : (
             draft.action_type === ActionType.assert &&
@@ -404,6 +431,10 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
               draft={draft}
               updateDraft={updateDraft}
               updateField={updateField}
+            updateElement={updateElement}
+            addNewSelector={addNewSelector}
+            updateSelector={updateSelector}
+            removeSelector={removeSelector}
             />
           ) : (
             <DefaultActionDetail

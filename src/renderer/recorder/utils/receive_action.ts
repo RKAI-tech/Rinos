@@ -99,6 +99,8 @@ export function createDescription(action_received: any): string {
                     return `Verify the element contains text ${value}`;
                 case AssertType.toHaveValue:
                     return `Verify the element has value ${value}`;
+                // case AssertType.toHaveValues:
+                //     return `Verify the element has values ${value}`;
                 case AssertType.toBeVisible:
                     return `Verify the element is visible`;
                 case AssertType.toBeDisabled:
@@ -137,14 +139,17 @@ export function createDescription(action_received: any): string {
                 
             }
         case ActionType.page_focus:
-                let title = action_received.action_datas?.[0]?.value?.title ||action_received.action_datas?.[0]?.value?.url ||'';
+                let title=""
                 for (const action_data of action_received.action_datas || []) {
                     if (action_data.value?.title) {
                         title = action_data.value?.title;
                         break;
                     }
+                    if (action_data.value?.url) {
+                        title = action_data.value?.url;
+                        break;
+                    }
                 }
-    
                 return `Focus on page ${title} `;
         case ActionType.page_create:
             let pageUrl = 'blank';

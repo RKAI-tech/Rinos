@@ -29,6 +29,10 @@ import AssertAiActionDetail, {
   isAiAssertType,
   normalizeAssertAiAction,
 } from './assert/ai/AssertAiActionDetail';
+import AssertToHaveCssActionDetail, {
+  isToHaveCssAssertType,
+  normalizeAssertToHaveCssAction,
+} from './assert/to_have_css/AssertToHaveCssActionDetail';
 import DefaultActionDetail from './default/DefaultActionDetail';
 
 interface Props {
@@ -126,11 +130,12 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave,
   const normalizeActionForSave = (source: Action): Action => {
     const cloned: Action = {
       ...source,
-      elements: (source.elements || []).map(el => ({
+      elements: (source.elements || []).map((el, idx) => ({
         ...el,
         selectors: (el.selectors || [])
           .map(s => ({ value: (s.value || '').trim() }))
           .filter(s => s.value.length > 0),
+        order_index: idx+1, // Set order_index theo thứ tự nếu chưa có
       })),
     };
 
@@ -205,6 +210,8 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave,
       normalized = normalizeAddBrowserStorageAction(draft);
     } else if (draft.action_type === ActionType.assert && isAiAssertType(draft.assert_type)) {
       normalized = normalizeAssertAiAction(draft);
+    } else if (draft.action_type === ActionType.assert && isToHaveCssAssertType(draft.assert_type)) {
+      normalized = normalizeAssertToHaveCssAction(draft);
     } else if (draft.action_type === ActionType.assert && isAssertWithValueType(draft.assert_type)) {
       normalized = normalizeAssertWithValueAction(draft);
     } else if (draft.action_type === ActionType.assert && isAssertWithoutValueType(draft.assert_type)) {
@@ -356,14 +363,40 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave,
             />
           ) : draft.action_type === ActionType.assert && isAiAssertType(draft.assert_type) ? (
             <AssertAiActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+          ) : draft.action_type === ActionType.assert && isToHaveCssAssertType(draft.assert_type) ? (
+            <AssertToHaveCssActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+              updateElement={updateElement}
+              addNewSelector={addNewSelector}
+              updateSelector={updateSelector}
+              removeSelector={removeSelector}
+            />
           ) : draft.action_type === ActionType.page_create ||
             draft.action_type === ActionType.page_close ||
             draft.action_type === ActionType.page_focus ? (
             <PageActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
           ) : draft.action_type === ActionType.assert && isAssertWithoutValueType(draft.assert_type) ? (
-            <AssertWithoutValueActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+            <AssertWithoutValueActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+              updateElement={updateElement}
+              addNewSelector={addNewSelector}
+              updateSelector={updateSelector}
+              removeSelector={removeSelector}
+            />
           ) : draft.action_type === ActionType.assert && isAssertWithValueType(draft.assert_type) ? (
-            <AssertWithValueActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+            <AssertWithValueActionDetail
+              draft={draft}
+              updateDraft={updateDraft}
+              updateField={updateField}
+              updateElement={updateElement}
+              addNewSelector={addNewSelector}
+              updateSelector={updateSelector}
+              removeSelector={removeSelector}
+            />
           ) : (
             <DefaultActionDetail draft={draft} updateField={updateField} />
           )}

@@ -2,6 +2,7 @@ import {
   getPauseMode,
   buildSelectors,
   buildCommonActionData,
+  buildElement,
   sendAction
 } from './baseAction.js';
 import { previewNode, extractElementText } from '../dom/domUtils.js';
@@ -33,11 +34,11 @@ function dispatchScroll(e) {
   const scrollY = isWindow ? Math.max(window.scrollY || window.pageYOffset || 0, 0) : Math.max(target.scrollTop || 0, 0);
   const value = `X:${scrollX}, Y:${scrollY}`;
   const elementText = extractElementText(target);
+  const element = buildElement(target, selectors, 1);
+  
   sendAction({
     action_type: 'scroll',
-    elements: [{
-      selectors: selectors.map((selector) => ({ value: selector })),
-    }],
+    elements: [element],
     action_datas: [{
       value: {
         value: value,
