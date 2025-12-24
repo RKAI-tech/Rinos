@@ -194,8 +194,16 @@ export interface ApiRequestData {
   body?: ApiRequestBody;
 }
 
+export interface ActionDataGeneration {
+  action_data_generation_id?: string;
+  action_id?: string;
+  version_number?: number;
+  value?: Record<string, any>;
+}
+
 export interface ActionData {
   action_data_id?: string;
+  action_id?: string;
   order_index?: number;
   value?: any;
   statement?: Statement;
@@ -212,6 +220,7 @@ export interface Action {
   elements?: Element[]; 
   assert_type?: AssertType;
   action_datas?: ActionData[];
+  action_data_generation?: ActionDataGeneration[];
 }
 
 export interface ActionBatch {
@@ -234,4 +243,16 @@ export interface AiAssertResponse {
     playwright_code?: string;
     description?: string;
   };
+}
+
+export interface GenerateRandomDataFunctionRequest {
+  prompt: string;
+}
+
+export interface GenerateRandomDataFunctionResponse {
+  success: boolean;
+  goodness_description: string;
+  generator_data_function_name?: string;
+  generator_data_function_code?: string;
+  issue?: string;
 }

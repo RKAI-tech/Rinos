@@ -438,7 +438,7 @@ const CSSAssertModal: React.FC<CSSAssertModalProps> = ({
                     ? 'e.g., 16px'
                     : isFontWeight
                       ? 'e.g., 400'
-                      : 'Enter CSS value'
+                    : 'Enter CSS value'
               }
             />
           </div>
