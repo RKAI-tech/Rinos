@@ -10,6 +10,7 @@ export interface TestSuite {
     test_passed: string;
     test_failed: string;
     browser_type: BrowserType;
+    group_id?: string;
     created_at: string;
     updated_at?: string;
     progress?: number;
@@ -25,6 +26,12 @@ export interface TestSuiteCreateRequest {
     name: string;
     description: string;
     browser_type?: BrowserType | string;
+    group_id?: string;
+}
+
+export interface UpdateTestSuiteGroupRequest {
+    test_suite_id: string;
+    group_id: string | null;
 }
 
 export interface TestSuiteGetAllRequest {
@@ -66,6 +73,7 @@ export interface TestCaseInSuite {
     updated_at: string;
     url_video: string;
     level: number;
+    browser_type: BrowserType;
 }
 
 export interface GetTestCasesBySuiteResponse {

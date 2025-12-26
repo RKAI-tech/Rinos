@@ -26,9 +26,10 @@ interface DuplicateTestcaseProps {
   createTestcaseWithActions: (name: string, tag?: string, actions?: Action[], basic_authentication?: { username: string; password: string }, browser_type?: string) => Promise<boolean>;
   testcase: MinimalTestcase | null;
   projectId?: string;
+  isDuplicating?: boolean;
 }
 
-const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, onSave, createTestcaseWithActions, testcase, projectId }) => {
+const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, onSave, createTestcaseWithActions, testcase, projectId, isDuplicating = false }) => {
   const [testcaseName, setTestcaseName] = useState('');
   const [testcaseTag, setTestcaseTag] = useState('');
   const [browserType, setBrowserType] = useState<string>(BrowserType.chrome);
@@ -416,9 +417,35 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
             <button 
               type="submit" 
               className="tcase-dup-btn-save"
-              disabled={!testcaseName.trim() || !browserType}
+              disabled={!testcaseName.trim() || !browserType || isDuplicating}
             >
-              Duplicate
+              {isDuplicating ? (
+                <>
+                  <span style={{ 
+                    display: 'inline-block', 
+                    marginRight: '8px',
+                    verticalAlign: 'middle'
+                  }}>
+                    <svg 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      style={{ 
+                        animation: 'spin 1s linear infinite',
+                        display: 'inline-block'
+                      }}
+                    >
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="32" strokeDashoffset="32" opacity="0.3"/>
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="32" strokeDashoffset="24"/>
+                    </svg>
+                  </span>
+                  Duplicating...
+                </>
+              ) : (
+                'Duplicate'
+              )}
             </button>
           </div>
         </form>

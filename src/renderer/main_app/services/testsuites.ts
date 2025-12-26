@@ -12,7 +12,8 @@ import {
     GetTestCasesBySuiteResponse,
     ExportTestSuiteRequest,
     ExportTestSuiteResponse,
-    UpdateTestCaseLevelRequest
+    UpdateTestCaseLevelRequest,
+    UpdateTestSuiteGroupRequest
 } from '../types/testsuites';
 import { DefaultResponse } from '../types/api_responses';
 
@@ -63,6 +64,14 @@ export class TestSuiteService {
             method: 'GET'
         });
     }
+    async getByGroupId(groupId: string): Promise<ApiResponse<TestSuiteGetAllResponse>> {
+        if (!groupId) {
+            return { success: false, error: 'group_id is required' };
+        }
+        return await apiRouter.request<TestSuiteGetAllResponse>(`/test-suites/get_by_group/${groupId}`, {
+            method: 'GET'
+        });
+    }
 
     async createTestSuite(testSuite: TestSuiteCreateRequest): Promise<ApiResponse<DefaultResponse>> {
         // Input validation
@@ -76,13 +85,6 @@ export class TestSuiteService {
                 error: 'Test suite name is required'
             };
         }
-
-        // if (!testSuite.description || testSuite.description.trim().length === 0) {
-        //     return {
-        //         success: false,
-        //         error: 'Test suite description is required'
-        //     };
-        // }
 
         return await apiRouter.request<DefaultResponse>('/test-suites/create', {
             method: 'POST',
@@ -101,6 +103,17 @@ export class TestSuiteService {
         }
 
         return await apiRouter.request<DefaultResponse>(`/test-suites/${payload.test_suite_id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+        });
+    }
+
+    async updateTestSuiteGroup(payload: UpdateTestSuiteGroupRequest): Promise<ApiResponse<DefaultResponse>> {
+        if (!payload || !payload.test_suite_id) {
+            return { success: false, error: 'Test suite ID is required' };
+        }
+        // Allow null/empty group_id to remove suite from group (move to root)
+        return await apiRouter.request<DefaultResponse>(`/test-suites/${payload.test_suite_id}/update_group`, {
             method: 'PUT',
             body: JSON.stringify(payload)
         });
@@ -161,7 +174,7 @@ export class TestSuiteService {
                 error: 'Test suite ID is required'
             };
         }
-
+        
         return await apiRouter.request<GetTestCasesBySuiteResponse>(`/test-suites/${request.test_suite_id}/testcases`, {
             method: 'POST',
             body: JSON.stringify(request),

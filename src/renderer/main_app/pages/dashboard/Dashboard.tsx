@@ -131,7 +131,7 @@ const Dashboard: React.FC = () => {
 
   const handleProjectClick = (project: Project) => {
     // Navigate to testcases page with project context
-    navigate(`/testcases/${project.project_id}`, { 
+    navigate(`/suites-manager/${project.project_id}`, { 
       state: { 
         projectName: project.name 
       } 

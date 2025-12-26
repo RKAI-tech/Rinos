@@ -7,6 +7,7 @@ import Register from './pages/register/Register';
 import Dashboard from './pages/dashboard/Dashboard';
 import Testcases from './pages/testcases/Testcases';
 import TestSuites from './pages/test_suites/TestSuites';
+import SuitesManager from './pages/suites_manager/SuitesManager';
 import Queries from './pages/queries/Queries';
 import Variables from './pages/variables/Variables';
 import { ToastContainer } from 'react-toastify';
@@ -114,6 +115,11 @@ function App() {
             <Route path="/test-suites/:projectId" element={
               <ProtectedRoute>
                 <TestSuites />
+              </ProtectedRoute>
+            } />
+            <Route path="/suites-manager/:projectId" element={
+              <ProtectedRoute>
+                <SuitesManager />
               </ProtectedRoute>
             } />
             <Route path="/browser-storage/:projectId" element={

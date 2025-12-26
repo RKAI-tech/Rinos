@@ -192,6 +192,12 @@ const Testcases: React.FC = () => {
   // Sidebar navigation items
   const sidebarItems = [
     {
+      id: 'suites-manager',
+      label: 'Test Manager',
+      path: `/suites-manager/${projectId || ''}`,
+      isActive: false
+    },
+    {
       id: 'testcases',
       label: 'Testcases',
       path: `/testcases/${projectId || ''}`,

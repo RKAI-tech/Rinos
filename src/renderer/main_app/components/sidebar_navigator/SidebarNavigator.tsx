@@ -93,6 +93,13 @@ const SidebarNavigator: React.FC<SidebarNavigatorProps> = ({ items, onNavigate, 
             <circle cx="12" cy="12" r="9"/>
           </svg>
         );
+      case 'suites-manager':
+        return (
+          <svg {...commonProps}>
+            <rect x="4" y="7" width="16" height="10" rx="5" />
+            <path d="M8 7V5a4 4 0 0 1 8 0v2" />
+          </svg>
+        );
       default:
         return (
           <svg {...commonProps}>

@@ -1,6 +1,7 @@
 /* Breadcrumb Component */
 .breadcrumb {
   width: 100vw;
+  height: 40px;
   background: white;
   border-bottom: 1px solid #e5e7eb;
   display: flex;
@@ -21,7 +22,7 @@
   justify-content: flex-start;
   align-items: center;
   padding: 12px 24px;
-  height: 48px;
+  height: 10px;
   max-width: 100%;
 }
 

@@ -1,0 +1,335 @@
+/* Testcase Modal Overlay */
+.testcase-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+/* Testcase Modal Container */
+.testcase-modal-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Testcase Modal Header */
+.testcase-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 24px 0 24px;
+  margin-bottom: 8px;
+}
+
+.testcase-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.2;
+  
+}
+
+.testcase-modal-close-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.testcase-modal-close-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* Testcase Modal Instructions */
+.testcase-modal-instructions {
+  padding: 0 24px;
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.5;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Testcase Modal Form */
+.testcase-modal-form {
+  padding: 0 24px 24px 24px;
+}
+
+/* Testcase Form Groups */
+.testcase-form-group {
+  margin-bottom: 20px;
+}
+
+.testcase-form-label {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+  line-height: 1.4;
+  gap: 8px;
+}
+
+.testcase-required-asterisk {
+  color: #dc2626;
+  margin-left: 2px;
+}
+
+/* Testcase Form Inputs */
+.testcase-form-input,
+.testcase-form-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #374151;
+  background: white;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.testcase-form-input:focus,
+.testcase-form-textarea:focus {
+  outline: none;
+  border-color: #5549f5;
+  box-shadow: 0 0 0 3px rgba(85, 73, 245, 0.1);
+}
+
+.testcase-form-input::placeholder,
+.testcase-form-textarea::placeholder {
+  color: #9ca3af;
+}
+
+.testcase-form-input.testcase-error {
+  border-color: #dc2626;
+}
+
+.testcase-form-input.testcase-error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.testcase-form-textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.5;
+}
+
+/* Testcase Error Message */
+.testcase-error-message {
+  display: block;
+  font-size: 12px;
+  color: #dc2626;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* Testcase Modal Actions */
+.testcase-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Testcase Buttons */
+.testcase-btn-cancel,
+.testcase-btn-save {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  min-width: 80px;
+}
+
+.testcase-btn-cancel {
+  background: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.testcase-btn-cancel:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.testcase-btn-save {
+  background: linear-gradient(135deg, #5549f5 0%, #7c3aed 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(85, 73, 245, 0.3);
+}
+
+.testcase-btn-save:hover {
+  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(85, 73, 245, 0.4);
+}
+
+.testcase-btn-save:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(85, 73, 245, 0.3);
+}
+
+.testcase-btn-save:disabled {
+  background: linear-gradient(135deg, rgba(85, 73, 245, 0.4) 0%, rgba(124, 58, 237, 0.4) 100%);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+.testcase-btn-save:disabled:hover {
+  background: linear-gradient(135deg, rgba(85, 73, 245, 0.4) 0%, rgba(124, 58, 237, 0.4) 100%);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .testcase-modal-overlay {
+    padding: 16px;
+  }
+  
+  .testcase-modal-container {
+    max-width: 100%;
+  }
+  
+  .testcase-modal-header {
+    padding: 20px 20px 0 20px;
+  }
+  
+  .testcase-modal-instructions {
+    padding: 0 20px;
+    margin-bottom: 20px;
+  }
+  
+  .testcase-modal-form {
+    padding: 0 20px 20px 20px;
+  }
+  
+  .testcase-modal-title {
+    font-size: 18px;
+  }
+  
+  .testcase-modal-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .testcase-btn-cancel,
+  .testcase-btn-save {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Focus Management */
+.testcase-modal-container:focus-within {
+  outline: none;
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .testcase-modal-container {
+    border: 2px solid #000;
+  }
+  
+  .testcase-form-input,
+  .testcase-form-textarea {
+    border-width: 2px;
+  }
+}
+
+/* Tooltip Styles */
+.tooltip-container {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: #6b7280;
+  color: white;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.tooltip-icon:hover {
+  background: #4b5563;
+  transform: scale(1.1);
+}
+
+.tooltip-content {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-10%);
+  background: #1f2937;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 1000;
+  margin-bottom: 6px;
+  min-width: 180px;
+  max-width: 280px;
+  white-space: normal;
+  text-align: left;
+  line-height: 1.4;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.tooltip-content::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 20%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: #1f2937;
+}
+
+.tooltip-container:hover .tooltip-content {
+  opacity: 1;
+  visibility: visible;
+}
+
