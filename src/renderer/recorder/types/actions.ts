@@ -210,6 +210,12 @@ export interface ActionData {
   browser_storage?: BrowserStorageResponse;
   api_request?: ApiRequestData;
 }
+export interface ActionDataGeneration {
+  action_data_generation_id?: string;
+  action_id?: string;
+  version_number?: number;
+  value?: Record<string, any>;
+}
 export interface Action {
   action_id?: string;
   testcase_id: string;
@@ -218,11 +224,26 @@ export interface Action {
   elements?: Element[]; 
   assert_type?: AssertType;
   action_datas?: ActionData[];
+  action_data_generation?: ActionDataGeneration[];
 }
 
 
 export interface ActionBatch {
   actions: Action[];
+}
+
+// ====== AI / random data generation types (match backend schemas) ======
+
+export interface GenerateRandomDataFunctionRequest {
+  prompt: string;
+}
+
+export interface GenerateRandomDataFunctionResponse {
+  success: boolean;
+  goodness_description: string;
+  generator_data_function_name?: string;
+  generator_data_function_code?: string;
+  issue?: string;
 }
 
 

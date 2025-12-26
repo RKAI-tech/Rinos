@@ -3,6 +3,8 @@ import { ApiResponse } from '../types/api_responses';
 import {
     ActionBatch,
     Action,
+    GenerateRandomDataFunctionRequest,
+    GenerateRandomDataFunctionResponse,
 } from '../types/actions';
 import { DefaultResponse } from '../types/api_responses';
 
@@ -98,6 +100,34 @@ export class ActionService {
         const response = await apiRouter.request<DefaultResponse>(endpoint, {
             method: 'DELETE'
         });
+        return response;
+    }
+
+    async generateRandomDataFunction(request: GenerateRandomDataFunctionRequest): Promise<ApiResponse<GenerateRandomDataFunctionResponse>> {
+        // Input validation
+        if (!request || !request.prompt || request.prompt.trim() === '') {
+            return {
+                success: false,
+                error: 'Prompt is required to generate random data function',
+            };
+        }
+
+        const response = await apiRouter.request<GenerateRandomDataFunctionResponse>(
+            "/actions/generate_random_data_function",
+            {
+                method: "POST",
+                body: JSON.stringify(request),
+            }
+        );
+        
+        if (response.success && !response.data && (response as any).generator_data_function_code !== undefined) {
+            // Backend trả về GenerateRandomDataFunctionResponse trực tiếp, wrap lại
+            return {
+                success: true,
+                data: response as unknown as GenerateRandomDataFunctionResponse,
+            };
+        }
+        
         return response;
     }
 }

@@ -11,6 +11,7 @@ import { Action, ActionType, AssertType, Connection, ApiRequestData } from '../.
 import { receiveActionWithInsert } from '../../utils/receive_action';
 import { BrowserStorageResponse } from '../../types/browser_storage';
 import AddBrowserStorageModal, { SelectedPageInfo as AddBrowserStorageSelectedPageInfo } from '../add_action_modal/add_browser_storage_modal/AddBrowserStorageModal';
+import DataVersionModal from '../data_versions/DataVersionModal';
 import { toast } from 'react-toastify';
 
 export type ActionOperationResult = {
@@ -117,6 +118,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
   const [browserActionSelectedPageInfo, setBrowserActionSelectedPageInfo] = useState<BrowserActionSelectedPageInfo | null>(null);
   const [addBrowserStorageSelectedPageInfo, setAddBrowserStorageSelectedPageInfo] = useState<AddBrowserStorageSelectedPageInfo | null>(null);
   const [apiRequestSelectedPageInfo, setApiRequestSelectedPageInfo] = useState<ApiRequestSelectedPageInfo | null>(null);
+  const [isDataVersionModalOpen, setIsDataVersionModalOpen] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [reloadStatus, setReloadStatus] = useState<'idle' | 'loading' | 'success'>('idle');
@@ -925,6 +927,19 @@ const ActionTab: React.FC<ActionTabProps> = ({
             />
           </div>
           <button
+            className="rcd-action-btn data-version"
+            title="Quản lý Data Versions"
+            onClick={() => setIsDataVersionModalOpen(true)}
+            disabled={isExecutingAction}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 16V8C21 6.89543 20.1046 6 19 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18H19C20.1046 18 21 17.1046 21 16Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M7 14H7.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M11 14H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <button
             className="rcd-action-btn reset"
             title="Reload actions"
             onClick={handleReloadClick}
@@ -968,6 +983,14 @@ const ActionTab: React.FC<ActionTabProps> = ({
             </svg>
           </button>
         </div>
+        <DataVersionModal
+          isOpen={isDataVersionModalOpen}
+          onClose={() => setIsDataVersionModalOpen(false)}
+          actions={actions}
+          onActionsChange={onActionsChange}
+          onSaveActions={onSaveActions}
+          isSaving={isSaving}
+        />
       </div>
       {/* insert-info moved inside header-left directly under the label */}
       <div className="rcd-actions-list" ref={listRef}>
