@@ -98,6 +98,11 @@
 .rcd-action-btn.add {
   color: #3b82f6;
   background: #eff6ff;
+}
+
+.rcd-action-btn.data-version {
+  color: #7c3aed;
+  background: #f3e8ff;
   border-color: #bfdbfe;
 }
 

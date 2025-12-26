@@ -309,34 +309,34 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
   return (
     <>
       {/* General section */}
-      <div className="rcd-action-detail-section">
-        <div className="rcd-action-detail-section-title">General</div>
-        <div className="rcd-action-detail-grid">
-          <div className="rcd-action-detail-kv">
-            <label className="rcd-action-detail-kv-label">Type</label>
-            <div className="rcd-action-detail-kv-value">
-              <code>{draft.action_type}</code>
-            </div>
+    <div className="rcd-action-detail-section">
+      <div className="rcd-action-detail-section-title">General</div>
+      <div className="rcd-action-detail-grid">
+        <div className="rcd-action-detail-kv">
+          <label className="rcd-action-detail-kv-label">Type</label>
+          <div className="rcd-action-detail-kv-value">
+            <code>{draft.action_type}</code>
           </div>
-          <div className="rcd-action-detail-kv">
-            <label className="rcd-action-detail-kv-label">Description</label>
-            <input
-              className="rcd-action-detail-input"
-              value={draft.description || ''}
-              onChange={(e) => updateField('description', e.target.value)}
-              placeholder="Enter action description"
-            />
-          </div>
-          <div className="rcd-action-detail-kv">
-            <label className="rcd-action-detail-kv-label">URL</label>
-            <input
-              className="rcd-action-detail-input"
-              value={url}
-              onChange={(e) => {
-                const newUrl = e.target.value;
+        </div>
+        <div className="rcd-action-detail-kv">
+          <label className="rcd-action-detail-kv-label">Description</label>
+          <input
+            className="rcd-action-detail-input"
+            value={draft.description || ''}
+            onChange={(e) => updateField('description', e.target.value)}
+            placeholder="Enter action description"
+          />
+        </div>
+        <div className="rcd-action-detail-kv">
+          <label className="rcd-action-detail-kv-label">URL</label>
+          <input
+            className="rcd-action-detail-input"
+            value={url}
+            onChange={(e) => {
+              const newUrl = e.target.value;
                 const oldUrl = prevUrlRef.current;
-                setUrl(newUrl);
-                updateActionDataValue(newUrl);
+              setUrl(newUrl);
+              updateActionDataValue(newUrl);
                 
                 // Tự động cập nhật description khi URL thay đổi
                 if (newUrl.trim()) {
@@ -356,12 +356,12 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
                 
                 // Cập nhật giá trị cũ cho lần sau
                 prevUrlRef.current = newUrl;
-              }}
-              placeholder="Enter URL"
-            />
-          </div>
+            }}
+            placeholder="Enter URL"
+          />
         </div>
       </div>
+    </div>
 
       {/* URL Data Generation section */}
       <div className="rcd-action-detail-section">

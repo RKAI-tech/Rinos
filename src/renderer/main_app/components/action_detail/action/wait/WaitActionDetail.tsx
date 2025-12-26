@@ -22,12 +22,12 @@ export const normalizeWaitAction = (source: Action): Action => {
     // If this action_data has a value property with value field, normalize it
     if (!ad.value) return ad;
     if (!("value" in ad.value)) return ad;
-      return {
-        ...ad,
-        value: {
-          ...(ad.value || {}),
-          value: String(ad.value.value),
-        }
+    return {
+      ...ad,
+      value: {
+        ...(ad.value || {}),
+        value: String(ad.value.value),
+      }
       };
   });
 
