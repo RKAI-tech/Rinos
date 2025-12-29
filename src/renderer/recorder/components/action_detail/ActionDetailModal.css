@@ -29,12 +29,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px 24px 0 24px;
+  padding: 16px 20px 0 20px;
   margin-bottom: 8px;
 }
 
 .rcd-action-detail-title {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   color: #1a1a1a;
   margin: 0;
@@ -44,8 +44,8 @@
 .rcd-action-detail-close {
   background: none;
   border: none;
-  padding: 8px;
-  border-radius: 6px;
+  padding: 6px;
+  border-radius: 4px;
   cursor: pointer;
   color: #6b7280;
   transition: all 0.2s ease;
@@ -298,22 +298,22 @@ textarea.rcd-action-detail-input {
 .rcd-action-detail-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 32px;
-  padding-top: 24px;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
   border-top: 1px solid #e5e7eb;
 }
 
 /* Action Detail Buttons */
 .rcd-action-detail-btn {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
-  min-width: 80px;
+  min-width: 70px;
 }
 
 .rcd-action-detail-btn:not(.primary) {

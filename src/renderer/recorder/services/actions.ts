@@ -8,6 +8,8 @@ import {
   AssertActionsResponse,
   GenerateRandomDataFunctionRequest,
   GenerateRandomDataFunctionResponse,
+  TestCaseDataVersion,
+  
 } from '../types/actions';
 import { DefaultResponse } from '../types/api_responses';
 
@@ -37,7 +39,7 @@ export class ActionService {
         });
     }
     
-    async batchCreateActions(actions: Action[]): Promise<ApiResponse<DefaultResponse>> {
+    async batchCreateActions(actions: Action[], testcaseDataVersions?: TestCaseDataVersion[]): Promise<ApiResponse<DefaultResponse>> {
         // Input validation
         if (!actions || !Array.isArray(actions) || actions.length === 0) {
             return {
@@ -77,7 +79,7 @@ export class ActionService {
             };
         });
 
-        const requestBody: ActionBatch = { actions: normalizedActions };
+        const requestBody: ActionBatch = { actions: normalizedActions, testcase_data_versions: testcaseDataVersions };
 
         const response = await apiRouter.request<DefaultResponse>('/actions/batch-create', {
             method: 'POST',

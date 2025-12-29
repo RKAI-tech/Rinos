@@ -12,7 +12,7 @@ import ConfirmCloseModal from '../../components/confirm_close/ConfirmCloseModal'
 import URLInputModal from '../../components/asserts/url_input_modal/URLInputModal';
 import TitleInputModal from '../../components/asserts/title_input_modal/TitleInputModal';
 import CSSAssertModal from '../../components/asserts/css_input_modal/CSSAssertModal';
-import { Action, AssertType } from '../../types/actions';
+import { Action, AssertType, TestCaseDataVersion } from '../../types/actions';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
 import { GenerationCodeRequest } from '../../types/executeScripts';
@@ -30,6 +30,8 @@ import { useUnsavedChanges } from './hooks/useUnsavedChanges';
 import { useActionListener } from './hooks/useActionListener';
 import { useDuplicateElementCheck } from './hooks/useDuplicateElementCheck';
 import CheckDuplicateElementModal from '../../components/check_duplicate_element/CheckDuplicateElementModal';
+import { TestCaseService } from '../../services/testcase';
+import { TestCaseDataVersion as TestCaseDataVersionFromAPI } from '../../types/testcase';
 
 interface MainProps {
   projectId?: string | null;
@@ -42,7 +44,40 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
   const [activeTab, setActiveTab] = useState<'actions' | 'script'>('actions');
   const [customScript, setCustomScript] = useState<string>('');
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
+  const [testcaseDataVersions, setTestCaseDataVersions] = useState<TestCaseDataVersionFromAPI[]>([]);
   const service = new ExecuteScriptsService();
+  const testCaseService = useMemo(() => new TestCaseService(), []);
+  
+  // Helper function to reload testcase data versions
+  const reloadTestCaseDataVersions = useCallback(async () => {
+    if (!testcaseId) {
+      setTestCaseDataVersions([]);
+      return;
+    }
+
+    try {
+      const response = await testCaseService.getTestCaseDataVersions(testcaseId);
+      if (response.success && response.data) {
+        // Keep API format when loading
+        const versions: TestCaseDataVersionFromAPI[] = Array.isArray(response.data.testcase_data_versions) 
+          ? response.data.testcase_data_versions 
+          : Array.isArray(response.data) 
+            ? response.data 
+            : [];
+        setTestCaseDataVersions(versions);
+      } else {
+        setTestCaseDataVersions([]);
+      }
+    } catch (error: any) {
+      console.error('[Main] Error reloading testcase data versions:', error);
+      setTestCaseDataVersions([]);
+    }
+  }, [testcaseId, testCaseService]);
+  
+  // Load testcase data versions when testcaseId changes
+  useEffect(() => {
+    reloadTestCaseDataVersions();
+  }, [reloadTestCaseDataVersions]);
   
   // Hooks
   const modals = useModals();
@@ -365,13 +400,30 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
   const reloadAll = async (): Promise<ActionOperationResult> => {
     const result = await actionsHook.reloadActions();
     await basicAuthHook.reloadBasicAuth();
+    await reloadTestCaseDataVersions();
     return result;
   };
 
-  const saveAll = async (): Promise<ActionOperationResult> => {
+  const saveAll = async (testcaseDataVersions?: TestCaseDataVersionFromAPI[]): Promise<ActionOperationResult> => {
     actionsHook.setIsSaving(true);
     try {
-      const result = await actionsHook.handleSaveActions(duplicateCheck.checkDuplicates);
+      // Convert from API format to save format
+      const versionsToSave: TestCaseDataVersion[] | undefined = testcaseDataVersions
+        ? testcaseDataVersions.map((v) => ({
+            testcase_data_version_id: v.testcase_data_version_id,
+            version: v.version,
+            action_data_generation_ids: v.action_data_generations
+              ?.map(gen => gen.action_data_generation_id)
+              .filter((id): id is string => !!id) || [],
+          }))
+        : undefined;
+      
+      console.log('[Main] Versions to save:', versionsToSave);
+      const result = await actionsHook.handleSaveActions(versionsToSave, duplicateCheck.checkDuplicates);
+      // Reload testcase data versions after successful save
+      if (result.success) {
+        await reloadTestCaseDataVersions();
+      }
       await basicAuthHook.handleSaveBasicAuth();
       return result;
     } finally {
@@ -405,6 +457,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
   const handleConfirmDeleteAll = async () => {
     try {
       await actionsHook.handleDeleteAllActions();
+      // Reload testcase data versions after delete all
+      await reloadTestCaseDataVersions();
       toast.success('All actions deleted successfully');
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete actions');
@@ -424,7 +478,21 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
   const handleSaveAndClose = async () => {
     modals.setIsConfirmCloseOpen(false);
     try {
-      const saveResult = await actionsHook.handleSaveActions(duplicateCheck.checkDuplicates);
+      // Convert from API format to save format
+      const versionsToSave: TestCaseDataVersion[] | undefined = testcaseDataVersions.length > 0
+        ? testcaseDataVersions.map((v) => ({
+            testcase_data_version_id: v.testcase_data_version_id,
+            version: v.version,
+            action_data_generation_ids: v.action_data_generations
+              ?.map(gen => gen.action_data_generation_id)
+              .filter((id): id is string => !!id) || [],
+          }))
+        : undefined;
+      
+      const saveResult = await actionsHook.handleSaveActions(
+        versionsToSave,
+        duplicateCheck.checkDuplicates
+      );
 
       if (!saveResult.success) {
         if (saveResult.level === 'warning') {
@@ -435,6 +503,11 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
           const message = saveResult.message || 'Failed to save actions. Please try again.';
           throw new Error(message);
         }
+      }
+
+      // Reload testcase data versions after successful save
+      if (saveResult.success) {
+        await reloadTestCaseDataVersions();
       }
 
       await basicAuthHook.handleSaveBasicAuth();
@@ -464,7 +537,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
   // Listen for unsaved datas flag request from main process
   useEffect(() => {
     const handleGetUnsavedFlag = (requestId: string) => {
-      console.log('[Main] Sending unsaved datas flag response:', requestId, unsavedChanges.hasUnsavedActions);
       (window as any).electronAPI?.window?.sendUnsavedDatasResponse?.(requestId, unsavedChanges.hasUnsavedActions);
     };
     
@@ -666,6 +738,10 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
             apiRequestSelectedPageInfo={pageSelection.apiRequestSelectedPageInfo}
             onApiRequestPageInfoChange={(pageInfo) => {
               pageSelection.setApiRequestSelectedPageInfo(pageInfo);
+            }}
+            testcaseDataVersions={testcaseDataVersions}
+            onTestCaseDataVersionsChange={(updater) => {
+              setTestCaseDataVersions(updater);
             }}
             onModalStateChange={(modalType: 'wait' | 'navigate' | 'api_request' | 'add_browser_storage' | 'database_execution' | 'browser_action', isOpen: boolean) => {
               switch (modalType) {

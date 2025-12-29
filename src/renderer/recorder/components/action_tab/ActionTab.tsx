@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import './ActionTab.css';
 import RenderedAction from '../action/Action';
 import AddActionModal from '../add_action_modal/AddActionModal';
@@ -7,7 +7,7 @@ import WaitModal from '../add_action_modal/wait_modal/WaitModal';
 import NavigateModal, { SelectedPageInfo as NavigateSelectedPageInfo } from '../add_action_modal/navigate_modal/NavigateModal';
 import ApiRequestModal, { SelectedPageInfo as ApiRequestSelectedPageInfo } from '../add_action_modal/api_request_modal/ApiRequestModal';
 import BrowserActionModal, { BrowserActionType, SelectedPageInfo as BrowserActionSelectedPageInfo } from '../add_action_modal/browser_action_modal/BrowserActionModal';
-import { Action, ActionType, AssertType, Connection, ApiRequestData } from '../../types/actions';
+import { Action, ActionType, AssertType, Connection, ApiRequestData, TestCaseDataVersion } from '../../types/actions';
 import { receiveActionWithInsert } from '../../utils/receive_action';
 import { BrowserStorageResponse } from '../../types/browser_storage';
 import AddBrowserStorageModal, { SelectedPageInfo as AddBrowserStorageSelectedPageInfo } from '../add_action_modal/add_browser_storage_modal/AddBrowserStorageModal';
@@ -29,7 +29,7 @@ interface ActionTabProps {
   onDeleteAll?: () => void;
   onReorderActions?: (reorderedActions: Action[]) => void;
   onReload?: () => Promise<ActionOperationResult | void> | ActionOperationResult | void;
-  onSaveActions?: () => Promise<ActionOperationResult | void> | ActionOperationResult | void;
+  onSaveActions?: (testcaseDataVersions?: TestCaseDataVersion[]) => Promise<ActionOperationResult | void> | ActionOperationResult | void;
   selectedInsertPosition?: number;
   displayInsertPosition?: number;
   onSelectInsertPosition?: (position: number | null) => void;
@@ -61,6 +61,8 @@ interface ActionTabProps {
   onAddBrowserStoragePageInfoChange?: (pageInfo: AddBrowserStorageSelectedPageInfo | null) => void;
   apiRequestSelectedPageInfo?: ApiRequestSelectedPageInfo | null;
   onApiRequestPageInfoChange?: (pageInfo: ApiRequestSelectedPageInfo | null) => void;
+  testcaseDataVersions?: import('../../types/testcase').TestCaseDataVersion[];
+  onTestCaseDataVersionsChange?: (updater: (prev: import('../../types/testcase').TestCaseDataVersion[]) => import('../../types/testcase').TestCaseDataVersion[]) => void;
 }
 
 const ActionTab: React.FC<ActionTabProps> = ({
@@ -103,7 +105,9 @@ const ActionTab: React.FC<ActionTabProps> = ({
   addBrowserStorageSelectedPageInfo: propAddBrowserStorageSelectedPageInfo,
   onAddBrowserStoragePageInfoChange,
   apiRequestSelectedPageInfo: propApiRequestSelectedPageInfo,
-  onApiRequestPageInfoChange
+  onApiRequestPageInfoChange,
+  testcaseDataVersions: propTestCaseDataVersions,
+  onTestCaseDataVersionsChange
 }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -119,6 +123,8 @@ const ActionTab: React.FC<ActionTabProps> = ({
   const [addBrowserStorageSelectedPageInfo, setAddBrowserStorageSelectedPageInfo] = useState<AddBrowserStorageSelectedPageInfo | null>(null);
   const [apiRequestSelectedPageInfo, setApiRequestSelectedPageInfo] = useState<ApiRequestSelectedPageInfo | null>(null);
   const [isDataVersionModalOpen, setIsDataVersionModalOpen] = useState(false);
+  // Use testcaseDataVersions from props (managed by Main component)
+  const testcaseDataVersions = propTestCaseDataVersions || [];
   const listRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [reloadStatus, setReloadStatus] = useState<'idle' | 'loading' | 'success'>('idle');
@@ -173,6 +179,13 @@ const ActionTab: React.FC<ActionTabProps> = ({
       clearBasicAuthTimeout();
     };
   }, [basicAuthStatus, onBasicAuthStatusClear]);
+
+  // Wrapper function to update testcaseDataVersions in Main component
+  const handleTestCaseDataVersionsChange = useCallback((updater: (prev: TestCaseDataVersion[]) => TestCaseDataVersion[]) => {
+    if (onTestCaseDataVersionsChange) {
+      onTestCaseDataVersionsChange(updater);
+    }
+  }, [onTestCaseDataVersionsChange]);
 
   const successIcon = (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="success">
@@ -374,10 +387,15 @@ const ActionTab: React.FC<ActionTabProps> = ({
     setSaveStatus('loading');
 
     try {
-      const rawResult = await onSaveActions();
+      const rawResult = await onSaveActions(testcaseDataVersions.length > 0 ? testcaseDataVersions : undefined);
       const normalized = normalizeResult(rawResult);
       if (normalized.success) {
         setSaveSuccessWithTimeout();
+        // ❌ XÓA phần này - Main.tsx đã xử lý reload rồi
+        // // Clear testcaseDataVersions after successful save
+        // if (onTestCaseDataVersionsChange) {
+        //   onTestCaseDataVersionsChange(() => []);
+        // }
       } else {
         setSaveStatus('idle');
       }
@@ -987,9 +1005,10 @@ const ActionTab: React.FC<ActionTabProps> = ({
           isOpen={isDataVersionModalOpen}
           onClose={() => setIsDataVersionModalOpen(false)}
           actions={actions}
+          testcaseId={testcaseId}
           onActionsChange={onActionsChange}
-          onSaveActions={onSaveActions}
-          isSaving={isSaving}
+          testcaseDataVersions={testcaseDataVersions}
+          onTestCaseDataVersionsChange={handleTestCaseDataVersionsChange}
         />
       </div>
       {/* insert-info moved inside header-left directly under the label */}

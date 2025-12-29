@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Action, Element } from '../../../../types/actions';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Action, Element, ActionDataGeneration } from '../../../../types/actions';
 import { ActionService } from '../../../../services/actions';
 import { executeJavaScript } from '../../../../pages/main/utils/executeJavaScript';
 import '../../ActionDetailModal.css';
@@ -67,9 +67,12 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
   const [genFunctionName, setGenFunctionName] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [testResult, setTestResult] = useState('');
+  const [editableTestResult, setEditableTestResult] = useState('');
   const [isTesting, setIsTesting] = useState(false);
   const [testError, setTestError] = useState('');
   const [generateError, setGenerateError] = useState('');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingVersions, setEditingVersions] = useState<Array<{ version_number?: number; value: string }>>([]);
   const prevInputValueRef = useRef<string>('');
   
   useEffect(() => {
@@ -189,6 +192,24 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
     upsertGenerationMeta({ generation_data_function_code: code });
   };
 
+  // Helper function để truncate text
+  const truncate = (text: string, maxLength: number): string => {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
+  // Helper function để lấy max version_number
+  const getMaxVersionNumber = (): number => {
+    if (!draft.action_data_generation || draft.action_data_generation.length === 0) {
+      return 0;
+    }
+    const versions = draft.action_data_generation
+      .map(gen => gen.version_number || 0)
+      .filter(v => v > 0);
+    return versions.length > 0 ? Math.max(...versions) : 0;
+  };
+
   // Handler chạy thử function code JavaScript trực tiếp trong browser
   const handleTestFunction = () => {
     if (!genFunctionCode.trim()) {
@@ -201,15 +222,133 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
 
     setIsTesting(true);
     setTestResult(''); // Clear kết quả cũ
+    setEditableTestResult(''); // Clear editable result
     setTestError(''); // Clear error cũ
 
     // Gọi utility function để execute JavaScript code
     const executionResult = executeJavaScript(genFunctionCode);
     
-    setTestResult(executionResult.result);
+    const result = executionResult.result || '';
+    setTestResult(result);
+    setEditableTestResult(result); // Set editable result cùng với testResult
     setTestError(executionResult.error);
     setIsTesting(false);
   };
+
+  // Handler để lưu test result thành version mới
+  const handleSaveVersion = () => {
+    const valueToSave = editableTestResult || testResult;
+    if (!valueToSave || !valueToSave.trim()) {
+      return;
+    }
+
+    const maxVersion = getMaxVersionNumber();
+    const newVersion: ActionDataGeneration = {
+      version_number: maxVersion + 1,
+      value: { value: valueToSave.trim() }
+    };
+
+    updateDraft(prev => ({
+      ...prev,
+      action_data_generation: [...(prev.action_data_generation || []), newVersion]
+    }));
+
+    // Optionally: auto-select version mới vừa tạo
+    // Update inputValue để dropdown hiển thị version mới
+    setInputValue(valueToSave.trim());
+    updateActionDataValue(valueToSave.trim());
+  };
+
+  // Handler khi chọn version từ dropdown
+  const handleVersionSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedValue = e.target.value;
+    
+    if (!selectedValue) {
+      return;
+    }
+
+    // Tìm version được chọn
+    const selectedVersion = draft.action_data_generation?.find(
+      gen => gen.version_number?.toString() === selectedValue
+    );
+
+    if (selectedVersion && selectedVersion.value) {
+      const versionValue = selectedVersion.value.value || 
+        (typeof selectedVersion.value === 'string' ? selectedVersion.value : '');
+      
+      if (versionValue) {
+        const valueStr = String(versionValue);
+        setInputValue(valueStr);
+        updateActionDataValue(valueStr);
+        prevInputValueRef.current = valueStr;
+      }
+    }
+  };
+
+  // Handler mở edit modal
+  const handleOpenEditModal = () => {
+    const versionValues = versions.map(version => {
+      const versionValue = version.value?.value || 
+        (typeof version.value === 'string' ? version.value : '');
+      return {
+        version_number: version.version_number,
+        value: String(versionValue || '')
+      };
+    });
+    setEditingVersions(versionValues);
+    setIsEditModalOpen(true);
+  };
+
+  // Handler đóng edit modal
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingVersions([]);
+  };
+
+  // Handler confirm edit modal
+  const handleConfirmEditModal = () => {
+    updateDraft(prev => {
+      const next = { ...prev } as Action;
+      const updatedGenerations = (next.action_data_generation || []).map(gen => {
+        const editedVersion = editingVersions.find(
+          ev => ev.version_number === gen.version_number
+        );
+        if (editedVersion) {
+          return {
+            ...gen,
+            value: { value: editedVersion.value }
+          };
+        }
+        return gen;
+      });
+      next.action_data_generation = updatedGenerations;
+      return next;
+    });
+    handleCloseEditModal();
+  };
+
+  // Handler update editing version value
+  const handleUpdateEditingVersion = (versionNumber: number | undefined, newValue: string) => {
+    setEditingVersions(prev => 
+      prev.map(v => 
+        v.version_number === versionNumber 
+          ? { ...v, value: newValue }
+          : v
+      )
+    );
+  };
+
+  // Memoize versions để hiển thị trong dropdown
+  const versions = useMemo(() => {
+    if (!draft.action_data_generation || draft.action_data_generation.length === 0) {
+      return [];
+    }
+    return [...draft.action_data_generation].sort((a, b) => {
+      const aVersion = a.version_number || 0;
+      const bVersion = b.version_number || 0;
+      return aVersion - bVersion;
+    });
+  }, [draft.action_data_generation]);
 
   // Handler gửi prompt để sinh function code
   const handleSendPrompt = async () => {
@@ -284,25 +423,26 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
 
   const renderElements = () => {
     if (!draft.elements || draft.elements.length === 0) {
-      return <div className="rcd-action-detail-empty">No elements</div>;
+      return <div className="rcd-action-detail-empty" style={{ fontSize: '12px' }}>No elements</div>;
     }
     return (
       <div className="rcd-action-detail-section">
-        <div className="rcd-action-detail-section-title">Elements</div>
+        <div className="rcd-action-detail-section-title" style={{ fontSize: '13px', marginBottom: '10px' }}>Elements</div>
         <div className="rcd-action-detail-list">
           {draft.elements.map((el, idx) => (
             <div key={idx} className="rcd-action-detail-list-item">
               {/* Selectors Section */}
               <div className="rcd-action-detail-kv">
                 <div className="rcd-action-detail-kv-label-container">
-                  <label className="rcd-action-detail-kv-label">Selectors</label>
+                  <label className="rcd-action-detail-kv-label" style={{ fontSize: '12px', marginBottom: '6px' }}>Selectors</label>
                   <button
                     type="button"
                     className="rcd-action-detail-add-btn"
                     onClick={() => addNewSelector(idx)}
                     title="Add new selector"
+                    style={{ fontSize: '11px', padding: '4px 8px' }}
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
@@ -318,14 +458,16 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
                           value={sel.value || ''}
                           onChange={(e) => updateSelector(idx, selIdx, e.target.value)}
                           placeholder="Enter CSS selector"
+                          style={{ fontSize: '12px', padding: '6px 10px', minHeight: '32px', height: '32px' }}
                         />
                         <button
                           type="button"
                           className="rcd-action-detail-remove-btn"
                           onClick={() => removeSelector(idx, selIdx)}
                           title="Remove selector"
+                          style={{ padding: '4px', width: '24px', height: '24px' }}
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                             <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
@@ -333,7 +475,7 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
                       </div>
                     ))
                   ) : (
-                    <div className="rcd-action-detail-no-selectors">
+                    <div className="rcd-action-detail-no-selectors" style={{ fontSize: '11px' }}>
                       No selectors. Click "Add Selector" to add one.
                     </div>
                   )}
@@ -352,66 +494,131 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
         <div className="rcd-action-detail-section-title">General</div>
         <div className="rcd-action-detail-grid">
           <div className="rcd-action-detail-kv">
-            <label className="rcd-action-detail-kv-label">Type</label>
-            <div className="rcd-action-detail-kv-value">
-              <code>{draft.action_type}</code>
+            <label className="rcd-action-detail-kv-label" style={{ fontSize: '12px', marginBottom: '6px' }}>Type</label>
+            <div className="rcd-action-detail-kv-value" style={{ fontSize: '12px', padding: '6px 10px', minHeight: '32px' }}>
+              <code style={{ fontSize: '11px' }}>{draft.action_type}</code>
             </div>
           </div>
           <div className="rcd-action-detail-kv">
-            <label className="rcd-action-detail-kv-label">Description</label>
+            <label className="rcd-action-detail-kv-label" style={{ fontSize: '12px', marginBottom: '6px' }}>Description</label>
             <input
               className="rcd-action-detail-input"
               value={draft.description || ''}
               onChange={(e) => updateField('description', e.target.value)}
               placeholder="Enter action description"
+              style={{ fontSize: '12px', padding: '6px 10px', minHeight: '32px', height: '32px' }}
             />
           </div>
           <div className="rcd-action-detail-kv">
             <label className="rcd-action-detail-kv-label">Value</label>
-            <input
-              className="rcd-action-detail-input"
-              value={inputValue}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                const oldValue = prevInputValueRef.current;
-                setInputValue(newValue);
-                updateActionDataValue(newValue);
-                
-                // Tự động cập nhật description khi Value thay đổi
-                if (newValue.trim()) {
-                  const currentDescription = draft.description || '';
-                  
-                  // 1. Check xem trong description có giá trị nào giống value cũ không
-                  // 2. Nếu có, thay giá trị đó bằng giá trị mới
-                  if (oldValue && oldValue.trim() && currentDescription.includes(oldValue)) {
-                    // Thay thế giá trị cũ bằng giá trị mới trong description
-                    const updatedDescription = currentDescription.replace(oldValue, newValue);
-                    updateField('description', updatedDescription);
-                  } else {
-                    // Nếu không tìm thấy giá trị cũ, tạo description mới
-                    updateField('description', `Input ${newValue}`);
-                  }
-                }
-                
-                // Cập nhật giá trị cũ cho lần sau
-                prevInputValueRef.current = newValue;
-              }}
-              placeholder="Enter value"
-            />
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <select
+                className="rcd-action-detail-input"
+                value={(() => {
+                  if (versions.length === 0) return '';
+                  // Tìm version có giá trị khớp với inputValue hiện tại
+                  const matchingVersion = versions.find(v => {
+                    const val = v.value?.value || (typeof v.value === 'string' ? v.value : '');
+                    return String(val) === inputValue;
+                  });
+                  // Nếu có match thì dùng version đó, nếu không thì dùng version đầu tiên
+                  return matchingVersion?.version_number?.toString() || versions[0]?.version_number?.toString() || '';
+                })()}
+                onChange={handleVersionSelect}
+                style={{ 
+                  cursor: 'pointer', 
+                  flex: 1,
+                  fontSize: '12px',
+                  padding: '6px 10px',
+                  height: '32px',
+                }}
+                disabled={versions.length === 0}
+              >
+                {versions.length === 0 ? (
+                  <option value="">No versions available</option>
+                ) : (
+                  versions.map((version) => {
+                    const versionValue = version.value?.value || 
+                      (typeof version.value === 'string' ? version.value : '');
+                    const displayValue = truncate(String(versionValue || ''), 50);
+                    return (
+                      <option 
+                        key={version.version_number || `version-${version.action_data_generation_id}`} 
+                        value={version.version_number?.toString() || ''}
+                      >
+                        {displayValue}
+                      </option>
+                    );
+                  })
+                )}
+              </select>
+              {versions.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleOpenEditModal}
+                  style={{
+                    background: 'none',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    padding: '6px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#6b7280',
+                    transition: 'all 0.2s ease',
+                    minWidth: '32px',
+                    height: '32px',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#f3f4f6';
+                    e.currentTarget.style.color = '#374151';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'none';
+                    e.currentTarget.style.color = '#6b7280';
+                  }}
+                  title="Edit version values"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Input Data Generation section */}
       <div className="rcd-action-detail-section">
-        <div className="rcd-action-detail-section-title">
+        <div className="rcd-action-detail-section-title" style={{ fontSize: '13px', marginBottom: '10px' }}>
           Input Data Generation
         </div>
         <div className="rcd-action-detail-grid">
           {/* Trường mô tả cách Input data được sinh ra */}
           <div className="rcd-action-detail-kv" style={{ gridColumn: '1 / -1' }}>
             <div className="rcd-action-detail-kv-label-container">
-              <label className="rcd-action-detail-kv-label">
+              <label className="rcd-action-detail-kv-label" style={{ fontSize: '12px', marginBottom: '6px' }}>
                 Generation Description
               </label>
               <button
@@ -470,7 +677,13 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
             </div>
             <textarea
               className="rcd-action-detail-input"
-              style={{ minHeight: 60, resize: 'vertical' }}
+              style={{ 
+                minHeight: '40px', 
+                resize: 'vertical',
+                fontSize: '12px',
+                padding: '6px 10px',
+                lineHeight: '1.5',
+              }}
               value={genFunctionDescription}
               onChange={(e) => updateGenerationDescription(e.target.value)}
               placeholder="Describe how input data is generated (e.g., what variables, patterns, or rules are used)..."
@@ -478,9 +691,12 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
             {generateError && (
               <div style={{ 
                 color: '#dc2626', 
-                fontSize: '12px', 
-                marginTop: '6px',
-                padding: '2px 0'
+                fontSize: '11px', 
+                marginTop: '4px',
+                padding: '4px 8px',
+                background: '#fef2f2',
+                borderRadius: '4px',
+                border: '1px solid #fecaca',
               }}>
                 {generateError}
               </div>
@@ -491,27 +707,35 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
           {genFunctionCode.trim() && (
             <>
               <div className="rcd-action-detail-kv" style={{ gridColumn: '1 / -1', marginBottom: 0, position: 'relative' }}>
-                <label className="rcd-action-detail-kv-label">
+                <label className="rcd-action-detail-kv-label" style={{ fontSize: '12px', marginBottom: '6px' }}>
                   Generation Function Code
                 </label>
-                <div style={{ position: 'relative' }}>
+                <div style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid #374151' }}>
                   <textarea
                     className="rcd-action-detail-input"
                     style={{ 
-                      minHeight: 200, 
+                      minHeight: 160, 
                       resize: 'vertical', 
-                      fontFamily: 'monospace',
-                      borderBottomLeftRadius: 0,
-                      borderBottomRightRadius: 0,
-                      borderBottom: 'none',
-                      paddingRight: '80px', // Tạo khoảng trống cho nút Run
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                      fontSize: '12px',
+                      lineHeight: '1.6',
+                      background: '#1e1e1e',
+                      color: '#d4d4d4',
+                      border: 'none',
+                      borderRadius: 0,
+                      padding: '12px 14px',
+                      paddingRight: '70px',
+                      tabSize: 2,
+                      whiteSpace: 'pre',
+                      overflowWrap: 'normal',
+                      overflowX: 'auto',
                     }}
                     value={genFunctionCode}
                     onChange={(e) => updateGenerationFunctionCode(e.target.value)}
                     placeholder={
                       'Function/code used to generate input-related variables.'
                     }
-                    readOnly
+                    spellCheck={false}
                   />
                   {/* Nút Run nổi ở góc phải trên */}
                   <button
@@ -521,11 +745,13 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
                     disabled={!genFunctionCode.trim() || isTesting}
                     style={{
                       position: 'absolute',
-                      top: '8px',
-                      right: '8px',
+                      top: '6px',
+                      right: '6px',
                       opacity: !genFunctionCode.trim() || isTesting ? 0.5 : 1,
                       cursor: !genFunctionCode.trim() || isTesting ? 'not-allowed' : 'pointer',
                       zIndex: 10,
+                      fontSize: '11px',
+                      padding: '4px 8px',
                     }}
                     title="Run the function code"
                   >
@@ -574,80 +800,318 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
                 </div>
               </div>
 
-              {/* Terminal output nối liền với code */}
+              {/* Terminal output nối liền với code - editable */}
               <div className="rcd-action-detail-kv" style={{ gridColumn: '1 / -1', marginTop: 0, paddingTop: 0 }}>
-                <div style={{
-                  background: '#1f2937',
-                  color: '#f9fafb',
-                  borderRadius: '0 0 6px 6px',
-                  padding: '12px',
-                  fontFamily: 'Monaco, Menlo, Ubuntu Mono, monospace',
-                  fontSize: '13px',
-                  lineHeight: '1.5',
-                  minHeight: '80px',
-                  maxHeight: '200px',
-                  overflow: 'auto',
-                  whiteSpace: 'pre-wrap',
-                  border: '1px solid #374151',
-                  borderTop: 'none',
-                }}>
-                  {testError ? (
-                    <div style={{ color: '#ef4444' }}>
-                      {testError}
-                    </div>
-                  ) : testResult ? (
-                    <div style={{ color: '#f9fafb' }}>
-                      {testResult}
-                    </div>
-                  ) : (
-                    <div style={{ color: '#6b7280', fontStyle: 'italic' }}>
-                      Click "Run" to execute the function code...
-                    </div>
-                  )}
+                <div style={{ position: 'relative', borderRadius: '0 0 6px 6px', overflow: 'hidden', border: '1px solid #374151', borderTop: 'none' }}>
+                  <textarea
+                    className="rcd-action-detail-input"
+                    style={{
+                      background: '#1e1e1e',
+                      color: '#d4d4d4',
+                      borderRadius: 0,
+                      padding: '12px 14px',
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                      fontSize: '12px',
+                      lineHeight: '1.6',
+                      minHeight: '60px',
+                      maxHeight: '180px',
+                      resize: 'vertical',
+                      whiteSpace: 'pre-wrap',
+                      border: 'none',
+                      paddingRight: '70px',
+                      tabSize: 2,
+                      overflowWrap: 'normal',
+                      overflowX: 'auto',
+                    }}
+                    value={editableTestResult || testResult || ''}
+                    onChange={(e) => setEditableTestResult(e.target.value)}
+                    placeholder={testError ? '' : testResult ? '' : 'Click "Run" to execute the function code...'}
+                    spellCheck={false}
+                  />
+                  {/* Button Save nổi ở góc phải */}
+                  <button
+                    type="button"
+                    className="rcd-action-detail-add-btn"
+                    onClick={handleSaveVersion}
+                    disabled={!editableTestResult && !testResult}
+                    style={{
+                      position: 'absolute',
+                      bottom: '6px',
+                      right: '6px',
+                      opacity: (!editableTestResult && !testResult) ? 0.5 : 1,
+                      cursor: (!editableTestResult && !testResult) ? 'not-allowed' : 'pointer',
+                      zIndex: 10,
+                      fontSize: '11px',
+                      padding: '4px 8px',
+                    }}
+                    title="Save generated value as new version"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16L21 8V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M17 21V13H7V21"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M7 3V8H15"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    Save
+                  </button>
                 </div>
+                {testError && (
+                  <div style={{ 
+                    color: '#f87171', 
+                    fontSize: '11px', 
+                    marginTop: '4px',
+                    padding: '8px 12px',
+                    background: '#1e1e1e',
+                    borderRadius: '0 0 6px 6px',
+                    border: '1px solid #374151',
+                    borderTop: 'none',
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                  }}>
+                    {testError}
+                  </div>
+                )}
               </div>
             </>
           )}
         </div>
-        {/* Chỉ hiển thị Input Data khi có dữ liệu */}
-        {draft.action_data_generation && draft.action_data_generation.length > 0 && (
-          <div className="rcd-action-detail-list">
-            <div className="rcd-action-detail-list-item">
-              {/* Danh sách các generated Input data - chỉ hiển thị, không cho sửa */}
-              <div className="rcd-action-detail-kv">
-                <label className="rcd-action-detail-kv-label">
-                  Input Data
-                </label>
+      </div>
 
-                <div className="rcd-action-detail-selectors-list">
-                  {draft.action_data_generation.map((gen, idx) => (
-                    <div
-                      key={gen.action_data_generation_id || idx}
-                      className="rcd-action-detail-selector-item"
+      {/* Edit Versions Modal */}
+      {isEditModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000,
+            padding: '20px',
+          }}
+          onClick={handleCloseEditModal}
+        >
+          <div
+            style={{
+              background: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              width: '100%',
+              maxWidth: '500px',
+              maxHeight: '80vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: '12px 16px',
+                borderBottom: '1px solid #e5e7eb',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#1f2937' }}>
+                Edit Version Values
+              </h3>
+              <button
+                type="button"
+                onClick={handleCloseEditModal}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: '4px',
+                  cursor: 'pointer',
+                  color: '#6b7280',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M18 6L6 18M6 6L18 18"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div
+              style={{
+                padding: '16px',
+                overflowY: 'auto',
+                flex: 1,
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {editingVersions.map((version, idx) => (
+                  <div key={version.version_number || idx}>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        color: '#374151',
+                        marginBottom: '6px',
+                      }}
                     >
-                      <input
-                        className="rcd-action-detail-input"
-                        readOnly
-                        // Hiển thị dữ liệu lấy từ gen.value (JSON), ưu tiên field `value` nếu có
-                        value={
-                          gen.value && typeof gen.value === 'object'
-                            ? ((gen.value as any).value ?? '')
-                            : ''
-                        }
-                        placeholder="Generated data value"
-                        style={{
-                          cursor: 'default',
-                          backgroundColor: '#f9fafb',
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
+                      Version {version.version_number || idx + 1}
+                    </label>
+                    <textarea
+                      className="rcd-action-detail-input"
+                      value={version.value}
+                      onChange={(e) => handleUpdateEditingVersion(version.version_number, e.target.value)}
+                      placeholder="Enter value"
+                      style={{
+                        minHeight: '48px',
+                        resize: 'vertical',
+                        width: '100%',
+                        fontSize: '12px',
+                        padding: '6px 10px',
+                      }}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
+
+            {/* Modal Footer */}
+            <div
+              style={{
+                padding: '12px 16px',
+                borderTop: '1px solid #e5e7eb',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '8px',
+              }}
+            >
+              <button
+                type="button"
+                onClick={handleCloseEditModal}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  border: '1px solid #d1d5db',
+                  background: 'white',
+                  color: '#374151',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#f9fafb';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'white';
+                }}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M18 6L6 18M6 6L18 18"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmEditModal}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  background: '#3b82f6',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#2563eb';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#3b82f6';
+                }}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M20 6L9 17L4 12"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Confirm
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {renderElements()}
     </>

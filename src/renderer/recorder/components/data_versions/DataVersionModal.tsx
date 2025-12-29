@@ -1,7 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Action, ActionDataGeneration } from '../../types/actions';
-import { executeJavaScript } from '../../pages/main/utils/executeJavaScript';
+import { TestCaseDataVersion } from '../../types/testcase';
 import { toast } from 'react-toastify';
+import NewVersionModal from './NewVersionModal';
+import EditVersionModal from './EditVersionModal';
+import ConfirmModal from './ConfirmModal';
 import './DataVersionModal.css';
 
 export type ActionOperationResult = {
@@ -14,422 +17,470 @@ interface DataVersionModalProps {
   isOpen: boolean;
   onClose: () => void;
   actions: Action[];
+  testcaseId?: string | null;
   onActionsChange?: (updater: (prev: Action[]) => Action[]) => void;
-  onSaveActions?: () => Promise<ActionOperationResult | void> | ActionOperationResult | void;
-  isSaving?: boolean;
+  testcaseDataVersions: TestCaseDataVersion[];
+  onTestCaseDataVersionsChange: (updater: (prev: TestCaseDataVersion[]) => TestCaseDataVersion[]) => void;
 }
 
 const DataVersionModal: React.FC<DataVersionModalProps> = ({
   isOpen,
   onClose,
   actions,
+  testcaseId,
   onActionsChange,
-  onSaveActions,
-  isSaving,
+  testcaseDataVersions,
+  onTestCaseDataVersionsChange,
 }) => {
-  const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
+  const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
   const [isAddingVersion, setIsAddingVersion] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'loading' | 'success'>('idle');
-  const saveTimeoutRef = React.useRef<number | null>(null);
-  const successDisplayDuration = 1600;
+  const [isNewVersionModalOpen, setIsNewVersionModalOpen] = useState(false);
+  const [isEditVersionModalOpen, setIsEditVersionModalOpen] = useState(false);
+  const [versionToEdit, setVersionToEdit] = useState<TestCaseDataVersion | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
-  const clearSaveTimeout = () => {
-    if (saveTimeoutRef.current != null) {
-      window.clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = null;
-    }
-  };
-
-  React.useEffect(() => {
-    return () => {
-      clearSaveTimeout();
-    };
-  }, []);
-
-  const normalizeResult = (result?: ActionOperationResult | void): ActionOperationResult => {
-    if (!result) {
-      return { success: true };
-    }
-    return result;
-  };
-
-  const setSaveSuccessWithTimeout = () => {
-    clearSaveTimeout();
-    setSaveStatus('success');
-    saveTimeoutRef.current = window.setTimeout(() => {
-      setSaveStatus('idle');
-      saveTimeoutRef.current = null;
-    }, successDisplayDuration);
-  };
-
-  const handleSaveClick = async () => {
-    if (!onSaveActions) {
-      toast.warning('Save function is not available.');
-      return;
-    }
-
-    if (saveStatus === 'loading' || isSaving) {
-      return;
-    }
-
-    clearSaveTimeout();
-    setSaveStatus('loading');
-
-    try {
-      const rawResult = await onSaveActions();
-      const normalized = normalizeResult(rawResult);
-      if (normalized.success) {
-        setSaveSuccessWithTimeout();
-        toast.success('Data versions saved successfully.');
-      } else {
-        setSaveStatus('idle');
-        toast.error(normalized.message || 'Failed to save data versions.');
-      }
-    } catch (error: any) {
-      setSaveStatus('idle');
-      toast.error(`Failed to save: ${error.message || 'Unknown error'}`);
-    }
-  };
-
-  const shouldShowSaveSpinner = saveStatus === 'loading' || (saveStatus === 'idle' && !!isSaving);
-
-  const successIcon = (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="success">
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-      <path d="M8 12.5L10.5 15L16 9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-
-  // Thu thập và nhóm tất cả action_data_generation theo version_number
-  const versionsMap = useMemo(() => {
-    const map = new Map<number, Array<{
-      action: Action;
-      generation: ActionDataGeneration;
-      actionIndex: number;
-    }>>();
-
-    actions.forEach((action, actionIndex) => {
-      if (action.action_data_generation && action.action_data_generation.length > 0) {
-        action.action_data_generation.forEach((generation) => {
-          const versionNumber = generation.version_number || 1;
-          if (!map.has(versionNumber)) {
-            map.set(versionNumber, []);
-          }
-          map.get(versionNumber)!.push({
-            action,
-            generation,
-            actionIndex,
-          });
-        });
-      }
-    });
-
-    // Sắp xếp các items trong mỗi version theo action index
-    map.forEach((items) => {
-      items.sort((a, b) => a.actionIndex - b.actionIndex);
-    });
-
-    return map;
-  }, [actions]);
-
-  // Lấy danh sách các version numbers và sắp xếp
-  const versionNumbers = useMemo(() => {
-    return Array.from(versionsMap.keys()).sort((a, b) => a - b);
-  }, [versionsMap]);
-
-  // Set version đầu tiên làm selected khi mở modal hoặc khi versionNumbers thay đổi
-  React.useEffect(() => {
-    if (isOpen && versionNumbers.length > 0 && selectedVersion === null) {
-      setSelectedVersion(versionNumbers[0]);
-    }
-  }, [isOpen, versionNumbers, selectedVersion]);
-
-  // Reset selected version khi đóng modal
-  React.useEffect(() => {
+  // Reset selected version when modal closes
+  useEffect(() => {
     if (!isOpen) {
       setSelectedVersion(null);
     }
   }, [isOpen]);
 
-  // Tìm max version number để tạo version mới
-  const maxVersionNumber = useMemo(() => {
-    if (versionNumbers.length === 0) return 0;
-    return Math.max(...versionNumbers);
-  }, [versionNumbers]);
-
-  // Handler để add version mới
-  const handleAddVersion = async () => {
-    if (!onActionsChange) {
-      toast.error('Cannot update actions. Please refresh and try again.');
-      return;
+  // Auto-select first version when testcaseDataVersions is available
+  useEffect(() => {
+    if (isOpen && Array.isArray(testcaseDataVersions) && testcaseDataVersions.length > 0 && !selectedVersion) {
+      const firstVersion = testcaseDataVersions[0];
+      const versionId = firstVersion.testcase_data_version_id || firstVersion.version;
+      if (versionId) {
+        setSelectedVersion(versionId);
+      }
     }
+  }, [isOpen, testcaseDataVersions, selectedVersion]);
 
-    setIsAddingVersion(true);
 
-    try {
-      // Tìm tất cả actions có generation_data_function_code
-      const actionsWithGenerationFunction: Array<{
-        action: Action;
-        actionIndex: number;
-        functionCode: string;
-      }> = [];
+  // Create a map of action_data_generation_id to action and generation
+  const actionGenerationMap = useMemo(() => {
+    const map = new Map<string, {
+      action: Action;
+      generation: ActionDataGeneration;
+      actionIndex: number;
+    }>();
 
-      actions.forEach((action, actionIndex) => {
-        // Tìm generation_data_function_code trong action_datas
+    actions.forEach((action, actionIndex) => {
+      if (action.action_data_generation && action.action_data_generation.length > 0) {
+        action.action_data_generation.forEach((generation) => {
+          if (generation.action_data_generation_id) {
+            map.set(generation.action_data_generation_id, {
+              action,
+              generation,
+              actionIndex,
+            });
+          }
+        });
+      }
+    });
+
+    return map;
+  }, [actions]);
+
+  // Get map of action_id to selected generation_id for current version
+  const versionGenerationMap = useMemo(() => {
+    if (!selectedVersion) return new Map<string, string>();
+    
+    const map = new Map<string, string>();
+    
+    // Find version from local testcaseDataVersions
+    if (Array.isArray(testcaseDataVersions) && testcaseDataVersions.length > 0) {
+      const versionFromLocal = testcaseDataVersions.find(
+        v => (v.testcase_data_version_id && v.testcase_data_version_id === selectedVersion) ||
+             (v.version && v.version === selectedVersion)
+      );
+      
+      if (versionFromLocal && versionFromLocal.action_data_generations) {
+        // Get generation IDs from local version (API format has action_data_generations array)
+        const generationIds = versionFromLocal.action_data_generations
+          .map(gen => gen.action_data_generation_id)
+          .filter((id): id is string => !!id);
+        
+        // Map each generation ID to its action
+        generationIds.forEach((genId: string) => {
+          const mapped = actionGenerationMap.get(genId);
+          if (mapped && mapped.action.action_id) {
+            map.set(mapped.action.action_id, genId);
+          }
+        });
+      }
+    }
+    
+    return map;
+  }, [selectedVersion, testcaseDataVersions, actionGenerationMap]);
+
+  // Get all actions that use data
+  const allActionsWithData = useMemo(() => {
+    return actions
+      .map((action, actionIndex) => {
+        // Check for generation_data_function_code in action_datas
+        let hasGenerationFunction = false;
+        
         for (const ad of action.action_datas || []) {
           const v: any = ad.value;
           if (v && typeof v === 'object' && v.generation_data_function_code) {
-            const functionCode = String(v.generation_data_function_code || '').trim();
-            if (functionCode) {
-              actionsWithGenerationFunction.push({
-                action,
-                actionIndex,
-                functionCode,
-              });
-              break; // Chỉ lấy function code đầu tiên tìm thấy
-            }
+            hasGenerationFunction = true;
+            break;
           }
         }
-      });
 
-      if (actionsWithGenerationFunction.length === 0) {
-        toast.warning('No actions with generation function code found.');
-        setIsAddingVersion(false);
-        return;
-      }
+        const hasGenerations = action.action_data_generation && action.action_data_generation.length > 0;
 
-      // Tạo version number mới
-      const newVersionNumber = maxVersionNumber + 1;
-
-      // Chạy function code cho mỗi action và tạo action_data_generation mới
-      onActionsChange((prevActions) => {
-        return prevActions.map((action) => {
-          // Tìm action này trong danh sách có generation function
-          const actionWithFunction = actionsWithGenerationFunction.find(
-            (item) => item.action.action_id === action.action_id
-          );
-
-          if (!actionWithFunction) {
-            // Action không có generation function, giữ nguyên
-            return action;
-          }
-
-          // Chạy function code để sinh data mới
-          let generatedValue: any = '';
-          try {
-            const executionResult = executeJavaScript(actionWithFunction.functionCode);
-            if (executionResult.error) {
-              console.error(`Error executing function for action ${action.action_id}:`, executionResult.error);
-              // Vẫn tạo version nhưng với giá trị rỗng hoặc error message
-              generatedValue = '';
-            } else {
-              // Parse result nếu có thể
-              const resultStr = executionResult.result.trim();
-              try {
-                // Thử parse JSON
-                generatedValue = JSON.parse(resultStr);
-              } catch {
-                // Nếu không phải JSON, dùng string
-                generatedValue = resultStr || '';
-              }
-            }
-          } catch (error: any) {
-            console.error(`Error executing function for action ${action.action_id}:`, error);
-            generatedValue = '';
-          }
-
-          // Tạo action_data_generation mới
-          const newGeneration: ActionDataGeneration = {
-            value: {
-              value: generatedValue,
-            },
-            version_number: newVersionNumber,
+        if (hasGenerations || hasGenerationFunction) {
+          // Get selected generation ID from versionGenerationMap
+          const selectedGenId = versionGenerationMap.get(action.action_id || '') || '';
+          // If no selected generation from version, use first generation if available
+          const finalSelectedGenId = selectedGenId || (action.action_data_generation?.[0]?.action_data_generation_id || '');
+          
+          return {
+            action,
+            actionIndex,
+            generations: action.action_data_generation || [],
+            selectedGenerationId: finalSelectedGenId,
           };
+        }
+        return null;
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+      .sort((a, b) => a.actionIndex - b.actionIndex);
+  }, [actions, versionGenerationMap, selectedVersion]);
 
-          // Thêm vào action_data_generation
-          const updatedAction: Action = {
-            ...action,
-            action_data_generation: [
-              ...(action.action_data_generation || []),
-              newGeneration,
-            ],
-          };
+  // Handler để mở modal tạo version mới
+  const handleAddVersion = () => {
+    setIsNewVersionModalOpen(true);
+  };
 
-          return updatedAction;
-        });
-      });
+  // Handler để tạo version mới từ NewVersionModal
+  const handleCreateNewVersion = (newVersion: { version: string; action_data_generation_ids: string[] }) => {
+    // Convert from save format to API format
+    const newVersionAPI: TestCaseDataVersion = {
+      version: newVersion.version,
+      action_data_generations: newVersion.action_data_generation_ids
+        .map(genId => {
+          // Find the generation object from actions
+          for (const action of actions) {
+            const gen = action.action_data_generation?.find(g => g.action_data_generation_id === genId);
+            if (gen) return gen;
+          }
+          return null;
+        })
+        .filter((gen): gen is NonNullable<typeof gen> => gen !== null),
+    };
+    
+    onTestCaseDataVersionsChange(prev => [...prev, newVersionAPI]);
+    setIsNewVersionModalOpen(false);
+    toast.success('New version created. Click Save in Action Tab to persist changes.');
+  };
 
-      // Chọn version mới vừa tạo
-      setSelectedVersion(newVersionNumber);
-
-      toast.success(`Version ${newVersionNumber} created successfully for ${actionsWithGenerationFunction.length} action(s).`);
-    } catch (error: any) {
-      console.error('Error adding new version:', error);
-      toast.error(`Failed to create new version: ${error.message || 'Unknown error'}`);
-    } finally {
-      setIsAddingVersion(false);
+  // Handler để mở modal edit version
+  const handleEditVersion = () => {
+    if (!selectedVersion) return;
+    
+    const version = testcaseDataVersions.find(
+      v => (v.testcase_data_version_id && v.testcase_data_version_id === selectedVersion) ||
+           (v.version && v.version === selectedVersion)
+    );
+    
+    if (version) {
+      setVersionToEdit(version);
+      setIsEditVersionModalOpen(true);
     }
   };
 
-  if (!isOpen) return null;
+  // Handler để cập nhật version từ EditVersionModal
+  const handleUpdateVersion = (updatedVersion: { version: string; action_data_generation_ids: string[] }) => {
+    if (!selectedVersion) return;
+    
+    // Convert from save format to API format
+    const updatedVersionAPI: TestCaseDataVersion = {
+      ...versionToEdit,
+      version: updatedVersion.version,
+      action_data_generations: updatedVersion.action_data_generation_ids
+        .map(genId => {
+          // Find the generation object from actions
+          for (const action of actions) {
+            const gen = action.action_data_generation?.find(g => g.action_data_generation_id === genId);
+            if (gen) return gen;
+          }
+          return null;
+        })
+        .filter((gen): gen is NonNullable<typeof gen> => gen !== null),
+    };
+    
+    onTestCaseDataVersionsChange(prev => prev.map(v => {
+      if ((v.testcase_data_version_id && v.testcase_data_version_id === selectedVersion) ||
+          (v.version && v.version === selectedVersion)) {
+        return updatedVersionAPI;
+      }
+      return v;
+    }));
+    
+    setIsEditVersionModalOpen(false);
+    setVersionToEdit(null);
+    toast.success('Version updated. Click Save in Action Tab to persist changes.');
+  };
 
-  const currentVersionData = selectedVersion !== null ? versionsMap.get(selectedVersion) || [] : [];
+  // Handler để mở confirm modal xóa version
+  const handleDeleteVersion = () => {
+    if (!selectedVersion) return;
+    setIsDeleteConfirmOpen(true);
+  };
+
+  // Handler để xác nhận xóa version
+  const handleConfirmDelete = () => {
+    if (!selectedVersion) return;
+    
+    onTestCaseDataVersionsChange(prev => {
+      const filtered = prev.filter(v => {
+        const versionId = v.testcase_data_version_id || v.version;
+        return versionId !== selectedVersion;
+      });
+      
+      // If deleted version was selected, select first available or null
+      if (filtered.length > 0) {
+        const firstVersion = filtered[0];
+        const versionId = firstVersion.testcase_data_version_id || firstVersion.version;
+        if (versionId) {
+          setSelectedVersion(versionId);
+        }
+      } else {
+        setSelectedVersion(null);
+      }
+      
+      return filtered;
+    });
+    
+    setIsDeleteConfirmOpen(false);
+    toast.success('Version deleted. Click Save in Action Tab to persist changes.');
+  };
+
+
+  if (!isOpen) return null;
 
   return (
     <div className="data-version-modal-overlay" onClick={onClose}>
       <div className="data-version-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="data-version-modal-header">
-          <h2 className="data-version-modal-title">Manage Data Versions</h2>
-          <button
-            className="data-version-modal-close"
-            onClick={onClose}
-            title="Close"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M18 6L6 18M6 6L18 18"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
+          <h4 className="data-version-modal-title">Datatest versions</h4>
+          <div className="data-version-modal-header-actions">
+            <button
+              className="data-version-add-btn"
+              onClick={handleAddVersion}
+              disabled={isAddingVersion}
+              title="Add new version"
+            >
+              {isAddingVersion ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    style={{
+                      animation: 'spin 1s linear infinite',
+                    }}
+                  >
+                    <path
+                      d="M12 2V6M12 18V22M6 12H2M22 12H18M19.07 19.07L16.24 16.24M19.07 4.93L16.24 7.76M4.93 19.07L7.76 16.24M4.93 4.93L7.76 7.76"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  Adding...
+                </span>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  New Version
+                </>
+              )}
+            </button>
+            <button
+              className="data-version-modal-close"
+              onClick={onClose}
+              title="Close"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M18 6L6 18M6 6L18 18"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        {versionNumbers.length === 0 ? (
-          <div className="data-version-modal-body">
-            <div className="data-version-empty">
-              <p>No data versions have been created.</p>
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Version Dropdown */}
+        <>
+          {/* Version Dropdown */}
+          {Array.isArray(testcaseDataVersions) && testcaseDataVersions.length > 0 ? (
             <div className="data-version-selector">
               <label className="data-version-selector-label">Select Version:</label>
-              <select
-                className="data-version-select"
-                value={selectedVersion || ''}
-                onChange={(e) => setSelectedVersion(Number(e.target.value))}
-              >
-                {versionNumbers.map((versionNum) => {
-                  const count = versionsMap.get(versionNum)?.length || 0;
-                  return (
-                    <option key={versionNum} value={versionNum}>
-                      Version {versionNum} ({count} {count === 1 ? 'item' : 'items'})
-                    </option>
-                  );
-                })}
-              </select>
-              <button
-                className="data-version-add-btn"
-                onClick={handleAddVersion}
-                disabled={isAddingVersion || !onActionsChange}
-                title="Add new version by executing generation functions"
-              >
-                {isAddingVersion ? (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      style={{
-                        animation: 'spin 1s linear infinite',
-                      }}
-                    >
-                      <path
-                        d="M12 2V6M12 18V22M6 12H2M22 12H18M19.07 19.07L16.24 16.24M19.07 4.93L16.24 7.76M4.93 19.07L7.76 16.24M4.93 4.93L7.76 7.76"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    Adding...
-                  </span>
-                ) : (
-                  <>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    Add Version
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Version Content */}
-            <div className="data-version-modal-body">
-              {selectedVersion !== null && currentVersionData.length > 0 ? (
-                <div className="data-version-list">
-                  {currentVersionData.map((item, idx) => {
-                    const { action, generation, actionIndex } = item;
-                    const value = generation.value && typeof generation.value === 'object'
-                      ? (generation.value as any).value ?? JSON.stringify(generation.value)
-                      : generation.value || '';
-
+              <div className="data-version-select-wrapper">
+                <select
+                  className="data-version-select"
+                  value={selectedVersion || ''}
+                  onChange={(e) => setSelectedVersion(e.target.value || null)}
+                >
+                  {testcaseDataVersions.map((version) => {
+                    const id = version.testcase_data_version_id || version.version || '';
+                    const count = version.action_data_generations?.length || 0;
                     return (
-                      <div key={`${action.action_id}-${generation.action_data_generation_id || idx}`} className="data-version-item">
-                        <div className="data-version-item-header">
-                          <div className="data-version-item-info">
-                            <span className="data-version-action-index">Action #{actionIndex + 1}</span>
-                            <span className="data-version-action-type">{action.action_type}</span>
-                          </div>
-                          {action.description && (
-                            <div className="data-version-action-description">{action.description}</div>
-                          )}
-                        </div>
-                        <div className="data-version-item-value">
-                          <label className="data-version-value-label">Value:</label>
-                          <div className="data-version-value-content">
-                            {typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
-                          </div>
-                        </div>
-                      </div>
+                      <option key={id} value={id}>
+                        {version.version || `Version ${id}`}
+                      </option>
                     );
                   })}
-                </div>
-              ) : (
-                <div className="data-version-empty">
-                  <p>No data found for this version.</p>
-                </div>
-              )}
+                </select>
+                <button
+                  className="data-version-edit-btn"
+                  onClick={handleEditVersion}
+                  disabled={!selectedVersion}
+                  title="Edit version"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                <button
+                  className="data-version-delete-btn"
+                  onClick={handleDeleteVersion}
+                  disabled={!selectedVersion}
+                  title="Delete version"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
-          </>
-        )}
+          ) : null}
+
+          {/* Version Content */}
+          <div className="data-version-modal-body">
+            {Array.isArray(testcaseDataVersions) && testcaseDataVersions.length === 0 ? (
+              <div className="data-version-empty">
+                <p>No data versions have been created.</p>
+              </div>
+            ) : selectedVersion && allActionsWithData.length > 0 ? (
+                <div className="data-version-list">
+                  {allActionsWithData.map(({ action, actionIndex, generations, selectedGenerationId }) => {
+                      // Get the selected generation
+                      const selectedGeneration = generations.find(gen => gen.action_data_generation_id === selectedGenerationId) || generations[0];
+                      const value = selectedGeneration && selectedGeneration.value && typeof selectedGeneration.value === 'object'
+                        ? (selectedGeneration.value as any).value ?? JSON.stringify(selectedGeneration.value)
+                        : selectedGeneration?.value || '';
+
+                      return (
+                        <div key={action.action_id} className="data-version-item">
+                          <div className="data-version-item-header">
+                            <div className="data-version-item-info">
+                              <span className="data-version-action-index">Action #{actionIndex + 1}</span>
+                              <span className="data-version-action-type">{action.action_type}</span>
+                            </div>
+                            {action.description && (
+                              <div className="data-version-action-description">{action.description}</div>
+                            )}
+                          </div>
+                          <div className="data-version-item-value">
+                            <label className="data-version-value-label">Value:</label>
+                            {generations.length > 0 ? (
+                              <div className="data-version-value-content">
+                                {value}
+                              </div>
+                            ) : (
+                              <div className="data-version-value-content">
+                                No generations available
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : selectedVersion ? (
+                <div className="data-version-empty">
+                  <p>No actions with data found for this version.</p>
+                </div>
+              ) : null}
+          </div>
+        </>
 
         <div className="data-version-modal-footer">
           <button className="data-version-modal-btn-close" onClick={onClose}>
             Close
           </button>
-          {onSaveActions && (
-            <button
-              className="data-version-modal-btn-save"
-              onClick={handleSaveClick}
-              disabled={shouldShowSaveSpinner}
-              title="Save data versions to backend"
-            >
-              {saveStatus === 'success' && !shouldShowSaveSpinner ? (
-                successIcon
-              ) : shouldShowSaveSpinner ? (
-                <span className="data-version-spinner" aria-label="saving" />
-              ) : (
-                <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <polyline points="17,21 17,13 7,13 7,21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <polyline points="7,3 7,8 15,8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  Save
-                </>
-              )}
-            </button>
-          )}
         </div>
       </div>
+
+      {/* New Version Modal */}
+      {isNewVersionModalOpen && (
+        <NewVersionModal
+          actions={actions}
+          onClose={() => setIsNewVersionModalOpen(false)}
+          onCreateVersion={handleCreateNewVersion}
+          onActionsChange={onActionsChange}
+        />
+      )}
+
+      {/* Edit Version Modal */}
+      {isEditVersionModalOpen && versionToEdit && (
+        <EditVersionModal
+          actions={actions}
+          version={versionToEdit}
+          onClose={() => {
+            setIsEditVersionModalOpen(false);
+            setVersionToEdit(null);
+          }}
+          onUpdateVersion={handleUpdateVersion}
+          onActionsChange={onActionsChange}
+        />
+      )}
+
+      {/* Delete Confirm Modal */}
+      {isDeleteConfirmOpen && (
+        <ConfirmModal
+          title="Delete Version"
+          message="Are you sure you want to delete this version? This action cannot be undone."
+          confirmText="Delete"
+          cancelText="Cancel"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setIsDeleteConfirmOpen(false)}
+          confirmButtonStyle="danger"
+        />
+      )}
     </div>
   );
 };

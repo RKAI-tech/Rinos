@@ -1,4 +1,4 @@
-import { Action, ActionData, Element, Selector, ActionType, AssertType, Statement, FileUpload } from "../types/actions";
+import { Action, ActionData, Element, Selector, ActionType, AssertType, Statement, FileUpload, ActionDataGeneration } from "../types/actions";
 import { BrowserStorageResponse } from "../types/browser_storage";
 
 export function createDescription(action_received: any): string {
@@ -185,6 +185,30 @@ export function createDescription(action_received: any): string {
     }
 }
 
+// Helper function để tạo action_data_generation từ value nếu có
+function createActionDataGeneration(action_received: any): ActionDataGeneration[] | undefined {
+    // Tìm value từ action_datas
+    let value: any = undefined;
+    for (const action_data of action_received.action_datas || []) {
+        if (action_data.value?.value !== undefined && action_data.value?.value !== null && action_data.value?.value !== '') {
+            value = action_data.value.value;
+            break;
+        }
+    }
+
+    // Chỉ tạo version nếu có value
+    if (value !== undefined && value !== null && value !== '') {
+        return [{
+            version_number: 1,
+            value: {
+                value: String(value)
+            }
+        }];
+    }
+
+    return undefined;
+}
+
 export function receiveAction(
     testcaseId: string, 
     action_recorded: Action[], 
@@ -198,6 +222,9 @@ export function receiveAction(
     }
     // console.log('[receiveAction] Skipping action - modal is open', skipIfModalOpen);
     
+    // Tạo action_data_generation nếu có value
+    const actionDataGeneration = createActionDataGeneration(action_received);
+    
     const receivedAction = {
         action_id: Math.random().toString(36),
         testcase_id: testcaseId,
@@ -205,7 +232,8 @@ export function receiveAction(
         description: action_received.description || createDescription(action_received),
         elements: action_received.elements ? action_received.elements as Element[] : [],
         assert_type: action_received.assert_type? action_received.assert_type as AssertType : undefined,
-        action_datas: action_received.action_datas ? action_received.action_datas as ActionData[] : [],        
+        action_datas: action_received.action_datas ? action_received.action_datas as ActionData[] : [],
+        action_data_generation: actionDataGeneration,
     } as Action;
 
     // console.log('[Action sent from browser]', action_received);

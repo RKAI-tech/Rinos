@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Action, Element as ActionElement } from '../../../types/actions';
+import { Action, Element as ActionElement, TestCaseDataVersion } from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
 import { ActionOperationResult } from '../../../components/action_tab/ActionTab';
 import { receiveActionWithInsert } from '../../../utils/receive_action';
@@ -144,7 +144,6 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
     setIsLoading(true);
     try {
       const response = await actionService.getActionsByTestCase(effectiveId);
-      console.log('hook: reload actions', response);
       if (response.success && response.data) {
         const newActions = response.data.actions || [];
         setActions(newActions);
@@ -202,6 +201,7 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
   }, []);
 
   const handleSaveActions = useCallback(async (
+    testcaseDataVersions?: TestCaseDataVersion[],
     checkDuplicates?: (actions: Action[]) => Promise<Action[]>
   ): Promise<ActionOperationResult> => {
     console.log('hook: save actions', actions);
@@ -234,7 +234,7 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
         }
       }
       
-      const response = await actionService.batchCreateActions(actionsToSave);
+      const response = await actionService.batchCreateActions(actionsToSave, testcaseDataVersions);
       if (response.success) {
         setSavedActionsSnapshot(JSON.parse(JSON.stringify(actionsToSave)));
         setIsDirty(false);

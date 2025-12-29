@@ -1,0 +1,226 @@
+/* Generate Action Value Modal Styles */
+.generate-action-value-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10003;
+}
+
+.generate-action-value-modal-content {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.generate-action-value-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.generate-action-value-modal-title-wrapper {
+  flex: 1;
+}
+
+.generate-action-value-modal-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.generate-action-value-modal-subtitle {
+  font-weight: 400;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.generate-action-value-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.generate-action-value-modal-close:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.generate-action-value-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.generate-action-value-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.generate-action-value-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.generate-action-value-input-group {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.generate-action-value-textarea,
+.generate-action-value-code-textarea,
+.generate-action-value-value-textarea {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #111827;
+  background: white;
+  transition: all 0.2s;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  resize: vertical;
+  min-height: 50px;
+}
+
+.generate-action-value-code-textarea {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.generate-action-value-value-textarea {
+  font-size: 12px;
+  line-height: 1.5;
+  width: 100%;
+  max-height: 150px;
+  min-height: 80px;
+}
+
+.generate-action-value-textarea:hover,
+.generate-action-value-code-textarea:hover,
+.generate-action-value-value-textarea:hover {
+  border-color: #9ca3af;
+}
+
+.generate-action-value-textarea:focus,
+.generate-action-value-code-textarea:focus,
+.generate-action-value-value-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+
+.generate-action-value-send-btn,
+.generate-action-value-run-btn {
+  padding: 8px 12px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+  height: fit-content;
+}
+
+.generate-action-value-send-btn:hover:not(:disabled),
+.generate-action-value-run-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.generate-action-value-send-btn:disabled,
+.generate-action-value-run-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+
+.generate-action-value-error {
+  padding: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #dc2626;
+  font-size: 12px;
+}
+
+.generate-action-value-modal-footer {
+  padding: 10px 16px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.generate-action-value-modal-btn-cancel {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.generate-action-value-modal-btn-cancel:hover {
+  background: #4b5563;
+}
+
+.generate-action-value-modal-btn-save {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.generate-action-value-modal-btn-save:hover:not(:disabled) {
+  background: #059669;
+}
+
+.generate-action-value-modal-btn-save:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
