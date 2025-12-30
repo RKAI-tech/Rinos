@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/header/Header';
 import Footer from '../../components/footer/Footer';
@@ -29,25 +29,119 @@ const Databases: React.FC = () => {
   const canEditPermission = canEdit(projectId);
 
   const [databases, setDatabases] = useState<DatabaseItem[]>([]);
-  const [searchText, setSearchText] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'type' | 'host' | 'port'>('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [itemsPerPage, setItemsPerPage] = useState('10 rows/page');
+  
+  // Search, pagination, and sort state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState('');
+  const [dbTypeFilter, setDbTypeFilter] = useState<string>('All Types');
+  const [sortBy, setSortBy] = useState<string | null>('db_name');
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+  
+  // Pagination info from API
+  const [totalDatabases, setTotalDatabases] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<{ id: string; name?: string } | null>(null);
   const [isReloading, setIsReloading] = useState(false);
 
-  const reloadConnections = async () => {
+  // Service - use useMemo to avoid recreating on every render
+  const databaseService = useMemo(() => new DatabaseService(), []);
+  const projectService = useMemo(() => new ProjectService(), []);
+
+  // Load database connections with search/pagination/sort
+  useEffect(() => {
+    if (!projectId) return;
+
+    const loadDatabaseConnections = async () => {
+      try {
+        setIsReloading(true);
+        
+        // Map db type filter to API format
+        let dbTypeValue: string | null = null;
+        if (dbTypeFilter !== 'All Types') {
+          dbTypeValue = dbTypeFilter.toLowerCase();
+        }
+
+        const request = {
+          project_id: projectId,
+          page: page,
+          page_size: pageSize,
+          q: search || null,
+          db_type: dbTypeValue,
+          sort_by: sortBy || null,
+          order: order || 'asc'
+        };
+
+        const response = await databaseService.searchDatabaseConnections(request);
+        
+        if (response.success && response.data) {
+          const items: DatabaseItem[] = response.data.database_connections.map((c) => ({
+            id: c.connection_id,
+            name: c.db_name,
+            type: c.db_type,
+            host: c.host,
+            port: c.port,
+          }));
+          setDatabases(items);
+          setTotalDatabases(response.data.number_database_connection);
+          setCurrentPage(response.data.current_page);
+          setTotalPages(response.data.total_pages);
+          // Only sync page if it's different to avoid infinite loop
+          if (response.data.current_page !== page) {
+            setPage(response.data.current_page);
+          }
+        } else {
+          setDatabases([]);
+          setTotalDatabases(0);
+          setCurrentPage(1);
+          setTotalPages(1);
+          setPage(1);
+        }
+      } catch (e) {
+        setDatabases([]);
+        setTotalDatabases(0);
+        setCurrentPage(1);
+        setTotalPages(1);
+        setPage(1);
+      } finally {
+        setIsReloading(false);
+      }
+    };
+
+    loadDatabaseConnections();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, search, dbTypeFilter, sortBy, order, projectId, databaseService]);
+
+  // Helper: reload database connections (for manual refresh and after operations)
+  const reloadConnections = useCallback(async () => {
     if (!projectId) return;
     try {
       setIsReloading(true);
-      const svc = new DatabaseService();
-      const resp = await svc.getDatabaseConnections({ project_id: projectId });
-      if (resp.success && resp.data) {
-        const items: DatabaseItem[] = resp.data.connections.map((c) => ({
+      
+      // Map db type filter to API format
+      let dbTypeValue: string | null = null;
+      if (dbTypeFilter !== 'All Types') {
+        dbTypeValue = dbTypeFilter.toLowerCase();
+      }
+
+      const request = {
+        project_id: projectId,
+        page: page,
+        page_size: pageSize,
+        q: search || null,
+        db_type: dbTypeValue,
+        sort_by: sortBy || null,
+        order: order || 'asc'
+      };
+
+      const response = await databaseService.searchDatabaseConnections(request);
+      
+      if (response.success && response.data) {
+        const items: DatabaseItem[] = response.data.database_connections.map((c) => ({
           id: c.connection_id,
           name: c.db_name,
           type: c.db_type,
@@ -55,6 +149,13 @@ const Databases: React.FC = () => {
           port: c.port,
         }));
         setDatabases(items);
+        setTotalDatabases(response.data.number_database_connection);
+        setCurrentPage(response.data.current_page);
+        setTotalPages(response.data.total_pages);
+        // Only sync page if it's different to avoid infinite loop
+        if (response.data.current_page !== page) {
+          setPage(response.data.current_page);
+        }
       } else {
         setDatabases([]);
       }
@@ -63,11 +164,7 @@ const Databases: React.FC = () => {
     } finally {
       setIsReloading(false);
     }
-  };
-
-  useEffect(() => {
-    reloadConnections();
-  }, [projectId]);
+  }, [projectId, page, pageSize, search, dbTypeFilter, sortBy, order, databaseService]);
 
   useEffect(() => {
     const loadProjectName = async () => {
@@ -76,13 +173,13 @@ const Databases: React.FC = () => {
         setResolvedProjectName(projectData.projectName);
         return;
       }
-      const svc = new ProjectService();
-      const resp = await svc.getProjectById(projectId);
+      const resp = await projectService.getProjectById(projectId);
       if (resp.success && resp.data) {
         setResolvedProjectName((resp.data as any).name || 'Project');
       }
     };
     loadProjectName();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   // Close dropdown when clicking outside
@@ -123,49 +220,68 @@ const Databases: React.FC = () => {
     { label: resolvedProjectName, path: `/databases/${projectId}`, isActive: true },
   ];
 
-  const filtered = databases.filter(db => {
-    const q = searchText.toLowerCase();
-    return (db.name || '').toLowerCase().includes(q) || (db.host || '').toLowerCase().includes(q) || (db.type || '').toLowerCase().includes(q);
-  });
+  // No need for client-side filtering/sorting - API handles it
+  const currentItems = databases;
 
-  const sorted = useMemo(() => {
-    const copy = [...filtered];
-    const getVal = (it: DatabaseItem): string | number => {
-      switch (sortBy) {
-        case 'name': return it.name || '';
-        case 'type': return it.type || '';
-        case 'host': return it.host || '';
-        case 'port': return it.port ?? 0;
-        default: return '';
-      }
-    };
-    copy.sort((a, b) => {
-      const av = getVal(a);
-      const bv = getVal(b);
-      let cmp = 0;
-      if (typeof av === 'string' && typeof bv === 'string') {
-        cmp = av.localeCompare(bv, undefined, { sensitivity: 'base' });
-      } else {
-        const an = typeof av === 'number' ? av : 0;
-        const bn = typeof bv === 'number' ? bv : 0;
-        cmp = an === bn ? 0 : an < bn ? -1 : 1;
-      }
-      return sortOrder === 'asc' ? cmp : -cmp;
-    });
-    return copy;
-  }, [filtered, sortBy, sortOrder]);
-
-  const handleSort = (col: 'name' | 'type' | 'host' | 'port') => {
-    if (sortBy === col) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    else { setSortBy(col); setSortOrder('asc'); }
-    setCurrentPage(1);
+  // Handle sort - reset page to 1 when sort changes
+  const handleSort = (col: 'db_name' | 'db_type' | 'host' | 'created_at' | 'updated_at') => {
+    if (sortBy === col) {
+      // Toggle order if same column
+      setOrder(order === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new column and default to asc
+      setSortBy(col);
+      setOrder('asc');
+    }
+    // Reset page to 1 when sort changes
+    setPage(1);
   };
 
-  const getItemsPerPageNumber = () => parseInt(itemsPerPage.split(' ')[0]);
-  const totalPages = Math.ceil(sorted.length / getItemsPerPageNumber());
-  const startIndex = (currentPage - 1) * getItemsPerPageNumber();
-  const endIndex = startIndex + getItemsPerPageNumber();
-  const currentItems = sorted.slice(startIndex, endIndex);
+  // Handle search - reset page to 1 when search changes
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1); // Reset page when search changes
+  };
+
+  // Handle clear search - reset page to 1
+  const handleClearSearch = () => {
+    setSearch('');
+    setPage(1);
+  };
+
+  // Handle db type filter - reset page to 1
+  const handleDbTypeFilterChange = (value: string) => {
+    setDbTypeFilter(value);
+    setPage(1); // Reset page when filter changes
+  };
+
+  // Handle page size change - reset page to 1
+  const handlePageSizeChange = (value: string) => {
+    const newPageSize = parseInt(value.split(' ')[0]);
+    setPageSize(newPageSize);
+    setPage(1); // Reset page when page size changes
+  };
+
+  // Handle pagination - only update page, don't reset
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setPage(currentPage + 1);
+    }
+  };
+
+  // Calculate display range
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalDatabases);
 
   const generatePaginationNumbers = () => {
     const pages: (number | string)[] = [];
@@ -177,9 +293,6 @@ const Databases: React.FC = () => {
   };
   const paginationNumbers = generatePaginationNumbers();
 
-  const handlePageChange = (page: number) => setCurrentPage(page);
-  const handlePreviousPage = () => { if (currentPage > 1) setCurrentPage(currentPage - 1); };
-  const handleNextPage = () => { if (currentPage < totalPages) setCurrentPage(currentPage + 1); };
   const handleDbActions = (id: string) => setOpenDropdownId(openDropdownId === id ? null : id);
   const handleBreadcrumbNavigate = (path: string) => navigate(path);
   const handleSidebarNavigate = (path: string) => navigate(path);
@@ -212,11 +325,34 @@ const Databases: React.FC = () => {
               <div className="search-section">
                 <input
                   type="text"
-                  placeholder="Search by name or description..."
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
+                  placeholder="Search by name, host, or type..."
+                  value={search}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="search-input"
                 />
+                {search && (
+                  <button
+                    onClick={handleClearSearch}
+                    className="clear-search-btn"
+                    title="Clear search"
+                    aria-label="Clear search"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                )}
+                <select
+                  value={dbTypeFilter}
+                  onChange={(e) => handleDbTypeFilterChange(e.target.value)}
+                  className="status-dropdown"
+                >
+                  <option value="All Types">All Types</option>
+                  <option value="postgres">PostgreSQL</option>
+                  <option value="mysql">MySQL</option>
+                  <option value="mssql">MSSQL</option>
+                  <option value="sqlite">SQLite</option>
+                </select>
               </div>
 
               <div className="controls-section">
@@ -236,8 +372,8 @@ const Databases: React.FC = () => {
                 </button>
 
                 <select
-                  value={itemsPerPage}
-                  onChange={(e) => { setItemsPerPage(e.target.value); setCurrentPage(1); }}
+                  value={`${pageSize} rows/page`}
+                  onChange={(e) => handlePageSizeChange(e.target.value)}
                   className="pagination-dropdown"
                 >
                   <option value="10 rows/page">10 rows/page</option>
@@ -258,21 +394,21 @@ const Databases: React.FC = () => {
               <table className="databases-table">
                 <thead>
                   <tr>
-                    <th className={`sortable ${sortBy === 'name' ? 'sorted' : ''}`} onClick={() => handleSort('name')}>
+                    <th className={`sortable ${sortBy === 'db_name' ? 'sorted' : ''}`} onClick={() => handleSort('db_name')}>
                       <span className="th-content">
                         <span className="th-text">Database Name</span>
                         <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'name' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'name' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          <span className={`arrow up ${sortBy === 'db_name' && order === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'db_name' && order === 'desc' ? 'active' : ''}`}></span>
                         </span>
                       </span>
                     </th>
-                    <th className={`sortable ${sortBy === 'type' ? 'sorted' : ''}`} onClick={() => handleSort('type')}>
+                    <th className={`sortable ${sortBy === 'db_type' ? 'sorted' : ''}`} onClick={() => handleSort('db_type')}>
                       <span className="th-content">
                         <span className="th-text">Database Type</span>
                         <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'type' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'type' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          <span className={`arrow up ${sortBy === 'db_type' && order === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'db_type' && order === 'desc' ? 'active' : ''}`}></span>
                         </span>
                       </span>
                     </th>
@@ -280,18 +416,14 @@ const Databases: React.FC = () => {
                       <span className="th-content">
                         <span className="th-text">Host</span>
                         <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'host' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'host' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          <span className={`arrow up ${sortBy === 'host' && order === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'host' && order === 'desc' ? 'active' : ''}`}></span>
                         </span>
                       </span>
                     </th>
-                    <th className={`sortable ${sortBy === 'port' ? 'sorted' : ''}`} onClick={() => handleSort('port')}>
+                    <th>
                       <span className="th-content">
                         <span className="th-text">Port</span>
-                        <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'port' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'port' && sortOrder === 'desc' ? 'active' : ''}`}></span>
-                        </span>
                       </span>
                     </th>
                     <th>Options</th>
@@ -385,7 +517,7 @@ const Databases: React.FC = () => {
             {totalPages > 1 && (
               <div className="pagination">
                 <div className="pagination-info">
-                  Showing {filtered.length === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, filtered.length)} of {filtered.length} databases
+                  Showing {startIndex + 1} to {endIndex} of {totalDatabases} databases
                 </div>
                 <div className="pagination-controls">
                   <button className="pagination-btn" onClick={handlePreviousPage} disabled={currentPage === 1}>Previous</button>
@@ -402,7 +534,7 @@ const Databases: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                  <button className="pagination-btn" onClick={handleNextPage} disabled={currentPage === totalPages}>Next</button>
+                  <button className="pagination-btn" onClick={handleNextPage} disabled={currentPage >= totalPages}>Next</button>
                 </div>
               </div>
             )}
@@ -416,23 +548,10 @@ const Databases: React.FC = () => {
         onClose={() => setIsCreateOpen(false)}
         projectId={projectId}
         onSave={async (payload) => {
-          const svc = new DatabaseService();
           try {
-            const resp = await svc.createDatabaseConnection(payload as any);
+            const resp = await databaseService.createDatabaseConnection(payload as any);
             if (resp.success) {
-              if (projectId) {
-                const listResp = await svc.getDatabaseConnections({ project_id: projectId });
-                if (listResp.success && listResp.data) {
-                  const items: DatabaseItem[] = listResp.data.connections.map((c) => ({
-                    id: c.connection_id,
-                    name: c.db_name,
-                    type: c.db_type,
-                    host: c.host,
-                    port: c.port,
-                  }));
-                  setDatabases(items);
-                }
-              }
+              await reloadConnections();
             }
             return resp;
           } catch (e) {
@@ -447,24 +566,11 @@ const Databases: React.FC = () => {
         connection={selectedConnection ? { connection_id: selectedConnection.id, name: selectedConnection.name } : null}
         onDelete={async (id) => {
           try {
-            const svc = new DatabaseService();
-            const resp = await svc.deleteDatabaseConnection(id);
+            const resp = await databaseService.deleteDatabaseConnection(id);
             if (resp.success) {
               toast.success('Connection deleted');
               setIsDeleteOpen(false);
-              if (projectId) {
-                const listResp = await svc.getDatabaseConnections({ project_id: projectId });
-                if (listResp.success && listResp.data) {
-                  const items: DatabaseItem[] = listResp.data.connections.map((c) => ({
-                    id: c.connection_id,
-                    name: c.db_name,
-                    type: c.db_type,
-                    host: c.host,
-                    port: c.port,
-                  }));
-                  setDatabases(items);
-                }
-              }
+              await reloadConnections();
             } else {
               toast.error(resp.error || 'Failed to delete connection. Please try again.');
             }

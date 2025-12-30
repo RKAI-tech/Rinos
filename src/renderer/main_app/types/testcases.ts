@@ -82,3 +82,20 @@ export interface TestCaseBatch {
 export interface ExecuteTestCaseRequest {
     testcase_id: string;
 }
+
+export interface TestCaseSearchRequest {
+    project_id: string;
+    page: number;
+    page_size: number;
+    q?: string | null;  // search keyword
+    status?: string | null;  // filter by status: Passed, Failed, Draft, Running
+    sort_by?: string | null;  // field to sort by: name, description, created_at, updated_at, browser_type
+    order?: string | null;  // asc or desc
+}
+
+export interface TestCaseSearchResponse {
+    testcases: TestCase[];
+    number_testcase: number;
+    current_page: number;
+    total_pages: number;
+}

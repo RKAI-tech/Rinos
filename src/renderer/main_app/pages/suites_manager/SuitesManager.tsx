@@ -157,6 +157,7 @@ const SuitesManager: React.FC = () => {
   const groupService = useMemo(() => new GroupService(), []);
   const suiteService = useMemo(() => new TestSuiteService(), []);
   const testCaseService = useMemo(() => new TestCaseService(), []);
+  const projectService = useMemo(() => new ProjectService(), []);
 
   // Browser handlers hook
   const {
@@ -181,13 +182,13 @@ const SuitesManager: React.FC = () => {
         setResolvedProjectName(projectData.projectName);
         return;
       }
-      const svc = new ProjectService();
-      const resp = await svc.getProjectById(projectId);
+      const resp = await projectService.getProjectById(projectId);
       if (resp.success && resp.data) {
         setResolvedProjectName((resp.data as any).name || 'Project');
       }
     };
     loadProjectName();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   // Keep refs in sync with state

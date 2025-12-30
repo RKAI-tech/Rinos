@@ -9,7 +9,10 @@ import {
     Project, 
     AddUserToProjectRequest,
     UserInProject,
-    RemoveUserFromProjectRequest
+    RemoveUserFromProjectRequest,
+    ProjectSearchRequest,
+    ProjectSearchResponse,
+    ProjectGetResponse
 } from '../types/projects';
 
 export class ProjectService {
@@ -21,20 +24,47 @@ export class ProjectService {
         });
     }
 
+    async searchProjects(request: ProjectSearchRequest): Promise<ApiResponse<ProjectSearchResponse>> {
+        return await apiRouter.request<ProjectSearchResponse>('/projects/search', {
+            method: 'POST',
+            body: JSON.stringify(request),
+        });
+    }
+
     async getProjectById(projectId: string): Promise<ApiResponse<Project>> {
+        if (!projectId) {
+            return { success: false, error: 'Project ID is required' };
+        }
+        
         try {
-            const all = await this.getProjects();
-            if (all.success && all.data) {
-                const projects = (all.data as any).projects as Project[];
-                const found = projects.find(p => String((p as any).project_id) === String(projectId));
-                if (found) {
-                    return { success: true, data: found } as unknown as ApiResponse<Project>;
-                }
-                return { success: false, error: 'Project not found' } as ApiResponse<Project>;
+            // Use dedicated endpoint: GET /projects/get_by_id/{project_id}
+            const response = await apiRouter.request<ProjectGetResponse>(`/projects/get_by_id/${projectId}`, {
+                method: 'GET',
+            });
+            
+            if (response.success && response.data) {
+                // Map ProjectGetResponse to Project interface
+                const projectData: Project = {
+                    project_id: response.data.project_id,
+                    name: response.data.name,
+                    description: response.data.description,
+                    created_at: response.data.created_at,
+                    number_testcase: response.data.number_testcase,
+                    number_testsuite: response.data.number_testsuite,
+                    number_member: response.data.number_member,
+                    user_role: response.data.user_role,
+                    user_permissions: response.data.user_permissions,
+                    // Set default values for optional fields
+                    number_variable: 0,
+                    number_database_connection: 0,
+                    history: []
+                };
+                return { success: true, data: projectData };
             }
-            return { success: false, error: all.error || 'Failed to load projects' } as ApiResponse<Project>;
+            
+            return { success: false, error: response.error || 'Project not found' };
         } catch (error) {
-            return { success: false, error: 'Failed to get project by id' } as ApiResponse<Project>;
+            return { success: false, error: 'Failed to get project by id' };
         }
     }
 

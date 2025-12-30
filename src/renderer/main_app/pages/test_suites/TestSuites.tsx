@@ -61,6 +61,10 @@ const TestSuites: React.FC = () => {
   const [selectedSuite, setSelectedSuite] = useState<TestSuite | null>(null);
   const [runningSuiteIds, setRunningSuiteIds] = useState<Set<string>>(new Set());
 
+  // Service - use useMemo to avoid recreating on every render
+  const testSuiteService = useMemo(() => new TestSuiteService(), []);
+  const projectService = useMemo(() => new ProjectService(), []);
+
   const handleCreateSuite = () => {
     if (!canEditPermission) return;
     setIsCreateOpen(true);
@@ -71,8 +75,7 @@ const TestSuites: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const svc = new TestSuiteService();
-      const resp = await svc.getTestSuites(projectId);
+      const resp = await testSuiteService.getTestSuites(projectId);
       // console.log('response:', resp);
       if (resp.success && resp.data) {
         const mapped: TestSuite[] = resp.data.test_suites.map(ts => ({
@@ -126,13 +129,13 @@ const TestSuites: React.FC = () => {
         setResolvedProjectName(projectData.projectName);
         return;
       }
-      const svc = new ProjectService();
-      const resp = await svc.getProjectById(projectId);
+      const resp = await projectService.getProjectById(projectId);
       if (resp.success && resp.data) {
         setResolvedProjectName((resp.data as any).name || 'Project');
       }
     };
     loadProjectName();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   // Close dropdown when clicking outside

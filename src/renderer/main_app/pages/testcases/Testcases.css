@@ -94,6 +94,29 @@
   color: #9ca3af;
 }
 
+.clear-search-btn {
+  padding: 8px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.clear-search-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.clear-search-btn:active {
+  background: #e5e7eb;
+}
+
 .status-dropdown {
   padding: 12px 16px;
   border: 1px solid #e1e5e9;

@@ -31,7 +31,9 @@ const ChangeLog: React.FC = () => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
-  const historyItemService = new HistoryItemService();
+  // Service - use useMemo to avoid recreating on every render
+  const historyItemService = useMemo(() => new HistoryItemService(), []);
+  const projectService = useMemo(() => new ProjectService(), []);
 
   useEffect(() => {
     const loadProjectName = async () => {
@@ -40,13 +42,13 @@ const ChangeLog: React.FC = () => {
         setResolvedProjectName(projectData.projectName);
         return;
       }
-      const svc = new ProjectService();
-      const resp = await svc.getProjectById(projectId);
+      const resp = await projectService.getProjectById(projectId);
       if (resp.success && resp.data) {
         setResolvedProjectName((resp.data as any).name || 'Project');
       }
     };
     loadProjectName();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   const loadHistories = async () => {

@@ -72,3 +72,30 @@ export interface StatementRunByIdResponse {
     affected_rows: number;
     error: string;
 }
+
+export interface StatementListItem {
+    statement_id: string;
+    name?: string | null;
+    description?: string | null;
+    connection_id: string;
+    statement_text: string;
+    status: string;
+    connection?: DatabaseConnection | null;
+}
+
+export interface StatementSearchRequest {
+    project_id: string;
+    page: number;
+    page_size: number;
+    q?: string | null;  // search keyword
+    status?: string | null;  // filter by statement status: Success, Failed
+    sort_by?: string | null;  // field to sort by: name, description, created_at, updated_at, status
+    order?: string | null;  // asc or desc
+}
+
+export interface StatementSearchResponse {
+    statements: StatementListItem[];
+    number_statement: number;
+    current_page: number;
+    total_pages: number;
+}

@@ -40,12 +40,15 @@ const Variables: React.FC = () => {
   const [selectedVar, setSelectedVar] = useState<{ id: string; name?: string } | null>(null);
   const [isReloading, setIsReloading] = useState(false);
 
+  // Service - use useMemo to avoid recreating on every render
+  const variableService = useMemo(() => new VariableService(), []);
+  const projectService = useMemo(() => new ProjectService(), []);
+
   const reloadVariables = async () => {
     if (!projectId) return;
     try {
       setIsReloading(true);
-      const svc = new VariableService();
-      const resp = await svc.getVariablesByProject(projectId);
+      const resp = await variableService.getVariablesByProject(projectId);
       if (resp.success && resp.data) {
         const items: VariableItem[] = resp.data.items.map(v => ({
           id: v.variable_id,
@@ -78,13 +81,13 @@ const Variables: React.FC = () => {
         setResolvedProjectName(projectData.projectName);
         return;
       }
-      const svc = new ProjectService();
-      const resp = await svc.getProjectById(projectId);
+      const resp = await projectService.getProjectById(projectId);
       if (resp.success && resp.data) {
         setResolvedProjectName((resp.data as any).name || 'Project');
       }
     };
     loadProjectName();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   // Close dropdown when clicking outside
@@ -366,14 +369,13 @@ const Variables: React.FC = () => {
         variable={selectedVar}
         onDelete={async (id) => {
           try {
-            const svc = new VariableService();
-            const resp = await svc.deleteVariable(id);
+            const resp = await variableService.deleteVariable(id);
             if (resp.success) {
               toast.success('Variable deleted');
               setIsDeleteOpen(false);
               // reload
               if (projectId) {
-                const list = await svc.getVariablesByProject(projectId);
+                const list = await variableService.getVariablesByProject(projectId);
                 if (list.success && list.data) {
                   const items: VariableItem[] = list.data.items.map(v => ({
                     id: v.variable_id,

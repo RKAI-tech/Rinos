@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/header/Header';
 import Footer from '../../components/footer/Footer';
@@ -50,12 +50,18 @@ const Testcases: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [searchText, setSearchText] = useState('');
+  // Search, pagination, and sort state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
-  const [sortBy, setSortBy] = useState<'name' | 'description' | 'actionsCount' | 'status' | 'updatedAt'>('updatedAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [itemsPerPage, setItemsPerPage] = useState('10 rows/page');
+  const [sortBy, setSortBy] = useState<string | null>('updated_at');
+  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
+  
+  // Pagination info from API
+  const [totalTestcases, setTotalTestcases] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -71,28 +77,33 @@ const Testcases: React.FC = () => {
   const [runningTestcases, setRunningTestcases] = useState<string[]>([]);
   const [autoReloadInterval, setAutoReloadInterval] = useState<NodeJS.Timeout | null>(null);
 
-  // Service
-  const testCaseService = new TestCaseService();
+  // Service - use useMemo to avoid recreating on every render
+  const testCaseService = useMemo(() => new TestCaseService(), []);
+  const projectService = useMemo(() => new ProjectService(), []);
 
-  // Helper: reload testcases
-  const reloadTestcases = async () => {
-    if (!projectData?.projectId) return;
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await testCaseService.getTestCases(projectData.projectId, 1000, 0);
-      if (response.success && response.data) {
-        const resp = response.data.testcases;
-        // console.log('[MAIN_APP] Testcases', resp);       
-        const mapped: Testcase[] = resp.map((tc: any)=> {
+  // Helper: map API response to Testcase format
+  const mapApiResponseToTestcase = useCallback((resp: any[]): Testcase[] => {
+    return resp.map((tc: any) => {
+      // Determine status from evidence
+      let status: 'Passed' | 'Failed' | 'Draft' | 'Running' = 'Draft';
+      if (tc.evidence) {
+        if (tc.evidence.status === 'SUCCESS' || tc.evidence.status === 'Passed') {
+          status = 'Passed';
+        } else if (tc.evidence.status === 'FAILED' || tc.evidence.status === 'Failed') {
+          status = 'Failed';
+        } else if (tc.evidence.status === 'RUNNING' || tc.evidence.status === 'Running') {
+          status = 'Running';
+        }
+      }
+
           return {
             testcase_id: tc.testcase_id,
             name: tc.name,
             description: tc.description,
-            actionsCount: tc.actions? tc.actions.length : 0,
-            status: tc.evidence.status,
+        actionsCount: tc.actions ? tc.actions.length : 0,
+        status: status,
             evidence: {
-              evidence_id: tc.evidence_id,
+          evidence_id: tc.evidence_id || '',
               video: tc.evidence?.video ? {
                 video_id: tc.evidence.video.video_id || '',
                 url: tc.evidence.video.url || '',
@@ -103,7 +114,7 @@ const Testcases: React.FC = () => {
                 content: tc.evidence.log.content || '',
                } : null,
             },
-            updatedAt: tc.updated_at,
+        updatedAt: tc.updated_at || tc.created_at || '',
             basic_authentication: {
               username: tc.basic_authentication?.username ? tc.basic_authentication.username : '',
               password: tc.basic_authentication?.password ? tc.basic_authentication.password : '',
@@ -111,7 +122,43 @@ const Testcases: React.FC = () => {
             browser_type: tc.browser_type || undefined,
           };
         });
-        // console.log('[MAIN_APP] mapped', mapped);
+  }, []);
+
+  // Load testcases with search/pagination/sort
+  useEffect(() => {
+    if (!projectData?.projectId) return;
+
+    const loadTestcases = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Map status filter to API format
+        let statusFilterValue: string | null = null;
+        if (statusFilter !== 'All Status') {
+          const statusMap: Record<string, string> = {
+            'success': 'Passed',
+            'failed': 'Failed',
+            'draft': 'Draft',
+            'running': 'Running'
+          };
+          statusFilterValue = statusMap[statusFilter.toLowerCase()] || statusFilter;
+        }
+
+        const request = {
+          project_id: projectData.projectId!,
+          page: page,
+          page_size: pageSize,
+          q: search || null,
+          status: statusFilterValue,
+          sort_by: sortBy || null,
+          order: order || 'asc'
+        };
+
+        const response = await testCaseService.searchTestCases(request);
+        
+        if (response.success && response.data) {
+          const mapped = mapApiResponseToTestcase(response.data.testcases);
         
         setTestcasesData(mapped);
         
@@ -120,28 +167,106 @@ const Testcases: React.FC = () => {
           .map(tc => tc.testcase_id);
         setRunningTestcases(runningIds);
         setTestcases(mapped);
+          
+          setTotalTestcases(response.data.number_testcase);
+          setCurrentPage(response.data.current_page);
+          setTotalPages(response.data.total_pages);
+          // Only sync page if it's different to avoid infinite loop
+          if (response.data.current_page !== page) {
+            setPage(response.data.current_page);
+          }
       } else {
         setError(response.error || 'Failed to load testcases');
         toast.error(response.error || 'Failed to load testcases');
-        // console.error('Failed to load testcases', response.error);
+          setTestcases([]);
+          setTestcasesData([]);
+          setTotalTestcases(0);
+          setCurrentPage(1);
+          setTotalPages(1);
+          setPage(1);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred';
       setError(message);
-      // console.error('Failed to load testcases', message);
       toast.error('Failed to load testcases');
+        setTestcases([]);
+        setTestcasesData([]);
+        setTotalTestcases(0);
+        setCurrentPage(1);
+        setTotalPages(1);
+        setPage(1);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Initial load
-  useEffect(() => {
-    reloadTestcases();
+    loadTestcases();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectData?.projectId]);
+  }, [page, pageSize, search, statusFilter, sortBy, order, projectData?.projectId, testCaseService, mapApiResponseToTestcase]);
 
-  // Auto reload every 2 seconds (only when no modals are open)
+  // Helper: reload testcases (for manual refresh and after operations)
+  const reloadTestcases = useCallback(async () => {
+    if (!projectData?.projectId) return;
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Map status filter to API format
+      let statusFilterValue: string | null = null;
+      if (statusFilter !== 'All Status') {
+        const statusMap: Record<string, string> = {
+          'success': 'Passed',
+          'failed': 'Failed',
+          'draft': 'Draft',
+          'running': 'Running'
+        };
+        statusFilterValue = statusMap[statusFilter.toLowerCase()] || statusFilter;
+      }
+
+      const request = {
+        project_id: projectData.projectId,
+        page: page,
+        page_size: pageSize,
+        q: search || null,
+        status: statusFilterValue,
+        sort_by: sortBy || null,
+        order: order || 'asc'
+      };
+
+      const response = await testCaseService.searchTestCases(request);
+      
+      if (response.success && response.data) {
+        const mapped = mapApiResponseToTestcase(response.data.testcases);
+        
+        setTestcasesData(mapped);
+        
+        const runningIds = mapped
+          .filter(tc => tc.status === 'Running')
+          .map(tc => tc.testcase_id);
+        setRunningTestcases(runningIds);
+        setTestcases(mapped);
+        
+        setTotalTestcases(response.data.number_testcase);
+        setCurrentPage(response.data.current_page);
+        setTotalPages(response.data.total_pages);
+        // Only sync page if it's different to avoid infinite loop
+        if (response.data.current_page !== page) {
+          setPage(response.data.current_page);
+        }
+      } else {
+        setError(response.error || 'Failed to load testcases');
+        toast.error(response.error || 'Failed to load testcases');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'An error occurred';
+      setError(message);
+      toast.error('Failed to load testcases');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [projectData?.projectId, page, pageSize, search, statusFilter, sortBy, order, testCaseService, mapApiResponseToTestcase]);
+
+  // Auto reload every 60 seconds (only when no modals are open and there are running testcases)
   useEffect(() => {
     const interval = setInterval(() => {
       // Don't auto-reload if any modal is open to prevent data conflicts
@@ -160,7 +285,7 @@ const Testcases: React.FC = () => {
         clearInterval(interval);
       }
     };
-  }, [projectData?.projectId, isCreateModalOpen, isEditModalOpen, isDeleteModalOpen, isDuplicateModalOpen, isRunAndViewModalOpen]);
+  }, [testcases, isCreateModalOpen, isEditModalOpen, isDeleteModalOpen, isDuplicateModalOpen, isRunAndViewModalOpen, reloadTestcases]);
 
   // Reload testcases when recorder window is closed
   useEffect(() => {
@@ -177,16 +302,18 @@ const Testcases: React.FC = () => {
   useEffect(() => {
     const loadProjectData = async () => {
       if (!projectId) return;
-      const svc = new ProjectService();
-      const resp = await svc.getProjectById(projectId);
+      if (projectData.projectName) {
+        setResolvedProjectName(projectData.projectName);
+        return;
+      }
+      const resp = await projectService.getProjectById(projectId);
       if (resp.success && resp.data) {
         const project = resp.data as any;
-        setResolvedProjectName(project.name || projectData.projectName || 'Project');
-      } else if (projectData.projectName) {
-        setResolvedProjectName(projectData.projectName);
+        setResolvedProjectName(project.name || 'Project');
       }
     };
     loadProjectData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   // Sidebar navigation items
@@ -256,61 +383,65 @@ const Testcases: React.FC = () => {
     }
   ];
 
-  // Filter testcases based on search and status
-  const filteredTestcases = testcases.filter(testcase => {
-    const matchesSearch = testcase.name.toLowerCase().includes(searchText.toLowerCase()) ||
-                         (testcase.description || '').toLowerCase().includes(searchText.toLowerCase());
-    const matchesStatus = statusFilter === 'All Status' || testcase.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // No need for client-side filtering - API handles search and status filtering
+  const filteredTestcases = testcases;
 
-  const sortedTestcases = useMemo(() => {
-    const copy = [...filteredTestcases];
-    const getVal = (it: Testcase): string | number => {
-      switch (sortBy) {
-        case 'name': return it.name || '';
-        case 'description': return it.description || '';
-        case 'actionsCount': return it.actionsCount ?? 0;
-        case 'status': return it.status || '';
-        case 'updatedAt': {
-          const t = it.updatedAt || '';
-          const ms = t ? new Date(t).getTime() : 0;
-          return isNaN(ms) ? 0 : ms;
-        }
-        default: return 0;
-      }
-    };
-    copy.sort((a, b) => {
-      const av = getVal(a);
-      const bv = getVal(b);
-      let cmp = 0;
-      if (typeof av === 'string' && typeof bv === 'string') cmp = av.localeCompare(bv, undefined, { sensitivity: 'base' });
-      else {
-        const an = typeof av === 'number' ? av : 0;
-        const bn = typeof bv === 'number' ? bv : 0;
-        cmp = an === bn ? 0 : an < bn ? -1 : 1;
-      }
-      return sortOrder === 'asc' ? cmp : -cmp;
-    });
-    return copy;
-  }, [filteredTestcases, sortBy, sortOrder]);
-
-  const handleSort = (col: 'name' | 'description' | 'actionsCount' | 'status' | 'updatedAt') => {
-    if (sortBy === col) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    else { setSortBy(col); setSortOrder('asc'); }
-    setCurrentPage(1);
+  // Handle sort - reset page to 1 when sort changes
+  const handleSort = (col: 'name' | 'description' | 'updated_at' | 'created_at' | 'browser_type') => {
+    if (sortBy === col) {
+      // Toggle order if same column
+      setOrder(order === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new column and default to asc
+      setSortBy(col);
+      setOrder('asc');
+    }
+    // Reset page to 1 when sort changes
+    setPage(1);
   };
 
-  // Pagination helpers (same approach as Dashboard)
-  const getItemsPerPageNumber = () => {
-    return parseInt(itemsPerPage.split(' ')[0]);
+  // Handle search - reset page to 1 when search changes
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1); // Reset page when search changes
   };
 
-  const totalPages = Math.ceil(sortedTestcases.length / getItemsPerPageNumber());
-  const startIndex = (currentPage - 1) * getItemsPerPageNumber();
-  const endIndex = startIndex + getItemsPerPageNumber();
-  const currentTestcases = sortedTestcases.slice(startIndex, endIndex);
+  // Handle clear search - reset page to 1
+  const handleClearSearch = () => {
+    setSearch('');
+    setPage(1);
+  };
 
+  // Handle page size change - reset page to 1
+  const handlePageSizeChange = (value: string) => {
+    const newPageSize = parseInt(value.split(' ')[0]);
+    setPageSize(newPageSize);
+    setPage(1); // Reset page when page size changes
+  };
+
+  // Handle pagination - only update page, don't reset
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setPage(currentPage + 1);
+    }
+  };
+
+  // Calculate display range
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalTestcases);
+  const currentTestcases = filteredTestcases;
+
+  // Generate pagination numbers with ellipsis
   const generatePaginationNumbers = () => {
     const pages: (number | string)[] = [];
     if (totalPages <= 3) {
@@ -330,18 +461,6 @@ const Testcases: React.FC = () => {
   };
 
   const paginationNumbers = generatePaginationNumbers();
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handlePreviousPage = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-  };
 
   const handleTestcaseActions = (testcaseId: string, event: React.MouseEvent) => {
     event.stopPropagation(); // Ngăn chặn event bubbling
@@ -809,14 +928,29 @@ const Testcases: React.FC = () => {
             <div className="search-section">
               <input
                 type="text"
-                placeholder="Search by testcase name or tag..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Search by testcase name or description..."
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="search-input"
               />
+              {search && (
+                <button
+                  onClick={handleClearSearch}
+                  className="clear-search-btn"
+                  title="Clear search"
+                  aria-label="Clear search"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              )}
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1); // Reset page when status filter changes
+                }}
                 className="status-dropdown"
               >
                 <option value="All Status">All Status</option>
@@ -844,8 +978,8 @@ const Testcases: React.FC = () => {
               </button>
 
               <select
-                value={itemsPerPage}
-                onChange={(e) => { setItemsPerPage(e.target.value); setCurrentPage(1); }}
+                value={`${pageSize} rows/page`}
+                onChange={(e) => handlePageSizeChange(e.target.value)}
                 className="pagination-dropdown"
               >
                 <option value="10 rows/page">10 rows/page</option>
@@ -874,21 +1008,23 @@ const Testcases: React.FC = () => {
                 <thead>
                 <tr>
                   <th className={`sortable ${sortBy === 'name' ? 'sorted' : ''}`} onClick={() => handleSort('name')}>
-                    <span className="th-content"><span className="th-text">Name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'name' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'name' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    <span className="th-content"><span className="th-text">Name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'name' && order === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'name' && order === 'desc' ? 'active' : ''}`}></span></span></span>
                   </th>
                   <th className={`sortable ${sortBy === 'description' ? 'sorted' : ''}`} onClick={() => handleSort('description')}>
-                    <span className="th-content"><span className="th-text">Description</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'description' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'description' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                    <span className="th-content"><span className="th-text">Description</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'description' && order === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'description' && order === 'desc' ? 'active' : ''}`}></span></span></span>
                   </th>
-                  <th className={`sortable ${sortBy === 'actionsCount' ? 'sorted' : ''}`} onClick={() => handleSort('actionsCount')}>
-                    <span className="th-content"><span className="th-text">Actions</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'actionsCount' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'actionsCount' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                  <th>
+                    <span className="th-content"><span className="th-text">Actions</span></span>
                   </th>
-                  <th className={`sortable ${sortBy === 'status' ? 'sorted' : ''}`} onClick={() => handleSort('status')}>
-                    <span className="th-content"><span className="th-text">Status</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'status' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'status' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                  <th>
+                    <span className="th-content"><span className="th-text">Status</span></span>
                   </th>
-                  <th className={`sortable ${sortBy === 'updatedAt' ? 'sorted' : ''}`} onClick={() => handleSort('updatedAt')}>
-                    <span className="th-content"><span className="th-text">Updated</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'updatedAt' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'updatedAt' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span>
+                  <th className={`sortable ${sortBy === 'updated_at' ? 'sorted' : ''}`} onClick={() => handleSort('updated_at')}>
+                    <span className="th-content"><span className="th-text">Updated</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'updated_at' && order === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'updated_at' && order === 'desc' ? 'active' : ''}`}></span></span></span>
                   </th>
-                  <th>Browser Type</th>
+                  <th className={`sortable ${sortBy === 'browser_type' ? 'sorted' : ''}`} onClick={() => handleSort('browser_type')}>
+                    <span className="th-content"><span className="th-text">Browser Type</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'browser_type' && order === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'browser_type' && order === 'desc' ? 'active' : ''}`}></span></span></span>
+                  </th>
                   <th>Options</th>
                 </tr>
               </thead>
@@ -1081,10 +1217,11 @@ const Testcases: React.FC = () => {
             </table>
           </div>
           
-          {/* Pagination - Always visible */}
+          {/* Pagination */}
+          {totalPages > 1 && (
           <div className="pagination">
             <div className="pagination-info">
-              Showing {filteredTestcases.length === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, filteredTestcases.length)} of {filteredTestcases.length} testcases
+                Showing {startIndex + 1} to {endIndex} of {totalTestcases} testcases
             </div>
             <div className="pagination-controls">
               <button 
@@ -1115,12 +1252,13 @@ const Testcases: React.FC = () => {
               <button 
                 className="pagination-btn"
                 onClick={handleNextPage}
-                disabled={currentPage >= totalPages || totalPages === 0 || filteredTestcases.length === 0}
+                disabled={currentPage >= totalPages}
               >
                 Next
               </button>
             </div>
           </div>
+          )}
           </div>
         </main>
       </div>
