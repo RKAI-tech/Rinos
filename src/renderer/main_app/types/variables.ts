@@ -23,3 +23,30 @@ export interface VariableCreateRequest {
     original_name: string;
     value: string;
 }
+
+export interface VariableListItem {
+    variable_id: string;
+    user_defined_name: string;
+    original_name?: string | null;
+    value?: string | null;
+    statement_id?: string | null;
+    database_name?: string | null;
+    database_type?: string | null;
+    query_name?: string | null;
+}
+
+export interface VariableSearchRequest {
+    project_id: string;
+    page: number;
+    page_size: number;
+    q?: string | null;  // search keyword
+    sort_by?: string | null;  // field to sort by: user_defined_name, original_name, created_at, updated_at
+    order?: string | null;  // asc or desc
+}
+
+export interface VariableSearchResponse {
+    variables: VariableListItem[];
+    number_variable: number;
+    current_page: number;
+    total_pages: number;
+}

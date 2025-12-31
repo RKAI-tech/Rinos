@@ -3,7 +3,9 @@ import { ApiResponse } from '../types/api_responses';
 import {
     VariableListResponse,
     VariableCreateRequest,
-    Variable
+    Variable,
+    VariableSearchRequest,
+    VariableSearchResponse
 } from '../types/variables';
 import { DefaultResponse } from '../types/api_responses';
 
@@ -14,6 +16,16 @@ export class VariableService {
         }
         return await apiRouter.request<VariableListResponse>(`/variables/get_by_project/${projectId}`, {
             method: 'GET'
+        });
+    }
+
+    async searchVariables(request: VariableSearchRequest): Promise<ApiResponse<VariableSearchResponse>> {
+        if (!request.project_id) {
+            return { success: false, error: 'Project ID is required for search' };
+        }
+        return await apiRouter.request<VariableSearchResponse>('/variables/search', {
+            method: 'POST',
+            body: JSON.stringify(request),
         });
     }
 

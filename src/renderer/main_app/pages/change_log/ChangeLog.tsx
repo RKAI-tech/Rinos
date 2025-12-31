@@ -19,13 +19,24 @@ const ChangeLog: React.FC = () => {
   const [resolvedProjectName, setResolvedProjectName] = useState<string>(projectData.projectName || 'Project');
   const canManagePermission = canManage(projectId);
 
+  // Backend-driven search, pagination, and sorting state
   const [histories, setHistories] = useState<HistoryItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState<string>('');
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
-  const [searchText, setSearchText] = useState<string>('');
-  const [entityFilter, setEntityFilter] = useState<'all' | 'testcase' | 'suite'>('all');
+  const [entityFilter, setEntityFilter] = useState<string | null>(null); // 'Project', 'Testcase', 'Suite', or null for all
+  const [actionTypeFilter, setActionTypeFilter] = useState<string | null>(null); // 'updated', 'deleted', 'executed', 'recorded', or null for all
+  const [sortBy, setSortBy] = useState<string | null>('created_at');
+  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
+  const [totalHistories, setTotalHistories] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // UI state
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -51,31 +62,69 @@ const ChangeLog: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
-  const loadHistories = async () => {
-    if (!projectId) return;
-    try {
-      setIsLoading(true);
-      setError(null);
-      // Fetch a reasonable number and filter client-side by date
-      const resp = await historyItemService.getProjectHistories({ project_id: projectId, limit: 1000, offset: 0 });
-      // console.log('resp', resp);
-      if (resp.success && resp.data) {
-        setHistories(resp.data.items || []);
-      } else {
-        setError(resp.error || 'Failed to load histories');
-        setHistories([]);
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'An error occurred');
-      setHistories([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Load histories with search, pagination, and sorting
   useEffect(() => {
+    const loadHistories = async () => {
+      if (!projectId) return;
+      
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Format dates for API (convert datetime-local to YYYY-MM-DD HH:MM:SS or YYYY-MM-DD)
+        const formatDateForAPI = (dateStr: string): string | null => {
+          if (!dateStr) return null;
+          // If it's already in the right format, return as is
+          // Otherwise, convert from datetime-local format (YYYY-MM-DDTHH:mm) to YYYY-MM-DD HH:MM:SS
+          if (dateStr.includes('T')) {
+            return dateStr.replace('T', ' ') + ':00';
+          }
+          return dateStr;
+        };
+
+        const response = await historyItemService.searchHistories({
+          project_id: projectId,
+          page: page,
+          page_size: pageSize,
+          q: search || null,
+          from_date: formatDateForAPI(fromDate),
+          to_date: formatDateForAPI(toDate),
+          entity_type: entityFilter || null,
+          action_type: actionTypeFilter || null,
+          sort_by: sortBy || 'created_at',
+          order: order || 'desc',
+        });
+
+        if (response.success && response.data) {
+          setHistories(response.data.histories);
+          setTotalHistories(response.data.number_history);
+          // Only update page if different to prevent infinite loops
+          if (response.data.current_page !== currentPage) {
+            setCurrentPage(response.data.current_page);
+            setPage(response.data.current_page);
+          }
+          setTotalPages(response.data.total_pages);
+        } else {
+          setHistories([]);
+          setTotalHistories(0);
+          setCurrentPage(1);
+          setTotalPages(1);
+          setError(response.error || 'Failed to load histories');
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'An error occurred');
+        setHistories([]);
+        setTotalHistories(0);
+        setCurrentPage(1);
+        setTotalPages(1);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     loadHistories();
-  }, [projectId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, page, pageSize, search, fromDate, toDate, entityFilter, actionTypeFilter, sortBy, order]);
 
   const sidebarItems = [
     { id: 'suites-manager', label: 'Test Manager', path: `/suites-manager/${projectId}`, isActive: false },
@@ -121,32 +170,56 @@ const ChangeLog: React.FC = () => {
     return Object.entries(data).map(([key, value]) => `${key}: ${value}`);
   };
 
-  const filtered = useMemo(() => {
-    const fromMs = fromDate ? new Date(fromDate).getTime() : null;
-    const toMs = toDate ? new Date(toDate).getTime() : null;
-    const q = searchText.trim().toLowerCase();
-    const typeMatches = (et: string) => {
-      const t = (et || '').toLowerCase();
-      if (entityFilter === 'all') return true;
-      if (entityFilter === 'testcase') return /test\s*[_-]?\s*case|testcase/.test(t);
-      if (entityFilter === 'suite') return /suite/.test(t);
-      return true;
-    };
-    return histories.filter(h => {
-      const t = new Date(h.created_at).getTime();
-      if (fromMs && t < fromMs) return false;
-      if (toMs && t > toMs) return false;
-      if (!typeMatches(h.entity_type)) return false;
-      if (!q) return true;
-      const hay = [
-        h.user_id || '',
-        h.action_type || '',
-        h.entity_type || '',
-        h.description || '',
-      ].join(' ').toLowerCase();
-      return hay.includes(q);
-    }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [histories, fromDate, toDate, searchText, entityFilter]);
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setPage(1); // Reset page when searching
+  };
+
+  // Handle clear search
+  const handleClearSearch = () => {
+    setSearch('');
+    setPage(1);
+  };
+
+  // Handle from date change
+  const handleFromDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFromDate(e.target.value);
+    setPage(1); // Reset page when filtering
+  };
+
+  // Handle to date change
+  const handleToDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setToDate(e.target.value);
+    setPage(1); // Reset page when filtering
+  };
+
+  // Handle entity filter change
+  const handleEntityFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setEntityFilter(value === 'all' ? null : value);
+    setPage(1); // Reset page when filtering
+  };
+
+  // Handle action type filter change
+  const handleActionTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setActionTypeFilter(value === 'all' ? null : value);
+    setPage(1); // Reset page when filtering
+  };
+
+  // Handle page size change
+  const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newPageSize = parseInt(e.target.value);
+    setPageSize(newPageSize);
+    setPage(1); // Reset page when changing page size
+  };
+
+  // Reload histories (for reload button)
+  const reloadHistories = () => {
+    setPage(1);
+    // The useEffect will automatically trigger when page changes
+  };
 
   const formatDateTime = (iso: string) => {
     try {
@@ -188,7 +261,10 @@ const ChangeLog: React.FC = () => {
       const resp = await historyItemService.deleteAllHistory(projectId);
       if (resp.success) {
         setHistories([]);
+        setTotalHistories(0);
         setShowClearConfirm(false);
+        // Reload to refresh the list
+        reloadHistories();
       } else {
         setError(resp.error || 'Failed to clear timeline');
       }
@@ -208,10 +284,10 @@ const ChangeLog: React.FC = () => {
         project_id: projectId
       };
       const resp = await historyItemService.deleteHistory(payload);
-      // console.log('resp', resp);
       if (resp.success) {
-        setHistories(prev => prev.filter(h => h.history_id !== historyId));
         setShowDeleteConfirm(null);
+        // Reload to refresh the list
+        reloadHistories();
       } else {
         setError(resp.error || 'Failed to delete history item');
       }
@@ -222,10 +298,11 @@ const ChangeLog: React.FC = () => {
     }
   };
 
+  // Group histories by date for display (client-side grouping only, data already sorted by backend)
   const groupedByDate = useMemo(() => {
     const groups: { date: string; items: HistoryItem[] }[] = [];
     const map = new Map<string, HistoryItem[]>();
-    filtered.forEach((h) => {
+    histories.forEach((h) => {
       const key = formatDateOnly(h.created_at);
       const arr = map.get(key) || [];
       arr.push(h);
@@ -234,11 +311,11 @@ const ChangeLog: React.FC = () => {
     // sort dates desc
     const dates = Array.from(map.keys()).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
     dates.forEach((dKey) => {
-      const items = (map.get(dKey) || []).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const items = map.get(dKey) || [];
       groups.push({ date: dKey, items });
     });
     return groups;
-  }, [filtered]);
+  }, [histories]);
 
   return (
     <div className="changelog-page">
@@ -265,7 +342,7 @@ const ChangeLog: React.FC = () => {
                       className="input control from"
                       type="datetime-local"
                       value={fromDate}
-                      onChange={(e) => setFromDate(e.target.value)}
+                      onChange={handleFromDateChange}
                       aria-label="From date"
                     />
                     <span className="range-sep">–</span>
@@ -274,22 +351,39 @@ const ChangeLog: React.FC = () => {
                       className="input control to"
                       type="datetime-local"
                       value={toDate}
-                      onChange={(e) => setToDate(e.target.value)}
+                      onChange={handleToDateChange}
                       aria-label="To date"
                     />
                   </div>
                   <div className="type-filter">
-                    <div className="filter-label" style={{ fontSize: '14px', fontWeight: 'bold' }}>Type</div>
+                    <div className="filter-label" style={{ fontSize: '14px', fontWeight: 'bold' }}>Entity Type</div>
                     <select
                       className="input"
-                      value={entityFilter}
-                      onChange={(e) => setEntityFilter(e.target.value as 'all' | 'testcase' | 'suite')}
+                      value={entityFilter || 'all'}
+                      onChange={handleEntityFilterChange}
                       aria-label="Filter by entity type"
-                      title="Filter by type"
+                      title="Filter by entity type"
                     >
                       <option value="all">All</option>
-                      <option value="testcase">Test case</option>
-                      <option value="suite">Suite</option>
+                      <option value="Project">Project</option>
+                      <option value="Testcase">Testcase</option>
+                      <option value="Suite">Suite</option>
+                    </select>
+                  </div>
+                  <div className="type-filter">
+                    <div className="filter-label" style={{ fontSize: '14px', fontWeight: 'bold' }}>Action Type</div>
+                    <select
+                      className="input"
+                      value={actionTypeFilter || 'all'}
+                      onChange={handleActionTypeFilterChange}
+                      aria-label="Filter by action type"
+                      title="Filter by action type"
+                    >
+                      <option value="all">All</option>
+                      <option value="updated">Updated</option>
+                      <option value="deleted">Deleted</option>
+                      <option value="executed">Executed</option>
+                      <option value="recorded">Recorded</option>
                     </select>
                   </div>
                 </div>
@@ -297,19 +391,58 @@ const ChangeLog: React.FC = () => {
                 <div className="toolbar-row toolbar-bottom">
                   <div className="date-search">
                   <div className="filter-label" style={{ fontSize: '14px', fontWeight: 'bold' }}>Search</div>
-                  <div className="searchbox">
+                  <div className="searchbox" style={{ position: 'relative' }}>
                     <span className="search-icon" aria-hidden>🔎</span>
                     <input
                       className="input search"
                       type="text"
                       placeholder="Search member, action, description"
-                      value={searchText}
-                      onChange={(e) => setSearchText(e.target.value)}
+                      value={search}
+                      onChange={handleSearchChange}
                       aria-label="Search change logs"
                     />
+                    {search && (
+                      <button
+                        className="clear-search-btn"
+                        onClick={handleClearSearch}
+                        title="Clear search"
+                        aria-label="Clear search"
+                        style={{
+                          position: 'absolute',
+                          right: '8px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          padding: '4px',
+                          cursor: 'pointer',
+                          color: '#6b7280',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                          <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                      </button>
+                    )}
                   </div>
                   </div>
                   <div className="actions-group">
+                    <select
+                      className="input"
+                      value={pageSize}
+                      onChange={handlePageSizeChange}
+                      style={{ minWidth: '100px' }}
+                      aria-label="Items per page"
+                    >
+                      <option value={10}>10 per page</option>
+                      <option value={20}>20 per page</option>
+                      <option value={30}>30 per page</option>
+                      <option value={50}>50 per page</option>
+                    </select>
                     <button
                       className="btn ghost"
                       onClick={() => setShowClearConfirm(true)}
@@ -320,7 +453,7 @@ const ChangeLog: React.FC = () => {
                     </button>
                     <button
                       className={`reload-btn ${isLoading ? 'is-loading' : ''}`}
-                      onClick={() => loadHistories()}
+                      onClick={reloadHistories}
                       disabled={isLoading}
                       title="Reload activities"
                       aria-label="Reload activities"
@@ -355,105 +488,155 @@ const ChangeLog: React.FC = () => {
                   <span>No change logs found</span>
                 </div>
               ) : (
-                <div className="timeline">
-                  {groupedByDate.map((group) => (
-                    <div key={group.date} className="timeline-day-group">
-                      <div className="timeline-day-header">
-                        <button
-                          className="timeline-day-toggle"
-                          onClick={() => toggleDateCollapsed(group.date)}
-                          aria-label={`Toggle ${group.date}`}
-                        >
-                          <span className={`chevron ${collapsedDates.has(group.date) ? 'collapsed' : ''}`}>▾</span>
-                        </button>
-                        <div className="timeline-day-date">{group.date}</div>
-                        <div className="timeline-day-line"></div>
-                      </div>
-                      
-                      {!collapsedDates.has(group.date) && (
-                        <div className="timeline-items">
-                          {group.items.map((item) => (
-                            <div key={item.history_id} className="timeline-item">
-                              <div className="timeline-item-time">
-                                {formatTimeOnly(item.created_at)}
-                              </div>
-                              <div className="timeline-item-content">
-                                <div 
-                                  className={`timeline-item-header ${(item.old_data || item.new_data) ? 'clickable' : ''}`}
-                                  onClick={(item.old_data || item.new_data) ? () => toggleExpanded(item.history_id) : undefined}
-                                  style={{ cursor: (item.old_data || item.new_data) ? 'pointer' : 'default' }}
-                                >
-                                  <div className="timeline-item-main">
-                                    <div className="timeline-item-content-text">
-                                      {item.entity_name && (
-                                        <span className="timeline-item-description">
-                                          {item.entity_name}
-                                        </span>
-                                      )}
-                                      <span className="timeline-item-was"> was </span>
-                                      <span className="timeline-item-action">
-                                        {item.action_type}
-                                      </span>
-                                      <span className="timeline-item-by"> by </span>
-                                      <span className="timeline-item-user">
-                                        {item.user_name || item.user_id}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <button
-                                    className="timeline-item-delete"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (!canManagePermission) return;
-                                      setShowDeleteConfirm(item.history_id);
-                                    }}
-                                    title="Delete this history item"
-                                    disabled={isLoading || !canManagePermission}
-                                  >
-                                    ✕
-                                  </button>
-                                </div>
-                                
-                                {expandedItems.has(item.history_id) && (item.old_data || item.new_data) && (
-                                  <div className="timeline-item-details">
-                                    <div className="data-comparison">
-                                      {item.old_data && (
-                                        <div className="data-section old-data">
-                                          <div className="data-section-header">Old Data</div>
-                                          <div className="data-section-content">
-                                            {Object.entries(item.old_data).map(([key, value]) => (
-                                              <div key={key} className="data-entry">
-                                                <span className="data-key">{key}:</span>
-                                                <span className="data-value">{String(value).replace(/\\n/g, '\n')}</span>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                      {item.new_data && (
-                                        <div className="data-section new-data">
-                                          <div className="data-section-header">New Data</div>
-                                          <div className="data-section-content">
-                                            {Object.entries(item.new_data).map(([key, value]) => (
-                                              <div key={key} className="data-entry">
-                                                <span className="data-key">{key}:</span>
-                                                <span className="data-value">{String(value)}</span>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
+                <>
+                  <div className="timeline">
+                    {groupedByDate.map((group) => (
+                      <div key={group.date} className="timeline-day-group">
+                        <div className="timeline-day-header">
+                          <button
+                            className="timeline-day-toggle"
+                            onClick={() => toggleDateCollapsed(group.date)}
+                            aria-label={`Toggle ${group.date}`}
+                          >
+                            <span className={`chevron ${collapsedDates.has(group.date) ? 'collapsed' : ''}`}>▾</span>
+                          </button>
+                          <div className="timeline-day-date">{group.date}</div>
+                          <div className="timeline-day-line"></div>
                         </div>
-                      )}
+                        
+                        {!collapsedDates.has(group.date) && (
+                          <div className="timeline-items">
+                            {group.items.map((item) => (
+                              <div key={item.history_id} className="timeline-item">
+                                <div className="timeline-item-time">
+                                  {formatTimeOnly(item.created_at)}
+                                </div>
+                                <div className="timeline-item-content">
+                                  <div 
+                                    className={`timeline-item-header ${(item.old_data || item.new_data) ? 'clickable' : ''}`}
+                                    onClick={(item.old_data || item.new_data) ? () => toggleExpanded(item.history_id) : undefined}
+                                    style={{ cursor: (item.old_data || item.new_data) ? 'pointer' : 'default' }}
+                                  >
+                                    <div className="timeline-item-main">
+                                      <div className="timeline-item-content-text">
+                                        {item.entity_name && (
+                                          <span className="timeline-item-description">
+                                            {item.entity_name}
+                                          </span>
+                                        )}
+                                        <span className="timeline-item-was"> was </span>
+                                        <span className="timeline-item-action">
+                                          {item.action_type}
+                                        </span>
+                                        <span className="timeline-item-by"> by </span>
+                                        <span className="timeline-item-user">
+                                          {item.user_name || item.user_id}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <button
+                                      className="timeline-item-delete"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (!canManagePermission) return;
+                                        setShowDeleteConfirm(item.history_id);
+                                      }}
+                                      title="Delete this history item"
+                                      disabled={isLoading || !canManagePermission}
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                  
+                                  {expandedItems.has(item.history_id) && (item.old_data || item.new_data) && (
+                                    <div className="timeline-item-details">
+                                      <div className="data-comparison">
+                                        {item.old_data && (
+                                          <div className="data-section old-data">
+                                            <div className="data-section-header">Old Data</div>
+                                            <div className="data-section-content">
+                                              {Object.entries(item.old_data).map(([key, value]) => (
+                                                <div key={key} className="data-entry">
+                                                  <span className="data-key">{key}:</span>
+                                                  <span className="data-value">{String(value).replace(/\\n/g, '\n')}</span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                        {item.new_data && (
+                                          <div className="data-section new-data">
+                                            <div className="data-section-header">New Data</div>
+                                            <div className="data-section-content">
+                                              {Object.entries(item.new_data).map(([key, value]) => (
+                                                <div key={key} className="data-entry">
+                                                  <span className="data-key">{key}:</span>
+                                                  <span className="data-value">{String(value)}</span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="changelog-pagination">
+                      <div className="changelog-pagination-info">
+                        Showing {histories.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalHistories)} of {totalHistories} histories
+                      </div>
+                      <div className="changelog-pagination-controls">
+                        <button 
+                          className="changelog-pagination-btn" 
+                          onClick={() => setPage(page - 1)} 
+                          disabled={page === 1}
+                        >
+                          Previous
+                        </button>
+                        <div className="changelog-pagination-pages">
+                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            let pageNum: number;
+                            if (totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (page <= 3) {
+                              pageNum = i + 1;
+                            } else if (page >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = page - 2 + i;
+                            }
+                            return (
+                              <button
+                                key={pageNum}
+                                className={`changelog-pagination-page ${page === pageNum ? 'active' : ''}`}
+                                onClick={() => setPage(pageNum)}
+                              >
+                                {pageNum}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <button 
+                          className="changelog-pagination-btn" 
+                          onClick={() => setPage(page + 1)} 
+                          disabled={page === totalPages}
+                        >
+                          Next
+                        </button>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
             </div>
           </div>

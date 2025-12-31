@@ -46,3 +46,23 @@ export interface DeleteHistoryRequest {
     history_id: string;
     project_id: string;
 }
+
+export interface HistorySearchRequest {
+    project_id: string;
+    page: number;
+    page_size: number;
+    q?: string | null;  // search keyword
+    from_date?: string | null;  // filter from date (format: YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)
+    to_date?: string | null;  // filter to date (format: YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)
+    entity_type?: string | null;  // filter by entity type: Project, Testcase, Suite
+    action_type?: string | null;  // filter by action type: updated, deleted, executed, recorded
+    sort_by?: string | null;  // field to sort by: created_at
+    order?: string | null;  // asc or desc (default desc for history)
+}
+
+export interface HistorySearchResponse {
+    histories: HistoryItem[];
+    number_history: number;
+    current_page: number;
+    total_pages: number;
+}
