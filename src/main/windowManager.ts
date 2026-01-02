@@ -33,7 +33,7 @@ async function tryLoadDevPaths(win: BrowserWindow, page: string) {
     } catch (err) {
     }
   }
-  throw new Error("Không thể load trang renderer từ Vite. Kiểm tra vite.config và đường dẫn.");
+  throw new Error("Cannot load renderer page from Vite. Check vite.config and path.");
 }
 
 function createWindow(options: Electron.BrowserWindowConstructorOptions, page: string) {
@@ -72,7 +72,7 @@ export function createMainAppWindow() {
     mainAppWindow?.webContents.send('mainapp:close-requested');
   });
 
-  // Handler để lấy unsaved flags từ tất cả child windows
+  // Handler to get unsaved flags from all child windows
   ipcMain.handle('mainapp:get-unsaved-datas-flag', async () => {
     // console.log('[windowManager] Getting unsaved datas flag, childWindows count:', childWindows.length);
     if (!mainAppWindow || childWindows.length === 0) {
@@ -88,7 +88,7 @@ export function createMainAppWindow() {
         const requestId = `unsaved-check-${win.webContents.id}-${Date.now()}-${Math.random()}`;
         // console.log('[windowManager] Sending request to child window:', requestId);
         
-        // Lắng nghe response với requestId để match
+        // Listen to response with requestId to match
         const responseHandler = (_event: any, data: { requestId: string, hasUnsaved: boolean }) => {
           // console.log('[windowManager] Received response:', data);
           if (data.requestId === requestId) {
@@ -100,15 +100,15 @@ export function createMainAppWindow() {
         
         ipcMain.on('window:unsaved-datas-response', responseHandler);
         
-        // Gửi request với requestId
+        // Send request with requestId
         win.webContents.send('window:get-unsaved-datas-flag', requestId);
         
-        // Timeout để tránh treo nếu child window không phản hồi
+        // Timeout to avoid hanging if child window does not respond
         setTimeout(() => {
           ipcMain.removeListener('window:unsaved-datas-response', responseHandler);
           // console.log('[windowManager] Timeout waiting for response from child window:', requestId);
           resolve(false);
-        }, 2000); // Tăng timeout lên 2 giây
+        }, 2000); // Increase timeout to 2 seconds
       })
     );
 
@@ -130,11 +130,11 @@ export function createMainAppWindow() {
           }
         });
       } else {
-        // Khi không save, cần remove close handler trước khi destroy
+        // When not saving, need to remove close handler before destroying
         childWindows.forEach((win) => {
           if (win && !win.isDestroyed()) {
             // console.log('[windowManager] Destroying child window directly');
-            // Remove close handler để tránh prevent default
+            // Remove close handler to prevent default
             win.removeAllListeners('close');
             win.destroy();
           }
@@ -156,7 +156,7 @@ export function createMainAppWindow() {
   return mainAppWindow;
 }
 
-export function createRecorderWindow(testcaseId?: string, projectId?: string, testcaseName?: string, browserType?: string) {
+export function createRecorderWindow(testcaseId?: string, projectId?: string, testcaseName?: string, browserType?: string, testSuiteId?: string) {
   const recorderWindow = createWindow({ width: 500, height: 800 }, "recorder");
   childWindows.push(recorderWindow);
   if (testcaseId) {
@@ -178,12 +178,15 @@ export function createRecorderWindow(testcaseId?: string, projectId?: string, te
     }
   });
 
+  // console.log('[WindowManager] TestSuite ID', testSuiteId);
+
   if (testcaseId) {
     setTimeout(() => {
       const currentUrl = recorderWindow.webContents.getURL();
       const separator = currentUrl.includes('?') ? '&' : '?';
       const browserTypeParam = browserType ? `&browserType=${encodeURIComponent(browserType)}` : '';
-      const newUrl = `${currentUrl}${separator}testcaseId=${encodeURIComponent(testcaseId)}&projectId=${encodeURIComponent(projectId || '')}${browserTypeParam}`;
+      const testSuiteIdParam = testSuiteId ? `&testSuiteId=${encodeURIComponent(testSuiteId)}` : '';
+      const newUrl = `${currentUrl}${separator}testcaseId=${encodeURIComponent(testcaseId)}&projectId=${encodeURIComponent(projectId || '')}${browserTypeParam}${testSuiteIdParam}`;
       recorderWindow.loadURL(newUrl);
     }, 1000);
   } else { }

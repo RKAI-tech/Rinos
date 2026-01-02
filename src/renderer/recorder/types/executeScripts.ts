@@ -51,6 +51,7 @@ export interface GenerationCodeResponse{
 }
 export interface GenerationCodeRequest {
     testcase_id: string;
+    test_suite_id?: string;
     actions: Action[];
     basic_auth?: BasicAuthentication;
 }

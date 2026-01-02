@@ -1,24 +1,31 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Action, ActionDataGeneration } from '../../types/actions';
+import { Action, ActionDataGeneration } from '../../../types/actions';
+import { TestCaseDataVersion } from '../../../types/testcases';
 import { toast } from 'react-toastify';
 import GenerateActionValueModal from './GenerateActionValueModal';
 import EditActionValuesModal from './EditActionValuesModal';
-import './NewVersionModal.css';
+import './EditVersionModal.css';
 
-interface NewVersionModalProps {
+interface EditVersionModalProps {
   actions: Action[];
+  version: TestCaseDataVersion;
   onClose: () => void;
-  onCreateVersion: (version: { version: string; action_data_generation_ids: string[] }) => void;
+  onUpdateVersion: (version: { version: string; action_data_generation_ids: string[] }) => void;
   onActionsChange?: (updater: (prev: Action[]) => Action[]) => void;
+  testcaseDataVersions?: TestCaseDataVersion[];
+  onTestCaseDataVersionsChange?: (updater: (prev: TestCaseDataVersion[]) => TestCaseDataVersion[]) => void;
 }
 
-const NewVersionModal: React.FC<NewVersionModalProps> = ({
+const EditVersionModal: React.FC<EditVersionModalProps> = ({
   actions,
+  version,
   onClose,
-  onCreateVersion,
+  onUpdateVersion,
   onActionsChange,
+  testcaseDataVersions,
+  onTestCaseDataVersionsChange,
 }) => {
-  const [versionName, setVersionName] = useState('');
+  const [versionName, setVersionName] = useState(version.version || '');
   const [selectedGenerations, setSelectedGenerations] = useState<Map<string, string>>(new Map());
   const [isCreating, setIsCreating] = useState(false);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
@@ -64,16 +71,35 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
       .filter((item): item is NonNullable<typeof item> => item !== null);
   }, [actions]);
 
-  // Initialize selected generations with first available generation for each action
+  // Initialize selected generations from version
   useEffect(() => {
     const initialSelections = new Map<string, string>();
+    
+    // Get generation IDs from the version
+    const versionGenIds = (version.action_data_generations || [])
+      .map(gen => gen.action_data_generation_id)
+      .filter((id): id is string => !!id);
+    
+    // Map each generation ID to its action
+    versionGenIds.forEach((genId: string) => {
+      for (const action of actions) {
+        const gen = action.action_data_generation?.find(g => g.action_data_generation_id === genId);
+        if (gen && action.action_id) {
+          initialSelections.set(action.action_id, genId);
+          break;
+        }
+      }
+    });
+    
+    // For actions without a selected generation, use first available
     actionsWithData.forEach(({ action, generations }) => {
-      if (generations.length > 0 && generations[0].action_data_generation_id) {
+      if (!initialSelections.has(action.action_id || '') && generations.length > 0 && generations[0].action_data_generation_id) {
         initialSelections.set(action.action_id || '', generations[0].action_data_generation_id);
       }
     });
+    
     setSelectedGenerations(initialSelections);
-  }, [actionsWithData]);
+  }, [version, actions, actionsWithData]);
 
   const handleSelectGeneration = (actionId: string, generationId: string) => {
     setSelectedGenerations(prev => {
@@ -132,6 +158,7 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
     }));
 
     // Select the newly created generation immediately
+    // This will update the dropdown selection right away
     handleSelectGeneration(actionId, tempId);
 
     toast.success('New generation created and selected successfully');
@@ -139,13 +166,13 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
 
   const handleConfirm = () => {
     if (!versionName.trim()) {
-      toast.error('Please enter a version name');
+      toast.error('Please enter a Test Data name');
       return;
     }
 
     const generationIds: string[] = [];
     selectedGenerations.forEach((genId) => {
-      if (genId) {
+      if (genId && genId !== '__create_new__') {
         generationIds.push(genId);
       }
     });
@@ -155,21 +182,19 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
       return;
     }
 
-    const newVersion = {
+    const updatedVersion = {
       version: versionName.trim(),
       action_data_generation_ids: generationIds,
     };
 
-    onCreateVersion(newVersion);
-    setVersionName('');
-    setSelectedGenerations(new Map());
+    onUpdateVersion(updatedVersion);
   };
 
   return (
     <div className="new-version-modal-overlay" onClick={onClose}>
       <div className="new-version-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="new-version-modal-header">
-          <h3 className="new-version-modal-title">Create New Version</h3>
+          <h3 className="new-version-modal-title">Edit Test Data</h3>
           <button className="new-version-modal-close" onClick={onClose}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -178,14 +203,14 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
         </div>
 
         <div className="new-version-modal-body">
-          <div className="new-version-name-input-horizontal">
-            <label className="new-version-label-horizontal">Version Name:</label>
+          <div className="edit-version-name-input">
+            <label className="edit-version-label">Dataset:</label>
             <input
               type="text"
-              className="new-version-input-horizontal"
+              className="edit-version-input"
               value={versionName}
               onChange={(e) => setVersionName(e.target.value)}
-              placeholder="Enter version name"
+              placeholder="Enter Test Data name"
             />
           </div>
 
@@ -209,28 +234,46 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
                       )}
                     </div>
                     <div className="new-version-action-select">
-                      <select
-                        className="new-version-select"
-                        value={selectedGenId}
-                        onChange={(e) => handleSelectGeneration(action.action_id || '', e.target.value)}
-                      >
-                        {generations.length === 0 && (
-                          <option value="">No generations available</option>
-                        )}
-                        {generations.map((gen, idx) => {
-                          const genValue = gen.value && typeof gen.value === 'object'
-                            ? (gen.value as any).value ?? JSON.stringify(gen.value)
-                            : gen.value || '';
-                          const displayValue = typeof genValue === 'string'
-                            ? genValue.substring(0, 50) + (genValue.length > 50 ? '...' : '')
-                            : JSON.stringify(genValue).substring(0, 50) + '...';
-                          return (
-                            <option key={gen.action_data_generation_id || idx} value={gen.action_data_generation_id || ''}>
-                              {displayValue}
-                            </option>
-                          );
-                        })}
-                      </select>
+                      {(() => {
+                        const selectedGen = generations.find(g => g.action_data_generation_id === selectedGenId);
+                        const fullValue = selectedGen
+                          ? (selectedGen.value && typeof selectedGen.value === 'object'
+                              ? (selectedGen.value as any).value ?? JSON.stringify(selectedGen.value)
+                              : selectedGen.value || '')
+                          : '';
+                        const tooltipText = typeof fullValue === 'string'
+                          ? fullValue
+                          : JSON.stringify(fullValue);
+                        return (
+                          <select
+                            className="new-version-select"
+                            value={selectedGenId}
+                            onChange={(e) => handleSelectGeneration(action.action_id || '', e.target.value)}
+                            title={tooltipText}
+                          >
+                            {generations.length === 0 && (
+                              <option value="">No generations available</option>
+                            )}
+                            {generations.map((gen, idx) => {
+                              const genValue = gen.value && typeof gen.value === 'object'
+                                ? (gen.value as any).value ?? JSON.stringify(gen.value)
+                                : gen.value || '';
+                              const maxLength = 35; // Phù hợp với width 300px của dropdown
+                              const fullText = typeof genValue === 'string'
+                                ? genValue
+                                : JSON.stringify(genValue);
+                              const displayValue = fullText.length > maxLength
+                                ? fullText.substring(0, maxLength) + '...'
+                                : fullText;
+                              return (
+                                <option key={gen.action_data_generation_id || idx} value={gen.action_data_generation_id || ''} title={fullText}>
+                                  {displayValue}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        );
+                      })()}
                       <button
                         className="new-version-edit-btn"
                         onClick={() => handleOpenEditValues(action.action_id || '')}
@@ -243,7 +286,7 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
                         </svg>
                       </button>
                       <button
-                        className="new-version-generate-btn"
+                        className="edit-version-generate-btn"
                         onClick={() => handleOpenGenerate(action.action_id || '')}
                         disabled={isCreating}
                         title="Generate new action value"
@@ -267,7 +310,7 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
             onClick={handleConfirm}
             disabled={!versionName.trim()}
           >
-            Create Version
+            Update Test Data
           </button>
         </div>
       </div>
@@ -293,15 +336,14 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
             setCurrentActionIdForEdit(null);
           }}
           onActionsChange={onActionsChange}
-          onValueUpdated={() => {
-            // The action will be updated through onActionsChange
-            // The modal will sync automatically via the action prop
-          }}
+          testcaseDataVersions={testcaseDataVersions}
+          onTestCaseDataVersionsChange={onTestCaseDataVersionsChange}
+          onValueUpdated={() => {}}
         />
       )}
     </div>
   );
 };
 
-export default NewVersionModal;
+export default EditVersionModal;
 

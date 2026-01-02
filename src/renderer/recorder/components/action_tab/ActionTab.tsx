@@ -125,6 +125,28 @@ const ActionTab: React.FC<ActionTabProps> = ({
   const [isDataVersionModalOpen, setIsDataVersionModalOpen] = useState(false);
   // Use testcaseDataVersions from props (managed by Main component)
   const testcaseDataVersions = propTestCaseDataVersions || [];
+  
+  // Get current version name from actions
+  const currentVersionName = useMemo(() => {
+    // Tìm currentVersion từ action đầu tiên có action_data_generation
+    for (const action of actions) {
+      if (action.action_data_generation && action.action_data_generation.length > 0) {
+        for (const ad of action.action_datas || []) {
+          if (ad.value && typeof ad.value === 'object' && ad.value.currentVersion) {
+            const versionName = String(ad.value.currentVersion);
+            // Tìm version tương ứng trong testcaseDataVersions
+            const version = testcaseDataVersions.find(v => v.version === versionName);
+            if (version && version.version) {
+              return version.version;
+            }
+            return versionName;
+          }
+        }
+      }
+    }
+    return null;
+  }, [actions, testcaseDataVersions]);
+  
   const listRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [reloadStatus, setReloadStatus] = useState<'idle' | 'loading' | 'success'>('idle');
@@ -374,7 +396,6 @@ const ActionTab: React.FC<ActionTabProps> = ({
   };
 
   const handleSaveClick = async () => {
-    // console.log('component: save actions', actions);
     if (!onSaveActions) {
       return;
     }
@@ -387,15 +408,14 @@ const ActionTab: React.FC<ActionTabProps> = ({
     setSaveStatus('loading');
 
     try {
-      const rawResult = await onSaveActions(testcaseDataVersions.length > 0 ? testcaseDataVersions : undefined);
+      if (testcaseDataVersions.length < 0) {
+        toast.error('No testcase data versions found');
+        return;
+      }
+      const rawResult = await onSaveActions(testcaseDataVersions);
       const normalized = normalizeResult(rawResult);
       if (normalized.success) {
         setSaveSuccessWithTimeout();
-        // ❌ XÓA phần này - Main.tsx đã xử lý reload rồi
-        // // Clear testcaseDataVersions after successful save
-        // if (onTestCaseDataVersionsChange) {
-        //   onTestCaseDataVersionsChange(() => []);
-        // }
       } else {
         setSaveStatus('idle');
       }
@@ -830,7 +850,9 @@ const ActionTab: React.FC<ActionTabProps> = ({
       <div className="rcd-actions-header">
         <div className="rcd-actions-header-left">
           <h3 className="rcd-actions-title">Actions</h3>
-          <div className="rcd-actions-insert-info">Inserting at position #{selectedInsertPosition}</div>
+          <div className="rcd-actions-insert-info">
+            {currentVersionName ? `Version: ${currentVersionName}` : `Inserting at position #${selectedInsertPosition}`}
+          </div>
         </div>
         <div className="rcd-actions-buttons">
           <button
@@ -1003,7 +1025,9 @@ const ActionTab: React.FC<ActionTabProps> = ({
         </div>
         <DataVersionModal
           isOpen={isDataVersionModalOpen}
-          onClose={() => setIsDataVersionModalOpen(false)}
+          onClose={() => {
+            setIsDataVersionModalOpen(false);
+          }}
           actions={actions}
           testcaseId={testcaseId}
           onActionsChange={onActionsChange}

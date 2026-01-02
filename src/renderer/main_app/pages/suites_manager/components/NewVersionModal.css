@@ -1,4 +1,4 @@
-/* Edit Version Modal Styles - Reuses New Version Modal styles */
+/* New Version Modal Styles */
 .new-version-modal-overlay {
   position: fixed;
   top: 0;
@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10001;
+  z-index: 2147483648; /* Higher than TestcaseDataVersionModal (2147483647) */
 }
 
 .new-version-modal-content {
@@ -66,7 +66,7 @@
   margin-bottom: 16px;
 }
 
-.edit-version-name-input {
+.new-version-name-input-horizontal {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -81,7 +81,7 @@
   margin-bottom: 8px;
 }
 
-.edit-version-label {
+.new-version-label-horizontal {
   font-size: 14px;
   font-weight: 500;
   color: #374151;
@@ -99,7 +99,7 @@
   transition: all 0.2s;
 }
 
-.edit-version-input {
+.new-version-input-horizontal {
   flex: 1;
   max-width: 300px;
   padding: 6px 10px;
@@ -112,12 +112,12 @@
 }
 
 .new-version-input:hover,
-.edit-version-input:hover {
+.new-version-input-horizontal:hover {
   border-color: #9ca3af;
 }
 
 .new-version-input:focus,
-.edit-version-input:focus {
+.new-version-input-horizontal:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
@@ -178,9 +178,6 @@
 
 .new-version-select {
   flex: 1;
-  min-width: 0;
-  max-width: 300px;
-  width: 300px;
   padding: 6px 10px;
   border: 1px solid #d1d5db;
   border-radius: 4px;
@@ -190,21 +187,6 @@
   cursor: pointer;
   transition: all 0.2s;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  box-sizing: border-box;
-}
-
-.new-version-select option {
-  max-width: 300px;
-  width: 300px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: block;
-  padding: 4px 8px;
-  box-sizing: border-box;
 }
 
 .new-version-select:hover {
@@ -267,7 +249,7 @@
   opacity: 0.5;
 }
 
-.edit-version-generate-btn {
+.new-version-generate-btn {
   padding: 6px 12px;
   background: #8b5cf6;
   color: white;
@@ -280,11 +262,11 @@
   white-space: nowrap;
 }
 
-.edit-version-generate-btn:hover:not(:disabled) {
+.new-version-generate-btn:hover:not(:disabled) {
   background: #7c3aed;
 }
 
-.edit-version-generate-btn:disabled {
+.new-version-generate-btn:disabled {
   background: #9ca3af;
   cursor: not-allowed;
   opacity: 0.6;

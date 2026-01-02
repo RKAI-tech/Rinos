@@ -7,6 +7,7 @@ export default function App() {
   const [testcaseId, setTestcaseId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [browserType, setBrowserType] = useState<string | null>(null);
+  const [testSuiteId, setTestSuiteId] = useState<string | null>(null);
   const [isTokenSynced, setIsTokenSynced] = useState(false);
 
 
@@ -54,6 +55,12 @@ export default function App() {
       return browserTypeFromUrl || null;
     };
 
+    const getTestSuiteId = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const testSuiteIdFromUrl = urlParams.get('testSuiteId');
+      return testSuiteIdFromUrl || null;
+    };
+
     const id = getTestcaseId();
     if (id) {
       setTestcaseId(id);
@@ -75,6 +82,12 @@ export default function App() {
       setBrowserType(browserType);
       // console.log('[Recorder App] Received browser type:', browserType);
     }
+
+    const testSuiteId = getTestSuiteId();
+    if (testSuiteId) {
+      setTestSuiteId(testSuiteId);
+      // console.log('[Recorder App] Received test suite ID:', testSuiteId);
+    }
   }, []);
 
   // Chỉ render Main khi token đã được sync
@@ -95,7 +108,7 @@ export default function App() {
 
   return (
     <>
-      <Main testcaseId={testcaseId} projectId={projectId} browserType={browserType} />
+      <Main testcaseId={testcaseId} projectId={projectId} browserType={browserType} testSuiteId={testSuiteId} />
       <ToastContainer position="top-right" autoClose={3000} newestOnTop closeOnClick pauseOnHover theme="colored" />
     </>
   );

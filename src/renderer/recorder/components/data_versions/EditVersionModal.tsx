@@ -3,6 +3,7 @@ import { Action, ActionDataGeneration } from '../../types/actions';
 import { TestCaseDataVersion } from '../../types/testcase';
 import { toast } from 'react-toastify';
 import GenerateActionValueModal from './GenerateActionValueModal';
+import EditActionValuesModal from './EditActionValuesModal';
 import './EditVersionModal.css';
 
 interface EditVersionModalProps {
@@ -11,6 +12,8 @@ interface EditVersionModalProps {
   onClose: () => void;
   onUpdateVersion: (version: { version: string; action_data_generation_ids: string[] }) => void;
   onActionsChange?: (updater: (prev: Action[]) => Action[]) => void;
+  testcaseDataVersions?: TestCaseDataVersion[];
+  onTestCaseDataVersionsChange?: (updater: (prev: TestCaseDataVersion[]) => TestCaseDataVersion[]) => void;
 }
 
 const EditVersionModal: React.FC<EditVersionModalProps> = ({
@@ -19,12 +22,21 @@ const EditVersionModal: React.FC<EditVersionModalProps> = ({
   onClose,
   onUpdateVersion,
   onActionsChange,
+  testcaseDataVersions,
+  onTestCaseDataVersionsChange,
 }) => {
   const [versionName, setVersionName] = useState(version.version || '');
   const [selectedGenerations, setSelectedGenerations] = useState<Map<string, string>>(new Map());
   const [isCreating, setIsCreating] = useState(false);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [currentActionForGenerate, setCurrentActionForGenerate] = useState<Action | null>(null);
+  const [editValuesModalOpen, setEditValuesModalOpen] = useState(false);
+  const [currentActionIdForEdit, setCurrentActionIdForEdit] = useState<string | null>(null);
+
+  // Get current action for edit from actions prop
+  const currentActionForEdit = currentActionIdForEdit
+    ? actions.find(a => a.action_id === currentActionIdForEdit) || null
+    : null;
 
   // Find all actions that use data (have action_data_generation or generation_data_function_code)
   const actionsWithData = useMemo(() => {
@@ -102,6 +114,14 @@ const EditVersionModal: React.FC<EditVersionModalProps> = ({
     if (action) {
       setCurrentActionForGenerate(action);
       setGenerateModalOpen(true);
+    }
+  };
+
+  const handleOpenEditValues = (actionId: string) => {
+    const action = actions.find(a => a.action_id === actionId);
+    if (action) {
+      setCurrentActionIdForEdit(actionId);
+      setEditValuesModalOpen(true);
     }
   };
 
@@ -214,28 +234,57 @@ const EditVersionModal: React.FC<EditVersionModalProps> = ({
                       )}
                     </div>
                     <div className="new-version-action-select">
-                      <select
-                        className="new-version-select"
-                        value={selectedGenId}
-                        onChange={(e) => handleSelectGeneration(action.action_id || '', e.target.value)}
+                      {(() => {
+                        const selectedGen = generations.find(g => g.action_data_generation_id === selectedGenId);
+                        const fullValue = selectedGen
+                          ? (selectedGen.value && typeof selectedGen.value === 'object'
+                              ? (selectedGen.value as any).value ?? JSON.stringify(selectedGen.value)
+                              : selectedGen.value || '')
+                          : '';
+                        const tooltipText = typeof fullValue === 'string'
+                          ? fullValue
+                          : JSON.stringify(fullValue);
+                        return (
+                          <select
+                            className="new-version-select"
+                            value={selectedGenId}
+                            onChange={(e) => handleSelectGeneration(action.action_id || '', e.target.value)}
+                            title={tooltipText}
+                          >
+                            {generations.length === 0 && (
+                              <option value="">No generations available</option>
+                            )}
+                            {generations.map((gen, idx) => {
+                              const genValue = gen.value && typeof gen.value === 'object'
+                                ? (gen.value as any).value ?? JSON.stringify(gen.value)
+                                : gen.value || '';
+                              const maxLength = 35; // Phù hợp với width 300px của dropdown
+                              const fullText = typeof genValue === 'string'
+                                ? genValue
+                                : JSON.stringify(genValue);
+                              const displayValue = fullText.length > maxLength
+                                ? fullText.substring(0, maxLength) + '...'
+                                : fullText;
+                              return (
+                                <option key={gen.action_data_generation_id || idx} value={gen.action_data_generation_id || ''} title={fullText}>
+                                  {displayValue}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        );
+                      })()}
+                      <button
+                        className="new-version-edit-btn"
+                        onClick={() => handleOpenEditValues(action.action_id || '')}
+                        disabled={isCreating}
+                        title="Edit action values"
                       >
-                        {generations.length === 0 && (
-                          <option value="">No generations available</option>
-                        )}
-                        {generations.map((gen, idx) => {
-                          const genValue = gen.value && typeof gen.value === 'object'
-                            ? (gen.value as any).value ?? JSON.stringify(gen.value)
-                            : gen.value || '';
-                          const displayValue = typeof genValue === 'string'
-                            ? genValue.substring(0, 50) + (genValue.length > 50 ? '...' : '')
-                            : JSON.stringify(genValue).substring(0, 50) + '...';
-                          return (
-                            <option key={gen.action_data_generation_id || idx} value={gen.action_data_generation_id || ''}>
-                              {displayValue}
-                            </option>
-                          );
-                        })}
-                      </select>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
                       <button
                         className="edit-version-generate-btn"
                         onClick={() => handleOpenGenerate(action.action_id || '')}
@@ -275,6 +324,21 @@ const EditVersionModal: React.FC<EditVersionModalProps> = ({
             setCurrentActionForGenerate(null);
           }}
           onSave={handleSaveGeneratedValue}
+        />
+      )}
+
+      {/* Edit Action Values Modal */}
+      {editValuesModalOpen && currentActionForEdit && (
+        <EditActionValuesModal
+          action={currentActionForEdit}
+          onClose={() => {
+            setEditValuesModalOpen(false);
+            setCurrentActionIdForEdit(null);
+          }}
+          onActionsChange={onActionsChange}
+          testcaseDataVersions={testcaseDataVersions}
+          onTestCaseDataVersionsChange={onTestCaseDataVersionsChange}
+          onValueUpdated={() => {}}
         />
       )}
     </div>

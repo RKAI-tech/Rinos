@@ -12,6 +12,7 @@ interface UseBrowserHandlersParams {
   setIsInstallBrowserModalOpen: (open: boolean) => void;
   setIsInstallingBrowsers: (installing: boolean) => void;
   setInstallProgress: (progress: { browser: string; progress: number; status: string } | null) => void;
+  testSuiteId?: string | null;
 }
 
 export const useBrowserHandlers = ({
@@ -22,6 +23,7 @@ export const useBrowserHandlers = ({
   setIsInstallBrowserModalOpen,
   setIsInstallingBrowsers,
   setInstallProgress,
+  testSuiteId,
 }: UseBrowserHandlersParams) => {
   /**
    * Check if browser is installed
@@ -59,7 +61,7 @@ export const useBrowserHandlers = ({
       const testcaseName = testcase?.name || id;
       const browserType = testcase?.browser_type || BrowserType.chrome;
       
-      const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectId, testcaseName, browserType);
+      const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectId, testcaseName, browserType, testSuiteId);
       if (result?.alreadyOpen) {
         toast.warning('Recorder for this testcase is already open.');
       } else if (result?.created) {
@@ -69,7 +71,7 @@ export const useBrowserHandlers = ({
       console.error('[SuitesManager] openRecorder error:', err);
       toast.error('Failed to open recorder');
     }
-  }, [testcases, projectId]);
+  }, [testcases, projectId, testSuiteId]);
 
   /**
    * Handle opening recorder with browser check

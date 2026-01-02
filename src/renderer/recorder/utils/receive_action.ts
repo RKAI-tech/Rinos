@@ -198,7 +198,10 @@ function createActionDataGeneration(action_received: any): ActionDataGeneration[
 
     // Chỉ tạo version nếu có value
     if (value !== undefined && value !== null && value !== '') {
+        // Tạo temp ID cho generation để có thể được reference trong version
+        const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         return [{
+            action_data_generation_id: tempId,
             version_number: 1,
             value: {
                 value: String(value)

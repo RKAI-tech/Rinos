@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Action } from '../../types/actions';
-import { ActionService } from '../../services/actions';
-import { executeJavaScript } from '../../pages/main/utils/executeJavaScript';
+import { Action } from '../../../types/actions';
+import { ActionService } from '../../../services/actions';
+import { executeJavaScript } from '../../../utils/executeJavaScript';
 import { toast } from 'react-toastify';
 import './GenerateActionValueModal.css';
 
@@ -167,10 +167,6 @@ const GenerateActionValueModal: React.FC<GenerateActionValueModalProps> = ({
         <div className="generate-action-value-modal-header">
           <div className="generate-action-value-modal-title-wrapper">
             <h3 className="generate-action-value-modal-title">
-              {/* {action.action_type || 'Action'}
-              {action.description && (
-                <span className="generate-action-value-modal-subtitle"> - {action.description}</span>
-              )} */}
               Generate new action value
             </h3>
           </div>

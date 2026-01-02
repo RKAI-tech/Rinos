@@ -5,6 +5,7 @@ import {
     Action,
     GenerateRandomDataFunctionRequest,
     GenerateRandomDataFunctionResponse,
+    TestCaseDataVersion,
 } from '../types/actions';
 import { DefaultResponse } from '../types/api_responses';
 
@@ -34,7 +35,7 @@ export class ActionService {
         });
     }
 
-    async batchCreateActions(actions: Action[]): Promise<ApiResponse<DefaultResponse>> {
+    async batchCreateActions(actions: Action[], testcaseDataVersions?: TestCaseDataVersion[]): Promise<ApiResponse<DefaultResponse>> {
         // Input validation
         if (!actions || !Array.isArray(actions) || actions.length === 0) {
             return {
@@ -59,14 +60,28 @@ export class ActionService {
             }
         }
 
-        const requestBody: ActionBatch = { actions };
+        // Chuẩn hoá version_number cho action_data_generation (đánh số từ 1 trở đi theo thứ tự mảng)
+        const normalizedActions: Action[] = actions.map((action) => {
+            if (!action.action_data_generation || action.action_data_generation.length === 0) {
+                return action;
+            }
+            const gens = action.action_data_generation.map((gen, idx) => ({
+                ...gen,
+                version_number: idx + 1,
+            }));
+            return {
+                ...action,
+                action_data_generation: gens,
+            };
+        });
+
+        const requestBody: ActionBatch = { actions: normalizedActions, testcase_data_versions: testcaseDataVersions };
 
         const response = await apiRouter.request<DefaultResponse>('/actions/batch-create', {
             method: 'POST',
             body: JSON.stringify(requestBody),
         });
         
-        // console.log('[ApiRouter] Batch create response:', response);
         return response;
     }
 

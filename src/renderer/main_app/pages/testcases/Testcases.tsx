@@ -193,7 +193,7 @@ const Testcases: React.FC = () => {
   const sidebarItems = [
     {
       id: 'suites-manager',
-      label: 'Test Manager',
+      label: 'Suites Manager',
       path: `/suites-manager/${projectId || ''}`,
       isActive: false
     },
@@ -203,12 +203,13 @@ const Testcases: React.FC = () => {
       path: `/testcases/${projectId || ''}`,
       isActive: true
     },
-    {
-      id: 'test-suites',
-      label: 'Test Suites',
-      path: `/test-suites/${projectId || ''}`,
-      isActive: false
-    },
+    // Temporarily disabled Test Suites navigation
+    // {
+    //   id: 'test-suites',
+    //   label: 'Test Suites',
+    //   path: `/test-suites/${projectId || ''}`,
+    //   isActive: false
+    // },
     {
       id: 'browser-storage',
       label: 'Browser Storage',

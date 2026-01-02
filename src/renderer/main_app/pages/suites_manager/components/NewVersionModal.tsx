@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Action, ActionDataGeneration } from '../../types/actions';
+import { Action, ActionDataGeneration } from '../../../types/actions';
+import { TestCaseDataVersion } from '../../../types/testcases';
 import { toast } from 'react-toastify';
 import GenerateActionValueModal from './GenerateActionValueModal';
 import EditActionValuesModal from './EditActionValuesModal';
@@ -10,6 +11,8 @@ interface NewVersionModalProps {
   onClose: () => void;
   onCreateVersion: (version: { version: string; action_data_generation_ids: string[] }) => void;
   onActionsChange?: (updater: (prev: Action[]) => Action[]) => void;
+  testcaseDataVersions?: TestCaseDataVersion[];
+  onTestCaseDataVersionsChange?: (updater: (prev: TestCaseDataVersion[]) => TestCaseDataVersion[]) => void;
 }
 
 const NewVersionModal: React.FC<NewVersionModalProps> = ({
@@ -17,6 +20,8 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
   onClose,
   onCreateVersion,
   onActionsChange,
+  testcaseDataVersions,
+  onTestCaseDataVersionsChange,
 }) => {
   const [versionName, setVersionName] = useState('');
   const [selectedGenerations, setSelectedGenerations] = useState<Map<string, string>>(new Map());
@@ -139,7 +144,7 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
 
   const handleConfirm = () => {
     if (!versionName.trim()) {
-      toast.error('Please enter a version name');
+      toast.error('Please enter a Test Data name');
       return;
     }
 
@@ -169,7 +174,7 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
     <div className="new-version-modal-overlay" onClick={onClose}>
       <div className="new-version-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="new-version-modal-header">
-          <h3 className="new-version-modal-title">Create New Version</h3>
+          <h3 className="new-version-modal-title">Create New Test Data</h3>
           <button className="new-version-modal-close" onClick={onClose}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -179,13 +184,13 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
 
         <div className="new-version-modal-body">
           <div className="new-version-name-input-horizontal">
-            <label className="new-version-label-horizontal">Version Name:</label>
+            <label className="new-version-label-horizontal">Test Data Name:</label>
             <input
               type="text"
               className="new-version-input-horizontal"
               value={versionName}
               onChange={(e) => setVersionName(e.target.value)}
-              placeholder="Enter version name"
+              placeholder="Enter Test Data name"
             />
           </div>
 
@@ -267,7 +272,7 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
             onClick={handleConfirm}
             disabled={!versionName.trim()}
           >
-            Create Version
+            Create Test Data
           </button>
         </div>
       </div>
@@ -293,6 +298,8 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
             setCurrentActionIdForEdit(null);
           }}
           onActionsChange={onActionsChange}
+          testcaseDataVersions={testcaseDataVersions}
+          onTestCaseDataVersionsChange={onTestCaseDataVersionsChange}
           onValueUpdated={() => {
             // The action will be updated through onActionsChange
             // The modal will sync automatically via the action prop

@@ -1,15 +1,107 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Action, Element as ActionElement, TestCaseDataVersion } from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
 import { ActionOperationResult } from '../../../components/action_tab/ActionTab';
 import { receiveActionWithInsert } from '../../../utils/receive_action';
+import { TestCaseDataVersion as TestCaseDataVersionFromAPI } from '../../../types/testcase';
 
 interface UseActionsProps {
   testcaseId: string | null;
   onDirtyChange?: (isDirty: boolean) => void;
+  testcaseDataVersions?: TestCaseDataVersionFromAPI[];
 }
 
-export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
+// Utility function to apply currentVersion to actions
+const applyCurrentVersionToActions = (
+  actionsToApply: Action[],
+  testcaseDataVersions: TestCaseDataVersionFromAPI[]
+): Action[] => {
+  if (!testcaseDataVersions || testcaseDataVersions.length === 0) {
+    return actionsToApply;
+  }
+
+  return actionsToApply.map(action => {
+    // Chỉ xử lý actions có action_data_generation
+    if (!action.action_data_generation || action.action_data_generation.length === 0) {
+      return action;
+    }
+    
+    // Lấy currentVersion từ action_datas
+    let currentVersionName: string | null = null;
+    for (const ad of action.action_datas || []) {
+      if (ad.value && typeof ad.value === 'object' && ad.value.currentVersion) {
+        currentVersionName = String(ad.value.currentVersion);
+        break;
+      }
+    }
+    
+    // Tìm version tương ứng
+    let selectedGenerationId: string | null = null;
+    if (currentVersionName) {
+      const version = testcaseDataVersions.find(v => v.version === currentVersionName);
+      if (version && version.action_data_generations) {
+        // Tìm generation ID đầu tiên thuộc về action này
+        for (const gen of version.action_data_generations) {
+          if (gen.action_data_generation_id) {
+            const genInAction = action.action_data_generation?.find(
+              g => g.action_data_generation_id === gen.action_data_generation_id
+            );
+            if (genInAction) {
+              selectedGenerationId = gen.action_data_generation_id;
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    // Nếu không tìm thấy, dùng generation đầu tiên
+    if (!selectedGenerationId && action.action_data_generation.length > 0) {
+      selectedGenerationId = action.action_data_generation[0].action_data_generation_id || null;
+    }
+    
+    // Tìm generation và lấy value
+    const selectedGeneration = action.action_data_generation.find(
+      g => g.action_data_generation_id === selectedGenerationId
+    );
+    
+    if (selectedGeneration && selectedGeneration.value) {
+      const generationValue = selectedGeneration.value.value || 
+        (typeof selectedGeneration.value === 'string' ? selectedGeneration.value : '');
+      
+      // Cập nhật action_datas[0].value.value
+      const actionDatas = [...(action.action_datas || [])];
+      let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined);
+      
+      if (foundIndex === -1) {
+        actionDatas.push({ 
+          value: { 
+            value: String(generationValue),
+            ...(currentVersionName ? { currentVersion: currentVersionName } : {})
+          } 
+        });
+      } else {
+        actionDatas[foundIndex] = {
+          ...actionDatas[foundIndex],
+          value: {
+            ...(actionDatas[foundIndex].value || {}),
+            value: String(generationValue),
+            ...(currentVersionName ? { currentVersion: currentVersionName } : {})
+          }
+        };
+      }
+      
+      return {
+        ...action,
+        action_datas: actionDatas
+      };
+    }
+    
+    return action;
+  });
+};
+
+export const useActions = ({ testcaseId, onDirtyChange, testcaseDataVersions = [] }: UseActionsProps) => {
   const [actions, setActions] = useState<Action[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -19,6 +111,8 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
   const [isDirty, setIsDirty] = useState(false);
   
   const actionService = useMemo(() => new ActionService(), []);
+  const previousVersionsRef = useRef<string>('');
+  const lastAppliedActionsRef = useRef<string>('');
 
   // Load actions khi có testcase ID
   useEffect(() => {
@@ -34,12 +128,17 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
             setSavedActionsSnapshot(JSON.parse(JSON.stringify(loaded)));
             setIsDirty(false);
             onDirtyChange?.(false);
+            // Reset ref để force apply version sau khi load
+            previousVersionsRef.current = '';
+            lastAppliedActionsRef.current = '';
           } else {
             setActions([]);
             setSelectedInsertPosition(0);
             setSavedActionsSnapshot([]);
             setIsDirty(false);
             onDirtyChange?.(false);
+            previousVersionsRef.current = '';
+            lastAppliedActionsRef.current = '';
           }
         } catch (error) {
           setActions([]);
@@ -47,6 +146,8 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
           setSavedActionsSnapshot([]);
           setIsDirty(false);
           onDirtyChange?.(false);
+          previousVersionsRef.current = '';
+          lastAppliedActionsRef.current = '';
         } finally {
           setIsLoading(false);
         }
@@ -56,11 +157,47 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
         setSavedActionsSnapshot([]);
         setIsDirty(false);
         onDirtyChange?.(false);
+        previousVersionsRef.current = '';
+        lastAppliedActionsRef.current = '';
       }
     };
 
     loadActions();
   }, [testcaseId, actionService, onDirtyChange]);
+
+  // Áp dụng currentVersion khi testcaseDataVersions thay đổi hoặc sau khi actions được load
+  useEffect(() => {
+    const currentVersionsString = JSON.stringify(testcaseDataVersions);
+    
+    // Bỏ qua nếu versions không thay đổi và đã apply cho actions hiện tại
+    if (currentVersionsString === previousVersionsRef.current) {
+      return;
+    }
+
+    setActions(prevActions => {
+      if (prevActions.length === 0 || testcaseDataVersions.length === 0) {
+        previousVersionsRef.current = currentVersionsString;
+        return prevActions;
+      }
+
+      const appliedActions = applyCurrentVersionToActions(prevActions, testcaseDataVersions);
+      
+      // Chỉ cập nhật nếu có thay đổi thực sự
+      const appliedActionsString = JSON.stringify(appliedActions);
+      const prevActionsString = JSON.stringify(prevActions);
+      
+      if (prevActionsString !== appliedActionsString) {
+        setSavedActionsSnapshot(JSON.parse(JSON.stringify(appliedActions)));
+        previousVersionsRef.current = currentVersionsString;
+        lastAppliedActionsRef.current = appliedActionsString;
+        return appliedActions;
+      }
+      
+      previousVersionsRef.current = currentVersionsString;
+      lastAppliedActionsRef.current = appliedActionsString;
+      return prevActions;
+    });
+  }, [testcaseDataVersions]);
 
   // Đồng bộ nhãn vị trí chèn với độ dài actions khi không chọn vị trí cụ thể
   useEffect(() => {
@@ -146,11 +283,15 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
       const response = await actionService.getActionsByTestCase(effectiveId);
       if (response.success && response.data) {
         const newActions = response.data.actions || [];
-        setActions(newActions);
-        setSavedActionsSnapshot(JSON.parse(JSON.stringify(newActions)));
+        // Apply currentVersion to actions if testcaseDataVersions are available
+        const appliedActions = testcaseDataVersions.length > 0 
+          ? applyCurrentVersionToActions(newActions, testcaseDataVersions)
+          : newActions;
+        setActions(appliedActions);
+        setSavedActionsSnapshot(JSON.parse(JSON.stringify(appliedActions)));
         setIsDirty(false);
         onDirtyChange?.(false);
-        const len = newActions.length;
+        const len = appliedActions.length;
         setSelectedInsertPosition(len);
         setDisplayInsertPosition(len);
         return {
@@ -186,7 +327,7 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [testcaseId, actions, actionService, onDirtyChange]);
+  }, [testcaseId, actions, actionService, onDirtyChange, testcaseDataVersions]);
 
   // Normalize actions before saving to ensure elements have correct order_index
   const normalizeActionsForSave = useCallback((actionsToNormalize: Action[]): Action[] => {
@@ -201,10 +342,9 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
   }, []);
 
   const handleSaveActions = useCallback(async (
-    testcaseDataVersions?: TestCaseDataVersion[],
+    testcaseDataVersions?: TestCaseDataVersionFromAPI[],
     checkDuplicates?: (actions: Action[]) => Promise<Action[]>
   ): Promise<ActionOperationResult> => {
-    console.log('hook: save actions', actions);
     if (!testcaseId) {
       return {
         success: false,
@@ -225,6 +365,31 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
       // Normalize actions before saving to ensure elements have correct order_index
       let actionsToSave = normalizeActionsForSave(actions);
       
+      // Đảm bảo tất cả generations có ID
+      actionsToSave = actionsToSave.map(action => {
+        if (!action.action_data_generation || action.action_data_generation.length === 0) {
+          return action;
+        }
+        
+        return {
+          ...action,
+          action_data_generation: action.action_data_generation.map((gen, idx) => {
+            // Nếu generation chưa có ID, tạo temp ID
+            if (!gen.action_data_generation_id) {
+              return {
+                ...gen,
+                action_data_generation_id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                version_number: idx + 1,
+              };
+            }
+            return {
+              ...gen,
+              version_number: idx + 1,
+            };
+          }),
+        };
+      });
+      
       // Kiểm tra duplicate elements nếu có callback
       if (checkDuplicates) {
         actionsToSave = await checkDuplicates(actionsToSave);
@@ -234,7 +399,88 @@ export const useActions = ({ testcaseId, onDirtyChange }: UseActionsProps) => {
         }
       }
       
-      const response = await actionService.batchCreateActions(actionsToSave, testcaseDataVersions);
+      // Tự động thêm action mới vào tất cả các version
+      let versionsToSave = testcaseDataVersions ? [...testcaseDataVersions] : [];
+      console.log('Versions before adding new generations', versionsToSave.filter(v => v.version === 'abcxyz'));
+      
+      if (versionsToSave.length > 0) {
+        // Tìm actions có generation nhưng chưa được reference trong version nào
+        const actionsWithUnreferencedGenerations = actionsToSave.filter(action => {
+          if (!action.action_data_generation || action.action_data_generation.length === 0) {
+            return false;
+          }
+          
+          // Lấy generation đầu tiên của action
+          const firstGeneration = action.action_data_generation[0];
+          if (!firstGeneration || !firstGeneration.action_data_generation_id) {
+            return false;
+          }
+          
+          // Kiểm tra xem generation này có trong version nào không
+          const isReferenced = versionsToSave.some(version => {
+            return version.action_data_generations?.some(gen => 
+              gen.action_data_generation_id === firstGeneration.action_data_generation_id
+            );
+          });
+          
+          return !isReferenced;
+        });
+
+        console.log('Actions with unreferenced generations', actionsWithUnreferencedGenerations.filter(a => a.action_id === 'abcxyz'));
+
+        // Thêm generation đầu tiên của mỗi action mới vào TẤT CẢ các version
+        if (actionsWithUnreferencedGenerations.length > 0) {
+          const newGenerations = actionsWithUnreferencedGenerations
+            .map(action => action.action_data_generation?.[0])
+            .filter((gen): gen is NonNullable<typeof gen> => 
+              gen !== null && 
+              gen !== undefined && 
+              !!gen.action_data_generation_id
+            );
+          
+          // Thêm vào tất cả các version
+          versionsToSave = versionsToSave.map(version => {
+            // Kiểm tra xem generation nào chưa có trong version này
+            const missingGenerations = newGenerations.filter(newGen => {
+              return !version.action_data_generations?.some(
+                existingGen => existingGen.action_data_generation_id === newGen.action_data_generation_id
+              );
+            });
+            
+            if (missingGenerations.length > 0) {
+              return {
+                ...version,
+                action_data_generations: [
+                  ...(version.action_data_generations || []),
+                  ...missingGenerations,
+                ],
+              };
+            }
+            
+            return version;
+          });
+        }
+        console.log('Versions after adding new generations', versionsToSave.filter(v => v.version === 'abcxyz'));
+      }
+
+      // console.log('Actions', actionsToSave);
+      // const hasAbcxyz = versionsToSave.some(v => v.version === 'abcxyz');
+      // if (hasAbcxyz) {
+      //   console.log('Versions', versionsToSave.filter(v => v.version === 'abcxyz'));
+      // }
+      
+      // Convert versions to save format
+      const versionsToSaveFormatted = versionsToSave.length > 0
+        ? versionsToSave.map((v) => ({
+            testcase_data_version_id: v.testcase_data_version_id,
+            version: v.version,
+            action_data_generation_ids: (v as any).action_data_generation_ids,
+          }))
+        : undefined;
+
+      console.log('Versions final', versionsToSaveFormatted?.filter(v => v.version === 'abcxyz'));
+
+      const response = await actionService.batchCreateActions(actionsToSave, versionsToSaveFormatted);
       if (response.success) {
         setSavedActionsSnapshot(JSON.parse(JSON.stringify(actionsToSave)));
         setIsDirty(false);

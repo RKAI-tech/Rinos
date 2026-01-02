@@ -7,7 +7,8 @@ import {
     TestCaseUpdateRequest,
     TestCaseDeleteRequest,
     TestCase,
-    ExecuteTestCaseRequest
+    ExecuteTestCaseRequest,
+    TestCaseDataVersionBatch
 } from '../types/testcases';
 import { DefaultResponse } from '../types/api_responses';
 
@@ -134,6 +135,13 @@ export class TestCaseService {
         return await apiRouter.request<DefaultResponse>(`/runcode/execute_test_case/${payload.testcase_id}`, {
             method: 'POST',
             body: JSON.stringify(payload),
+        });
+    }
+
+    async getTestCaseDataVersions(testcaseId: string): Promise<ApiResponse<TestCaseDataVersionBatch>> {
+        return await apiRouter.request<TestCaseDataVersionBatch>(`/testcases/data_version/get_by_testcase_id/${testcaseId}`, {
+            method: 'POST',
+            body: JSON.stringify({ testcase_id: testcaseId }),
         });
     }
 }

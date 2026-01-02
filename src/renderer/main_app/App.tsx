@@ -112,11 +112,12 @@ function App() {
                 <Testcases />
               </ProtectedRoute>
             } />
-            <Route path="/test-suites/:projectId" element={
+            {/* Temporarily disabled Test Suites navigation */}
+            {/* <Route path="/test-suites/:projectId" element={
               <ProtectedRoute>
                 <TestSuites />
               </ProtectedRoute>
-            } />
+            } /> */}
             <Route path="/suites-manager/:projectId" element={
               <ProtectedRoute>
                 <SuitesManager />

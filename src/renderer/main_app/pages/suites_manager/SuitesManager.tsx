@@ -57,6 +57,7 @@ import SuiteContextMenu from './components/SuiteContextMenu';
 import GroupContextMenu from './components/GroupContextMenu';
 import DeleteGroupModal from './components/DeleteGroupModal';
 import LoadingOverlay from './components/LoadingOverlay';
+import TestcaseDataVersionModal from './components/TestcaseDataVersionModal';
 
 const SuitesManager: React.FC = () => {
   const location = useLocation();
@@ -101,6 +102,10 @@ const SuitesManager: React.FC = () => {
   const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
   const [viewingTestcase, setViewingTestcase] = useState<TestCaseInSuite | null>(null);
   
+  // Data version modal state
+  const [isDataVersionModalOpen, setIsDataVersionModalOpen] = useState(false);
+  const [viewingDataVersionTestcase, setViewingDataVersionTestcase] = useState<TestCaseInSuite | null>(null);
+  
   const [isNewTestcaseMenuOpen, setIsNewTestcaseMenuOpen] = useState(false);
   
   // Browser installation modal state
@@ -130,18 +135,19 @@ const SuitesManager: React.FC = () => {
     updated: number;
   }>({
     name: 200,
-    description: 200,
-    status: 120,
-    browser: 120,
-    order: 85,
-    updated: 150,
+    description: 350,
+    status: 90,
+    browser: 90,
+    order: 80,
+    updated: 80,
   });
   const [rowHeights, setRowHeights] = useState<Map<string, number>>(new Map());
 
   const sidebarItems = useMemo(() => ([
-    { id: 'suites-manager', label: 'Test Manager', path: `/suites-manager/${projectId}`, isActive: true },
+    { id: 'suites-manager', label: 'Suites Manager', path: `/suites-manager/${projectId}`, isActive: true },
     { id: 'testcases', label: 'Testcases', path: `/testcases/${projectId}`, isActive: false },
-    { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
+    // Temporarily disabled Test Suites navigation
+    // { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
     { id: 'browser-storage', label: 'Browser Storage', path: `/browser-storage/${projectId}`, isActive: false },
     { id: 'databases', label: 'Databases', path: `/databases/${projectId}`, isActive: false },
     { id: 'queries', label: 'Queries', path: `/queries/${projectId}`, isActive: false },
@@ -172,6 +178,7 @@ const SuitesManager: React.FC = () => {
     setIsInstallBrowserModalOpen,
     setIsInstallingBrowsers,
     setInstallProgress,
+    testSuiteId: selectedSuiteId,
   });
 
   useEffect(() => {
@@ -315,12 +322,12 @@ const SuitesManager: React.FC = () => {
       if (savedColumnWidths) {
         const parsed = JSON.parse(savedColumnWidths);
         setColumnWidths({
-          name: parsed.name || 200,
-          description: parsed.description || 200,
-          status: parsed.status || 120,
-          browser: parsed.browser || 120,
-          order: parsed.order || 85,
-          updated: parsed.updated || 150,
+          name: parsed.name || 240,
+          description: parsed.description || 560,
+          status: parsed.status || 90,
+          browser: parsed.browser || 90,
+          order: parsed.order || 80,
+          updated: parsed.updated || 90,
         });
       }
 
@@ -869,6 +876,10 @@ const SuitesManager: React.FC = () => {
     onTestcaseEdit: handleOpenEditTestcase,
     onTestcaseDuplicate: handleOpenDuplicateTestcase,
     onTestcaseDelete: openDeleteModal,
+    onTestcaseDatatest: (testcase) => {
+      setViewingDataVersionTestcase(testcase);
+      setIsDataVersionModalOpen(true);
+    },
     onTestcaseChangeLevel: () => {
       // Logic is handled in handleContextMenuAction
     },
@@ -1367,6 +1378,17 @@ const SuitesManager: React.FC = () => {
         testcase={viewingTestcase}
         testSuiteId={selectedSuiteId}
         projectId={projectId}
+      />
+
+      {/* Data Version Modal */}
+      <TestcaseDataVersionModal
+        isOpen={isDataVersionModalOpen}
+        onClose={() => {
+          setIsDataVersionModalOpen(false);
+          setViewingDataVersionTestcase(null);
+        }}
+        testcase={viewingDataVersionTestcase}
+        testSuiteId={selectedSuiteId}
       />
 
       <LoadingOverlay
