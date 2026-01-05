@@ -309,9 +309,7 @@ const Testcases: React.FC = () => {
       const resp = await projectService.getProjectById(projectId);
       if (resp.success && resp.data) {
         const project = resp.data as any;
-        setResolvedProjectName(project.name || projectData.projectName || 'Project');
-      } else if (projectData.projectName) {
-        setResolvedProjectName(projectData.projectName);
+        setResolvedProjectName(project.name || 'Project');
       }
     };
     loadProjectData();

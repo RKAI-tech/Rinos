@@ -11,6 +11,7 @@ import DeleteVariable from '../../components/variable/delete_variable/DeleteVari
 import { toast } from 'react-toastify';
 import { canEdit } from '../../hooks/useProjectPermissions';
 import { VariableListItem } from '../../types/variables';
+import { VariableListItem } from '../../types/variables';
 
 const Variables: React.FC = () => {
   const location = useLocation();
@@ -28,7 +29,19 @@ const Variables: React.FC = () => {
   const [sortBy, setSortBy] = useState<string | null>('user_defined_name');
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [totalVariables, setTotalVariables] = useState(0);
+  // Backend-driven search, pagination, and sorting state
+  const [variables, setVariables] = useState<VariableListItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<string | null>('user_defined_name');
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+  const [totalVariables, setTotalVariables] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // UI state
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -36,7 +49,10 @@ const Variables: React.FC = () => {
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedVar, setSelectedVar] = useState<{ id: string; name?: string } | null>(null);
-  const [isReloading, setIsReloading] = useState(false);
+
+  // Service - use useMemo to avoid recreating on every render
+  const variableService = useMemo(() => new VariableService(), []);
+  const projectService = useMemo(() => new ProjectService(), []);
 
   // Service - use useMemo to avoid recreating on every render
   const variableService = useMemo(() => new VariableService(), []);
@@ -100,11 +116,13 @@ const Variables: React.FC = () => {
         return;
       }
       const resp = await projectService.getProjectById(projectId);
+      const resp = await projectService.getProjectById(projectId);
       if (resp.success && resp.data) {
         setResolvedProjectName((resp.data as any).name || 'Project');
       }
     };
     loadProjectName();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
@@ -182,6 +200,41 @@ const Variables: React.FC = () => {
     setPage(1);
     // The useEffect will automatically trigger when page changes
   };
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setPage(1); // Reset page when searching
+  };
+
+  // Handle clear search
+  const handleClearSearch = () => {
+    setSearch('');
+    setPage(1);
+  };
+
+  // Handle sort
+  const handleSort = (col: string) => {
+    if (sortBy === col) {
+      setOrder(order === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(col);
+      setOrder('asc');
+    }
+    setPage(1); // Reset page when sorting
+  };
+
+  // Handle page size change
+  const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newPageSize = parseInt(e.target.value.split(' ')[0]);
+    setPageSize(newPageSize);
+    setPage(1); // Reset page when changing page size
+  };
+
+  // Reload variables (for reload button)
+  const reloadVariables = () => {
+    setPage(1);
+    // The useEffect will automatically trigger when page changes
+  };
 
   const generatePaginationNumbers = () => {
     const pages: (number | string)[] = [];
@@ -193,6 +246,12 @@ const Variables: React.FC = () => {
   };
   const paginationNumbers = generatePaginationNumbers();
 
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    // Don't reset page here - this is pagination, not a data-altering action
+  };
+  const handlePreviousPage = () => { if (page > 1) setPage(page - 1); };
+  const handleNextPage = () => { if (page < totalPages) setPage(page + 1); };
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
     // Don't reset page here - this is pagination, not a data-altering action
@@ -225,8 +284,23 @@ const Variables: React.FC = () => {
                   placeholder="Search by name or value..."
                   value={search}
                   onChange={handleSearchChange}
+                  value={search}
+                  onChange={handleSearchChange}
                   className="vars-search-input"
                 />
+                {search && (
+                  <button
+                    className="clear-search-btn"
+                    onClick={handleClearSearch}
+                    title="Clear search"
+                    aria-label="Clear search"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                      <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                )}
                 {search && (
                   <button
                     className="clear-search-btn"
@@ -245,7 +319,9 @@ const Variables: React.FC = () => {
               <div className="vars-controls-section">
                 <button
                   className={`reload-btn ${isLoading ? 'is-loading' : ''}`}
+                  className={`reload-btn ${isLoading ? 'is-loading' : ''}`}
                   onClick={reloadVariables}
+                  disabled={isLoading}
                   disabled={isLoading}
                   title="Reload variables"
                   aria-label="Reload variables"
@@ -261,6 +337,8 @@ const Variables: React.FC = () => {
                 <select
                   value={`${pageSize} rows/page`}
                   onChange={handlePageSizeChange}
+                  value={`${pageSize} rows/page`}
+                  onChange={handlePageSizeChange}
                   className="vars-pagination-dropdown"
                 >
                   <option value="10 rows/page">10 rows/page</option>
@@ -274,6 +352,12 @@ const Variables: React.FC = () => {
               <table className="vars-table">
                 <thead>
                   <tr>
+                    <th className={`sortable ${sortBy === 'user_defined_name' ? 'sorted' : ''}`} onClick={() => handleSort('user_defined_name')}><span className="th-content"><span className="th-text">Custom name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'user_defined_name' && order === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'user_defined_name' && order === 'desc' ? 'active' : ''}`}></span></span></span></th>
+                    <th className={`sortable ${sortBy === 'original_name' ? 'sorted' : ''}`} onClick={() => handleSort('original_name')}><span className="th-content"><span className="th-text">Original name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'original_name' && order === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'original_name' && order === 'desc' ? 'active' : ''}`}></span></span></span></th>
+                    <th className="th-content"><span className="th-text">Value</span></th>
+                    <th className="th-content"><span className="th-text">Database name</span></th>
+                    <th className="th-content"><span className="th-text">Database type</span></th>
+                    <th className="th-content"><span className="th-text">Query name</span></th>
                     <th className={`sortable ${sortBy === 'user_defined_name' ? 'sorted' : ''}`} onClick={() => handleSort('user_defined_name')}><span className="th-content"><span className="th-text">Custom name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'user_defined_name' && order === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'user_defined_name' && order === 'desc' ? 'active' : ''}`}></span></span></span></th>
                     <th className={`sortable ${sortBy === 'original_name' ? 'sorted' : ''}`} onClick={() => handleSort('original_name')}><span className="th-content"><span className="th-text">Original name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'original_name' && order === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'original_name' && order === 'desc' ? 'active' : ''}`}></span></span></span></th>
                     <th className="th-content"><span className="th-text">Value</span></th>
@@ -377,15 +461,21 @@ const Variables: React.FC = () => {
               <div className="vars-pagination">
                 <div className="vars-pagination-info">
                   Showing {variables.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalVariables)} of {totalVariables} variables
+                  Showing {variables.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalVariables)} of {totalVariables} variables
                 </div>
                 <div className="vars-pagination-controls">
                   <button className="vars-pagination-btn" onClick={handlePreviousPage} disabled={page === 1}>Previous</button>
+                  <button className="vars-pagination-btn" onClick={handlePreviousPage} disabled={page === 1}>Previous</button>
                   <div className="vars-pagination-pages">
+                    {paginationNumbers.map((pageNum, index) => (
                     {paginationNumbers.map((pageNum, index) => (
                       <div key={index}>
                         {pageNum === '...' ? (
+                        {pageNum === '...' ? (
                           <span className="vars-pagination-ellipsis">...</span>
                         ) : (
+                          <button className={`vars-pagination-page ${page === pageNum ? 'active' : ''}`} onClick={() => handlePageChange(pageNum as number)}>
+                            {pageNum}
                           <button className={`vars-pagination-page ${page === pageNum ? 'active' : ''}`} onClick={() => handlePageChange(pageNum as number)}>
                             {pageNum}
                           </button>
@@ -393,6 +483,7 @@ const Variables: React.FC = () => {
                       </div>
                     ))}
                   </div>
+                  <button className="vars-pagination-btn" onClick={handleNextPage} disabled={page === totalPages}>Next</button>
                   <button className="vars-pagination-btn" onClick={handleNextPage} disabled={page === totalPages}>Next</button>
                 </div>
               </div>
@@ -409,9 +500,12 @@ const Variables: React.FC = () => {
         onDelete={async (id) => {
           try {
             const resp = await variableService.deleteVariable(id);
+            const resp = await variableService.deleteVariable(id);
             if (resp.success) {
               toast.success('Variable deleted');
               setIsDeleteOpen(false);
+              // Reload variables - the useEffect will automatically trigger
+              reloadVariables();
               // Reload variables - the useEffect will automatically trigger
               reloadVariables();
             } else {

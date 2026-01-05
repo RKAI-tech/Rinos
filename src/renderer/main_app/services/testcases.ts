@@ -54,6 +54,21 @@ export class TestCaseService {
         });
     }
 
+    async searchTestCases(request: TestCaseSearchRequest): Promise<ApiResponse<TestCaseSearchResponse>> {
+        // Input validation
+        if (!request.project_id) {
+            return {
+                success: false,
+                error: 'Valid project ID is required'
+            };
+        }
+
+        return await apiRouter.request<TestCaseSearchResponse>('/testcases/search', {
+            method: 'POST',
+            body: JSON.stringify(request),
+        });
+    }
+
     async createTestCase(testCase: TestCaseCreateRequest): Promise<ApiResponse<DefaultResponse>> {
         // Input validation
         if (!testCase.name || testCase.name.trim().length === 0) {
