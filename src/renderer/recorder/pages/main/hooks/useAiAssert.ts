@@ -42,8 +42,8 @@ const createDefaultApiRequest = (): ApiRequestData => ({
   url: 'https://',
   params: [],
   headers: [],
-  auth: { type: 'none' },
-  body: { type: 'none', content: '', form_data: [] },
+  auth: { type: 'none', storage_enabled: false },
+  body: { type: 'none', content: '', form_datas: [] },
 });
 
 export const useAiAssert = ({
@@ -175,8 +175,8 @@ export const useAiAssert = ({
             } catch {
               payload = body.content;
             }
-          } else if (body.type === 'form' && body.form_data) {
-            payload = body.form_data.reduce((acc: any, item) => {
+          } else if (body.type === 'form' && body.form_datas) {
+            payload = body.form_datas.reduce((acc: any, item) => {
               acc[item.name] = item.value;
               return acc;
             }, {});

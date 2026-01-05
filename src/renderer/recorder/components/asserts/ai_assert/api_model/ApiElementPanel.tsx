@@ -90,7 +90,7 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
   const [bodyType, setBodyType] = useState<'none' | 'json' | 'form'>(
     (primaryBody?.type as 'none' | 'json' | 'form') || 'none'
   );
-  const initialBodyForm = bodyType === 'form' ? toFormPairs(primaryBody?.form_data) : [];
+  const initialBodyForm = bodyType === 'form' ? toFormPairs(primaryBody?.form_datas) : [];
   const [bodyForm, setBodyForm] = useState<Array<{ key: string; value: string }>>(
     bodyType === 'form' ? (initialBodyForm.length > 0 ? initialBodyForm : [{ key: '', value: '' }]) : [{ key: '', value: '' }]
   );
@@ -193,7 +193,7 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
       const nextBodyType = (nextPrimaryBody?.type as 'none' | 'json' | 'form') || 'none';
       setBodyType(nextBodyType);
       if (nextBodyType === 'form') {
-        const nextBodyForm = toFormPairs(nextPrimaryBody?.form_data);
+        const nextBodyForm = toFormPairs(nextPrimaryBody?.form_datas);
         setBodyForm(nextBodyForm.length > 0 ? nextBodyForm : [{ key: '', value: '' }]);
       } else {
         setBodyForm([{ key: '', value: '' }]);
@@ -234,7 +234,7 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
           api_request_param_id: existing?.api_request_param_id,
           key: p.key.trim(),
           value: p.value,
-          orderIndex: index,
+          order_index: index,
         };
       });
 
@@ -246,19 +246,19 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
           api_request_header_id: existing?.api_request_header_id,
           key: h.key.trim(),
           value: h.value,
-          orderIndex: index,
+          order_index: index,
         };
       });
 
     const bodyEntries = bodyForm
       .filter((p) => p.key.trim())
       .map((p, index) => {
-        const existing = currentPrimaryBody?.form_data?.[index];
+        const existing = currentPrimaryBody?.form_datas?.[index];
         return {
-          api_request_body_form_data_id: existing?.api_request_body_form_data_id,
+          body_form_data_id: existing?.body_form_data_id,
           name: p.key.trim(),
           value: p.value,
-          orderIndex: index,
+          order_index: index,
         };
       });
 
@@ -271,7 +271,7 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
           : bodyType === 'form'
             ? undefined
             : '',
-      form_data: bodyType === 'form' ? bodyEntries : undefined,
+      form_datas: bodyType === 'form' ? bodyEntries : undefined,
     };
 
     const includeBearerStorage = authType === 'bearer' && tokenStorageEnabled && tokenStorageKey.trim();
@@ -316,7 +316,7 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
       headers: filteredHeaders,
       createdAt: undefined,
       updatedAt: undefined,
-      auth: nextAuth.type === 'none' ? { type: 'none' } : nextAuth,
+      auth: nextAuth.type === 'none' ? { type: 'none', storage_enabled: false } : nextAuth,
       body: nextBody,
     } as ApiRequestData;
 

@@ -44,9 +44,9 @@ const Variables: React.FC = () => {
   // Load variables with search, pagination, and sorting
   useEffect(() => {
     const loadVariables = async () => {
-      if (!projectId) return;
+    if (!projectId) return;
       
-      try {
+    try {
         setIsLoading(true);
         const response = await variableService.searchVariables({
           project_id: projectId,
@@ -66,7 +66,7 @@ const Variables: React.FC = () => {
             setPage(response.data.current_page);
           }
           setTotalPages(response.data.total_pages);
-        } else {
+      } else {
           setVariables([]);
           setTotalVariables(0);
           setCurrentPage(1);
@@ -82,10 +82,10 @@ const Variables: React.FC = () => {
         setCurrentPage(1);
         setTotalPages(1);
         toast.error('Failed to load variables');
-      } finally {
+    } finally {
         setIsLoading(false);
-      }
-    };
+    }
+  };
 
     loadVariables();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -296,75 +296,75 @@ const Variables: React.FC = () => {
                     </tr>
                   ) : (
                     variables.map((v) => (
-                      <tr 
+                    <tr 
                         key={v.variable_id}
                         className={`${openDropdownId === v.variable_id ? 'dropdown-open' : ''} ${openDropdownId ? 'has-open-dropdown' : ''}`}
-                      >
+                    >
                         <td className="vars-name">{v.user_defined_name}</td>
                         <td className="vars-original">{v.original_name || '-'}</td>
                         <td className="vars-value">{v.value || '-'}</td>
                         <td className="vars-db-name">{v.database_name || '-'}</td>
                         <td className="vars-db-type">{v.database_type || '-'}</td>
                         <td className="vars-query-name">{v.query_name || '-'}</td>
-                        <td className="vars-actions">
-                          <div className="actions-container">
-                            <button 
-                              className="actions-btn" 
-                              onClick={(e) => {
-                                e.stopPropagation();
+                      <td className="vars-actions">
+                        <div className="actions-container">
+                          <button 
+                            className="actions-btn" 
+                            onClick={(e) => {
+                              e.stopPropagation();
                                 setOpenDropdownId(openDropdownId === v.variable_id ? null : v.variable_id);
-                              }}
-                              disabled={!canEditPermission}
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="12" cy="12" r="1" fill="currentColor"/>
-                                <circle cx="19" cy="12" r="1" fill="currentColor"/>
-                                <circle cx="5" cy="12" r="1" fill="currentColor"/>
-                              </svg>
-                            </button>
+                            }}
+                            disabled={!canEditPermission}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <circle cx="12" cy="12" r="1" fill="currentColor"/>
+                              <circle cx="19" cy="12" r="1" fill="currentColor"/>
+                              <circle cx="5" cy="12" r="1" fill="currentColor"/>
+                            </svg>
+                          </button>
 
                             {openDropdownId === v.variable_id && (
-                              <div 
-                                className="actions-dropdown"
+                            <div 
+                              className="actions-dropdown"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
+                            >
+                              <button 
+                                className="dropdown-item delete" 
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   e.preventDefault();
+                                  if (!canEditPermission) { 
+                                    setOpenDropdownId(null); 
+                                    return; 
+                                  } 
+                                    setSelectedVar({ id: v.variable_id, name: v.user_defined_name }); 
+                                  setIsDeleteOpen(true); 
+                                  setOpenDropdownId(null);
                                 }}
                                 onMouseDown={(e) => {
                                   e.stopPropagation();
                                   e.preventDefault();
                                 }}
+                                disabled={!canEditPermission}
                               >
-                                <button 
-                                  className="dropdown-item delete" 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                    if (!canEditPermission) { 
-                                      setOpenDropdownId(null); 
-                                      return; 
-                                    } 
-                                    setSelectedVar({ id: v.variable_id, name: v.user_defined_name }); 
-                                    setIsDeleteOpen(true); 
-                                    setOpenDropdownId(null);
-                                  }}
-                                  onMouseDown={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                  }}
-                                  disabled={!canEditPermission}
-                                >
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                    <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </svg>
-                                  Delete
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
                     ))
                   )}
                 </tbody>
