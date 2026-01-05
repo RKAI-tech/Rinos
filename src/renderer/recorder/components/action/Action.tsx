@@ -152,13 +152,15 @@ export default function RenderedAction({ action, onDelete, onClick, onStartRecor
     }
     return value;
   };
+  const fullValue = renderValue();
+  const displayValue = fullValue ? (fullValue.length > 50 ? fullValue.substring(0, 50) + '...' : fullValue) : '';
   return (
     <div className="rcd-action">
       <div className="rcd-action-icon">{(index ?? 0) + 1}</div>
       <div className="rcd-action-body">
         <div className="rcd-action-title">{renderDescription(action.description) || formatActionType(action.action_type)}</div>
         {/* <div className="rcd-action-meta">{getSelector()}</div> */}
-        {renderValue() && <div className="rcd-action-value">{renderValue()}</div>}
+        {displayValue && <div className="rcd-action-value" title={fullValue}>{displayValue}</div>}
         {/* <div className="rcd-action-time">Order: {action.order_index}</div> */}
         {failedMessage && (
           <div className="rcd-action-error">

@@ -14,7 +14,7 @@ import {
   
 } from '../types/actions';
 import { DefaultResponse } from '../types/api_responses';
-import { encryptObject } from './encryption';
+import { encryptObject, decryptObject } from './encryption';
 
 /**
  * Xác định các trường cần mã hóa trong ActionData
@@ -62,8 +62,52 @@ function getFieldsToEncryptForActionDataGeneration(gen: ActionDataGeneration): s
     return fields;
 }
 
+/**
+ * Xác định các trường cần decrypt trong ActionData
+ */
+function getFieldsToDecryptForActionData(actionData: ActionData): string[] {
+    const fields: string[] = [];
+    
+    // value.value - chỉ decrypt key "value" bên trong dictionary
+    if (actionData.value && 
+        typeof actionData.value === 'object' && 
+        actionData.value.value !== undefined && 
+        actionData.value.value !== null) {
+        fields.push('value.value');
+    }
+    
+    // Database connection
+    if (actionData.statement?.connection) {
+        if (actionData.statement.connection.username) {
+            fields.push('statement.connection.username');
+        }
+        if (actionData.statement.connection.password) {
+            fields.push('statement.connection.password');
+        }
+    }
+    
+    return fields;
+}
+
+/**
+ * Xác định các trường cần decrypt trong ActionDataGeneration
+ */
+function getFieldsToDecryptForActionDataGeneration(gen: ActionDataGeneration): string[] {
+    const fields: string[] = [];
+    
+    // value.value - chỉ decrypt key "value" bên trong dictionary
+    if (gen.value && 
+        typeof gen.value === 'object' && 
+        gen.value.value !== undefined && 
+        gen.value.value !== null) {
+        fields.push('value.value');
+    }
+    
+    return fields;
+}
+
 export class ActionService {
-    async getActionsByTestCase(testcaseId: string, limit?: number, offset?: number): Promise<ApiResponse<ActionBatch>> {
+    async getActionsByTestCase(testcaseId: string, limit?: number, offset?: number, projectId?: string): Promise<ApiResponse<ActionBatch>> {
         // Input validation
         if (!testcaseId) {
             return {
@@ -83,9 +127,80 @@ export class ActionService {
 
         const endpoint = `/actions/testcase/${testcaseId}`;
         
-        return await apiRouter.request<ActionBatch>(endpoint, {
+        const response = await apiRouter.request<ActionBatch>(endpoint, {
             method: 'GET'
         });
+
+        console.log('getActionsByTestCase', response);
+
+        // Check if testcase was deleted (404 or Not Found error)
+        if (!response.success && response.error) {
+            const errorLower = response.error.toLowerCase();
+            if (errorLower.includes('404') || errorLower.includes('not found') || errorLower.includes('does not exist')) {
+                console.info(`[ActionService] Testcase ${testcaseId} not found (likely deleted), returning empty actions`);
+                return {
+                    success: true,
+                    data: {
+                        actions: []
+                    }
+                };
+            }
+        }
+
+        // Decrypt metadata nếu có projectId và encryption key
+        if (response.success && response.data && projectId) {
+            try {
+                const encryptionKey = await window.encryptionStore?.getKey(projectId);
+                if (encryptionKey && response.data.actions) {
+                    const decryptedActions = await Promise.all(
+                        response.data.actions.map(async (action) => {
+                            const decryptedAction = { ...action };
+
+                            // Decrypt action_datas
+                            if (action.action_datas && action.action_datas.length > 0) {
+                                decryptedAction.action_datas = await Promise.all(
+                                    action.action_datas.map(async (actionData) => {
+                                        const fieldsToDecrypt = getFieldsToDecryptForActionData(actionData);
+                                        if (fieldsToDecrypt.length > 0) {
+                                            return await decryptObject(actionData, encryptionKey, fieldsToDecrypt);
+                                        }
+                                        return actionData;
+                                    })
+                                );
+                            }
+
+                            // Decrypt action_data_generation
+                            if (action.action_data_generation && action.action_data_generation.length > 0) {
+                                decryptedAction.action_data_generation = await Promise.all(
+                                    action.action_data_generation.map(async (gen) => {
+                                        const fieldsToDecrypt = getFieldsToDecryptForActionDataGeneration(gen);
+                                        if (fieldsToDecrypt.length > 0) {
+                                            return await decryptObject(gen, encryptionKey, fieldsToDecrypt);
+                                        }
+                                        return gen;
+                                    })
+                                );
+                            }
+
+                            return decryptedAction;
+                        })
+                    );
+
+                    return {
+                        ...response,
+                        data: {
+                            ...response.data,
+                            actions: decryptedActions
+                        }
+                    };
+                }
+            } catch (error) {
+                console.error('[ActionService] Decryption failed:', error);
+                // Fallback: trả về actions không decrypt nếu có lỗi
+            }
+        }
+
+        return response;
     }
     
     async batchCreateActions(

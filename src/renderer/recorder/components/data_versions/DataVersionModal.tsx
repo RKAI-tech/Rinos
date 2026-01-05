@@ -6,6 +6,7 @@ import NewVersionModal from './NewVersionModal';
 import EditVersionModal from './EditVersionModal';
 import ConfirmModal from './ConfirmModal';
 import { syncActionsOnVersionUpdate, findActiveVersionInActions } from './versionSyncUtils';
+import { truncateText } from '../../utils/textUtils';
 import './DataVersionModal.css';
 
 export type ActionOperationResult = {
@@ -543,8 +544,11 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
                           <div className="data-version-item-value">
                             <label className="data-version-value-label">Value:</label>
                             {generations.length > 0 ? (
-                              <div className="data-version-value-content">
-                                {value}
+                              <div 
+                                className="data-version-value-content"
+                                title={String(value)}
+                              >
+                                {truncateText(String(value), 50)}
                               </div>
                             ) : (
                               <div className="data-version-value-content">

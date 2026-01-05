@@ -118,3 +118,7 @@ oldversion/
 injectedScript.ts
 playwright-browsers
 _gpgorigin
+
+# Run code
+sandbox/test-results/
+sandbox/test.spec.js

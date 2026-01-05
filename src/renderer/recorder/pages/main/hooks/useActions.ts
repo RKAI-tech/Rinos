@@ -121,7 +121,24 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
       if (testcaseId) {
         setIsLoading(true);
         try {
-          const response = await actionService.getActionsByTestCase(testcaseId);
+          const response = await actionService.getActionsByTestCase(testcaseId, 0, 0, projectId || undefined);
+          
+          // Check if testcase was deleted (404 or Not Found error)
+          if (!response.success && response.error) {
+            const errorLower = response.error.toLowerCase();
+            if (errorLower.includes('404') || errorLower.includes('not found') || errorLower.includes('does not exist')) {
+              console.info(`[useActions] Testcase ${testcaseId} not found (likely deleted), clearing actions`);
+              setActions([]);
+              setSelectedInsertPosition(0);
+              setSavedActionsSnapshot([]);
+              setIsDirty(false);
+              onDirtyChange?.(false);
+              previousVersionsRef.current = '';
+              lastAppliedActionsRef.current = '';
+              return;
+            }
+          }
+          
           if (response.success && response.data) {
             const loaded = response.data.actions || [];
             setActions(loaded);
@@ -164,7 +181,7 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
     };
 
     loadActions();
-  }, [testcaseId, actionService, onDirtyChange]);
+  }, [testcaseId, actionService, onDirtyChange, projectId]);
 
   // Áp dụng currentVersion khi testcaseDataVersions thay đổi hoặc sau khi actions được load
   useEffect(() => {
@@ -281,7 +298,27 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
     }
     setIsLoading(true);
     try {
-      const response = await actionService.getActionsByTestCase(effectiveId);
+      const response = await actionService.getActionsByTestCase(effectiveId, 0, 0, projectId || undefined);
+      
+      // Check if testcase was deleted (404 or Not Found error)
+      if (!response.success && response.error) {
+        const errorLower = response.error.toLowerCase();
+        if (errorLower.includes('404') || errorLower.includes('not found') || errorLower.includes('does not exist')) {
+          console.info(`[useActions] Testcase ${effectiveId} not found (likely deleted) during reload, clearing actions`);
+          setActions([]);
+          setSelectedInsertPosition(0);
+          setDisplayInsertPosition(0);
+          setSavedActionsSnapshot([]);
+          setIsDirty(false);
+          onDirtyChange?.(false);
+          return {
+            success: false,
+            message: 'Testcase not found (likely deleted)',
+            level: 'warning',
+          };
+        }
+      }
+      
       if (response.success && response.data) {
         const newActions = response.data.actions || [];
         // Apply currentVersion to actions if testcaseDataVersions are available

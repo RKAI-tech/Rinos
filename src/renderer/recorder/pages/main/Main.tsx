@@ -58,6 +58,18 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
 
     try {
       const response = await testCaseService.getTestCaseDataVersions(testcaseId);
+      console.log('reloadTestCaseDataVersions', response);
+      
+      // Check if testcase was deleted (404 or Not Found error)
+      if (!response.success && response.error) {
+        const errorLower = response.error.toLowerCase();
+        if (errorLower.includes('404') || errorLower.includes('not found') || errorLower.includes('does not exist')) {
+          console.info(`[Main] Testcase ${testcaseId} not found (likely deleted), clearing data versions`);
+          setTestCaseDataVersions([]);
+          return;
+        }
+      }
+      
       if (response.success && response.data) {
         // Keep API format when loading
         const versions: TestCaseDataVersionFromAPI[] = Array.isArray(response.data.testcase_data_versions) 

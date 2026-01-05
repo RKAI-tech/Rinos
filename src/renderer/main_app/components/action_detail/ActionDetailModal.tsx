@@ -44,6 +44,9 @@ interface Props {
   onClose: () => void;
   onSave?: (updated: ActionGetResponse) => void;
   projectId?: string;
+  testcaseDataVersions?: TestCaseDataVersion[];
+  onTestCaseDataVersionsChange?: (updater: (prev: TestCaseDataVersion[]) => TestCaseDataVersion[]) => void;
+  allActions?: Action[];
 }
 
 const mapFromResponse = (src: ActionGetResponse): Action => ({
@@ -52,6 +55,7 @@ const mapFromResponse = (src: ActionGetResponse): Action => ({
   action_type: src.action_type as any,
   description: src.description,
   action_datas: src.action_datas,
+  action_data_generation: src.action_data_generation,
   elements: (src.elements || []) as any,
   assert_type: src.assert_type as any,
 });
@@ -62,6 +66,7 @@ const mapToResponse = (src: Action): ActionGetResponse => ({
   action_type: src.action_type,
   description: src.description || '',
   action_datas: src.action_datas,
+  action_data_generation: src.action_data_generation,
   elements: (src.elements || []) as any,
   assert_type: (src.assert_type as any) || undefined,
 });
@@ -283,9 +288,19 @@ const MAActionDetailModal: React.FC<Props> = ({
               addNewSelector={addNewSelector}
               updateSelector={updateSelector}
               removeSelector={removeSelector}
+              testcaseDataVersions={testcaseDataVersions}
+              onTestCaseDataVersionsChange={onTestCaseDataVersionsChange}
+              allActions={allActions}
             />
           ) : draft.action_type === ActionType.navigate ? (
-            <NavigateActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+            <NavigateActionDetail 
+              draft={draft} 
+              updateDraft={updateDraft} 
+              updateField={updateField}
+              testcaseDataVersions={testcaseDataVersions}
+              onTestCaseDataVersionsChange={onTestCaseDataVersionsChange}
+              allActions={allActions}
+            />
           ) : draft.action_type === ActionType.click ||
             draft.action_type === ActionType.double_click ||
             draft.action_type === ActionType.right_click ||
@@ -343,6 +358,9 @@ const MAActionDetailModal: React.FC<Props> = ({
               addNewSelector={addNewSelector}
               updateSelector={updateSelector}
               removeSelector={removeSelector}
+              testcaseDataVersions={testcaseDataVersions}
+              onTestCaseDataVersionsChange={onTestCaseDataVersionsChange}
+              allActions={allActions}
             />
           ) : draft.action_type === ActionType.upload ? (
             <UploadActionDetail
@@ -367,7 +385,14 @@ const MAActionDetailModal: React.FC<Props> = ({
           ) : draft.action_type === ActionType.database_execution ? (
             <DatabaseExecutionActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
           ) : draft.action_type === ActionType.wait ? (
-            <WaitActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+            <WaitActionDetail 
+              draft={draft} 
+              updateDraft={updateDraft} 
+              updateField={updateField}
+              testcaseDataVersions={testcaseDataVersions}
+              onTestCaseDataVersionsChange={onTestCaseDataVersionsChange}
+              allActions={allActions}
+            />
           ) : draft.action_type === ActionType.reload ||
             draft.action_type === ActionType.back ||
             draft.action_type === ActionType.forward ? (
@@ -406,7 +431,14 @@ const MAActionDetailModal: React.FC<Props> = ({
           ) : draft.action_type === ActionType.page_create ||
             draft.action_type === ActionType.page_close ||
             draft.action_type === ActionType.page_focus ? (
-            <PageActionDetail draft={draft} updateDraft={updateDraft} updateField={updateField} />
+            <PageActionDetail 
+              draft={draft} 
+              updateDraft={updateDraft} 
+              updateField={updateField}
+              testcaseDataVersions={testcaseDataVersions}
+              onTestCaseDataVersionsChange={onTestCaseDataVersionsChange}
+              allActions={allActions}
+            />
           ) : draft.action_type === ActionType.assert && isAssertWithoutValueType(draft.assert_type) ? (
             <AssertWithoutValueActionDetail
               draft={draft}

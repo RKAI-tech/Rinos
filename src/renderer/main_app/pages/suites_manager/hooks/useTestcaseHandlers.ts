@@ -3,6 +3,8 @@ import { toast } from 'react-toastify';
 import { TestCaseInSuite } from '../../../types/testsuites';
 import { TestCaseService } from '../../../services/testcases';
 import { TestSuiteService } from '../../../services/testsuites';
+import { ActionService } from '../../../services/actions';
+import { TestCaseDataVersion } from '../../../types/actions';
 
 interface EditingTestcase {
   testcase_id: string;
@@ -30,6 +32,7 @@ export const useTestcaseHandlers = ({
   // Services
   const testCaseService = useMemo(() => new TestCaseService(), []);
   const suiteService = useMemo(() => new TestSuiteService(), []);
+  const actionService = useMemo(() => new ActionService(), []);
 
   // Edit testcase state
   const [isEditTestcaseModalOpen, setIsEditTestcaseModalOpen] = useState(false);
@@ -85,13 +88,29 @@ export const useTestcaseHandlers = ({
   }, [projectId]);
 
   const handleSaveEditTestcase = useCallback(async (
-    { testcase_id, name, description, basic_authentication, browser_type, actions }:
-    { testcase_id: string; name: string; description: string | undefined; basic_authentication?: { username: string; password: string }; browser_type?: string; actions?: any[] }
+    { testcase_id, name, description, basic_authentication, browser_type, actions, testcase_data_versions }:
+    { testcase_id: string; name: string; description: string | undefined; basic_authentication?: { username: string; password: string }; browser_type?: string; actions?: any[]; testcase_data_versions?: TestCaseDataVersion[] }
   ) => {
     if (!testcase_id || isSavingTestcase) return;
     
     try {
       setIsSavingTestcase(true);
+      
+      // 1) Save actions and testcase_data_versions using batchCreateActions if actions are provided
+      if (actions && actions.length > 0) {
+        const actionResp = await actionService.batchCreateActions(
+          actions,
+          testcase_data_versions,
+          projectId
+        );
+        
+        if (!actionResp.success) {
+          toast.error(actionResp.error || 'Failed to save actions. Please try again.');
+          return;
+        }
+      }
+      
+      // 2) Update testcase info (name, description, basic_auth, browser_type)
       const payload = {
         testcase_id,
         name,
@@ -99,7 +118,6 @@ export const useTestcaseHandlers = ({
         description: description || undefined,
         basic_authentication: basic_authentication || undefined,
         browser_type: browser_type || undefined,
-        actions: actions || undefined
       } as any;
       
       const resp = await testCaseService.updateTestCase(payload);
@@ -121,7 +139,7 @@ export const useTestcaseHandlers = ({
     } finally {
       setIsSavingTestcase(false);
     }
-  }, [isSavingTestcase, selectedSuiteId, selectedSuiteName, fetchTestcasesBySuite, fetchData]);
+  }, [isSavingTestcase, selectedSuiteId, selectedSuiteName, fetchTestcasesBySuite, fetchData, projectId, actionService, testCaseService]);
 
   const handleCloseEditTestcaseModal = useCallback(() => {
     if (!isSavingTestcase) {
@@ -265,6 +283,31 @@ export const useTestcaseHandlers = ({
       const resp = await suiteService.removeTestCaseFromTestSuite(testcaseId, selectedSuiteId);
       
       if (resp.success) {
+        // Đóng các modal đang mở với testcase này
+        if (editingTestcase?.testcase_id === testcaseId) {
+          console.info('[useTestcaseHandlers] Closing EditTestcase modal for deleted testcase');
+          setIsEditTestcaseModalOpen(false);
+          setEditingTestcase(null);
+        }
+        if (duplicatingTestcase?.testcase_id === testcaseId) {
+          console.info('[useTestcaseHandlers] Closing DuplicateTestcase modal for deleted testcase');
+          setIsDuplicateTestcaseModalOpen(false);
+          setDuplicatingTestcase(null);
+        }
+        
+        // Đóng recorder window nếu đang mở với testcase này
+        try {
+          const screenHandleAPI = (window as any)?.screenHandleAPI;
+          if (screenHandleAPI?.closeRecorder) {
+            const closeResult = await screenHandleAPI.closeRecorder();
+            if (closeResult?.success) {
+              console.info('[useTestcaseHandlers] Closed recorder window for deleted testcase');
+            }
+          }
+        } catch (e) {
+          console.error('[useTestcaseHandlers] Failed to close recorder window:', e);
+        }
+        
         toast.success('Testcase removed from suite successfully');
         setIsDeleteTestcaseModalOpen(false);
         setDeletingTestcase(null);
@@ -282,7 +325,7 @@ export const useTestcaseHandlers = ({
     } finally {
       setIsDeletingTestcase(false);
     }
-  }, [selectedSuiteId, isDeletingTestcase, selectedSuiteName, fetchTestcasesBySuite, fetchData]);
+  }, [selectedSuiteId, isDeletingTestcase, selectedSuiteName, fetchTestcasesBySuite, fetchData, editingTestcase, duplicatingTestcase]);
 
   const handleCloseDeleteTestcaseModal = useCallback(() => {
     if (!isDeletingTestcase) {

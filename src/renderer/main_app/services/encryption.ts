@@ -272,7 +272,6 @@ export async function decryptObject(
       }
     }
   }
-  
   return result;
 }
 

@@ -16,7 +16,7 @@ const formatDescription = (description?: string) => {
   if (!description) return '';
   return description.length > 50 ? description.substring(0, 50) + '...' : description;
 };
-const formatValue = (action: ActionGetResponse) => {
+const getFullValue = (action: ActionGetResponse) => {
   let value = '';
   for (const action_data of action.action_datas || []) {
     if (action_data.value?.["value"]) {
@@ -24,17 +24,24 @@ const formatValue = (action: ActionGetResponse) => {
       break;
     }
   }
+  return value;
+};
+
+const formatValue = (action: ActionGetResponse) => {
+  const value = getFullValue(action);
   if (!value) return '';
   return value.length > 50 ? value.substring(0, 50) + '...' : value;
 };
 
 const MAAction: React.FC<MAActionProps> = ({ action, onEdit, onDelete }) => {
+  const fullValue = getFullValue(action);
+  const displayValue = formatValue(action);
   return (
     <div className="ma-action">
       <div className="ma-action-icon">?</div>
       <div className="ma-action-body">
         <div className="ma-action-title">{formatDescription(action.description) || formatActionType(String(action.action_type))}</div>
-        {formatValue(action) && <div className="ma-action-value">{formatValue(action)}</div>}
+        {displayValue && <div className="ma-action-value" title={fullValue}>{displayValue}</div>}
       </div>
       <div className="ma-action-actions">
         <button type="button" className="ma-action-btn" title="Edit" onClick={(e) => { e.stopPropagation(); onEdit && onEdit(action); }}>
