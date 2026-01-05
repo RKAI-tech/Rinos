@@ -3,6 +3,7 @@ import { createMainAppWindow } from "./windowManager.js";
 import { registerIpcHandlers } from "./ipc/index.js";
 import { registerMicrosoftLoginIpc } from "./ipc/microsoftLogin.js";
 import { registerTokenIpc } from "./ipc/token.js";
+import { registerEncryptionIpc } from "./ipc/encryption.js";
 import { registerScreenHandlersIpc } from "./ipc/screen_handle.js";
 import { registerBrowserIpc } from "./ipc/browser.js";
 import { registerPlaywrightHandlersIpc } from "./ipc/playwright.js";
@@ -24,6 +25,7 @@ app.whenReady().then(() => {
   
   registerIpcHandlers();
   registerTokenIpc();
+  registerEncryptionIpc();
   registerMicrosoftLoginIpc();
   registerBrowserIpc(); // Register browser IPC first
   registerScreenHandlersIpc(); // Then register screen handlers

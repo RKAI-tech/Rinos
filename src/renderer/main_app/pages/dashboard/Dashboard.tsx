@@ -7,6 +7,7 @@ import EditProject from '../../components/project/edit_project/EditProject';
 import { UserService } from '../../services/user';
 import AddUser from '../../components/project/add_user/add_user/AddUser';
 import DeleteProject from '../../components/project/delete_project/DeleteProject';
+import KeyManagementModal from '../../components/project/key_management/KeyManagementModal';
 import { ProjectService } from '../../services/projects';
 import { Project } from '../../types/projects';
 import { toast } from 'react-toastify';
@@ -32,6 +33,7 @@ const Dashboard: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   
@@ -203,6 +205,16 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleKeyProjectClick = (projectId: string, event?: React.MouseEvent) => {
+    if (event) event.stopPropagation();
+    const project = projects.find(p => p.project_id === projectId);
+    if (project) {
+      setSelectedProject(project);
+      setIsKeyModalOpen(true);
+      setOpenDropdownId(null);
+    }
+  };
+
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
     setSelectedProject(null);
@@ -261,6 +273,11 @@ const Dashboard: React.FC = () => {
 
   const handleCloseShareModal = () => {
     setIsShareModalOpen(false);
+    setSelectedProject(null);
+  };
+
+  const handleCloseKeyModal = () => {
+    setIsKeyModalOpen(false);
     setSelectedProject(null);
   };
 
@@ -758,6 +775,23 @@ const Dashboard: React.FC = () => {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   e.preventDefault();
+                                  handleKeyProjectClick(project.project_id, e);
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }}
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Key
+                              </button>
+                              <button 
+                                className="dropdown-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
                                   handleEditProject(project.project_id, e);
                                 }}
                                 onMouseDown={(e) => {
@@ -877,6 +911,13 @@ const Dashboard: React.FC = () => {
         projectId={selectedProject?.project_id || null}
         onClose={handleCloseShareModal}
         onSuccess={reloadProjects}
+      />
+
+      {/* Key Management Modal */}
+      <KeyManagementModal
+        isOpen={isKeyModalOpen}
+        onClose={handleCloseKeyModal}
+        project={selectedProject}
       />
     </div>
   );

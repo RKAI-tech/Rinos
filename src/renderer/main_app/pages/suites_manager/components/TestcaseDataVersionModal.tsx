@@ -511,7 +511,7 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
           }))
         : undefined;
 
-      const response = await actionService.batchCreateActions(normalizedActions, versionsToSave);
+      const response = await actionService.batchCreateActions(normalizedActions, versionsToSave, testcase?.project_id);
 
       if (response.success) {
         toast.success('Actions saved successfully');
@@ -614,7 +614,7 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
         };
       });
 
-      const response = await actionService.batchCreateActions(normalizedActions, versionsToSave);
+      const response = await actionService.batchCreateActions(normalizedActions, versionsToSave, testcase?.project_id);
 
       if (response.success) {
         toast.success('Test Data updated successfully');
@@ -675,7 +675,7 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
           .filter((id): id is string => !!id) || [],
       }));
 
-      const response = await actionService.batchCreateActions(normalizedActions, versionsToSave);
+      const response = await actionService.batchCreateActions(normalizedActions, versionsToSave, testcase?.project_id);
 
       if (response.success) {
         toast.success('Test Data created successfully');
@@ -726,7 +726,7 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
           }))
         : undefined;
 
-      const response = await actionService.batchCreateActions(normalizedActions, versionsToSave);
+      const response = await actionService.batchCreateActions(normalizedActions, versionsToSave, testcase?.project_id);
 
       if (response.success) {
         toast.success('Actions saved successfully');
@@ -810,7 +810,7 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
         : undefined;
 
       // Gọi API lưu
-      const response = await actionService.batchCreateActions(normalizedActions, versionsToSave);
+      const response = await actionService.batchCreateActions(normalizedActions, versionsToSave, testcase?.project_id);
 
       if (response.success) {
         toast.success('Actions saved successfully');

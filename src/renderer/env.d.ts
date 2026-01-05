@@ -41,10 +41,29 @@ interface AppInfo {
   versions: NodeJS.ProcessVersions;
 }
 
+interface TokenStore {
+  get: () => Promise<string | null>;
+  set: (token: string | null) => Promise<boolean>;
+  remove: () => Promise<boolean>;
+  getEmail: () => Promise<string | null>;
+  setEmail: (email: string | null) => Promise<boolean>;
+  removeEmail: () => Promise<boolean>;
+}
+
+interface EncryptionStore {
+  getKey: (projectId: string) => Promise<string | null>;
+  setKey: (projectId: string, key: string) => Promise<boolean>;
+  hasKey: (projectId: string) => Promise<boolean>;
+  removeKey: (projectId: string) => Promise<boolean>;
+  getAllKeys: () => Promise<Record<string, string>>;
+}
+
 declare global {
   interface Window {
     electronAPI?: ElectronAPI;
     appInfo?: AppInfo; // Legacy support
+    tokenStore?: TokenStore;
+    encryptionStore?: EncryptionStore;
   }
 }
 

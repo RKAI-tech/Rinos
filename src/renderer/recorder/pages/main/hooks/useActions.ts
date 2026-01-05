@@ -7,6 +7,7 @@ import { TestCaseDataVersion as TestCaseDataVersionFromAPI } from '../../../type
 
 interface UseActionsProps {
   testcaseId: string | null;
+  projectId?: string | null;
   onDirtyChange?: (isDirty: boolean) => void;
   testcaseDataVersions?: TestCaseDataVersionFromAPI[];
 }
@@ -101,7 +102,7 @@ const applyCurrentVersionToActions = (
   });
 };
 
-export const useActions = ({ testcaseId, onDirtyChange, testcaseDataVersions = [] }: UseActionsProps) => {
+export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataVersions = [] }: UseActionsProps) => {
   const [actions, setActions] = useState<Action[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -480,7 +481,7 @@ export const useActions = ({ testcaseId, onDirtyChange, testcaseDataVersions = [
 
       console.log('Versions final', versionsToSaveFormatted?.filter(v => v.version === 'abcxyz'));
 
-      const response = await actionService.batchCreateActions(actionsToSave, versionsToSaveFormatted);
+      const response = await actionService.batchCreateActions(actionsToSave, versionsToSaveFormatted, projectId || undefined);
       if (response.success) {
         setSavedActionsSnapshot(JSON.parse(JSON.stringify(actionsToSave)));
         setIsDirty(false);

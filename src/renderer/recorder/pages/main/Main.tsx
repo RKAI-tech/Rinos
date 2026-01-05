@@ -93,6 +93,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
   }, []);
 
   const actionsHook = useActions({
+    projectId: projectId || null,
     testcaseId: testcaseId || null,
     onDirtyChange: handleActionsDirtyChange,
     testcaseDataVersions: testcaseDataVersions,

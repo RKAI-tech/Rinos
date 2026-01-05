@@ -3,11 +3,60 @@ import { ApiResponse } from '../types/api_responses';
 import {
     ActionBatch,
     Action,
+    ActionData,
+    ActionDataGeneration,
     GenerateRandomDataFunctionRequest,
     GenerateRandomDataFunctionResponse,
     TestCaseDataVersion,
 } from '../types/actions';
 import { DefaultResponse } from '../types/api_responses';
+import { encryptObject } from './encryption';
+
+/**
+ * Xác định các trường cần mã hóa trong ActionData
+ */
+function getFieldsToEncryptForActionData(actionData: ActionData): string[] {
+    const fields: string[] = [];
+    
+    // value.value - chỉ mã hóa key "value" bên trong dictionary
+    if (actionData.value && 
+        typeof actionData.value === 'object' && 
+        actionData.value.value !== undefined && 
+        actionData.value.value !== null) {
+        fields.push('value.value');
+    }
+    
+    // Database connection
+    if (actionData.statement?.connection) {
+        if (actionData.statement.connection.username) {
+            fields.push('statement.connection.username');
+        }
+        if (actionData.statement.connection.password) {
+            fields.push('statement.connection.password');
+        }
+    }
+    
+    // API request - không mã hóa (theo yêu cầu)
+    
+    return fields;
+}
+
+/**
+ * Xác định các trường cần mã hóa trong ActionDataGeneration
+ */
+function getFieldsToEncryptForActionDataGeneration(gen: ActionDataGeneration): string[] {
+    const fields: string[] = [];
+    
+    // value.value - chỉ mã hóa key "value" bên trong dictionary
+    if (gen.value && 
+        typeof gen.value === 'object' && 
+        gen.value.value !== undefined && 
+        gen.value.value !== null) {
+        fields.push('value.value');
+    }
+    
+    return fields;
+}
 
 export class ActionService {
     async getActionsByTestCase(testcaseId: string, limit?: number, offset?: number): Promise<ApiResponse<ActionBatch>> {
@@ -35,7 +84,11 @@ export class ActionService {
         });
     }
 
-    async batchCreateActions(actions: Action[], testcaseDataVersions?: TestCaseDataVersion[]): Promise<ApiResponse<DefaultResponse>> {
+    async batchCreateActions(
+        actions: Action[], 
+        testcaseDataVersions?: TestCaseDataVersion[],
+        projectId?: string
+    ): Promise<ApiResponse<DefaultResponse>> {
         // Input validation
         if (!actions || !Array.isArray(actions) || actions.length === 0) {
             return {
@@ -75,7 +128,56 @@ export class ActionService {
             };
         });
 
-        const requestBody: ActionBatch = { actions: normalizedActions, testcase_data_versions: testcaseDataVersions };
+        // Mã hóa dữ liệu nhạy cảm nếu có projectId và encryption key
+        let encryptedActions = normalizedActions;
+        if (projectId) {
+            try {
+                const encryptionKey = await window.encryptionStore?.getKey(projectId);
+                if (encryptionKey) {
+                    encryptedActions = await Promise.all(
+                        normalizedActions.map(async (action) => {
+                            const encryptedAction = { ...action };
+
+                            // Mã hóa action_datas
+                            if (action.action_datas && action.action_datas.length > 0) {
+                                encryptedAction.action_datas = await Promise.all(
+                                    action.action_datas.map(async (actionData) => {
+                                        const fieldsToEncrypt = getFieldsToEncryptForActionData(actionData);
+                                        if (fieldsToEncrypt.length > 0) {
+                                            return await encryptObject(actionData, encryptionKey, fieldsToEncrypt);
+                                        }
+                                        return actionData;
+                                    })
+                                );
+                            }
+
+                            // Mã hóa action_data_generation
+                            if (action.action_data_generation && action.action_data_generation.length > 0) {
+                                encryptedAction.action_data_generation = await Promise.all(
+                                    action.action_data_generation.map(async (gen) => {
+                                        const fieldsToEncrypt = getFieldsToEncryptForActionDataGeneration(gen);
+                                        if (fieldsToEncrypt.length > 0) {
+                                            return await encryptObject(gen, encryptionKey, fieldsToEncrypt);
+                                        }
+                                        return gen;
+                                    })
+                                );
+                            }
+
+                            return encryptedAction;
+                        })
+                    );
+                }
+            } catch (error) {
+                console.error('[ActionService] Encryption failed:', error);
+                // Fallback: gửi không mã hóa nếu có lỗi
+            }
+        }
+
+        const requestBody: ActionBatch = { 
+            actions: encryptedActions, 
+            testcase_data_versions: testcaseDataVersions 
+        };
 
         const response = await apiRouter.request<DefaultResponse>('/actions/batch-create', {
             method: 'POST',
