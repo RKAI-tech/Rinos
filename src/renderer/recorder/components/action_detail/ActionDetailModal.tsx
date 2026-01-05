@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import './ActionDetailModal.css';
 import { Action, Element, ActionType } from '../../types/actions';
+import { toast } from 'react-toastify';
+import { syncVersionOnActionSave } from '../data_versions/versionSyncUtils';
 import InputActionDetail, { normalizeInputAction } from './action/intput/InputActionDetail';
 import NavigateActionDetail, { normalizeNavigateAction } from './action/navigate/NavigateActionDetail';
 import ClickActionsDetail, { normalizeClickAction } from './action/click/ClickActionsDetail';
@@ -40,9 +42,20 @@ interface ActionDetailModalProps {
   action?: Action | null;
   onClose: () => void;
   onSave?: (updated: Action) => void;
+  testcaseDataVersions?: import('../../types/testcase').TestCaseDataVersion[];
+  onTestCaseDataVersionsChange?: (updater: (prev: import('../../types/testcase').TestCaseDataVersion[]) => import('../../types/testcase').TestCaseDataVersion[]) => void;
+  allActions?: Action[];
 }
 
-const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, onClose, onSave }) => {
+const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ 
+  isOpen, 
+  action, 
+  onClose, 
+  onSave,
+  testcaseDataVersions,
+  onTestCaseDataVersionsChange,
+  allActions = [],
+}) => {
   const [draft, setDraft] = useState<Action | null>(null);
 
   useEffect(() => {
@@ -160,6 +173,23 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
         normalized = normalizeActionForSave(draft);
       }
       
+      // SYNC: Sync version nếu có thay đổi
+      if (action && testcaseDataVersions && onTestCaseDataVersionsChange && allActions) {
+        const { updatedVersions, affectedVersionNames } = syncVersionOnActionSave(
+          action, // original action
+          normalized, // updated action
+          testcaseDataVersions,
+          allActions
+        );
+
+        if (affectedVersionNames.length > 0) {
+          onTestCaseDataVersionsChange(() => updatedVersions);
+          toast.info(
+            `Version${affectedVersionNames.length > 1 ? 's' : ''} "${affectedVersionNames.join(', ')}" ${affectedVersionNames.length > 1 ? 'have' : 'has'} been updated.`
+          );
+        }
+      }
+      
       onSave(normalized);
     }
     onClose();
@@ -243,12 +273,18 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
               addNewSelector={addNewSelector}
               updateSelector={updateSelector}
               removeSelector={removeSelector}
+              testcaseDataVersions={testcaseDataVersions}
+              onTestCaseDataVersionsChange={onTestCaseDataVersionsChange}
+              allActions={allActions}
             />
           ) : draft.action_type === ActionType.navigate ? (
             <NavigateActionDetail
               draft={draft}
               updateDraft={updateDraft}
               updateField={updateField}
+              testcaseDataVersions={testcaseDataVersions}
+              onTestCaseDataVersionsChange={onTestCaseDataVersionsChange}
+              allActions={allActions}
             />
           ) : (
             draft.action_type === ActionType.click ||
@@ -345,6 +381,9 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
               draft={draft}
               updateDraft={updateDraft}
               updateField={updateField}
+              testcaseDataVersions={testcaseDataVersions}
+              onTestCaseDataVersionsChange={onTestCaseDataVersionsChange}
+              allActions={allActions}
             />
           ) : (
             draft.action_type === ActionType.reload ||
@@ -409,6 +448,9 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({ isOpen, action, o
               draft={draft}
               updateDraft={updateDraft}
               updateField={updateField}
+              testcaseDataVersions={testcaseDataVersions}
+              onTestCaseDataVersionsChange={onTestCaseDataVersionsChange}
+              allActions={allActions}
             />
           ) : (
             draft.action_type === ActionType.assert &&

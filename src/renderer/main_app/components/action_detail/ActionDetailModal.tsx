@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import './ActionDetailModal.css';
 import { Action as ActionGetResponse, ActionType, Action, AssertType, Element } from '../../types/actions';
+import { TestCaseDataVersion } from '../../types/testcases';
+import { toast } from 'react-toastify';
+import { syncVersionOnActionSave } from './versionSyncUtils';
 import InputActionDetail, { normalizeInputAction } from './action/intput/InputActionDetail';
 import NavigateActionDetail, { normalizeNavigateAction } from './action/navigate/NavigateActionDetail';
 import ClickActionsDetail, { normalizeClickAction } from './action/click/ClickActionsDetail';
@@ -63,7 +66,16 @@ const mapToResponse = (src: Action): ActionGetResponse => ({
   assert_type: (src.assert_type as any) || undefined,
 });
 
-const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave, projectId }) => {
+const MAActionDetailModal: React.FC<Props> = ({ 
+  isOpen, 
+  action, 
+  onClose, 
+  onSave, 
+  projectId,
+  testcaseDataVersions,
+  onTestCaseDataVersionsChange,
+  allActions = [],
+}) => {
   const [draft, setDraft] = useState<Action | null>(null);
 
   useEffect(() => {
@@ -224,6 +236,24 @@ const MAActionDetailModal: React.FC<Props> = ({ isOpen, action, onClose, onSave,
       normalized = normalizePageAction(draft);
     } else {
       normalized = normalizeActionForSave(draft);
+    }
+
+    // SYNC: Sync version nếu có thay đổi
+    if (action && testcaseDataVersions && onTestCaseDataVersionsChange && allActions) {
+      const originalAction = mapFromResponse(action);
+      const { updatedVersions, affectedVersionNames } = syncVersionOnActionSave(
+        originalAction, // original action
+        normalized, // updated action
+        testcaseDataVersions,
+        allActions
+      );
+
+      if (affectedVersionNames.length > 0) {
+        onTestCaseDataVersionsChange(() => updatedVersions);
+        toast.info(
+          `Version${affectedVersionNames.length > 1 ? 's' : ''} "${affectedVersionNames.join(', ')}" ${affectedVersionNames.length > 1 ? 'have' : 'has'} been updated.`
+        );
+      }
     }
 
     if (onSave) {

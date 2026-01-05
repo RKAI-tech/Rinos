@@ -1,4 +1,4 @@
-import { Action } from './actions';
+import { Action, ActionDataGeneration } from './actions';
 
 export enum BrowserType {
   chrome = "chrome",
@@ -81,6 +81,7 @@ export interface TestCaseBatch {
 
 export interface ExecuteTestCaseRequest {
     testcase_id: string;
+    test_suite_id?: string;
 }
 
 export interface TestCaseSearchRequest {
@@ -98,4 +99,17 @@ export interface TestCaseSearchResponse {
     number_testcase: number;
     current_page: number;
     total_pages: number;
+}
+
+export interface TestCaseDataVersion {
+    testcase_data_version_id?: string;
+    testcase_id?: string;
+    version?: string;
+    updated_at?: string;
+    created_at?: string;
+    action_data_generations?: ActionDataGeneration[];
+}
+
+export interface TestCaseDataVersionBatch {
+    testcase_data_versions: TestCaseDataVersion[];
 }

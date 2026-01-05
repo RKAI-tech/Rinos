@@ -1,6 +1,6 @@
 {
   "name": "automation-test-execution",
-  "version": "2.3.0-stg",
+  "version": "2.3.0",
   "type": "module",
   "main": "dist/main.cjs",
   "scripts": {

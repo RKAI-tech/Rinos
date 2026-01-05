@@ -36,6 +36,7 @@ const Variables: React.FC = () => {
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedVar, setSelectedVar] = useState<{ id: string; name?: string } | null>(null);
+  const [isReloading, setIsReloading] = useState(false);
 
   // Service - use useMemo to avoid recreating on every render
   const variableService = useMemo(() => new VariableService(), []);
@@ -132,7 +133,8 @@ const Variables: React.FC = () => {
   const sidebarItems = [
     { id: 'suites-manager', label: 'Test Manager', path: `/suites-manager/${projectId}`, isActive: false },
     { id: 'testcases', label: 'Testcases', path: `/testcases/${projectId}`, isActive: false },
-    { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
+    // Temporarily disabled Test Suites navigation
+    // { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
     { id: 'browser-storage', label: 'Browser Storage', path: `/browser-storage/${projectId}`, isActive: false },
     { id: 'databases', label: 'Databases', path: `/databases/${projectId}`, isActive: false },
     { id: 'queries', label: 'Queries', path: `/queries/${projectId}`, isActive: false },

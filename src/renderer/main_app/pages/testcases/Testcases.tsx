@@ -309,7 +309,9 @@ const Testcases: React.FC = () => {
       const resp = await projectService.getProjectById(projectId);
       if (resp.success && resp.data) {
         const project = resp.data as any;
-        setResolvedProjectName(project.name || 'Project');
+        setResolvedProjectName(project.name || projectData.projectName || 'Project');
+      } else if (projectData.projectName) {
+        setResolvedProjectName(projectData.projectName);
       }
     };
     loadProjectData();
@@ -320,7 +322,7 @@ const Testcases: React.FC = () => {
   const sidebarItems = [
     {
       id: 'suites-manager',
-      label: 'Test Manager',
+      label: 'Suites Manager',
       path: `/suites-manager/${projectId || ''}`,
       isActive: false
     },
@@ -330,12 +332,13 @@ const Testcases: React.FC = () => {
       path: `/testcases/${projectId || ''}`,
       isActive: true
     },
-    {
-      id: 'test-suites',
-      label: 'Test Suites',
-      path: `/test-suites/${projectId || ''}`,
-      isActive: false
-    },
+    // Temporarily disabled Test Suites navigation
+    // {
+    //   id: 'test-suites',
+    //   label: 'Test Suites',
+    //   path: `/test-suites/${projectId || ''}`,
+    //   isActive: false
+    // },
     {
       id: 'browser-storage',
       label: 'Browser Storage',

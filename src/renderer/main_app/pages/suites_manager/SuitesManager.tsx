@@ -57,6 +57,7 @@ import SuiteContextMenu from './components/SuiteContextMenu';
 import GroupContextMenu from './components/GroupContextMenu';
 import DeleteGroupModal from './components/DeleteGroupModal';
 import LoadingOverlay from './components/LoadingOverlay';
+import TestcaseDataVersionModal from './components/TestcaseDataVersionModal';
 
 const SuitesManager: React.FC = () => {
   const location = useLocation();
@@ -93,15 +94,17 @@ const SuitesManager: React.FC = () => {
   const [selectedBrowserFilter, setSelectedBrowserFilter] = useState<string | null>(null);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   
-  // Pagination state (server-side)
+  // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(20);
-  const [totalTestcases, setTotalTestcases] = useState<number>(0);
-  const [totalPages, setTotalPages] = useState<number>(1);
   
   // Evidence modal state
   const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
   const [viewingTestcase, setViewingTestcase] = useState<TestCaseInSuite | null>(null);
+  
+  // Data version modal state
+  const [isDataVersionModalOpen, setIsDataVersionModalOpen] = useState(false);
+  const [viewingDataVersionTestcase, setViewingDataVersionTestcase] = useState<TestCaseInSuite | null>(null);
   
   const [isNewTestcaseMenuOpen, setIsNewTestcaseMenuOpen] = useState(false);
   
@@ -132,18 +135,19 @@ const SuitesManager: React.FC = () => {
     updated: number;
   }>({
     name: 200,
-    description: 200,
-    status: 120,
-    browser: 120,
-    order: 85,
-    updated: 150,
+    description: 350,
+    status: 90,
+    browser: 90,
+    order: 80,
+    updated: 80,
   });
   const [rowHeights, setRowHeights] = useState<Map<string, number>>(new Map());
 
   const sidebarItems = useMemo(() => ([
-    { id: 'suites-manager', label: 'Test Manager', path: `/suites-manager/${projectId}`, isActive: true },
+    { id: 'suites-manager', label: 'Suites Manager', path: `/suites-manager/${projectId}`, isActive: true },
     { id: 'testcases', label: 'Testcases', path: `/testcases/${projectId}`, isActive: false },
-    { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
+    // Temporarily disabled Test Suites navigation
+    // { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
     { id: 'browser-storage', label: 'Browser Storage', path: `/browser-storage/${projectId}`, isActive: false },
     { id: 'databases', label: 'Databases', path: `/databases/${projectId}`, isActive: false },
     { id: 'queries', label: 'Queries', path: `/queries/${projectId}`, isActive: false },
@@ -159,7 +163,6 @@ const SuitesManager: React.FC = () => {
   const groupService = useMemo(() => new GroupService(), []);
   const suiteService = useMemo(() => new TestSuiteService(), []);
   const testCaseService = useMemo(() => new TestCaseService(), []);
-  const projectService = useMemo(() => new ProjectService(), []);
 
   // Browser handlers hook
   const {
@@ -175,6 +178,7 @@ const SuitesManager: React.FC = () => {
     setIsInstallBrowserModalOpen,
     setIsInstallingBrowsers,
     setInstallProgress,
+    testSuiteId: selectedSuiteId,
   });
 
   useEffect(() => {
@@ -184,13 +188,13 @@ const SuitesManager: React.FC = () => {
         setResolvedProjectName(projectData.projectName);
         return;
       }
-      const resp = await projectService.getProjectById(projectId);
+      const svc = new ProjectService();
+      const resp = await svc.getProjectById(projectId);
       if (resp.success && resp.data) {
         setResolvedProjectName((resp.data as any).name || 'Project');
       }
     };
     loadProjectName();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   // Keep refs in sync with state
@@ -245,16 +249,25 @@ const SuitesManager: React.FC = () => {
             setSelectedSuiteId(previousSuiteId);
             setSelectedSuiteName(previousSuiteName || foundSuite.name);
             setSelectedSuite(foundSuite);
-            // Reload testcases for the preserved suite using search API with default params
-            // Reset pagination and filters to defaults
-            setCurrentPage(1);
-            setTestcasesSearchText('');
-            setSelectedOrderFilter(null);
-            setSelectedStatusFilter(null);
-            setSelectedBrowserFilter(null);
-            setSortColumn('updated_at');
-            setSortDirection('desc');
-            // fetchTestcasesBySuite will be called by useEffect when selectedSuiteId changes
+            // Reload testcases for the preserved suite (using suiteService directly to avoid circular dependency)
+            // Set loading state for testcases only, not tree
+            setIsLoadingTestcases(true);
+            suiteService.getTestCasesBySuite({ test_suite_id: previousSuiteId })
+              .then((resp) => {
+                console.log('resp', resp);
+                if (resp.success && resp.data) {
+                  setTestcases(resp.data.testcases || []);
+                  // Don't auto-select level - show all testcases by default
+                  // Reset selectedLevel to null when reloading data
+                  setSelectedLevel(null);
+                }
+              })
+              .catch(() => {
+                // Silently fail - user can click again to reload
+              })
+              .finally(() => {
+                setIsLoadingTestcases(false);
+              });
           } else {
             // Suite no longer exists, clear selection
             setSelectedSuiteId(null);
@@ -309,12 +322,12 @@ const SuitesManager: React.FC = () => {
       if (savedColumnWidths) {
         const parsed = JSON.parse(savedColumnWidths);
         setColumnWidths({
-          name: parsed.name || 200,
-          description: parsed.description || 200,
-          status: parsed.status || 120,
-          browser: parsed.browser || 120,
-          order: parsed.order || 85,
-          updated: parsed.updated || 150,
+          name: parsed.name || 240,
+          description: parsed.description || 560,
+          status: parsed.status || 90,
+          browser: parsed.browser || 90,
+          order: parsed.order || 80,
+          updated: parsed.updated || 90,
         });
       }
 
@@ -366,50 +379,14 @@ const SuitesManager: React.FC = () => {
   // Context menu handlers are now imported from hooks/useContextMenuHandlers.ts
   // Group handlers are now imported from hooks/useGroupHandlers.ts
 
-  const fetchTestcasesBySuite = useCallback(async (
-    suiteId: string,
-    suiteName: string,
-    page?: number,
-    pageSize?: number,
-    search?: string,
-    sortBy?: string | null,
-    order?: 'asc' | 'desc',
-    level?: number | null,
-    status?: string | null,
-    browserType?: string | null
-  ) => {
-    // Use provided values or fallback to current state
-    const actualPage = page ?? currentPage;
-    const actualPageSize = pageSize ?? itemsPerPage;
-    const actualSearch = search !== undefined ? search : testcasesSearchText;
-    const actualSortBy = sortBy !== undefined ? sortBy : sortColumn;
-    const actualOrder = order ?? sortDirection;
-    const actualLevel = level !== undefined ? level : selectedOrderFilter;
-    const actualStatus = status !== undefined ? status : selectedStatusFilter;
-    const actualBrowserType = browserType !== undefined ? browserType : selectedBrowserFilter;
+  const fetchTestcasesBySuite = useCallback(async (suiteId: string, suiteName: string) => {
     if (!suiteId) return;
     try {
       setIsLoadingTestcases(true);
       setTestcasesError(null);
-      
-      const request = {
-        page: actualPage,
-        page_size: actualPageSize,
-        q: actualSearch && actualSearch.trim() ? actualSearch.trim() : null,
-        sort_by: actualSortBy || null,
-        order: actualOrder || 'desc',
-        level: actualLevel !== null ? actualLevel : null,
-        status: actualStatus || null,
-        browser_type: actualBrowserType || null,
-      };
-      
-      const resp = await suiteService.searchTestCasesBySuite(suiteId, request);
+      const resp = await suiteService.getTestCasesBySuite({ test_suite_id: suiteId });
       if (resp.success && resp.data) {
         setTestcases(resp.data.testcases || []);
-        setTotalTestcases(resp.data.number_testcase || 0);
-        setTotalPages(resp.data.total_pages || 1);
-        setCurrentPage(resp.data.current_page || 1);
-        
         // Don't auto-select any level - show all testcases by default
         // If a level is already selected, ensure it is expanded
         if (selectedLevel !== null) {
@@ -421,9 +398,6 @@ const SuitesManager: React.FC = () => {
         }
       } else {
         setTestcases([]);
-        setTotalTestcases(0);
-        setTotalPages(1);
-        setCurrentPage(1);
         setTestcasesError(resp.error || 'Failed to load testcases');
         toast.error(resp.error || 'Failed to load testcases');
       }
@@ -431,14 +405,11 @@ const SuitesManager: React.FC = () => {
       const msg = e instanceof Error ? e.message : 'An error occurred while loading testcases';
       setTestcasesError(msg);
       setTestcases([]);
-      setTotalTestcases(0);
-      setTotalPages(1);
-      setCurrentPage(1);
       toast.error(msg);
     } finally {
       setIsLoadingTestcases(false);
     }
-  }, [suiteService, selectedLevel, currentPage, itemsPerPage, testcasesSearchText, sortColumn, sortDirection, selectedOrderFilter, selectedStatusFilter, selectedBrowserFilter]);
+  }, [suiteService, selectedLevel]);
 
   // Reload testcases when recorder window is closed
   useEffect(() => {
@@ -594,18 +565,7 @@ const SuitesManager: React.FC = () => {
     handleColumnSort,
     setSortColumn,
     setSortDirection,
-  } = useColumnSort('updated_at', 'desc');
-
-  // Reset filters and search when suite changes
-  useEffect(() => {
-    if (selectedSuiteId) {
-      setTestcasesSearchText('');
-      setSelectedOrderFilter(null);
-      setSelectedStatusFilter(null);
-      setSelectedBrowserFilter(null);
-      setCurrentPage(1);
-    }
-  }, [selectedSuiteId]);
+  } = useColumnSort('updated', 'desc');
 
   const {
     // Suite state
@@ -747,7 +707,7 @@ const SuitesManager: React.FC = () => {
     return rootSuites.filter((s) => (s.name || '').toLowerCase().includes(q));
   }, [rootSuites, searchText]);
 
-  // Group testcases by level (for display purposes only, data already filtered by server)
+  // Group testcases by level
   const groupTestcasesByLevel = useMemo(() => {
     const grouped: Map<number, TestCaseInSuite[]> = new Map();
     testcases.forEach((tc) => {
@@ -760,65 +720,101 @@ const SuitesManager: React.FC = () => {
     return grouped;
   }, [testcases]);
 
+  // Filter testcases by search text
+  const filteredGroupedTestcases = useMemo(() => {
+    if (!testcasesSearchText.trim()) return groupTestcasesByLevel;
+    const q = testcasesSearchText.toLowerCase();
+    const filtered: Map<number, TestCaseInSuite[]> = new Map();
+    groupTestcasesByLevel.forEach((cases, level) => {
+      const filteredCases = cases.filter((tc) =>
+        (tc.name || '').toLowerCase().includes(q)
+      );
+      if (filteredCases.length > 0) {
+        filtered.set(level, filteredCases);
+      }
+    });
+    return filtered;
+  }, [groupTestcasesByLevel, testcasesSearchText]);
+
   // Get sorted levels
   const sortedLevels = useMemo(() => {
-    return Array.from(groupTestcasesByLevel.keys()).sort((a, b) => a - b);
-  }, [groupTestcasesByLevel]);
+    return Array.from(filteredGroupedTestcases.keys()).sort((a, b) => a - b);
+  }, [filteredGroupedTestcases]);
 
-  // Displayed testcases are already filtered/sorted/paginated by server
-  const displayedTestcases = testcases;
-  const paginatedTestcases = testcases; // Already paginated by server
+  // Sort testcases function
+  const sortTestcases = useCallback((testcases: TestCaseInSuite[], column: string | null, direction: 'asc' | 'desc'): TestCaseInSuite[] => {
+    return sortTestcasesUtil(testcases, column, direction, formatBrowserType);
+  }, []);
 
-  // Track if we're resetting page to avoid double fetch
-  const isResettingPageRef = useRef(false);
+  // Helper function to normalize status for comparison
+  const normalizeStatus = (status: string | null | undefined): string => {
+    if (!status) return 'draft';
+    const normalized = status.toLowerCase();
+    if (normalized === 'running') return 'Running';
+    if (normalized === 'passed' || normalized === 'success') return 'Passed';
+    if (normalized === 'failed' || normalized === 'error') return 'Failed';
+    if (normalized === 'draft') return 'Draft';
+    return 'Draft';
+  };
 
-  // Reset to page 1 when filters/search/sort/pagesize change, then reload
-  useEffect(() => {
-    if (selectedSuiteId) {
-      isResettingPageRef.current = true;
-      setCurrentPage(1);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    selectedSuiteId,
-    testcasesSearchText,
-    sortColumn,
-    sortDirection,
-    selectedOrderFilter,
-    selectedStatusFilter,
-    selectedBrowserFilter,
-    itemsPerPage,
-  ]);
-
-  // Reload testcases when suite, search, filter, sort, pagination changes
-  useEffect(() => {
-    if (selectedSuiteId) {
-      fetchTestcasesBySuite(
-        selectedSuiteId,
-        selectedSuiteName,
-        currentPage,
-        itemsPerPage,
-        testcasesSearchText,
-        sortColumn,
-        sortDirection,
-        selectedOrderFilter,
-        selectedStatusFilter,
-        selectedBrowserFilter
+  // Get displayed testcases: apply all filters using AND logic
+  const displayedTestcases = useMemo(() => {
+    let filtered: TestCaseInSuite[] = testcases;
+    
+    // Apply search text filter
+    if (testcasesSearchText.trim()) {
+      const q = testcasesSearchText.toLowerCase();
+      filtered = filtered.filter((tc) =>
+        (tc.name || '').toLowerCase().includes(q)
       );
-      isResettingPageRef.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
+    // Apply Order filter
+    if (selectedOrderFilter !== null) {
+      filtered = filtered.filter((tc) => (tc.level ?? 0) === selectedOrderFilter);
+    }
+    
+    // Apply Status filter
+    if (selectedStatusFilter !== null) {
+      filtered = filtered.filter((tc) => {
+        const normalizedStatus = normalizeStatus(tc.status);
+        return normalizedStatus === selectedStatusFilter;
+      });
+    }
+    
+    // Apply Browser filter
+    if (selectedBrowserFilter !== null) {
+      filtered = filtered.filter((tc) => {
+        const browserType = (tc.browser_type || '').toLowerCase();
+        return browserType === selectedBrowserFilter.toLowerCase();
+      });
+    }
+    
+    // Apply sorting
+    return sortTestcases(filtered, sortColumn, sortDirection);
   }, [
-    selectedSuiteId,
-    currentPage,
+    testcases,
     testcasesSearchText,
-    sortColumn,
-    sortDirection,
     selectedOrderFilter,
     selectedStatusFilter,
     selectedBrowserFilter,
-    itemsPerPage,
+    sortColumn,
+    sortDirection,
+    sortTestcases,
   ]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(displayedTestcases.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTestcases = useMemo(() => {
+    return displayedTestcases.slice(startIndex, endIndex);
+  }, [displayedTestcases, startIndex, endIndex]);
+
+  // Reset to page 1 when filters or itemsPerPage change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedOrderFilter, selectedStatusFilter, selectedBrowserFilter, testcasesSearchText, itemsPerPage]);
 
   const toggleTestcaseLevel = (level: number) => {
     setExpandedTestcaseLevels((prev) => {
@@ -880,6 +876,10 @@ const SuitesManager: React.FC = () => {
     onTestcaseEdit: handleOpenEditTestcase,
     onTestcaseDuplicate: handleOpenDuplicateTestcase,
     onTestcaseDelete: openDeleteModal,
+    onTestcaseDatatest: (testcase) => {
+      setViewingDataVersionTestcase(testcase);
+      setIsDataVersionModalOpen(true);
+    },
     onTestcaseChangeLevel: () => {
       // Logic is handled in handleContextMenuAction
     },
@@ -1235,7 +1235,7 @@ const SuitesManager: React.FC = () => {
                         currentPage={currentPage}
                         totalPages={totalPages}
                         itemsPerPage={itemsPerPage}
-                        totalItems={totalTestcases}
+                        totalItems={displayedTestcases.length}
                         onPageChange={setCurrentPage}
                         onItemsPerPageChange={(newItemsPerPage) => {
                           setItemsPerPage(newItemsPerPage);
@@ -1378,6 +1378,17 @@ const SuitesManager: React.FC = () => {
         testcase={viewingTestcase}
         testSuiteId={selectedSuiteId}
         projectId={projectId}
+      />
+
+      {/* Data Version Modal */}
+      <TestcaseDataVersionModal
+        isOpen={isDataVersionModalOpen}
+        onClose={() => {
+          setIsDataVersionModalOpen(false);
+          setViewingDataVersionTestcase(null);
+        }}
+        testcase={viewingDataVersionTestcase}
+        testSuiteId={selectedSuiteId}
       />
 
       <LoadingOverlay

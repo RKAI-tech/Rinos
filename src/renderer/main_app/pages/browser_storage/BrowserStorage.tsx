@@ -404,7 +404,8 @@ const BrowserStorage: React.FC = () => {
   const sidebarItems = [
     { id: 'suites-manager', label: 'Test Manager', path: `/suites-manager/${projectId}`, isActive: false },
     { id: 'testcases', label: 'Testcases', path: `/testcases/${projectId}`, isActive: false },
-    { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
+    // Temporarily disabled Test Suites navigation
+    // { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
     { id: 'browser-storage', label: 'Browser Storage', path: `/browser-storage/${projectId}`, isActive: true },
     { id: 'databases', label: 'Databases', path: `/databases/${projectId}`, isActive: false },
     { id: 'queries', label: 'Queries', path: `/queries/${projectId}`, isActive: false },

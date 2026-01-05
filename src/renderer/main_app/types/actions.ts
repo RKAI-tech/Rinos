@@ -219,9 +219,20 @@ export interface Action {
   action_data_generation?: ActionDataGeneration[];
 }
 
+export interface TestCaseDataVersion {
+  testcase_data_version_id?: string;
+  version?: string;
+  action_data_generation_ids?: string[];
+}
+
 export interface ActionBatch {
   actions: Action[];
+  testcase_data_versions?: TestCaseDataVersion[];
 }
+
+// export interface ActionBatch {
+//   actions: Action[];
+// }
 
 export interface AiAssertRequest {
   testcase_id: string;

@@ -10,6 +10,7 @@ interface UseBrowserProps {
   testcaseId: string | null;
   basicAuth?: BasicAuthentication;
   browserType?: string;
+  testSuiteId?: string | null;
   selectedInsertPosition: number;
   setSelectedInsertPosition: (pos: number) => void;
   setDisplayInsertPosition: (pos: number) => void;
@@ -30,6 +31,7 @@ export const useBrowser = ({
   testcaseId,
   basicAuth,
   browserType = 'chrome',
+  testSuiteId,
   selectedInsertPosition,
   setSelectedInsertPosition,
   setDisplayInsertPosition,
@@ -290,8 +292,10 @@ export const useBrowser = ({
       const payload = {
         actions: actions,
         testcase_id: testcaseId || '',
+        test_suite_id: testSuiteId || undefined,
         basic_auth: basicAuth,
       };
+      console.log('Payload', payload);
       const resp = await service.executeActions(payload);
       if (resp.success) {
         setRunResult((resp as any).logs || 'Executed successfully');

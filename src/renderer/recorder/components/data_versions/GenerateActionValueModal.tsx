@@ -167,10 +167,11 @@ const GenerateActionValueModal: React.FC<GenerateActionValueModalProps> = ({
         <div className="generate-action-value-modal-header">
           <div className="generate-action-value-modal-title-wrapper">
             <h3 className="generate-action-value-modal-title">
-              {action.action_type || 'Action'}
+              {/* {action.action_type || 'Action'}
               {action.description && (
                 <span className="generate-action-value-modal-subtitle"> - {action.description}</span>
-              )}
+              )} */}
+              Generate new action value
             </h3>
           </div>
           <button className="generate-action-value-modal-close" onClick={onClose}>
@@ -183,15 +184,8 @@ const GenerateActionValueModal: React.FC<GenerateActionValueModalProps> = ({
         <div className="generate-action-value-modal-body">
           {/* Prompt Section */}
           <div className="generate-action-value-section">
-            <label className="generate-action-value-label">Prompt:</label>
-            <div className="generate-action-value-input-group">
-              <textarea
-                className="generate-action-value-textarea"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Enter prompt to generate function code..."
-                rows={3}
-              />
+            <div className="generate-action-value-label-row">
+              <label className="generate-action-value-label">Prompt:</label>
               <button
                 className="generate-action-value-send-btn"
                 onClick={handleSendPrompt}
@@ -200,19 +194,18 @@ const GenerateActionValueModal: React.FC<GenerateActionValueModalProps> = ({
                 {isGenerating ? 'Generating...' : 'Send'}
               </button>
             </div>
+            <textarea
+              className="generate-action-value-textarea"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Enter prompt to generate function code..."
+            />
           </div>
 
           {/* Code Section */}
           <div className="generate-action-value-section">
-            <label className="generate-action-value-label">Code:</label>
-            <div className="generate-action-value-input-group">
-              <textarea
-                className="generate-action-value-code-textarea"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="Enter or generate function code..."
-                rows={8}
-              />
+            <div className="generate-action-value-label-row">
+              <label className="generate-action-value-label">Code:</label>
               <button
                 className="generate-action-value-run-btn"
                 onClick={handleRunCode}
@@ -221,6 +214,12 @@ const GenerateActionValueModal: React.FC<GenerateActionValueModalProps> = ({
                 {isRunning ? 'Running...' : 'Run'}
               </button>
             </div>
+            <textarea
+              className="generate-action-value-code-textarea"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="Enter or generate function code..."
+            />
           </div>
 
           {/* Generated Value Section */}
@@ -231,7 +230,6 @@ const GenerateActionValueModal: React.FC<GenerateActionValueModalProps> = ({
               value={generatedValueText}
               onChange={(e) => setGeneratedValueText(e.target.value)}
               placeholder="Run the code to generate value or enter manually..."
-              rows={4}
             />
           </div>
 

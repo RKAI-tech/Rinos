@@ -127,9 +127,10 @@ const ChangeLog: React.FC = () => {
   }, [projectId, page, pageSize, search, fromDate, toDate, entityFilter, actionTypeFilter, sortBy, order]);
 
   const sidebarItems = [
-    { id: 'suites-manager', label: 'Test Manager', path: `/suites-manager/${projectId}`, isActive: false },
+    { id: 'suites-manager', label: 'Suites Manager', path: `/suites-manager/${projectId}`, isActive: false },
     { id: 'testcases', label: 'Testcases', path: `/testcases/${projectId}`, isActive: false },
-    { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
+    // Temporarily disabled Test Suites navigation
+    // { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
     { id: 'browser-storage', label: 'Browser Storage', path: `/browser-storage/${projectId}`, isActive: false },
     { id: 'databases', label: 'Databases', path: `/databases/${projectId}`, isActive: false },
     { id: 'queries', label: 'Queries', path: `/queries/${projectId}`, isActive: false },
@@ -453,7 +454,7 @@ const ChangeLog: React.FC = () => {
                     </button>
                     <button
                       className={`reload-btn ${isLoading ? 'is-loading' : ''}`}
-                      onClick={reloadHistories}
+                      onClick={() => reloadHistories()}
                       disabled={isLoading}
                       title="Reload activities"
                       aria-label="Reload activities"

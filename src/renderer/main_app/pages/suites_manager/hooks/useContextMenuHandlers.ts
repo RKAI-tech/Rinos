@@ -30,6 +30,7 @@ interface UseContextMenuHandlersProps {
   onTestcaseEdit?: (testcase: TestCaseInSuite) => Promise<void>;
   onTestcaseDuplicate?: (testcase: TestCaseInSuite) => Promise<void>;
   onTestcaseDelete?: (testcase: TestCaseInSuite) => void;
+  onTestcaseDatatest?: (testcase: TestCaseInSuite) => void;
   onTestcaseChangeLevel?: (testcase: TestCaseInSuite) => void;
   // Suite context menu action handlers
   onSuiteRun?: (suite: GroupSuiteItem) => Promise<void>;
@@ -51,6 +52,7 @@ export const useContextMenuHandlers = ({
   onTestcaseEdit,
   onTestcaseDuplicate,
   onTestcaseDelete,
+  onTestcaseDatatest,
   onTestcaseChangeLevel,
   onSuiteRun,
   onSuiteAddCases,
@@ -171,7 +173,7 @@ export const useContextMenuHandlers = ({
   }, []);
 
   // Testcase context menu action handler
-  const handleContextMenuAction = useCallback(async (action: 'evidence' | 'edit' | 'duplicate' | 'delete' | 'change_level') => {
+  const handleContextMenuAction = useCallback(async (action: 'evidence' | 'edit' | 'duplicate' | 'datatest' | 'delete' | 'change_level') => {
     if (!contextMenu.testcase) {
       handleCloseContextMenu();
       return;
@@ -196,6 +198,12 @@ export const useContextMenuHandlers = ({
         }
         handleCloseContextMenu();
         break;
+      case 'datatest':
+        if (onTestcaseDatatest) {
+          onTestcaseDatatest(contextMenu.testcase);
+        }
+        handleCloseContextMenu();
+        break;
       case 'delete':
         if (onTestcaseDelete) {
           onTestcaseDelete(contextMenu.testcase);
@@ -212,7 +220,7 @@ export const useContextMenuHandlers = ({
         // Don't close the context menu, keep it open to show the submenu
         break;
     }
-  }, [contextMenu.testcase, handleCloseContextMenu, onTestcaseEvidence, onTestcaseEdit, onTestcaseDuplicate, onTestcaseDelete, onTestcaseChangeLevel]);
+  }, [contextMenu.testcase, handleCloseContextMenu, onTestcaseEvidence, onTestcaseEdit, onTestcaseDuplicate, onTestcaseDelete, onTestcaseDatatest, onTestcaseChangeLevel]);
 
   // Suite context menu action handler
   const handleSuiteContextMenuAction = useCallback(async (action: 'run' | 'add_cases' | 'edit' | 'delete') => {

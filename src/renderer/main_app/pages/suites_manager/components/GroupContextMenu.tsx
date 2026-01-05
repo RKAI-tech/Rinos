@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { TreeGroup } from '../utils/treeOperations';
 
 interface GroupContextMenuProps {
@@ -16,16 +16,76 @@ const GroupContextMenu: React.FC<GroupContextMenuProps> = ({
   group,
   onAction,
 }) => {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [adjustedPosition, setAdjustedPosition] = useState({ x, y });
+
+  useEffect(() => {
+    if (!visible || !menuRef.current) return;
+
+    const adjustPosition = () => {
+      const menu = menuRef.current;
+      if (!menu) return;
+
+      const rect = menu.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const padding = 8; // Padding from viewport edges
+
+      let adjustedX = x;
+      let adjustedY = y;
+
+      // Adjust horizontal position
+      if (rect.right > viewportWidth - padding) {
+        adjustedX = viewportWidth - rect.width - padding;
+      }
+      if (adjustedX < padding) {
+        adjustedX = padding;
+      }
+
+      // Adjust vertical position
+      if (rect.bottom > viewportHeight - padding) {
+        adjustedY = viewportHeight - rect.height - padding;
+      }
+      if (adjustedY < padding) {
+        adjustedY = padding;
+      }
+
+      setAdjustedPosition({ x: adjustedX, y: adjustedY });
+    };
+
+    // Adjust position after render using requestAnimationFrame to ensure DOM is updated
+    requestAnimationFrame(() => {
+      requestAnimationFrame(adjustPosition);
+    });
+
+    // Re-adjust on window resize or scroll
+    window.addEventListener('resize', adjustPosition);
+    window.addEventListener('scroll', adjustPosition, true);
+
+    return () => {
+      window.removeEventListener('resize', adjustPosition);
+      window.removeEventListener('scroll', adjustPosition, true);
+    };
+  }, [visible, x, y]);
+
+  // Reset position when menu becomes visible
+  useEffect(() => {
+    if (visible) {
+      setAdjustedPosition({ x, y });
+    }
+  }, [visible, x, y]);
+
   if (!visible || !group) return null;
 
   return (
     <div
+      ref={menuRef}
       className="sm-group-context-menu sm-testcase-context-menu"
       style={{
         position: 'fixed',
-        left: `${x}px`,
-        top: `${y}px`,
-        zIndex: 1000,
+        left: `${adjustedPosition.x}px`,
+        top: `${adjustedPosition.y}px`,
+        zIndex: 10001,
       }}
       onClick={(e) => e.stopPropagation()}
     >

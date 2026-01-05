@@ -407,10 +407,10 @@ export function convertApiRequestOptionsToData(options: ApiRequestOptions): ApiR
 
   const auth: ApiRequestAuth = {
     type: options.authType,
+    storage_enabled: false,
     username: options.authUsername,
     password: options.authPassword,
     token: options.authToken,
-    storage_enabled: false,
     token_storages: [],
     basic_auth_storages: [],
   };
@@ -426,7 +426,7 @@ export function convertApiRequestOptionsToData(options: ApiRequestOptions): ApiR
     url: options.url,
     params,
     headers,
-    auth: auth.type === 'none' ? undefined : auth,
+    auth: auth.type === 'none' ? { type: 'none', storage_enabled: false } : auth,
     body: options.bodyType === 'none' ? undefined : body,
   };
 

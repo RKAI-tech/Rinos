@@ -37,9 +37,10 @@ interface MainProps {
   projectId?: string | null;
   testcaseId?: string | null;
   browserType?: string | null;
+  testSuiteId?: string | null;
 }
 
-const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
+const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSuiteId }) => {
   const [url, setUrl] = useState('');
   const [activeTab, setActiveTab] = useState<'actions' | 'script'>('actions');
   const [customScript, setCustomScript] = useState<string>('');
@@ -92,8 +93,10 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
   }, []);
 
   const actionsHook = useActions({
+    projectId: projectId || null,
     testcaseId: testcaseId || null,
     onDirtyChange: handleActionsDirtyChange,
+    testcaseDataVersions: testcaseDataVersions,
   });
 
   // Cập nhật ref khi actionsHook thay đổi
@@ -139,6 +142,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
     testcaseId: testcaseId || null,
     basicAuth: basicAuthHook.basicAuth,
     browserType: browserType || 'chrome',
+    testSuiteId: testSuiteId || null,
     selectedInsertPosition: actionsHook.selectedInsertPosition,
     setSelectedInsertPosition: actionsHook.setSelectedInsertPosition,
     setDisplayInsertPosition: actionsHook.setDisplayInsertPosition,
@@ -417,8 +421,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
               .filter((id): id is string => !!id) || [],
           }))
         : undefined;
-      
-      console.log('[Main] Versions to save:', versionsToSave);
       const result = await actionsHook.handleSaveActions(versionsToSave, duplicateCheck.checkDuplicates);
       // Reload testcase data versions after successful save
       if (result.success) {
@@ -808,6 +810,11 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType }) => {
         action={selectedAction}
         onClose={() => modals.setIsDetailOpen(false)}
         onSave={handleUpdateAction}
+        testcaseDataVersions={testcaseDataVersions}
+        onTestCaseDataVersionsChange={(updater) => {
+          setTestCaseDataVersions(updater);
+        }}
+        allActions={actionsHook.actions}
       />
 
       <AiAssertModal

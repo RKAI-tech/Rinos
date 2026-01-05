@@ -225,23 +225,19 @@ const AssertApiElementPanel: React.FC<AssertApiElementPanelProps> = ({
 
     const filteredParams = params
       .filter(p => p.key.trim() || p.value.trim())
-      .map((p, index) => {
-        const existing = apiRequest?.params?.[index];
+      .map((p) => {
         return {
           key: p.key.trim(),
           value: p.value,
-          order_index: index,
         };
       });
 
     const filteredHeaders = headers
       .filter(h => h.key.trim() || h.value.trim())
-      .map((h, index) => {
-        const existing = apiRequest?.headers?.[index];
+      .map((h) => {
         return {
           key: h.key.trim(),
           value: h.value,
-          order_index: index,
         };
       });
 
@@ -267,6 +263,7 @@ const AssertApiElementPanel: React.FC<AssertApiElementPanelProps> = ({
           ? undefined
           : '',
       form_datas: bodyType === 'form' ? bodyEntries : undefined,
+      
     };
 
     const includeBearerStorage = authType === 'bearer' && tokenStorageEnabled && tokenStorageKey.trim();

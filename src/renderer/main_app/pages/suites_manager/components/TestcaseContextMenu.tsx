@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { TestCaseInSuite } from '../../../types/testsuites';
 
 interface TestcaseContextMenuProps {
@@ -11,7 +11,7 @@ interface TestcaseContextMenuProps {
   newLevelValue: string;
   isUpdatingTestcaseLevel: boolean;
   changeLevelInputRef: React.RefObject<HTMLInputElement | null>;
-  onAction: (action: 'evidence' | 'edit' | 'duplicate' | 'change_level' | 'delete') => void;
+  onAction: (action: 'evidence' | 'edit' | 'duplicate' | 'datatest' | 'change_level' | 'delete') => void;
   onLevelValueChange: (value: string) => void;
   onChangeLevelSubmit: () => void;
   onChangeLevelCancel: () => void;
@@ -34,16 +34,76 @@ const TestcaseContextMenu: React.FC<TestcaseContextMenuProps> = ({
   onChangeLevelCancel,
   onKeyDown,
 }) => {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [adjustedPosition, setAdjustedPosition] = useState({ x, y });
+
+  useEffect(() => {
+    if (!visible || !menuRef.current) return;
+
+    const adjustPosition = () => {
+      const menu = menuRef.current;
+      if (!menu) return;
+
+      const rect = menu.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const padding = 8; // Padding from viewport edges
+
+      let adjustedX = x;
+      let adjustedY = y;
+
+      // Adjust horizontal position
+      if (rect.right > viewportWidth - padding) {
+        adjustedX = viewportWidth - rect.width - padding;
+      }
+      if (adjustedX < padding) {
+        adjustedX = padding;
+      }
+
+      // Adjust vertical position
+      if (rect.bottom > viewportHeight - padding) {
+        adjustedY = viewportHeight - rect.height - padding;
+      }
+      if (adjustedY < padding) {
+        adjustedY = padding;
+      }
+
+      setAdjustedPosition({ x: adjustedX, y: adjustedY });
+    };
+
+    // Adjust position after render using requestAnimationFrame to ensure DOM is updated
+    requestAnimationFrame(() => {
+      requestAnimationFrame(adjustPosition);
+    });
+
+    // Re-adjust on window resize or scroll
+    window.addEventListener('resize', adjustPosition);
+    window.addEventListener('scroll', adjustPosition, true);
+
+    return () => {
+      window.removeEventListener('resize', adjustPosition);
+      window.removeEventListener('scroll', adjustPosition, true);
+    };
+  }, [visible, x, y, isChangeLevelSubmenuOpen]);
+
+  // Reset position when menu becomes visible
+  useEffect(() => {
+    if (visible) {
+      setAdjustedPosition({ x, y });
+    }
+  }, [visible, x, y]);
+
   if (!visible || !testcase) return null;
 
   return (
     <div
+      ref={menuRef}
       className="sm-testcase-context-menu-wrapper"
       style={{
         position: 'fixed',
-        left: `${x}px`,
-        top: `${y}px`,
-        zIndex: 1000,
+        left: `${adjustedPosition.x}px`,
+        top: `${adjustedPosition.y}px`,
+        zIndex: 10001,
         display: 'flex',
         gap: '8px',
       }}
@@ -82,6 +142,17 @@ const TestcaseContextMenu: React.FC<TestcaseContextMenuProps> = ({
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>
           Duplicate
+        </button>
+        <button
+          className="sm-context-menu-item"
+          onClick={() => onAction('datatest')}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <line x1="9" y1="3" x2="9" y2="21" />
+            <line x1="3" y1="9" x2="21" y2="9" />
+          </svg>
+          Test Data
         </button>
         <button
           className={`sm-context-menu-item ${isChangeLevelSubmenuOpen ? 'is-active' : ''}`}

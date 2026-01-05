@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Action, ActionDataGeneration } from '../../types/actions';
 import { toast } from 'react-toastify';
 import GenerateActionValueModal from './GenerateActionValueModal';
+import EditActionValuesModal from './EditActionValuesModal';
 import './NewVersionModal.css';
 
 interface NewVersionModalProps {
@@ -22,6 +23,13 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
   const [isCreating, setIsCreating] = useState(false);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [currentActionForGenerate, setCurrentActionForGenerate] = useState<Action | null>(null);
+  const [editValuesModalOpen, setEditValuesModalOpen] = useState(false);
+  const [currentActionIdForEdit, setCurrentActionIdForEdit] = useState<string | null>(null);
+
+  // Get current action for edit from actions prop
+  const currentActionForEdit = currentActionIdForEdit
+    ? actions.find(a => a.action_id === currentActionIdForEdit) || null
+    : null;
 
   // Find all actions that use data (have action_data_generation or generation_data_function_code)
   const actionsWithData = useMemo(() => {
@@ -80,6 +88,14 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
     if (action) {
       setCurrentActionForGenerate(action);
       setGenerateModalOpen(true);
+    }
+  };
+
+  const handleOpenEditValues = (actionId: string) => {
+    const action = actions.find(a => a.action_id === actionId);
+    if (action) {
+      setCurrentActionIdForEdit(actionId);
+      setEditValuesModalOpen(true);
     }
   };
 
@@ -186,7 +202,7 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
                 return (
                   <div key={action.action_id} className="new-version-action-item">
                     <div className="new-version-action-header">
-                      <span className="new-version-action-index">Action #{actionIndex + 1}</span>
+                      <span className="new-version-action-index">#{actionIndex + 1}</span>
                       <span className="new-version-action-type">{action.action_type}</span>
                       {action.description && (
                         <span className="new-version-action-desc">{action.description}</span>
@@ -215,6 +231,17 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
                           );
                         })}
                       </select>
+                      <button
+                        className="new-version-edit-btn"
+                        onClick={() => handleOpenEditValues(action.action_id || '')}
+                        disabled={isCreating}
+                        title="Edit action values"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
                       <button
                         className="new-version-generate-btn"
                         onClick={() => handleOpenGenerate(action.action_id || '')}
@@ -254,6 +281,22 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({
             setCurrentActionForGenerate(null);
           }}
           onSave={handleSaveGeneratedValue}
+        />
+      )}
+
+      {/* Edit Action Values Modal */}
+      {editValuesModalOpen && currentActionForEdit && (
+        <EditActionValuesModal
+          action={currentActionForEdit}
+          onClose={() => {
+            setEditValuesModalOpen(false);
+            setCurrentActionIdForEdit(null);
+          }}
+          onActionsChange={onActionsChange}
+          onValueUpdated={() => {
+            // The action will be updated through onActionsChange
+            // The modal will sync automatically via the action prop
+          }}
         />
       )}
     </div>

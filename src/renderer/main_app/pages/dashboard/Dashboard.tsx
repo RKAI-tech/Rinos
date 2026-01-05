@@ -7,6 +7,7 @@ import EditProject from '../../components/project/edit_project/EditProject';
 import { UserService } from '../../services/user';
 import AddUser from '../../components/project/add_user/add_user/AddUser';
 import DeleteProject from '../../components/project/delete_project/DeleteProject';
+import KeyManagementModal from '../../components/project/key_management/KeyManagementModal';
 import { ProjectService } from '../../services/projects';
 import { Project } from '../../types/projects';
 import { toast } from 'react-toastify';
@@ -41,6 +42,7 @@ const Dashboard: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   
@@ -258,6 +260,16 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleKeyProjectClick = (projectId: string, event?: React.MouseEvent) => {
+    if (event) event.stopPropagation();
+    const project = projects.find(p => p.project_id === projectId);
+    if (project) {
+      setSelectedProject(project);
+      setIsKeyModalOpen(true);
+      setOpenDropdownId(null);
+    }
+  };
+
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
     setSelectedProject(null);
@@ -316,6 +328,11 @@ const Dashboard: React.FC = () => {
 
   const handleCloseShareModal = () => {
     setIsShareModalOpen(false);
+    setSelectedProject(null);
+  };
+
+  const handleCloseKeyModal = () => {
+    setIsKeyModalOpen(false);
     setSelectedProject(null);
   };
 
@@ -916,6 +933,13 @@ const Dashboard: React.FC = () => {
         projectId={selectedProject?.project_id || null}
         onClose={handleCloseShareModal}
         onSuccess={reloadProjects}
+      />
+
+      {/* Key Management Modal */}
+      <KeyManagementModal
+        isOpen={isKeyModalOpen}
+        onClose={handleCloseKeyModal}
+        project={selectedProject}
       />
     </div>
   );

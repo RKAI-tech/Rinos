@@ -81,9 +81,9 @@ export const useSuiteHandlers = ({
     setSelectedGroupId(null); // Clear selected group when clicking suite
     setSelectedLevel(null); // Reset selected level when opening a new suite
     // Reset sort to default when switching suites
-    setSortColumn('updated_at');
+    setSortColumn('updated');
     setSortDirection('desc');
-    // fetchTestcasesBySuite will be called by useEffect when selectedSuiteId changes
+    fetchTestcasesBySuite(suite.test_suite_id, suite.name);
   }, [
     selectedSuiteId,
     setSelectedSuiteId,
@@ -97,6 +97,7 @@ export const useSuiteHandlers = ({
     setSelectedGroupId,
     setSortColumn,
     setSortDirection,
+    fetchTestcasesBySuite,
   ]);
 
   // Clear suite handler

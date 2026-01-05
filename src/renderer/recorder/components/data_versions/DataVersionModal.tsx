@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import NewVersionModal from './NewVersionModal';
 import EditVersionModal from './EditVersionModal';
 import ConfirmModal from './ConfirmModal';
+import { syncActionsOnVersionUpdate, findActiveVersionInActions } from './versionSyncUtils';
 import './DataVersionModal.css';
 
 export type ActionOperationResult = {
@@ -46,16 +47,35 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
     }
   }, [isOpen]);
 
-  // Auto-select first version when testcaseDataVersions is available
+  // Auto-select version: ưu tiên version đang active, nếu không có thì chọn version đầu tiên
   useEffect(() => {
     if (isOpen && Array.isArray(testcaseDataVersions) && testcaseDataVersions.length > 0 && !selectedVersion) {
-      const firstVersion = testcaseDataVersions[0];
-      const versionId = firstVersion.testcase_data_version_id || firstVersion.version;
-      if (versionId) {
-        setSelectedVersion(versionId);
+      // Tìm version đang active trong actions
+      const activeVersionName = findActiveVersionInActions(actions);
+      
+      let versionToSelect: TestCaseDataVersion | null = null;
+      
+      if (activeVersionName) {
+        // Tìm version object từ tên version
+        versionToSelect = testcaseDataVersions.find(
+          v => v.version === activeVersionName
+        ) || null;
+      }
+      
+      // Nếu không tìm thấy version active, chọn version đầu tiên
+      if (!versionToSelect) {
+        versionToSelect = testcaseDataVersions[0];
+      }
+      
+      // Set selected version
+      if (versionToSelect) {
+        const versionId = versionToSelect.testcase_data_version_id || versionToSelect.version;
+        if (versionId) {
+          setSelectedVersion(versionId);
+        }
       }
     }
-  }, [isOpen, testcaseDataVersions, selectedVersion]);
+  }, [isOpen, testcaseDataVersions, selectedVersion, actions]);
 
 
   // Create a map of action_data_generation_id to action and generation
@@ -175,7 +195,6 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
     
     onTestCaseDataVersionsChange(prev => [...prev, newVersionAPI]);
     setIsNewVersionModalOpen(false);
-    toast.success('New version created. Click Save in Action Tab to persist changes.');
   };
 
   // Handler để mở modal edit version
@@ -213,6 +232,7 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
         .filter((gen): gen is NonNullable<typeof gen> => gen !== null),
     };
     
+    // Cập nhật testcaseDataVersions
     onTestCaseDataVersionsChange(prev => prev.map(v => {
       if ((v.testcase_data_version_id && v.testcase_data_version_id === selectedVersion) ||
           (v.version && v.version === selectedVersion)) {
@@ -221,9 +241,25 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
       return v;
     }));
     
+    // SYNC: Nếu version cũ đang được sử dụng trong actions, cập nhật actions
+    const oldVersionName = versionToEdit?.version;
+    const isOldVersionActive = oldVersionName && findActiveVersionInActions(actions) === oldVersionName;
+    
+    if (isOldVersionActive && onActionsChange) {
+      // Cập nhật actions với version mới
+      onActionsChange(prev => {
+        return syncActionsOnVersionUpdate(
+          prev,
+          updatedVersion.version, // version name mới
+          updatedVersionAPI.action_data_generations || []
+        );
+      });
+      
+      toast.info(`Version "${oldVersionName}" has been updated. Actions using this version have been automatically updated.`);
+    }
+    
     setIsEditVersionModalOpen(false);
     setVersionToEdit(null);
-    toast.success('Version updated. Click Save in Action Tab to persist changes.');
   };
 
   // Handler để mở confirm modal xóa version
@@ -257,7 +293,97 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
     });
     
     setIsDeleteConfirmOpen(false);
-    toast.success('Version deleted. Click Save in Action Tab to persist changes.');
+  };
+
+  // Handler để lưu currentVersion vào action_datas và áp dụng version ngay lập tức
+  const handleSaveCurrentVersion = () => {
+    if (!selectedVersion) {
+      toast.warning('Please select a version first');
+      return;
+    }
+    
+    // Tìm version object để lấy tên
+    const versionObj = testcaseDataVersions.find(
+      v => (v.testcase_data_version_id && v.testcase_data_version_id === selectedVersion) ||
+           (v.version && v.version === selectedVersion)
+    );
+    
+    if (!versionObj || !versionObj.version) {
+      toast.error('Version not found');
+      return;
+    }
+    
+    const versionName = versionObj.version;
+    
+    // Cập nhật currentVersion và áp dụng version ngay lập tức cho tất cả actions có data
+    onActionsChange?.(prev => {
+      const updated = prev.map(action => {
+        // Chỉ cập nhật actions có action_data_generation
+        if (!action.action_data_generation || action.action_data_generation.length === 0) {
+          return action;
+        }
+        
+        // Tìm generation ID từ version cho action này
+        let selectedGenerationId: string | null = null;
+        if (versionObj.action_data_generations) {
+          for (const gen of versionObj.action_data_generations) {
+            if (gen.action_data_generation_id) {
+              const genInAction = action.action_data_generation?.find(
+                g => g.action_data_generation_id === gen.action_data_generation_id
+              );
+              if (genInAction) {
+                selectedGenerationId = gen.action_data_generation_id;
+                break;
+              }
+            }
+          }
+        }
+        
+        // Nếu không tìm thấy, dùng generation đầu tiên
+        if (!selectedGenerationId && action.action_data_generation.length > 0) {
+          selectedGenerationId = action.action_data_generation[0].action_data_generation_id || null;
+        }
+        
+        // Lấy value từ generation
+        const selectedGeneration = action.action_data_generation.find(
+          g => g.action_data_generation_id === selectedGenerationId
+        );
+        
+        const generationValue = selectedGeneration?.value?.value || 
+          (selectedGeneration?.value && typeof selectedGeneration.value === 'string' ? selectedGeneration.value : '');
+        
+        const actionDatas = [...(action.action_datas || [])];
+        let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined);
+        
+        if (foundIndex === -1) {
+          actionDatas.push({ 
+            value: { 
+              value: String(generationValue),
+              currentVersion: versionName
+            } 
+          });
+        } else {
+          actionDatas[foundIndex] = {
+            ...actionDatas[foundIndex],
+            value: {
+              ...(actionDatas[foundIndex].value || {}),
+              value: String(generationValue),
+              currentVersion: versionName
+            }
+          };
+        }
+        
+        return {
+          ...action,
+          action_datas: actionDatas
+        };
+      });
+      
+      return updated;
+    });
+
+    // Đóng modal
+    onClose();
   };
 
 
@@ -439,6 +565,14 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
         </>
 
         <div className="data-version-modal-footer">
+          <button 
+            className="data-version-modal-btn-save" 
+            onClick={handleSaveCurrentVersion}
+            disabled={!selectedVersion}
+            title={selectedVersion ? 'Save current version' : 'Please select a version first'}
+          >
+            Save
+          </button>
           <button className="data-version-modal-btn-close" onClick={onClose}>
             Close
           </button>
@@ -466,6 +600,8 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
           }}
           onUpdateVersion={handleUpdateVersion}
           onActionsChange={onActionsChange}
+          testcaseDataVersions={testcaseDataVersions}
+          onTestCaseDataVersionsChange={onTestCaseDataVersionsChange}
         />
       )}
 
