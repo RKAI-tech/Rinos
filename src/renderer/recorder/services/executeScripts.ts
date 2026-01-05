@@ -13,6 +13,8 @@ import {
     GenerationCodeRequest
 } from '../types/executeScripts';
 import { ActionBatch } from '../types/actions';
+import { CodeGenerator } from '../../shared/services/codeGenerator';
+import { Action as SharedAction, BasicAuthentication as SharedBasicAuth } from '../../shared/types/actions';
 
 export class ExecuteScriptsService {
     async executeJavascript(payload: RunCodeRequest): Promise<ApiResponse<RunCodeResponse>> {
@@ -58,9 +60,29 @@ export class ExecuteScriptsService {
         if (!request || typeof request.actions !== 'object') {
             return { success: false, error: 'actions is required' };
         }
-        return await apiRouter.request<GenerationCodeResponse>('/runcode/generate_code', {
-            method: 'POST',
-            body: JSON.stringify(request)
-        });
+        
+        // Use local code generator service instead of API call
+        try {
+            const codeGenerator = new CodeGenerator();
+            
+            // Types are compatible enough to cast directly
+            const sharedActions = request.actions as unknown as SharedAction[];
+            const sharedBasicAuth = request.basic_auth as unknown as SharedBasicAuth | null;
+            
+            const code = codeGenerator.generateCode(sharedBasicAuth, sharedActions);
+            
+            return {
+                success: true,
+                data: {
+                    code: code,
+                },
+            };
+        } catch (error: any) {
+            console.error('[ExecuteScriptsService] Error generating code:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to generate code',
+            };
+        }
     }
 }
