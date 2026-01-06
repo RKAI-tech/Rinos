@@ -7,7 +7,7 @@ import SidebarNavigator from '../../components/sidebar_navigator/SidebarNavigato
 import { GroupService } from '../../services/group';
 import { TestSuiteService } from '../../services/testsuites';
 import { ProjectService } from '../../services/projects';
-import { GroupSuiteItem, GroupTreeWithSuitesResponse } from '../../types/group';
+import { GroupSuiteItem, GroupTreeWithSuitesResponse, GetGroupTreeResponse, GroupBasicItem, SuiteItem } from '../../types/group';
 import { TestCaseInSuite } from '../../types/testsuites';
 import DeleteSuite from '../../components/group/deleteSuite';
 import EditSuite from '../../components/group/editSuite';
@@ -206,6 +206,98 @@ const SuitesManager: React.FC = () => {
     selectedSuiteNameRef.current = selectedSuiteName;
   }, [selectedSuiteId, selectedSuiteName]);
 
+  // Convert GroupBasicItem to TreeGroup format
+  const convertGroupBasicToTreeGroup = useCallback((group: GroupBasicItem, suites: SuiteItem[] = []): TreeGroup => {
+    return {
+      group_id: group.group_id,
+      project_id: group.project_id,
+      name: group.name,
+      parent_group_id: group.parent_group_id,
+      suites: suites.map((s) => ({
+        test_suite_id: s.test_suite_id,
+        name: s.name,
+        description: s.description,
+        test_passed: s.test_passed,
+        test_failed: s.test_failed,
+        passed_rate: s.passed_rate,
+        number_testcase: s.number_testcase,
+        browser_type: s.browser_type,
+        group_id: s.group_id,
+        created_at: s.created_at,
+        histories: null,
+        progress: s.progress,
+        project_id: s.project_id,
+      })),
+      children: [], // Empty, will be loaded when expanded
+    };
+  }, []);
+
+  // Convert SuiteItem to GroupSuiteItem format
+  const convertSuiteItemToGroupSuiteItem = useCallback((suite: SuiteItem): GroupSuiteItem => {
+    return {
+      test_suite_id: suite.test_suite_id,
+      name: suite.name,
+      description: suite.description,
+      test_passed: suite.test_passed,
+      test_failed: suite.test_failed,
+      passed_rate: suite.passed_rate,
+      number_testcase: suite.number_testcase,
+      browser_type: suite.browser_type,
+      group_id: suite.group_id,
+      created_at: suite.created_at,
+      histories: null,
+      progress: suite.progress,
+      project_id: suite.project_id,
+    };
+  }, []);
+
+  // Lazy load children of a group
+  const loadGroupChildren = useCallback(async (groupId: string) => {
+    if (!projectId) return;
+    try {
+      const resp = await groupService.getGroupTree({
+        project_id: projectId,
+        group_id: groupId,
+        include_suites: true,
+      });
+
+      if (resp.success && resp.data) {
+        // Convert children_groups to TreeGroup format
+        const children = resp.data.children_groups.map((child) =>
+          convertGroupBasicToTreeGroup(child, [])
+        );
+        
+        // Convert suites
+        const suites = resp.data.ungrouped_suites.map(convertSuiteItemToGroupSuiteItem);
+
+        // Update tree structure
+        const updateGroupChildren = (groups: TreeGroup[]): TreeGroup[] => {
+          return groups.map((g) => {
+            if (g.group_id === groupId) {
+              return {
+                ...g,
+                children,
+                suites,
+              };
+            }
+            if (g.children && g.children.length > 0) {
+              return {
+                ...g,
+                children: updateGroupChildren(g.children),
+              };
+            }
+            return g;
+          });
+        };
+
+        setGroups((prev) => updateGroupChildren(prev));
+      }
+    } catch (e) {
+      // Silently fail - user can try again
+      console.error('Failed to load group children:', e);
+    }
+  }, [groupService, projectId, convertGroupBasicToTreeGroup, convertSuiteItemToGroupSuiteItem]);
+
   const fetchData = useCallback(async () => {
     if (!projectId) return;
     const previousSuiteId = selectedSuiteIdRef.current;
@@ -213,25 +305,31 @@ const SuitesManager: React.FC = () => {
     try {
       setIsLoadingTree(true);
       setError(null);
-      const treeResp = await groupService.getTreeWithSuitesByProject(projectId);
+      
+      // Use new endpoint to load root level
+      const treeResp = await groupService.getGroupTree({
+        project_id: projectId,
+        group_id: null, // Root level
+        include_suites: true,
+      });
 
       if (treeResp.success && treeResp.data) {
-        const raw = treeResp.data as any;
-        const items = (raw as GroupTreeWithSuitesResponse)?.items || raw;
-        const list: TreeGroup[] = Array.isArray(items) ? items : [items];
-        const normalized = list.map(normalizeGroup);
-        const rootGroups = normalized.filter((g) => !g.parent_group_id);
-        const newGroups = rootGroups.length ? rootGroups : normalized;
-        setGroups(newGroups);
+        // Convert children_groups to TreeGroup format
+        const rootGroups = treeResp.data.children_groups.map((group) =>
+          convertGroupBasicToTreeGroup(group, [])
+        );
+        setGroups(rootGroups);
 
-        const ungroup = extractUngroupSuites(raw, projectId);
-        setRootSuites(ungroup);
+        // Convert ungrouped suites
+        const ungroupedSuites = treeResp.data.ungrouped_suites.map(convertSuiteItemToGroupSuiteItem);
+        setRootSuites(ungroupedSuites);
 
         // Preserve selected suite if it still exists
         if (previousSuiteId) {
           // Inline find suite logic to avoid circular dependency
           let foundSuite: GroupSuiteItem | null = null;
-          const rootSuite = ungroup.find((s) => s.test_suite_id === previousSuiteId);
+          // Check in ungrouped suites first
+          const rootSuite = ungroupedSuites.find((s) => s.test_suite_id === previousSuiteId);
           if (rootSuite) {
             foundSuite = rootSuite;
           } else {
@@ -245,57 +343,15 @@ const SuitesManager: React.FC = () => {
               }
               return null;
             };
-            foundSuite = findInGroups(newGroups);
+            foundSuite = findInGroups(rootGroups);
           }
 
           if (foundSuite) {
             setSelectedSuiteId(previousSuiteId);
             setSelectedSuiteName(previousSuiteName || foundSuite.name);
             setSelectedSuite(foundSuite);
-            // Reload testcases for the preserved suite
-            // Set loading state for testcases only, not tree
-            setIsLoadingTestcases(true);
-            // Map sortColumn to API sort_by field
-            const sortByMap: Record<string, string> = {
-              'name': 'name',
-              'description': 'description',
-              'status': 'updated_at',
-              'browser': 'browser_type',
-              'order': 'level',
-              'updated': 'updated_at',
-            };
-            const apiSortBy = sortColumn ? (sortByMap[sortColumn] || null) : null;
-            
-            const request = {
-              page: currentPage,
-              page_size: itemsPerPage,
-              q: testcasesSearchText.trim() || null,
-              sort_by: apiSortBy,
-              order: sortDirection || 'desc',
-              level: selectedOrderFilter,
-              status: selectedStatusFilter && selectedStatusFilter !== 'All' ? selectedStatusFilter : null,
-              browser_type: selectedBrowserFilter && selectedBrowserFilter !== 'All' ? selectedBrowserFilter : null,
-            };
-            suiteService.searchTestCasesBySuite(previousSuiteId, request)
-              .then((resp) => {
-                if (resp.success && resp.data) {
-                  setTestcases(resp.data.testcases || []);
-                  setTotalPages(resp.data.total_pages || 1);
-                  setTotalItems(resp.data.number_testcase || 0);
-                  if (resp.data.current_page !== currentPage) {
-                    setCurrentPage(resp.data.current_page);
-                  }
-                  // Don't auto-select level - show all testcases by default
-                  // Reset selectedLevel to null when reloading data
-                  setSelectedLevel(null);
-                }
-              })
-              .catch(() => {
-                // Silently fail - user can click again to reload
-              })
-              .finally(() => {
-                setIsLoadingTestcases(false);
-              });
+            // Reload testcases for the preserved suite will be handled by useEffect
+            // that watches for selectedSuiteId changes
           } else {
             // Suite no longer exists, clear selection
             setSelectedSuiteId(null);
@@ -335,7 +391,7 @@ const SuitesManager: React.FC = () => {
     } finally {
       setIsLoadingTree(false);
     }
-  }, [groupService, projectId, suiteService]);
+  }, [groupService, projectId, suiteService, convertGroupBasicToTreeGroup, convertSuiteItemToGroupSuiteItem]);
 
   // Tree operations are now imported from utils/treeOperations.ts
 
@@ -610,6 +666,7 @@ const SuitesManager: React.FC = () => {
     selectedGroupId,
     setSelectedGroupId,
     fetchData,
+    loadGroupChildren,
   });
 
   const {

@@ -16,6 +16,7 @@ interface UseGroupHandlersProps {
   selectedGroupId: string | null;
   setSelectedGroupId: React.Dispatch<React.SetStateAction<string | null>>;
   fetchData: () => Promise<void>;
+  loadGroupChildren?: (groupId: string) => Promise<void>;
 }
 
 export const useGroupHandlers = ({
@@ -29,6 +30,7 @@ export const useGroupHandlers = ({
   selectedGroupId,
   setSelectedGroupId,
   fetchData,
+  loadGroupChildren,
 }: UseGroupHandlersProps) => {
   // Services
   const groupService = useMemo(() => new GroupService(), []);
@@ -54,6 +56,8 @@ export const useGroupHandlers = ({
 
   // Toggle group handler
   const handleToggle = useCallback(async (groupId: string) => {
+    const wasExpanded = expanded.has(groupId);
+    
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(groupId)) {
@@ -64,28 +68,11 @@ export const useGroupHandlers = ({
       return next;
     });
 
-    // When opening for the first time, refresh group data to get latest children/suites
-    if (!expanded.has(groupId)) {
-      try {
-        const resp = await groupService.getTreeWithSuitesByGroupId(groupId);
-        if (resp.success && resp.data) {
-          const raw = resp.data as any;
-          const node = normalizeGroup(
-            Array.isArray((raw as any).items) ? (raw as any).items[0] : raw
-          );
-          const ungroup = extractUngroupSuites(raw, projectId || '');
-          setGroups((prev) => updateGroupInTree(groupId, node, prev));
-          if (ungroup.length) {
-            setRootSuites(ungroup);
-          }
-        } else if (resp.error) {
-          toast.error(resp.error);
-        }
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Failed to load group');
-      }
+    // When expanding for the first time, lazy load children
+    if (!wasExpanded && loadGroupChildren) {
+      await loadGroupChildren(groupId);
     }
-  }, [expanded, projectId, groupService, setGroups, setRootSuites, setExpanded]);
+  }, [expanded, loadGroupChildren, setExpanded]);
 
   // Group click handler
   const handleGroupClick = useCallback((groupId: string) => {
