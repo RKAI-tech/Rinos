@@ -1,4 +1,3 @@
-
 export interface Group {
   group_id?: string;
   project_id?: string;
@@ -72,4 +71,3 @@ export interface GroupTreeWithSuitesResponse {
   items: GroupTreeWithSuitesItem[];
   ungrouped_suites: GroupSuiteItem[];
 }
-

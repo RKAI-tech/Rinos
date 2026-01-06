@@ -1,9 +1,4 @@
-export enum BrowserType {
-  chrome = "chrome",
-  firefox = "firefox",
-  edge = "edge",
-  safari = "safari",
-}
+import { BrowserType } from './testcases';
 
 export interface ProjectGetAllResponse {
     projects: Project[];

@@ -231,7 +231,6 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
       .map((p, index) => {
         const existing = apiRequest?.params?.[index];
         return {
-          api_request_param_id: existing?.api_request_param_id,
           key: p.key.trim(),
           value: p.value,
           order_index: index,
@@ -243,7 +242,6 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
       .map((h, index) => {
         const existing = apiRequest?.headers?.[index];
         return {
-          api_request_header_id: existing?.api_request_header_id,
           key: h.key.trim(),
           value: h.value,
           order_index: index,

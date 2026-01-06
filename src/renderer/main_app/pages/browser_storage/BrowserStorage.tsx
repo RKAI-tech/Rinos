@@ -233,8 +233,8 @@ const BrowserStorage: React.FC = () => {
     if (!projectId) return;
 
     const loadBrowserStorages = async () => {
-    try {
-      setIsReloading(true);
+      try {
+        setIsReloading(true);
         
         // Map storage type filter to API format
         let storageTypeValue: string | null = null;
@@ -261,14 +261,14 @@ const BrowserStorage: React.FC = () => {
         
         if (response.success && response.data) {
           const items: CookieItem[] = response.data.browser_storages.map((it) => ({
-          id: it.browser_storage_id,
-          name: it.name,
-          description: it.description,
+            id: it.browser_storage_id,
+            name: it.name,
+            description: it.description,
             updated: it.updated_at || (it as any).created_at,
-          value: it.value,
+            value: it.value,
             type: it.storage_type,
-        }));
-        setCookies(items);
+          }));
+          setCookies(items);
           setTotalBrowserStorages(response.data.number_browser_storage);
           setCurrentPage(response.data.current_page);
           setTotalPages(response.data.total_pages);
@@ -276,23 +276,23 @@ const BrowserStorage: React.FC = () => {
           if (response.data.current_page !== page) {
             setPage(response.data.current_page);
           }
-      } else {
-        setCookies([]);
+        } else {
+          setCookies([]);
           setTotalBrowserStorages(0);
           setCurrentPage(1);
           setTotalPages(1);
           setPage(1);
-      }
-    } catch (e) {
-      setCookies([]);
+        }
+      } catch (e) {
+        setCookies([]);
         setTotalBrowserStorages(0);
         setCurrentPage(1);
         setTotalPages(1);
         setPage(1);
-    } finally {
-      setIsReloading(false);
-    }
-  };
+      } finally {
+        setIsReloading(false);
+      }
+    };
 
     loadBrowserStorages();
     // eslint-disable-next-line react-hooks/exhaustive-deps

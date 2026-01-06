@@ -72,7 +72,6 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
 
   useEffect(() => {
     if (selectedPageInfo) {
-      console.log('[ApiRequestModal] Page info received:', selectedPageInfo);
       toast.success('Page selected successfully');
     }
   }, [selectedPageInfo]);
@@ -374,7 +373,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       setFetchedBasicUsername(result?.username ?? '');
       setFetchedBasicPassword(result?.password ?? '');
     } catch (e) {
-      console.error('Fetch basic auth failed:', e);
+      // console.error('Fetch basic auth failed:', e);
       toast.error('Fetch basic auth failed');
     } finally {
       setIsFetchingBasic(false);

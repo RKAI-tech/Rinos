@@ -206,14 +206,12 @@ export const useAiAssert = ({
     setIsGeneratingAi(true);
     try {
       const response = await actionService.generateAiAssert(request);
-      console.log('[useAiAssert] generateAiAssert response:', response);
 
       if (!response.success) {
         const errorMessage =
           (response as any)?.error ||
           (response as any)?.message ||
           'Failed to generate AI assertion';
-        console.error('[useAiAssert] generateAiAssert failed:', errorMessage, response);
         toast.error(String(errorMessage));
         return false;
       }
@@ -230,7 +228,6 @@ export const useAiAssert = ({
       
       if (!functionName || !functionName.trim()) {
         const errorMessage = 'function_name is required but not provided';
-        console.error('[useAiAssert] generateAiAssert validation failed:', errorMessage, response);
         toast.error(errorMessage);
         return false;
       }
@@ -316,7 +313,7 @@ export const useAiAssert = ({
       (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
       return true;
     } catch (e: any) {
-      console.error('[useAiAssert] generateAiAssert exception:', e);
+      // console.error('[useAiAssert] generateAiAssert exception:', e);
       const message = e?.message || e?.error || e?.reason || e;
       toast.error(String(message || 'Failed to generate AI assertion'));
       return false;

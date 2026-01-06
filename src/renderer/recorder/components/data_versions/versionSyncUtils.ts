@@ -338,7 +338,7 @@ export const syncVersionOnActionSave = (
               gen => gen.action_data_generation_id === updatedGen.action_data_generation_id
             )
           );
-          if (version && !affectedVersionNames.includes(version.version)) {
+          if (version && version.version && !affectedVersionNames.includes(version.version)) {
             affectedVersionNames.push(version.version);
           }
         }

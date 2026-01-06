@@ -408,7 +408,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
     setSaveStatus('loading');
 
     try {
-      if (testcaseDataVersions.length < 0) {
+      if (testcaseDataVersions.length === 0) {
         toast.error('No testcase data versions found');
         return;
       }

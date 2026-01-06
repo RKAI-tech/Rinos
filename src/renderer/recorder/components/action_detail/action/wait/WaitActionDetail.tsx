@@ -40,6 +40,9 @@ const WaitActionDetail: React.FC<WaitActionDetailProps> = ({
   draft,
   updateDraft,
   updateField,
+  testcaseDataVersions,
+  onTestCaseDataVersionsChange,
+  allActions,
 }) => {
   const [waitTime, setWaitTime] = useState<string>('1000');
   const [isEditValuesModalOpen, setIsEditValuesModalOpen] = useState(false);

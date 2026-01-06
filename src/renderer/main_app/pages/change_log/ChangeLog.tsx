@@ -20,21 +20,7 @@ const ChangeLog: React.FC = () => {
   const canManagePermission = canManage(projectId);
 
   // Backend-driven search, pagination, and sorting state
-  // Backend-driven search, pagination, and sorting state
   const [histories, setHistories] = useState<HistoryItem[]>([]);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [search, setSearch] = useState<string>('');
-  const [fromDate, setFromDate] = useState<string>('');
-  const [toDate, setToDate] = useState<string>('');
-  const [entityFilter, setEntityFilter] = useState<string | null>(null); // 'Project', 'Testcase', 'Suite', or null for all
-  const [actionTypeFilter, setActionTypeFilter] = useState<string | null>(null); // 'updated', 'deleted', 'executed', 'recorded', or null for all
-  const [sortBy, setSortBy] = useState<string | null>('created_at');
-  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
-  const [totalHistories, setTotalHistories] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-
   // UI state
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -60,9 +46,6 @@ const ChangeLog: React.FC = () => {
   // Service - use useMemo to avoid recreating on every render
   const historyItemService = useMemo(() => new HistoryItemService(), []);
   const projectService = useMemo(() => new ProjectService(), []);
-  // Service - use useMemo to avoid recreating on every render
-  const historyItemService = useMemo(() => new HistoryItemService(), []);
-  const projectService = useMemo(() => new ProjectService(), []);
 
   useEffect(() => {
     const loadProjectName = async () => {
@@ -72,13 +55,11 @@ const ChangeLog: React.FC = () => {
         return;
       }
       const resp = await projectService.getProjectById(projectId);
-      const resp = await projectService.getProjectById(projectId);
       if (resp.success && resp.data) {
         setResolvedProjectName((resp.data as any).name || 'Project');
       }
     };
     loadProjectName();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
@@ -145,8 +126,6 @@ const ChangeLog: React.FC = () => {
     loadHistories();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, page, pageSize, search, fromDate, toDate, entityFilter, actionTypeFilter, sortBy, order]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, page, pageSize, search, fromDate, toDate, entityFilter, actionTypeFilter, sortBy, order]);
 
   const sidebarItems = [
     { id: 'suites-manager', label: 'Suites Manager', path: `/suites-manager/${projectId}`, isActive: false },
@@ -193,11 +172,6 @@ const ChangeLog: React.FC = () => {
     return Object.entries(data).map(([key, value]) => `${key}: ${value}`);
   };
 
-  // Handle search input change
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
-    setPage(1); // Reset page when searching
-  };
 
   // Handle clear search
   const handleClearSearch = () => {
@@ -249,50 +223,6 @@ const ChangeLog: React.FC = () => {
     setPage(1); // Reset page when searching
   };
 
-  // Handle clear search
-  const handleClearSearch = () => {
-    setSearch('');
-    setPage(1);
-  };
-
-  // Handle from date change
-  const handleFromDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFromDate(e.target.value);
-    setPage(1); // Reset page when filtering
-  };
-
-  // Handle to date change
-  const handleToDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setToDate(e.target.value);
-    setPage(1); // Reset page when filtering
-  };
-
-  // Handle entity filter change
-  const handleEntityFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    setEntityFilter(value === 'all' ? null : value);
-    setPage(1); // Reset page when filtering
-  };
-
-  // Handle action type filter change
-  const handleActionTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    setActionTypeFilter(value === 'all' ? null : value);
-    setPage(1); // Reset page when filtering
-  };
-
-  // Handle page size change
-  const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newPageSize = parseInt(e.target.value);
-    setPageSize(newPageSize);
-    setPage(1); // Reset page when changing page size
-  };
-
-  // Reload histories (for reload button)
-  const reloadHistories = () => {
-    setPage(1);
-    // The useEffect will automatically trigger when page changes
-  };
 
   const formatDateTime = (iso: string) => {
     try {
@@ -335,10 +265,7 @@ const ChangeLog: React.FC = () => {
       if (resp.success) {
         setHistories([]);
         setTotalHistories(0);
-        setTotalHistories(0);
         setShowClearConfirm(false);
-        // Reload to refresh the list
-        reloadHistories();
         // Reload to refresh the list
         reloadHistories();
       } else {
@@ -364,8 +291,6 @@ const ChangeLog: React.FC = () => {
         setShowDeleteConfirm(null);
         // Reload to refresh the list
         reloadHistories();
-        // Reload to refresh the list
-        reloadHistories();
       } else {
         setError(resp.error || 'Failed to delete history item');
       }
@@ -377,11 +302,9 @@ const ChangeLog: React.FC = () => {
   };
 
   // Group histories by date for display (client-side grouping only, data already sorted by backend)
-  // Group histories by date for display (client-side grouping only, data already sorted by backend)
   const groupedByDate = useMemo(() => {
     const groups: { date: string; items: HistoryItem[] }[] = [];
     const map = new Map<string, HistoryItem[]>();
-    histories.forEach((h) => {
     histories.forEach((h) => {
       const key = formatDateOnly(h.created_at);
       const arr = map.get(key) || [];
@@ -392,11 +315,9 @@ const ChangeLog: React.FC = () => {
     const dates = Array.from(map.keys()).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
     dates.forEach((dKey) => {
       const items = map.get(dKey) || [];
-      const items = map.get(dKey) || [];
       groups.push({ date: dKey, items });
     });
     return groups;
-  }, [histories]);
   }, [histories]);
 
   return (
@@ -425,7 +346,6 @@ const ChangeLog: React.FC = () => {
                       type="datetime-local"
                       value={fromDate}
                       onChange={handleFromDateChange}
-                      onChange={handleFromDateChange}
                       aria-label="From date"
                     />
                     <span className="range-sep">–</span>
@@ -435,17 +355,13 @@ const ChangeLog: React.FC = () => {
                       type="datetime-local"
                       value={toDate}
                       onChange={handleToDateChange}
-                      onChange={handleToDateChange}
                       aria-label="To date"
                     />
                   </div>
                   <div className="type-filter">
                     <div className="filter-label" style={{ fontSize: '14px', fontWeight: 'bold' }}>Entity Type</div>
-                    <div className="filter-label" style={{ fontSize: '14px', fontWeight: 'bold' }}>Entity Type</div>
                     <select
                       className="input"
-                      value={entityFilter || 'all'}
-                      onChange={handleEntityFilterChange}
                       value={entityFilter || 'all'}
                       onChange={handleEntityFilterChange}
                       aria-label="Filter by entity type"
@@ -465,28 +381,8 @@ const ChangeLog: React.FC = () => {
                       onChange={handleActionTypeFilterChange}
                       aria-label="Filter by action type"
                       title="Filter by action type"
-                      title="Filter by entity type"
                     >
                       <option value="all">All</option>
-                      <option value="Project">Project</option>
-                      <option value="Testcase">Testcase</option>
-                      <option value="Suite">Suite</option>
-                    </select>
-                  </div>
-                  <div className="type-filter">
-                    <div className="filter-label" style={{ fontSize: '14px', fontWeight: 'bold' }}>Action Type</div>
-                    <select
-                      className="input"
-                      value={actionTypeFilter || 'all'}
-                      onChange={handleActionTypeFilterChange}
-                      aria-label="Filter by action type"
-                      title="Filter by action type"
-                    >
-                      <option value="all">All</option>
-                      <option value="updated">Updated</option>
-                      <option value="deleted">Deleted</option>
-                      <option value="executed">Executed</option>
-                      <option value="recorded">Recorded</option>
                       <option value="updated">Updated</option>
                       <option value="deleted">Deleted</option>
                       <option value="executed">Executed</option>
@@ -499,15 +395,13 @@ const ChangeLog: React.FC = () => {
                   <div className="date-search">
                   <div className="filter-label" style={{ fontSize: '14px', fontWeight: 'bold' }}>Search</div>
                   <div className="searchbox" style={{ position: 'relative' }}>
-                  <div className="searchbox" style={{ position: 'relative' }}>
                     <span className="search-icon" aria-hidden>🔎</span>
                     <input
                       className="input search"
                       type="text"
                       placeholder="Search member, action, description"
                       value={search}
-                      onChange={handleSearchChange}
-                      value={search}
+    
                       onChange={handleSearchChange}
                       aria-label="Search change logs"
                     />
@@ -538,33 +432,7 @@ const ChangeLog: React.FC = () => {
                         </svg>
                       </button>
                     )}
-                    {search && (
-                      <button
-                        className="clear-search-btn"
-                        onClick={handleClearSearch}
-                        title="Clear search"
-                        aria-label="Clear search"
-                        style={{
-                          position: 'absolute',
-                          right: '8px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          padding: '4px',
-                          cursor: 'pointer',
-                          color: '#6b7280',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                          <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                        </svg>
-                      </button>
-                    )}
+                    
                   </div>
                   </div>
                   <div className="actions-group">
@@ -580,18 +448,7 @@ const ChangeLog: React.FC = () => {
                       <option value={30}>30 per page</option>
                       <option value={50}>50 per page</option>
                     </select>
-                    <select
-                      className="input"
-                      value={pageSize}
-                      onChange={handlePageSizeChange}
-                      style={{ minWidth: '100px' }}
-                      aria-label="Items per page"
-                    >
-                      <option value={10}>10 per page</option>
-                      <option value={20}>20 per page</option>
-                      <option value={30}>30 per page</option>
-                      <option value={50}>50 per page</option>
-                    </select>
+          
                     <button
                       className="btn ghost"
                       onClick={() => setShowClearConfirm(true)}

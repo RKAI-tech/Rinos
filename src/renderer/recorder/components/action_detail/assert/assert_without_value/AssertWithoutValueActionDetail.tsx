@@ -40,6 +40,7 @@ export const normalizeAssertWithoutValueAction = (source: Action): Action => {
 
 const AssertWithoutValueActionDetail: React.FC<AssertWithoutValueActionDetailProps> = ({
   draft,
+  updateDraft,
   updateField,
   updateElement,
   addNewSelector,

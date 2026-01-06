@@ -72,7 +72,7 @@ const TestcasesTableHeader: React.FC<TestcasesTableHeaderProps> = ({
         {hasResizeHandle && (
           <div 
             className="sm-column-resize-handle"
-            onMouseDown={(e) => onColumnResizeStart(e, resizeHandleId)}
+            onMouseDown={(e) => onColumnResizeStart(e, resizeHandleId as 'name-desc' | 'desc-status' | 'status-browser' | 'browser-order' | 'order-updated' | 'updated-actions')}
           />
         )}
       </div>

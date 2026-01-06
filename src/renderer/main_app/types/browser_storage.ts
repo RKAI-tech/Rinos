@@ -60,4 +60,3 @@ export interface BrowserStorageSearchResponse {
 	total_pages: number;
 }
 
-

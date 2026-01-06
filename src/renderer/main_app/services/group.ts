@@ -68,5 +68,4 @@ export class GroupService {
             method: 'DELETE'
         });
     }
-    
 }

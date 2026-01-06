@@ -63,5 +63,4 @@ export class DatabaseService {
             body: JSON.stringify(request),
         });
     }
-  
 }

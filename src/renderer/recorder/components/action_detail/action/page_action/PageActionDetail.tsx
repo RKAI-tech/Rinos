@@ -1,15 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Action, ActionType } from '../../../../types/actions';
-import { ActionService } from '../../../../services/actions';
-import { executeJavaScript } from '../../../../pages/main/utils/executeJavaScript';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Action, ActionType, ActionDataGeneration } from '../../../../types/actions';
+import { TestCaseDataVersion } from '../../../../types/testcase';
+import EditActionValuesModal from '../../../data_versions/EditActionValuesModal';
+import GenerateActionValueModal from '../../../data_versions/GenerateActionValueModal';
 import '../../ActionDetailModal.css';
-
-const actionService = new ActionService();
 
 interface PageActionDetailProps {
   draft: Action;
   updateDraft: (updater: (prev: Action) => Action) => void;
   updateField: (key: keyof Action, value: any) => void;
+  testcaseDataVersions?: TestCaseDataVersion[];
+  onTestCaseDataVersionsChange?: (updater: (prev: TestCaseDataVersion[]) => TestCaseDataVersion[]) => void;
+  allActions?: Action[];
 }
 
 export const normalizePageAction = (source: Action): Action => {
@@ -27,16 +29,13 @@ const PageActionDetail: React.FC<PageActionDetailProps> = ({
   draft,
   updateDraft,
   updateField,
+  testcaseDataVersions,
+  onTestCaseDataVersionsChange,
+  allActions = [],
 }) => {
   const [url, setUrl] = useState<string>('');
-  const [genFunctionDescription, setGenFunctionDescription] = useState('');
-  const [genFunctionCode, setGenFunctionCode] = useState('');
-  const [genFunctionName, setGenFunctionName] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [testResult, setTestResult] = useState('');
-  const [isTesting, setIsTesting] = useState(false);
-  const [testError, setTestError] = useState('');
-  const [generateError, setGenerateError] = useState('');
+  const [isEditValuesModalOpen, setIsEditValuesModalOpen] = useState(false);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const prevUrlRef = useRef<string>('');
 
   useEffect(() => {
@@ -65,175 +64,107 @@ const PageActionDetail: React.FC<PageActionDetailProps> = ({
     }
   }, [draft.action_datas, draft.action_type]);
 
-  // Load generation prompt + function code + function name từ action_datas
-  useEffect(() => {
-    for (const ad of draft.action_datas || []) {
-      const v: any = ad.value;
-      if (v && typeof v === 'object') {
-        if (v.prompt !== undefined) {
-          setGenFunctionDescription(String(v.prompt || ''));
-        }
-        if (v.generation_data_function_code !== undefined) {
-          setGenFunctionCode(String(v.generation_data_function_code || ''));
-        }
-        if (v.generation_data_function_name !== undefined) {
-          setGenFunctionName(String(v.generation_data_function_name || ''));
-        }
-        if (v.prompt !== undefined || v.generation_data_function_code !== undefined || v.generation_data_function_name !== undefined) {
-          return;
-        }
-      }
+
+  // Helper function để truncate text
+  const truncate = (text: string, maxLength: number): string => {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
+  // Helper function để lấy max version_number
+  const getMaxVersionNumber = (): number => {
+    if (!draft.action_data_generation || draft.action_data_generation.length === 0) {
+      return 0;
     }
-    setGenFunctionDescription('');
-    setGenFunctionCode('');
-    setGenFunctionName('');
-  }, [draft.action_datas]);
+    const versions = draft.action_data_generation
+      .map(gen => gen.version_number || 0)
+      .filter(v => v > 0);
+    return versions.length > 0 ? Math.max(...versions) : 0;
+  };
 
-  // Cập nhật / tạo action_data cho prompt / generation_data_function_code / generation_data_function_name trong action_datas
-  const upsertGenerationMeta = (partial: { 
-    prompt?: string; 
-    generation_data_function_code?: string;
-    generation_data_function_name?: string;
-  }) => {
+  // Handler để lưu generated value thành version mới
+  const handleSaveGeneratedValue = (value: any) => {
+    const valueToSave = typeof value === 'string' ? value : JSON.stringify(value);
+    if (!valueToSave || !valueToSave.trim()) {
+      return;
+    }
+
+    const maxVersion = getMaxVersionNumber();
+    const newVersion: ActionDataGeneration = {
+      version_number: maxVersion + 1,
+      value: { value: value }
+    };
+
+    updateDraft(prev => ({
+      ...prev,
+      action_data_generation: [...(prev.action_data_generation || []), newVersion]
+    }));
+
+    // Auto-select version mới vừa tạo
+    setUrl(valueToSave.trim());
+    updateUrl(valueToSave.trim());
+  };
+
+  // Handler khi chọn version từ dropdown
+  const handleVersionSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedValue = e.target.value;
+    
+    if (!selectedValue) {
+      return;
+    }
+
+    // Tìm generation được chọn
+    const selectedGeneration = draft.action_data_generation?.find(
+      gen => gen.version_number?.toString() === selectedValue
+    );
+
+    if (!selectedGeneration) {
+      return;
+    }
+
+    const versionValue = selectedGeneration.value?.value || 
+      (typeof selectedGeneration.value === 'string' ? selectedGeneration.value : '');
+    
+    if (versionValue) {
+      const valueStr = String(versionValue);
+      setUrl(valueStr);
+      updateUrl(valueStr);
+      prevUrlRef.current = valueStr;
+    }
+    
+    // Sync sẽ được thực hiện khi Save trong ActionDetailModal
+  };
+
+  // Handler mở edit values modal
+  const handleOpenEditValuesModal = () => {
+    setIsEditValuesModalOpen(true);
+  };
+
+  // Handler mở generate modal
+  const handleOpenGenerateModal = () => {
+    setIsGenerateModalOpen(true);
+  };
+
+  // Wrapper để convert updateDraft signature thành onActionsChange signature
+  const handleActionsChange = (updater: (prev: Action[]) => Action[]) => {
     updateDraft(prev => {
-      const next = { ...prev } as Action;
-      const actionDatas = [...(next.action_datas || [])];
-
-      // Tìm action_data có value.prompt, generation_data_function_code hoặc generation_data_function_name
-      let idx = actionDatas.findIndex(ad => {
-        const v: any = ad.value;
-        return v && typeof v === 'object' &&
-          (v.prompt !== undefined || 
-           v.generation_data_function_code !== undefined || 
-           v.generation_data_function_name !== undefined);
-      });
-
-      if (idx === -1) {
-        // Tạo action_data mới nếu chưa có
-        actionDatas.push({
-          value: {
-            ...partial,
-          },
-        } as any);
-        idx = actionDatas.length - 1;
-      } else {
-        actionDatas[idx] = {
-          ...actionDatas[idx],
-          value: {
-            ...(actionDatas[idx].value || {}),
-            ...partial,
-          },
-        } as any;
-      }
-
-      next.action_datas = actionDatas;
-      return next;
+      const actions = updater([prev]);
+      return actions[0] || prev;
     });
   };
 
-  const updateGenerationDescription = (desc: string) => {
-    setGenFunctionDescription(desc);
-    upsertGenerationMeta({ prompt: desc });
-    setGenerateError(''); // Clear error khi user thay đổi prompt
-  };
-
-  const updateGenerationFunctionCode = (code: string) => {
-    setGenFunctionCode(code);
-    upsertGenerationMeta({ generation_data_function_code: code });
-  };
-
-  // Handler chạy thử function code JavaScript trực tiếp trong browser
-  const handleTestFunction = () => {
-    if (!genFunctionCode.trim()) {
-      return;
+  // Memoize versions để hiển thị trong dropdown
+  const versions = useMemo(() => {
+    if (!draft.action_data_generation || draft.action_data_generation.length === 0) {
+      return [];
     }
-
-    if (isTesting) {
-      return; // Đang test thì không cho chạy lại
-    }
-
-    setIsTesting(true);
-    setTestResult(''); // Clear kết quả cũ
-    setTestError(''); // Clear error cũ
-
-    // Gọi utility function để execute JavaScript code
-    const executionResult = executeJavaScript(genFunctionCode);
-    
-    setTestResult(executionResult.result);
-    setTestError(executionResult.error);
-    setIsTesting(false);
-  };
-
-  // Handler gửi prompt để sinh function code
-  const handleSendPrompt = async () => {
-    if (!genFunctionDescription.trim()) {
-      return;
-    }
-
-    if (isGenerating) {
-      return; // Đang generate thì không cho gửi lại
-    }
-
-    try {
-      setIsGenerating(true);
-      setGenerateError(''); // Clear error cũ
-      
-      const response = await actionService.generateRandomDataFunction({
-        prompt: genFunctionDescription.trim(),
-      });
-
-      // Lấy data từ response (có thể là response.data hoặc response trực tiếp)
-      const data = response.data || (response as any);
-
-      if (!response.success) {
-        // Ưu tiên hiển thị issue từ data nếu có
-        const errorMessage = (data && data.issue) 
-          ? data.issue 
-          : (response.error || 'Failed to generate function code');
-        setGenerateError(errorMessage);
-        return;
-      }
-      
-      // Kiểm tra nếu data có field success (GenerateRandomDataFunctionResponse)
-      if (data && typeof data === 'object') {
-        // Nếu data.success = false, ưu tiên hiển thị issue
-        if (data.success === false) {
-          setGenerateError(data.issue || data.error || 'Generation failed');
-          return;
-        }
-        
-        // Nếu data.success = true hoặc không có field success, kiểm tra function code
-        if (data.generator_data_function_code) {
-          // Update function code và function name vào action_data
-          updateGenerationFunctionCode(data.generator_data_function_code);
-          if (data.generator_data_function_name) {
-            setGenFunctionName(data.generator_data_function_name);
-            upsertGenerationMeta({ generation_data_function_name: data.generator_data_function_name });
-          }
-          setGenerateError(''); // Clear error khi thành công
-          return;
-        }
-        
-        // Nếu có issue nhưng không có function code, ưu tiên hiển thị issue
-        if (data.issue) {
-          setGenerateError(data.issue);
-          return;
-        }
-      }
-
-      // Trường hợp không có data hoặc không có function code
-      // Kiểm tra xem có issue trong response không
-      const errorMessage = (data && data.issue) 
-        ? data.issue 
-        : 'Generated but no function code returned';
-      setGenerateError(errorMessage);
-    } catch (error: any) {
-      console.error('Error generating function code:', error);
-      setGenerateError(error.message || 'Failed to generate function code');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+    return [...draft.action_data_generation].sort((a, b) => {
+      const aVersion = a.version_number || 0;
+      const bVersion = b.version_number || 0;
+      return aVersion - bVersion;
+    });
+  }, [draft.action_data_generation]);
 
   // Hàm tự động sinh description dựa trên URL (logic riêng cho page action)
   const generatePageDescription = (url: string, oldUrl: string, currentDescription: string): string => {
@@ -321,264 +252,152 @@ const PageActionDetail: React.FC<PageActionDetailProps> = ({
           {draft.action_type === ActionType.page_create && (
             <div className="rcd-action-detail-kv" style={{ gridColumn: '1 / -1' }}>
               <label className="rcd-action-detail-kv-label">URL</label>
-              <input
-                className="rcd-action-detail-input"
-                value={url}
-                onChange={(e) => updateUrl(e.target.value)}
-                placeholder="Enter page URL"
-              />
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <select
+                  className="rcd-action-detail-input"
+                  value={(() => {
+                    if (versions.length === 0) return '';
+                    // Tìm version có giá trị khớp với url hiện tại
+                    const matchingVersion = versions.find(v => {
+                      const val = v.value?.value || (typeof v.value === 'string' ? v.value : '');
+                      return String(val) === url;
+                    });
+                    // Nếu có match thì dùng version đó, nếu không thì dùng version đầu tiên
+                    return matchingVersion?.version_number?.toString() || versions[0]?.version_number?.toString() || '';
+                  })()}
+                  onChange={handleVersionSelect}
+                  style={{ 
+                    cursor: 'pointer', 
+                    flex: 1,
+                    fontSize: '12px',
+                    padding: '6px 10px',
+                    height: '32px',
+                  }}
+                  disabled={versions.length === 0}
+                >
+                  {versions.length === 0 ? (
+                    <option value="">No versions available</option>
+                  ) : (
+                    versions.map((version) => {
+                      const versionValue = version.value?.value || 
+                        (typeof version.value === 'string' ? version.value : '');
+                      const displayValue = truncate(String(versionValue || ''), 50);
+                      return (
+                        <option 
+                          key={version.version_number || `version-${version.action_data_generation_id}`} 
+                          value={version.version_number?.toString() || ''}
+                        >
+                          {displayValue}
+                        </option>
+                      );
+                    })
+                  )}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleOpenEditValuesModal}
+                  style={{
+                    background: 'none',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    padding: '6px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#6b7280',
+                    transition: 'all 0.2s ease',
+                    minWidth: '32px',
+                    height: '32px',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#f3f4f6';
+                    e.currentTarget.style.color = '#374151';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'none';
+                    e.currentTarget.style.color = '#6b7280';
+                  }}
+                  title="Edit version values"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOpenGenerateModal}
+                  style={{
+                    background: '#8b5cf6',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '6px 12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    transition: 'all 0.2s ease',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    height: '32px',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#7c3aed';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#8b5cf6';
+                  }}
+                  title="Generate new action value"
+                >
+                  Generate
+                </button>
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Page Data Generation section - chỉ hiển thị cho page_create */}
-      {draft.action_type === ActionType.page_create && (
-        <div className="rcd-action-detail-section">
-          <div className="rcd-action-detail-section-title">
-            Page Data Generation
-          </div>
-          <div className="rcd-action-detail-grid">
-            {/* Trường mô tả cách Page data được sinh ra */}
-            <div className="rcd-action-detail-kv" style={{ gridColumn: '1 / -1' }}>
-              <div className="rcd-action-detail-kv-label-container">
-                <label className="rcd-action-detail-kv-label">
-                  Generation Description
-                </label>
-                <button
-                  type="button"
-                  className="rcd-action-detail-add-btn"
-                  onClick={handleSendPrompt}
-                  disabled={!genFunctionDescription.trim() || isGenerating}
-                  style={{
-                    opacity: !genFunctionDescription.trim() || isGenerating ? 0.5 : 1,
-                    cursor: !genFunctionDescription.trim() || isGenerating ? 'not-allowed' : 'pointer',
-                  }}
-                  title="Send prompt to generate function code"
-                >
-                  {isGenerating ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        style={{
-                          animation: 'spin 1s linear infinite',
-                        }}
-                      >
-                        <path
-                          d="M12 2V6M12 18V22M6 12H2M22 12H18M19.07 19.07L16.24 16.24M19.07 4.93L16.24 7.76M4.93 19.07L7.76 16.24M4.93 4.93L7.76 7.76"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      Sending...
-                    </span>
-                  ) : (
-                    <>
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M5 12L19 5L12 19L11 13L5 12Z"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      Send
-                    </>
-                  )}
-                </button>
-              </div>
-              <textarea
-                className="rcd-action-detail-input"
-                style={{ minHeight: 60, resize: 'vertical' }}
-                value={genFunctionDescription}
-                onChange={(e) => updateGenerationDescription(e.target.value)}
-                placeholder="Describe how page data is generated (e.g., what variables, patterns, or rules are used)..."
-              />
-              {generateError && (
-                <div style={{ 
-                  color: '#dc2626', 
-                  fontSize: '12px', 
-                  marginTop: '6px',
-                  padding: '2px 0'
-                }}>
-                  {generateError}
-                </div>
-              )}
-            </div>
+      {/* Edit Action Values Modal */}
+      {isEditValuesModalOpen && (
+        <EditActionValuesModal
+          action={draft}
+          onClose={() => setIsEditValuesModalOpen(false)}
+          onActionsChange={handleActionsChange}
+          testcaseDataVersions={testcaseDataVersions}
+          onTestCaseDataVersionsChange={onTestCaseDataVersionsChange}
+          onValueUpdated={() => {
+            // Refresh url if needed
+          }}
+        />
+      )}
 
-            {/* Trường hiển thị đoạn code dùng để sinh dữ liệu Page (read-only, lấy từ backend) */}
-            {genFunctionCode.trim() && (
-              <>
-                <div className="rcd-action-detail-kv" style={{ gridColumn: '1 / -1', marginBottom: 0, position: 'relative' }}>
-                  <label className="rcd-action-detail-kv-label">
-                    Generation Function Code
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <textarea
-                      className="rcd-action-detail-input"
-                      style={{ 
-                        minHeight: 200, 
-                        resize: 'vertical', 
-                        fontFamily: 'monospace',
-                        borderBottomLeftRadius: 0,
-                        borderBottomRightRadius: 0,
-                        borderBottom: 'none',
-                        paddingRight: '80px', // Tạo khoảng trống cho nút Run
-                      }}
-                      value={genFunctionCode}
-                      onChange={(e) => updateGenerationFunctionCode(e.target.value)}
-                      placeholder={
-                        'Function/code used to generate page-related variables.'
-                      }
-                      readOnly
-                    />
-                    {/* Nút Run nổi ở góc phải trên */}
-                    <button
-                      type="button"
-                      className="rcd-action-detail-add-btn"
-                      onClick={handleTestFunction}
-                      disabled={!genFunctionCode.trim() || isTesting}
-                      style={{
-                        position: 'absolute',
-                        top: '8px',
-                        right: '8px',
-                        opacity: !genFunctionCode.trim() || isTesting ? 0.5 : 1,
-                        cursor: !genFunctionCode.trim() || isTesting ? 'not-allowed' : 'pointer',
-                        zIndex: 10,
-                      }}
-                      title="Run the function code"
-                    >
-                      {isTesting ? (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                            style={{
-                              animation: 'spin 1s linear infinite',
-                            }}
-                          >
-                            <path
-                              d="M12 2V6M12 18V22M6 12H2M22 12H18M19.07 19.07L16.24 16.24M19.07 4.93L16.24 7.76M4.93 19.07L7.76 16.24M4.93 4.93L7.76 7.76"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                          Running...
-                        </span>
-                      ) : (
-                        <>
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M5 3L19 12L5 21V3Z"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          Run
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Terminal output nối liền với code */}
-                <div className="rcd-action-detail-kv" style={{ gridColumn: '1 / -1', marginTop: 0, paddingTop: 0 }}>
-                  <div style={{
-                    background: '#1f2937',
-                    color: '#f9fafb',
-                    borderRadius: '0 0 6px 6px',
-                    padding: '12px',
-                    fontFamily: 'Monaco, Menlo, Ubuntu Mono, monospace',
-                    fontSize: '13px',
-                    lineHeight: '1.5',
-                    minHeight: '80px',
-                    maxHeight: '200px',
-                    overflow: 'auto',
-                    whiteSpace: 'pre-wrap',
-                    border: '1px solid #374151',
-                    borderTop: 'none',
-                  }}>
-                    {testError ? (
-                      <div style={{ color: '#ef4444' }}>
-                        {testError}
-                      </div>
-                    ) : testResult ? (
-                      <div style={{ color: '#f9fafb' }}>
-                        {testResult}
-                      </div>
-                    ) : (
-                      <div style={{ color: '#6b7280', fontStyle: 'italic' }}>
-                        Click "Run" to execute the function code...
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-          {/* Chỉ hiển thị Page Data khi có dữ liệu */}
-          {draft.action_data_generation && draft.action_data_generation.length > 0 && (
-            <div className="rcd-action-detail-list">
-              <div className="rcd-action-detail-list-item">
-                {/* Danh sách các generated Page data - chỉ hiển thị, không cho sửa */}
-                <div className="rcd-action-detail-kv">
-                  <label className="rcd-action-detail-kv-label">
-                    Page Data
-                  </label>
-
-                  <div className="rcd-action-detail-selectors-list">
-                    {draft.action_data_generation.map((gen, idx) => (
-                      <div
-                        key={gen.action_data_generation_id || idx}
-                        className="rcd-action-detail-selector-item"
-                      >
-                        <input
-                          className="rcd-action-detail-input"
-                          readOnly
-                          // Hiển thị dữ liệu lấy từ gen.value (JSON), ưu tiên field `value` nếu có
-                          value={
-                            gen.value && typeof gen.value === 'object'
-                              ? ((gen.value as any).value ?? '')
-                              : ''
-                          }
-                          placeholder="Generated data value"
-                          style={{
-                            cursor: 'default',
-                            backgroundColor: '#f9fafb',
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+      {/* Generate Action Value Modal */}
+      {isGenerateModalOpen && (
+        <GenerateActionValueModal
+          action={draft}
+          onClose={() => setIsGenerateModalOpen(false)}
+          onSave={handleSaveGeneratedValue}
+        />
       )}
     </>
   );

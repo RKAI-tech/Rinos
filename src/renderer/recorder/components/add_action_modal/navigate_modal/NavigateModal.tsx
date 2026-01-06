@@ -40,7 +40,6 @@ const NavigateModal: React.FC<NavigateModalProps> = ({
 
   useEffect(() => {
     if (selectedPageInfo) {
-      console.log('[NavigateModal] Page info received:', selectedPageInfo);
       toast.success('Page selected successfully');
     }
   }, [selectedPageInfo]);

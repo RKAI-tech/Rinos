@@ -428,4 +428,41 @@ textarea.rcd-action-detail-input {
   }
 }
 
+/* Action Detail Warning */
+.rcd-action-detail-warning {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  margin-top: 8px;
+}
+
+/* Action Detail Disable Overlay */
+.rcd-action-detail-disable-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  pointer-events: auto;
+}
+
+.rcd-action-detail-disable-message {
+  background: white;
+  padding: 20px 24px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  color: #1f2937;
+  max-width: 400px;
+  text-align: center;
+}
 

@@ -70,7 +70,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
         setTestCaseDataVersions([]);
       }
     } catch (error: any) {
-      console.error('[Main] Error reloading testcase data versions:', error);
+      // console.error('[Main] Error reloading testcase data versions:', error);
       setTestCaseDataVersions([]);
     }
   }, [testcaseId, testCaseService]);
@@ -273,7 +273,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
       if (response.success && response.data?.code) {
         setCustomScript(response.data.code);
       } else {
-        console.error('[Main] Server code generation failed:', response.error);
+        // console.error('[Main] Server code generation failed:', response.error);
         setCustomScript('// Failed to generate code from server. Please try again.');
         toast.error(response.error || 'Failed to generate code from server');
       }

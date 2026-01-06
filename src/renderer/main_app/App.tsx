@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { MemoryRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -118,11 +117,6 @@ function App() {
                 <TestSuites />
               </ProtectedRoute>
             } /> */}
-            <Route path="/suites-manager/:projectId" element={
-              <ProtectedRoute>
-                <SuitesManager />
-              </ProtectedRoute>
-            } />
             <Route path="/suites-manager/:projectId" element={
               <ProtectedRoute>
                 <SuitesManager />
