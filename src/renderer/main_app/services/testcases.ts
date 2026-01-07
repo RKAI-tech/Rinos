@@ -132,10 +132,38 @@ export class TestCaseService {
     }
 
     async executeTestCase(payload: ExecuteTestCaseRequest): Promise<ApiResponse<DefaultResponse>> {
-        return await apiRouter.request<DefaultResponse>(`/runcode/execute_test_case/${payload.testcase_id}`, {
-            method: 'POST',
-            body: JSON.stringify(payload),
-        });
+        // Use local test execution service instead of API
+        try {
+            const { TestExecutionService } = await import('../../shared/services/testExecutionService');
+            const { apiRouter } = await import('./baseAPIRequest');
+            
+            const testExecutionService = new TestExecutionService(
+                apiRouter,
+                undefined // Will use getElectronIPC() internally
+            );
+            
+            const result = await testExecutionService.executeTestcase({
+                testcase_id: payload.testcase_id,
+                test_suite_id: payload.test_suite_id,
+                project_id: payload.project_id,
+                onSave: true,
+            });
+            
+            return {
+                success: result.success,
+                data: {
+                    message: result.success ? 'Test executed successfully' : 'Test execution failed',
+                },
+                error: result.success ? undefined : result.logs,
+            };
+        } catch (error) {
+            console.error('[TestCaseService] Error executing testcase locally:', error);
+            // Fallback to API if local execution fails
+            return await apiRouter.request<DefaultResponse>(`/runcode/execute_test_case/${payload.testcase_id}`, {
+                method: 'POST',
+                body: JSON.stringify(payload),
+            });
+        }
     }
 
     async getTestCaseDataVersions(testcaseId: string): Promise<ApiResponse<TestCaseDataVersionBatch>> {

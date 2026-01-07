@@ -37,7 +37,7 @@ export function getResolveUniqueSelectorFunctionString(): string {
     }
   }
   if (minIndex !== -1) { return locators[minIndex].first(); }
-  throw new Error(\`Invalid selectors.\`);
+  throw new Error(\`Invalid selectors. Please check the selectors and try again.\`);
 }`;
 }
 

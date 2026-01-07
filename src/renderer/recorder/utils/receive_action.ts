@@ -240,7 +240,7 @@ export function receiveAction(
     } as Action;
 
     // console.log('[Action sent from browser]', action_received);
-    console.log('[Received action]', receivedAction);
+    // console.log('[Received action]', receivedAction);
 
     const last_action = action_recorded[action_recorded.length - 1];
 

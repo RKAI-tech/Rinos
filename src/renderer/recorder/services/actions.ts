@@ -131,8 +131,6 @@ export class ActionService {
             method: 'GET'
         });
 
-        console.log('getActionsByTestCase', response);
-
         // Check if testcase was deleted (404 or Not Found error)
         if (!response.success && response.error) {
             const errorLower = response.error.toLowerCase();

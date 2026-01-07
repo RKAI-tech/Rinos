@@ -50,6 +50,7 @@ export interface GenerationCodeResponse{
     code:string;
 }
 export interface GenerationCodeRequest {
+    evidence_id?: string;
     testcase_id: string;
     test_suite_id?: string;
     actions: Action[];

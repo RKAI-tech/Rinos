@@ -816,37 +816,6 @@ const SuitesManager: React.FC = () => {
     setCurrentPage(1);
   }, [selectedOrderFilter, selectedStatusFilter, selectedBrowserFilter, testcasesSearchText, itemsPerPage]);
 
-  const toggleTestcaseLevel = (level: number) => {
-    setExpandedTestcaseLevels((prev) => {
-      const next = new Set(prev);
-      if (next.has(level)) {
-        next.delete(level);
-      } else {
-        next.add(level);
-      }
-      return next;
-    });
-  };
-
-  const handleLevelSelect = (level: number | null) => {
-    // If clicking "All" (null), always set to null to show all testcases
-    if (level === null) {
-      setSelectedLevel(null);
-      return;
-    }
-    // Toggle: if clicking the same level, deselect it; otherwise select the new level
-    if (selectedLevel === level) {
-      setSelectedLevel(null);
-    } else {
-      setSelectedLevel(level);
-      // Auto-expand the selected level if not already expanded
-      setExpandedTestcaseLevels((prev) => {
-        const next = new Set(prev);
-        next.add(level);
-        return next;
-      });
-    }
-  };
 
   const {
     contextMenu,

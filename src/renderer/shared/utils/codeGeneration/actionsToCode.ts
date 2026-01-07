@@ -12,7 +12,11 @@ import { needsApiRequestSupport, getExecuteApiRequestFunctionString } from './ap
 import { getListAiFunctions } from './assertCodeGenerator';
 import { getBasicHttpAuthCode } from './basicHttpAuth';
 
-export function actionsToCode(basicAuth: BasicAuthentication | null | undefined, actions: Action[]): string {
+export function actionsToCode(
+  basicAuth: BasicAuthentication | null | undefined, 
+  actions: Action[],
+  filePathMapping?: Map<string, string>
+): string {
   /**
    * Generate the full JS test code for actions.
    */
@@ -110,7 +114,7 @@ export function actionsToCode(basicAuth: BasicAuthentication | null | undefined,
   for (let i = 0; i < actions.length; i++) {
     const action = actions[i];
     const followUpAction = i < actions.length - 1 ? actions[i + 1] : undefined;
-    code += generateActionCode(action, i + 1, followUpAction);
+    code += generateActionCode(action, i + 1, followUpAction, filePathMapping);
   }
   
   code += "});\n";

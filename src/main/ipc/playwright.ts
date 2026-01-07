@@ -843,5 +843,152 @@ export function registerPlaywrightHandlersIpc() {
       return { success: false, error: errorMessage };
     }
   });
+
+  // Run Playwright test
+  ipcMain.handle("playwright:run-test", async (_evt, options: {
+    scriptPath: string;
+    browserType: string;
+    outputDir: string;
+    timeout?: number;
+  }) => {
+    try {
+      
+      const { scriptPath, browserType, outputDir, timeout = 600000 } = options;
+      
+      // Get sandbox directory path
+      const sandboxDir = app.isPackaged
+        ? path.join(app.getPath("userData"), "sandbox")
+        : path.resolve(process.cwd(), "sandbox");
+      
+      // Ensure sandbox directory exists
+      if (!fs.existsSync(sandboxDir)) {
+        fs.mkdirSync(sandboxDir, { recursive: true });
+      }
+      
+      // Ensure output directory exists
+      const fullOutputDir = path.isAbsolute(outputDir) ? outputDir : path.join(sandboxDir, outputDir);
+      if (!fs.existsSync(fullOutputDir)) {
+        fs.mkdirSync(fullOutputDir, { recursive: true });
+      }
+      
+      // Get absolute script path
+      const fullScriptPath = path.isAbsolute(scriptPath) ? scriptPath : path.join(sandboxDir, scriptPath);
+      
+      if (!fs.existsSync(fullScriptPath)) {
+        throw new Error(`Test script not found: ${fullScriptPath}`);
+      }
+      
+      // Get config path
+      const configPath = path.join(sandboxDir, "playwright.config.ts");
+      if (!fs.existsSync(configPath)) {
+        throw new Error(`Playwright config not found: ${configPath}`);
+      }
+      
+      // Map browser type to Playwright project name
+      const browserNameMap: { [key: string]: string } = {
+        chrome: "Chrome",
+        firefox: "Firefox",
+        edge: "Edge",
+        safari: "Safari",
+      };
+      const browserName = browserNameMap[browserType.toLowerCase()] || "Chrome";
+      
+      // Set up environment
+      const { PLAYWRIGHT_BROWSERS_PATH, ...restEnv } = process.env;
+      const env = {
+        ...restEnv,
+        // PLAYWRIGHT_BROWSERS_PATH: browsersPath,
+        PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS: '0',
+        ELECTRON_RUN_AS_NODE: '1',
+      };
+
+      
+      
+      // Use npx playwright test command
+      // Get script filename relative to sandbox directory
+      const scriptFilename = path.basename(fullScriptPath);
+      
+      // Build command: npx playwright test <script> --project <browser> --output <dir>
+      // Use Electron's node executable to run npx
+      const nodeExecutable = process.execPath;
+      const spawnArgs = [
+        'playwright',
+        'test',
+        scriptFilename,
+        '--project', browserName,
+        '--output', outputDir,
+      ];
+
+      return new Promise<{ success: boolean; exitCode: number; stdout: string; stderr: string; outputDir: string }>((resolve, reject) => {
+        let stdout = '';
+        let stderr = '';
+        let timeoutId: NodeJS.Timeout | null = null;
+        
+        // Use Electron's node to run npx via child_process
+        // This ensures we use the correct node environment
+        const npxCommand = process.platform === 'win32' ? 'npx.cmd' : '/home/vietdb/.nvm/versions/node/v20.19.4/bin/npx';
+        const child = spawn(npxCommand, spawnArgs, {
+          env: env,
+          cwd: sandboxDir,
+          stdio: ['ignore', 'pipe', 'pipe'],
+          // shell: true, // Use shell to find npx
+        });
+        
+        // Set timeout
+        timeoutId = setTimeout(() => {
+          if (child && !child.killed && child.pid) {
+            console.error('[Playwright IPC] Test execution timeout, killing process...');
+            try {
+              process.kill(-child.pid, 'SIGKILL');
+            } catch (err) {
+              console.error('[Playwright IPC] Error killing process:', err);
+            }
+            child.kill('SIGKILL');
+            reject(new Error(`Test execution timeout after ${(timeout || 600000) / 1000} seconds`));
+          }
+        }, timeout || 600000);
+        
+        // Collect stdout
+        child.stdout?.on('data', (data) => {
+          stdout += data.toString();
+        });
+      
+        // Collect stderr
+        child.stderr?.on('data', (data) => {
+          stderr += data.toString();
+        });
+        
+        // Handle process close
+        child.on('close', (code) => {
+          if (timeoutId) clearTimeout(timeoutId);
+          const final = {
+            success: code === 0,
+            exitCode: code || 0,
+            stdout: stdout,
+            stderr: stderr,
+            outputDir: fullOutputDir,
+          }
+          resolve(final);
+        });
+        
+        // Handle process error
+        child.on('error', (error) => {
+          console.log('error\n', error);
+          if (timeoutId) clearTimeout(timeoutId);
+          reject(new Error(`Failed to start test execution: ${error.message}`));
+        });
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[Playwright IPC] Error running test:', errorMessage);
+      return {
+        success: false,
+        exitCode: -1,
+        stdout: '',
+        stderr: errorMessage,
+        outputDir: '',
+      };
+    }
+  });
 }
 

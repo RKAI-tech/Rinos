@@ -38,9 +38,10 @@ interface MainProps {
   testcaseId?: string | null;
   browserType?: string | null;
   testSuiteId?: string | null;
+  evidenceId?: string | undefined;
 }
 
-const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSuiteId }) => {
+const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSuiteId, evidenceId }) => {  
   const [url, setUrl] = useState('');
   const [activeTab, setActiveTab] = useState<'actions' | 'script'>('actions');
   const [customScript, setCustomScript] = useState<string>('');
@@ -57,9 +58,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
     }
 
     try {
-      const response = await testCaseService.getTestCaseDataVersions(testcaseId);
-      console.log('reloadTestCaseDataVersions', response);
-      
+      const response = await testCaseService.getTestCaseDataVersions(testcaseId);      
       // Check if testcase was deleted (404 or Not Found error)
       if (!response.success && response.error) {
         const errorLower = response.error.toLowerCase();
@@ -167,6 +166,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
     setIsAssertDropdownOpen: assertHook.setIsAssertDropdownOpen,
     setAssertSearch: assertHook.setAssertSearch,
     setIsAssertMode: assertHook.setIsAssertMode,
+    evidenceId: evidenceId,
   });
 
   const aiAssertHook = useAiAssert({

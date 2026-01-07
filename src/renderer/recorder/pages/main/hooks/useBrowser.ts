@@ -23,6 +23,7 @@ interface UseBrowserProps {
   setIsAssertDropdownOpen: (open: boolean) => void;
   setAssertSearch: (search: string) => void;
   setIsAssertMode: (mode: boolean) => void;
+  evidenceId?: string;
 }
 
 export const useBrowser = ({
@@ -44,6 +45,7 @@ export const useBrowser = ({
   setIsAssertDropdownOpen,
   setAssertSearch,
   setIsAssertMode,
+  evidenceId,
 }: UseBrowserProps) => {
   const [isPaused, setIsPaused] = useState(true);
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
@@ -291,14 +293,15 @@ export const useBrowser = ({
       const service = new ExecuteScriptsService();
       const payload = {
         actions: actions,
+        evidence_id: evidenceId,
         testcase_id: testcaseId || '',
         test_suite_id: testSuiteId || undefined,
         basic_auth: basicAuth,
       };
-      console.log('Payload', payload);
+
       const resp = await service.executeActions(payload);
       if (resp.success) {
-        setRunResult((resp as any).logs || 'Executed successfully');
+        setRunResult((resp.data as any).logs || 'Executed successfully');
         toast.success('Run succeeded', { autoClose: 2000 });
       } else {
         setRunResult((resp as any).logs || 'Run failed');

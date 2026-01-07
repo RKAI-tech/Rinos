@@ -299,7 +299,7 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
     setIsLoading(true);
     try {
       const response = await actionService.getActionsByTestCase(effectiveId, 0, 0, projectId || undefined);
-      
+      console.log('[useActions] Response', response);
       // Check if testcase was deleted (404 or Not Found error)
       if (!response.success && response.error) {
         const errorLower = response.error.toLowerCase();
@@ -439,7 +439,6 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
       
       // Tự động thêm action mới vào tất cả các version
       let versionsToSave = testcaseDataVersions ? [...testcaseDataVersions] : [];
-      console.log('Versions before adding new generations', versionsToSave.filter(v => v.version === 'abcxyz'));
       
       if (versionsToSave.length > 0) {
         // Tìm actions có generation nhưng chưa được reference trong version nào
@@ -463,8 +462,6 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
           
           return !isReferenced;
         });
-
-        console.log('Actions with unreferenced generations', actionsWithUnreferencedGenerations.filter(a => a.action_id === 'abcxyz'));
 
         // Thêm generation đầu tiên của mỗi action mới vào TẤT CẢ các version
         if (actionsWithUnreferencedGenerations.length > 0) {
@@ -498,14 +495,8 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
             return version;
           });
         }
-        console.log('Versions after adding new generations', versionsToSave.filter(v => v.version === 'abcxyz'));
       }
 
-      // console.log('Actions', actionsToSave);
-      // const hasAbcxyz = versionsToSave.some(v => v.version === 'abcxyz');
-      // if (hasAbcxyz) {
-      //   console.log('Versions', versionsToSave.filter(v => v.version === 'abcxyz'));
-      // }
       
       // Convert versions to save format
       const versionsToSaveFormatted = versionsToSave.length > 0
@@ -516,7 +507,7 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
           }))
         : undefined;
 
-      console.log('Versions final', versionsToSaveFormatted?.filter(v => v.version === 'abcxyz'));
+      console.log('Actions to save', actionsToSave);
 
       const response = await actionService.batchCreateActions(actionsToSave, versionsToSaveFormatted, projectId || undefined);
       if (response.success) {

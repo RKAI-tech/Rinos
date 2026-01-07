@@ -58,10 +58,11 @@ export const useBrowserHandlers = ({
       (window as any).browserAPI?.browser?.setAuthToken?.(token);
       
       const testcase = testcases.find(tc => tc.testcase_id === id);
+      console.log('[SuitesManager] Testcase', testcase);
       const testcaseName = testcase?.name || id;
       const browserType = testcase?.browser_type || BrowserType.chrome;
       
-      const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectId, testcaseName, browserType, testSuiteId);
+      const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectId, testcaseName, browserType, testSuiteId, testcase?.evidence_id);
       if (result?.alreadyOpen) {
         toast.warning('Recorder for this testcase is already open.');
       } else if (result?.created) {

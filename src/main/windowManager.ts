@@ -156,7 +156,7 @@ export function createMainAppWindow() {
   return mainAppWindow;
 }
 
-export function createRecorderWindow(testcaseId?: string, projectId?: string, testcaseName?: string, browserType?: string, testSuiteId?: string) {
+export function createRecorderWindow(testcaseId?: string, projectId?: string, testcaseName?: string, browserType?: string, testSuiteId?: string, evidenceId?: string) {
   const recorderWindow = createWindow({ width: 500, height: 800 }, "recorder");
   childWindows.push(recorderWindow);
   if (testcaseId) {
@@ -186,7 +186,8 @@ export function createRecorderWindow(testcaseId?: string, projectId?: string, te
       const separator = currentUrl.includes('?') ? '&' : '?';
       const browserTypeParam = browserType ? `&browserType=${encodeURIComponent(browserType)}` : '';
       const testSuiteIdParam = testSuiteId ? `&testSuiteId=${encodeURIComponent(testSuiteId)}` : '';
-      const newUrl = `${currentUrl}${separator}testcaseId=${encodeURIComponent(testcaseId)}&projectId=${encodeURIComponent(projectId || '')}${browserTypeParam}${testSuiteIdParam}`;
+      const evidenceIdParam = evidenceId ? `&evidenceId=${encodeURIComponent(evidenceId)}` : '';
+      const newUrl = `${currentUrl}${separator}testcaseId=${encodeURIComponent(testcaseId)}&projectId=${encodeURIComponent(projectId || '')}${browserTypeParam}${testSuiteIdParam}${evidenceIdParam}`;
       recorderWindow.loadURL(newUrl);
     }, 1000);
   } else { }

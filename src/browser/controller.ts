@@ -8,6 +8,22 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const tmpDir = os.tmpdir();
+console.log('[Controller] tmpDir', tmpDir);
+
+/**
+ * Helper function to extract base64 content from data URL
+ * If input is a data URL (data:text/plain;base64,xxx), extract the base64 part
+ * Otherwise, return the input as is
+ */
+function extractBase64FromDataURL(dataURL: string): string {
+    if (dataURL && typeof dataURL === 'string' && dataURL.startsWith('data:')) {
+        const commaIndex = dataURL.indexOf(',');
+        if (commaIndex !== -1) {
+            return dataURL.substring(commaIndex + 1);
+        }
+    }
+    return dataURL || '';
+}
 
 export enum BrowserStorageType {
     COOKIE = 'cookie',
@@ -697,8 +713,9 @@ export class Controller {
                                     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
                                     const tempFileName = `${file.file_name}`;
                                     const tempFilePath = path.join(tmpDir, tempFileName);
-                                    // Write the file content (base64 decoding)
-                                    fs.writeFileSync(tempFilePath, Buffer.from(content || '', 'base64'));
+                                    // Extract base64 from data URL if needed, then decode
+                                    const base64Content = extractBase64FromDataURL(content || '');
+                                    fs.writeFileSync(tempFilePath, Buffer.from(base64Content, 'base64'));
                                     const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
                                     if (selectors) {
                                         const locator = await this.resolveUniqueSelector(activePage, selectors);
@@ -716,7 +733,7 @@ export class Controller {
                                     }
 
                                     // TODO: Delete temp file
-                                    fs.unlinkSync(tempFilePath);
+                                    // fs.unlinkSync(tempFilePath);
                                 }
                             }
                         }

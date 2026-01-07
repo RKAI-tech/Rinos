@@ -9,13 +9,18 @@ export class CodeGenerator {
    * Generate JavaScript test code from actions and basic auth
    * @param basicAuth Basic authentication configuration (optional)
    * @param actions Array of actions to generate code for
+   * @param filePathMapping Optional mapping of file identifiers to temp file paths for upload actions
    * @returns Generated JavaScript code as string
    */
-  generateCode(basicAuth: BasicAuthentication | null | undefined, actions: Action[]): string {
+  generateCode(
+    basicAuth: BasicAuthentication | null | undefined, 
+    actions: Action[],
+    filePathMapping?: Map<string, string>
+  ): string {
     if (!actions || actions.length === 0) {
       return '';
     }
     
-    return actionsToCode(basicAuth, actions);
+    return actionsToCode(basicAuth, actions, filePathMapping);
   }
 }

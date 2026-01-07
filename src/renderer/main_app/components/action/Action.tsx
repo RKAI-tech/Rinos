@@ -30,7 +30,7 @@ const getFullValue = (action: ActionGetResponse) => {
 const formatValue = (action: ActionGetResponse) => {
   const value = getFullValue(action);
   if (!value) return '';
-  return value.length > 50 ? value.substring(0, 50) + '...' : value;
+  return value.length > 30 ? value.substring(0, 30) + '...' : value;
 };
 
 const MAAction: React.FC<MAActionProps> = ({ action, onEdit, onDelete }) => {

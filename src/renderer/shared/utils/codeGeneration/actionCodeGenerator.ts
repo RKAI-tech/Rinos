@@ -12,7 +12,8 @@ import { preProcessCookies } from './base';
 export function generateActionCode(
   action: Action,
   index: number,
-  followUpAction?: Action
+  followUpAction?: Action,
+  filePathMapping?: Map<string, string>
 ): string {
   /**
    * Generate JS code for a single action.
@@ -168,7 +169,18 @@ export function generateActionCode(
         }
       }
     }
-    const paths = files.map(file => file.filename || file.file_path || '').filter(Boolean);
+    // Use filePathMapping if available, otherwise fallback to original logic
+    const paths = files.map(file => {
+      if (filePathMapping) {
+        // Try to find mapping by file_upload_id first, then file_path, then filename
+        const mappingKey = file.file_upload_id || file.file_path || file.filename;
+        if (mappingKey && filePathMapping.has(mappingKey)) {
+          return filePathMapping.get(mappingKey)!;
+        }
+      }
+      // Fallback to original logic
+      return file.filename || file.file_path || '';
+    }).filter(Boolean);
     return (
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selector1st || '[]'});\n` +
@@ -329,19 +341,32 @@ export function generateActionCode(
     const storageType = browserStorage.storage_type;
     let code = '';
     
+    // Helper function to serialize browser storage value properly
+    const serializeStorageValue = (value: any, defaultValue: string): string => {
+      if (!value) {
+        return defaultValue;
+      }
+      if (typeof value === 'string') {
+        return value;
+      }
+      return JSON.stringify(value);
+    };
+
     if (storageType === 'cookie') {
+      const cookiesValue = serializeStorageValue(browserStorage.value, '[]');
       code = (
         `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
-        `      cookies = ${browserStorage.value || '[]'};\n` +
+        `      cookies = ${cookiesValue};\n` +
         `      await context.addCookies(cookies);\n` +
         `      await page${currentPage}.reload();\n` +
         `    })\n` +
         `    await bm.waitForAppIdle();\n`
       );
     } else if (storageType === 'local_storage' || storageType === 'localStorage') {
+      const localStorageValue = serializeStorageValue(browserStorage.value, '{}');
       code = (
         `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
-        `      let localStorageData = ${browserStorage.value || '{}'};\n` +
+        `      let localStorageData = ${localStorageValue};\n` +
         `      await page${currentPage}.evaluate((data) => {\n` +
         `        Object.entries(data).forEach(([key, value]) => localStorage.setItem(key, value));\n` +
         `      }, localStorageData);\n` +
@@ -350,9 +375,10 @@ export function generateActionCode(
         `    await bm.waitForAppIdle();\n`
       );
     } else if (storageType === 'session_storage' || storageType === 'sessionStorage') {
+      const sessionStorageValue = serializeStorageValue(browserStorage.value, '{}');
       code = (
         `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
-        `      sessionStorage = ${browserStorage.value || '{}'};\n` +
+        `      sessionStorage = ${sessionStorageValue};\n` +
         `      await page${currentPage}.evaluate((data) => {\n` +
         `        Object.entries(data).forEach(([key, value]) => sessionStorage.setItem(key, value));\n` +
         `      }, sessionStorage);\n` +
