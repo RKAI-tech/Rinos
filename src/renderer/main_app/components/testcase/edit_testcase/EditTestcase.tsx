@@ -63,7 +63,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
           setIsLoadingActions(true);
           const [actionsResp, versionsResp] = await Promise.all([
             actionService.getActionsByTestCase(testcase.testcase_id, 1000, 0, projectId),
-            testCaseService.getTestCaseDataVersions(testcase.testcase_id),
+            testCaseService.getTestCaseDataVersions(testcase.testcase_id, projectId),
           ]);
           
           // Check if testcase was deleted (both API calls return empty data)

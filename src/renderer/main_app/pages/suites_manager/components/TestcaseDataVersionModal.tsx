@@ -202,8 +202,8 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
 
       // Fetch actions and data versions in parallel
       const [actionsResp, versionsResp] = await Promise.all([
-        actionService.getActionsByTestCase(testcase.testcase_id, 1000, 0),
-        testCaseService.getTestCaseDataVersions(testcase.testcase_id),
+        actionService.getActionsByTestCase(testcase.testcase_id, 1000, 0, testcase?.project_id),
+        testCaseService.getTestCaseDataVersions(testcase.testcase_id, testcase?.project_id),
       ]);
       console.log('actionsResp', actionsResp);
       console.log('versionsResp', versionsResp);

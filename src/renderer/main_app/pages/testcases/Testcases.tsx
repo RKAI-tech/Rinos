@@ -855,7 +855,7 @@ const Testcases: React.FC = () => {
         browser_type: browser_type || undefined,
       } as any;
       // console.log('[MAIN_APP] payload', payload);
-      const resp = await testCaseService.updateTestCase(payload);
+      const resp = await testCaseService.updateTestCase(payload, projectId || undefined);
       if (resp.success) {
         toast.success('Testcase updated successfully!');
         handleCloseEditModal();

@@ -38,14 +38,12 @@ export const useTestcaseHandlers = ({
   const [isEditTestcaseModalOpen, setIsEditTestcaseModalOpen] = useState(false);
   const [editingTestcase, setEditingTestcase] = useState<EditingTestcase | null>(null);
   const [isSavingTestcase, setIsSavingTestcase] = useState(false);
-  const [isLoadingTestcaseData, setIsLoadingTestcaseData] = useState(false);
 
   // Duplicate testcase state
   const [isDuplicateTestcaseModalOpen, setIsDuplicateTestcaseModalOpen] = useState(false);
   const [duplicatingTestcase, setDuplicatingTestcase] = useState<EditingTestcase | null>(null);
   const [duplicatingTestcaseLevel, setDuplicatingTestcaseLevel] = useState<number>(1);
   const [isDuplicatingTestcase, setIsDuplicatingTestcase] = useState(false);
-  const [isLoadingDuplicateTestcaseData, setIsLoadingDuplicateTestcaseData] = useState(false);
 
   // Delete testcase state
   const [isDeleteTestcaseModalOpen, setIsDeleteTestcaseModalOpen] = useState(false);
@@ -53,38 +51,23 @@ export const useTestcaseHandlers = ({
   const [isDeletingTestcase, setIsDeletingTestcase] = useState(false);
 
   // Edit testcase handlers
-  const handleOpenEditTestcase = useCallback(async (testcase: TestCaseInSuite) => {
+  const handleOpenEditTestcase = useCallback((testcase: TestCaseInSuite) => {
     if (!testcase || !projectId) return;
+
+    console.log('[useTestcaseHandlers] Opening EditTestcase modal for testcase:', testcase);
     
-    try {
-      setIsLoadingTestcaseData(true);
-      // Load full testcase data from API
-      const response = await testCaseService.getTestCases(projectId, 1000, 0);
-      if (response.success && response.data) {
-        const fullTestcase = response.data.testcases.find(tc => tc.testcase_id === testcase.testcase_id);
-        if (fullTestcase) {
-          setEditingTestcase({
-            testcase_id: fullTestcase.testcase_id,
-            name: fullTestcase.name,
-            description: fullTestcase.description,
-            browser_type: fullTestcase.browser_type,
-            basic_authentication: fullTestcase.basic_authentication ? {
-              username: fullTestcase.basic_authentication.username || '',
-              password: fullTestcase.basic_authentication.password || '',
-            } : undefined,
-          });
-          setIsEditTestcaseModalOpen(true);
-        } else {
-          toast.error('Testcase not found. Please try again.');
-        }
-      } else {
-        toast.error(response.error || 'Failed to load testcase data. Please try again.');
-      }
-    } catch (e) {
-      toast.error('Failed to load testcase data. Please try again.');
-    } finally {
-      setIsLoadingTestcaseData(false);
-    }
+    // Sử dụng trực tiếp dữ liệu từ prop, không cần fetch API
+    setEditingTestcase({
+      testcase_id: testcase.testcase_id,
+      name: testcase.name,
+      description: testcase.description,
+      browser_type: testcase.browser_type,
+      basic_authentication: testcase.basic_authentication ? {
+        username: testcase.basic_authentication.username || '',
+        password: testcase.basic_authentication.password || '',
+      } : undefined,
+    });
+    setIsEditTestcaseModalOpen(true);
   }, [projectId]);
 
   const handleSaveEditTestcase = useCallback(async (
@@ -120,7 +103,7 @@ export const useTestcaseHandlers = ({
         browser_type: browser_type || undefined,
       } as any;
       
-      const resp = await testCaseService.updateTestCase(payload);
+      const resp = await testCaseService.updateTestCase(payload, projectId);
       if (resp.success) {
         // toast.success('Testcase updated successfully!');
         setIsEditTestcaseModalOpen(false);
@@ -149,40 +132,23 @@ export const useTestcaseHandlers = ({
   }, [isSavingTestcase]);
 
   // Duplicate testcase handlers
-  const handleOpenDuplicateTestcase = useCallback(async (testcase: TestCaseInSuite) => {
+  const handleOpenDuplicateTestcase = useCallback((testcase: TestCaseInSuite) => {
     if (!testcase || !projectId) return;
     
-    try {
-      setIsLoadingDuplicateTestcaseData(true);
-      // Save the level of the original testcase
-      setDuplicatingTestcaseLevel(testcase.level ?? 1);
-      // Load full testcase data from API
-      const response = await testCaseService.getTestCases(projectId, 1000, 0);
-      if (response.success && response.data) {
-        const fullTestcase = response.data.testcases.find(tc => tc.testcase_id === testcase.testcase_id);
-        if (fullTestcase) {
-          setDuplicatingTestcase({
-            testcase_id: fullTestcase.testcase_id,
-            name: fullTestcase.name,
-            description: fullTestcase.description,
-            browser_type: fullTestcase.browser_type,
-            basic_authentication: fullTestcase.basic_authentication ? {
-              username: fullTestcase.basic_authentication.username || '',
-              password: fullTestcase.basic_authentication.password || '',
-            } : undefined,
-          });
-          setIsDuplicateTestcaseModalOpen(true);
-        } else {
-          toast.error('Testcase not found. Please try again.');
-        }
-      } else {
-        toast.error(response.error || 'Failed to load testcase data. Please try again.');
-      }
-    } catch (e) {
-      toast.error('Failed to load testcase data. Please try again.');
-    } finally {
-      setIsLoadingDuplicateTestcaseData(false);
-    }
+    // Save the level of the original testcase
+    setDuplicatingTestcaseLevel(testcase.level ?? 1);
+    // Sử dụng trực tiếp dữ liệu từ prop, không cần fetch API
+    setDuplicatingTestcase({
+      testcase_id: testcase.testcase_id,
+      name: testcase.name,
+      description: testcase.description,
+      browser_type: testcase.browser_type,
+      basic_authentication: testcase.basic_authentication ? {
+        username: testcase.basic_authentication.username || '',
+        password: testcase.basic_authentication.password || '',
+      } : undefined,
+    });
+    setIsDuplicateTestcaseModalOpen(true);
   }, [projectId]);
 
   // Create testcase with actions function for duplicate modal
@@ -345,7 +311,6 @@ export const useTestcaseHandlers = ({
     isEditTestcaseModalOpen,
     editingTestcase,
     isSavingTestcase,
-    isLoadingTestcaseData,
     // Edit testcase handlers
     handleOpenEditTestcase,
     handleSaveEditTestcase,
@@ -355,7 +320,6 @@ export const useTestcaseHandlers = ({
     duplicatingTestcase,
     duplicatingTestcaseLevel,
     isDuplicatingTestcase,
-    isLoadingDuplicateTestcaseData,
     // Duplicate testcase handlers
     handleOpenDuplicateTestcase,
     createTestcaseWithActions,

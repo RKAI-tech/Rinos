@@ -508,7 +508,8 @@ const SuitesManager: React.FC = () => {
         browser_type: apiBrowserType,
       };
       
-      const resp = await suiteService.searchTestCasesBySuite(suiteId, request);
+      const resp = await suiteService.searchTestCasesBySuite(suiteId, request, projectId);
+      
       if (resp.success && resp.data) {
         setTestcases(resp.data.testcases || []);
         setTotalPages(resp.data.total_pages || 1);
@@ -543,7 +544,7 @@ const SuitesManager: React.FC = () => {
     } finally {
       setIsLoadingTestcases(false);
     }
-  }, [suiteService, selectedLevel, currentPage, itemsPerPage, testcasesSearchText, sortColumn, sortDirection, selectedOrderFilter, selectedStatusFilter, selectedBrowserFilter]);
+  }, [suiteService, projectId, selectedLevel, currentPage, itemsPerPage, testcasesSearchText, sortColumn, sortDirection, selectedOrderFilter, selectedStatusFilter, selectedBrowserFilter]);
 
   // Reload testcases when filter/search/pagination/sort changes
   useEffect(() => {
@@ -674,7 +675,6 @@ const SuitesManager: React.FC = () => {
     isEditTestcaseModalOpen,
     editingTestcase,
     isSavingTestcase,
-    isLoadingTestcaseData,
     handleOpenEditTestcase,
     handleSaveEditTestcase,
     handleCloseEditTestcaseModal,
@@ -682,7 +682,6 @@ const SuitesManager: React.FC = () => {
     duplicatingTestcase,
     duplicatingTestcaseLevel,
     isDuplicatingTestcase,
-    isLoadingDuplicateTestcaseData,
     handleOpenDuplicateTestcase,
     createTestcaseWithActions,
     handleDuplicateTestcaseSave,
@@ -1432,23 +1431,12 @@ const SuitesManager: React.FC = () => {
         testSuiteId={selectedSuiteId}
       />
 
-      <LoadingOverlay
-        visible={isLoadingTestcaseData}
-        text="Loading testcase data..."
-        zIndex={2147483646}
-      />
       <EditTestcase
         isOpen={isEditTestcaseModalOpen}
         onClose={handleCloseEditTestcaseModal}
         onSave={handleSaveEditTestcase}
         testcase={editingTestcase}
         projectId={projectId}
-      />
-
-      <LoadingOverlay
-        visible={isLoadingDuplicateTestcaseData}
-        text="Loading testcase data..."
-        zIndex={2147483646}
       />
       <LoadingOverlay
         visible={isDuplicatingTestcase}

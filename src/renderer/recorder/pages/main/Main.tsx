@@ -58,7 +58,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
     }
 
     try {
-      const response = await testCaseService.getTestCaseDataVersions(testcaseId);      
+      const response = await testCaseService.getTestCaseDataVersions(testcaseId, projectId || undefined);      
       // Check if testcase was deleted (404 or Not Found error)
       if (!response.success && response.error) {
         const errorLower = response.error.toLowerCase();
@@ -122,6 +122,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
 
   const basicAuthHook = useBasicAuth({
     testcaseId: testcaseId || null,
+    projectId: projectId || null,
     onDirtyChange: handleBasicAuthDirtyChange,
   });
 

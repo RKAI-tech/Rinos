@@ -13,6 +13,71 @@ import {
     TestCaseDataVersionBatch
 } from '../types/testcases';
 import { DefaultResponse } from '../types/api_responses';
+import { Action, ActionData, ActionDataGeneration } from '../types/actions';
+import { encryptObject, decryptObject } from './encryption';
+
+/**
+ * Xác định các trường cần mã hóa trong ActionData
+ */
+function getFieldsToEncryptForActionData(actionData: ActionData): string[] {
+    const fields: string[] = [];
+    
+    // value.value - chỉ mã hóa key "value" bên trong dictionary
+    if (actionData.value && 
+        typeof actionData.value === 'object' && 
+        actionData.value.value !== undefined && 
+        actionData.value.value !== null) {
+        fields.push('value.value');
+    }
+    
+    // Database connection
+    if (actionData.statement?.connection) {
+        if (actionData.statement.connection.username) {
+            fields.push('statement.connection.username');
+        }
+        if (actionData.statement.connection.password) {
+            fields.push('statement.connection.password');
+        }
+    }
+    
+    // API request - không mã hóa (theo yêu cầu)
+    
+    return fields;
+}
+
+/**
+ * Xác định các trường cần mã hóa trong ActionDataGeneration
+ */
+function getFieldsToEncryptForActionDataGeneration(gen: ActionDataGeneration): string[] {
+    const fields: string[] = [];
+    
+    // value.value - chỉ mã hóa key "value" bên trong dictionary
+    if (gen.value && 
+        typeof gen.value === 'object' && 
+        gen.value.value !== undefined && 
+        gen.value.value !== null) {
+        fields.push('value.value');
+    }
+    
+    return fields;
+}
+
+/**
+ * Xác định các trường cần decrypt trong ActionDataGeneration
+ */
+function getFieldsToDecryptForActionDataGeneration(gen: ActionDataGeneration): string[] {
+    const fields: string[] = [];
+    
+    // value.value - chỉ decrypt key "value" bên trong dictionary
+    if (gen.value && 
+        typeof gen.value === 'object' && 
+        gen.value.value !== undefined && 
+        gen.value.value !== null) {
+        fields.push('value.value');
+    }
+    
+    return fields;
+}
 
 export class TestCaseService {
     async getTestCases(projectId?: string, limit: number = 10, offset: number = 0): Promise<ApiResponse<TestCaseGetAllResponse>> {
@@ -36,6 +101,36 @@ export class TestCaseService {
             method: 'POST',
             body: JSON.stringify(requestBody),
         });
+        
+        // Giải mã basic_authentication trong response nếu có projectId và encryption key
+        if (response.success && response.data && response.data.testcases && projectId) {
+            try {
+                const encryptionKey = await (window as any).encryptionStore?.getKey(projectId);
+                if (encryptionKey) {
+                    response.data.testcases = await Promise.all(
+                        response.data.testcases.map(async (testcase) => {
+                            if (testcase.basic_authentication) {
+                                try {
+                                    testcase.basic_authentication = await decryptObject(
+                                        testcase.basic_authentication,
+                                        encryptionKey,
+                                        ['username', 'password']
+                                    );
+                                } catch (error) {
+                                    console.error('[TestCaseService] Decryption failed for testcase:', error);
+                                    // Keep original if decryption fails (backward compatibility)
+                                }
+                            }
+                            return testcase;
+                        })
+                    );
+                }
+            } catch (error) {
+                console.error('[TestCaseService] Decryption failed:', error);
+                // Keep original response if decryption fails (backward compatibility)
+            }
+        }
+        
         return response;
     }
 
@@ -49,10 +144,41 @@ export class TestCaseService {
             };
         }
 
-        return await apiRouter.request<TestCaseSearchResponse>('/testcases/search', {
+        const response = await apiRouter.request<TestCaseSearchResponse>('/testcases/search', {
             method: 'POST',
             body: JSON.stringify(request),
         });
+        
+        // Giải mã basic_authentication trong response nếu có projectId và encryption key
+        if (response.success && response.data && response.data.testcases && request.project_id) {
+            try {
+                const encryptionKey = await (window as any).encryptionStore?.getKey(request.project_id);
+                if (encryptionKey) {
+                    response.data.testcases = await Promise.all(
+                        response.data.testcases.map(async (testcase) => {
+                            if (testcase.basic_authentication) {
+                                try {
+                                    testcase.basic_authentication = await decryptObject(
+                                        testcase.basic_authentication,
+                                        encryptionKey,
+                                        ['username', 'password']
+                                    );
+                                } catch (error) {
+                                    console.error('[TestCaseService] Decryption failed for testcase:', error);
+                                    // Keep original if decryption fails (backward compatibility)
+                                }
+                            }
+                            return testcase;
+                        })
+                    );
+                }
+            } catch (error) {
+                console.error('[TestCaseService] Decryption failed:', error);
+                // Keep original response if decryption fails (backward compatibility)
+            }
+        }
+        
+        return response;
     }
 
     async createTestCase(testCase: TestCaseCreateRequest): Promise<ApiResponse<DefaultResponse>> {
@@ -97,13 +223,75 @@ export class TestCaseService {
             // console.log('No actions provided');
         }
 
+        // Mã hóa dữ liệu nhạy cảm nếu có projectId và encryption key
+        let encryptedTestCase = { ...testCase };
+        if (testCase.project_id) {
+            try {
+                const encryptionKey = await (window as any).encryptionStore?.getKey(testCase.project_id);
+                if (encryptionKey) {
+                    // Mã hóa basic_authentication nếu có
+                    if (testCase.basic_authentication && testCase.basic_authentication.username && testCase.basic_authentication.password) {
+                        encryptedTestCase.basic_authentication = await encryptObject(
+                            testCase.basic_authentication,
+                            encryptionKey,
+                            ['username', 'password']
+                        );
+                    }
+
+                    // Mã hóa actions nếu có
+                    if (testCase.actions && testCase.actions.length > 0) {
+                        const encryptedActions = await Promise.all(
+                            testCase.actions.map(async (action: Action) => {
+                                const encryptedAction = { ...action };
+
+                                // Mã hóa action_datas
+                                if (action.action_datas && action.action_datas.length > 0) {
+                                    encryptedAction.action_datas = await Promise.all(
+                                        action.action_datas.map(async (actionData) => {
+                                            const fieldsToEncrypt = getFieldsToEncryptForActionData(actionData);
+                                            if (fieldsToEncrypt.length > 0) {
+                                                return await encryptObject(actionData, encryptionKey, fieldsToEncrypt);
+                                            }
+                                            return actionData;
+                                        })
+                                    );
+                                }
+
+                                // Mã hóa action_data_generation
+                                if (action.action_data_generation && action.action_data_generation.length > 0) {
+                                    encryptedAction.action_data_generation = await Promise.all(
+                                        action.action_data_generation.map(async (gen) => {
+                                            const fieldsToEncrypt = getFieldsToEncryptForActionDataGeneration(gen);
+                                            if (fieldsToEncrypt.length > 0) {
+                                                return await encryptObject(gen, encryptionKey, fieldsToEncrypt);
+                                            }
+                                            return gen;
+                                        })
+                                    );
+                                }
+
+                                return encryptedAction;
+                            })
+                        );
+                        encryptedTestCase = {
+                            ...encryptedTestCase,
+                            actions: encryptedActions
+                        };
+                    }
+                }
+            } catch (error) {
+                console.error('[TestCaseService] Encryption failed:', error);
+                // Fallback: gửi không mã hóa nếu có lỗi
+            }
+        }
+
         return await apiRouter.request<DefaultResponse>('/testcases/create_with_actions', {
             method: 'POST',
-            body: JSON.stringify(testCase),
+            body: JSON.stringify(encryptedTestCase),
         });
     }
 
-    async updateTestCase(testCase: TestCaseUpdateRequest): Promise<ApiResponse<TestCase>> {
+    async updateTestCase(testCase: TestCaseUpdateRequest, projectId?: string): Promise<ApiResponse<TestCase>> {
         // Input validation
         if (!testCase.testcase_id) {
             return {
@@ -119,10 +307,47 @@ export class TestCaseService {
             };
         }
 
-        return await apiRouter.request<TestCase>(`/testcases/update/${testCase.testcase_id}`, {
+        // Mã hóa basic_authentication nếu có projectId và encryption key
+        let encryptedTestCase = { ...testCase };
+        if (projectId && testCase.basic_authentication && testCase.basic_authentication.username && testCase.basic_authentication.password) {
+            try {
+                const encryptionKey = await (window as any).encryptionStore?.getKey(projectId);
+                if (encryptionKey) {
+                    encryptedTestCase.basic_authentication = await encryptObject(
+                        testCase.basic_authentication,
+                        encryptionKey,
+                        ['username', 'password']
+                    );
+                }
+            } catch (error) {
+                console.error('[TestCaseService] Encryption failed:', error);
+                // Fallback: send unencrypted if encryption fails
+            }
+        }
+
+        const response = await apiRouter.request<TestCase>(`/testcases/update/${testCase.testcase_id}`, {
             method: 'PUT',
-            body: JSON.stringify(testCase),
+            body: JSON.stringify(encryptedTestCase),
         });
+
+        // Giải mã basic_authentication trong response nếu có projectId
+        if (response.success && response.data && projectId && response.data.basic_authentication) {
+            try {
+                const encryptionKey = await (window as any).encryptionStore?.getKey(projectId);
+                if (encryptionKey) {
+                    response.data.basic_authentication = await decryptObject(
+                        response.data.basic_authentication,
+                        encryptionKey,
+                        ['username', 'password']
+                    );
+                }
+            } catch (error) {
+                console.error('[TestCaseService] Decryption failed:', error);
+                // Keep original response if decryption fails (backward compatibility)
+            }
+        }
+
+        return response;
     }
 
     async deleteTestCase(payload: TestCaseDeleteRequest): Promise<ApiResponse<DefaultResponse>> {
@@ -184,7 +409,7 @@ export class TestCaseService {
         }
     }
 
-    async getTestCaseDataVersions(testcaseId: string): Promise<ApiResponse<TestCaseDataVersionBatch>> {
+    async getTestCaseDataVersions(testcaseId: string, projectId?: string): Promise<ApiResponse<TestCaseDataVersionBatch>> {
         const response = await apiRouter.request<TestCaseDataVersionBatch>(`/testcases/data_version/get_by_testcase_id/${testcaseId}`, {
             method: 'POST',
             body: JSON.stringify({ testcase_id: testcaseId }),
@@ -201,6 +426,46 @@ export class TestCaseService {
                         testcase_data_versions: []
                     }
                 };
+            }
+        }
+
+        // Decrypt action_data_generations nếu có projectId và encryption key
+        if (response.success && response.data && projectId) {
+            try {
+                const encryptionKey = await (window as any).encryptionStore?.getKey(projectId);
+                if (encryptionKey && response.data.testcase_data_versions) {
+                    const decryptedVersions = await Promise.all(
+                        response.data.testcase_data_versions.map(async (version) => {
+                            const decryptedVersion = { ...version };
+
+                            // Decrypt action_data_generations
+                            if (version.action_data_generations && version.action_data_generations.length > 0) {
+                                decryptedVersion.action_data_generations = await Promise.all(
+                                    version.action_data_generations.map(async (gen) => {
+                                        const fieldsToDecrypt = getFieldsToDecryptForActionDataGeneration(gen);
+                                        if (fieldsToDecrypt.length > 0) {
+                                            return await decryptObject(gen, encryptionKey, fieldsToDecrypt);
+                                        }
+                                        return gen;
+                                    })
+                                );
+                            }
+
+                            return decryptedVersion;
+                        })
+                    );
+
+                    return {
+                        ...response,
+                        data: {
+                            ...response.data,
+                            testcase_data_versions: decryptedVersions
+                        }
+                    };
+                }
+            } catch (error) {
+                console.error('[TestCaseService] Decryption failed:', error);
+                // Fallback: trả về versions không decrypt nếu có lỗi
             }
         }
 

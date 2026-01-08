@@ -446,46 +446,59 @@ export class TestExecutionService {
     }
 
     let actions = response.data.actions || [];
-    const basic_auth = response.data.basic_auth || null;
+    let basic_auth = response.data.basic_auth || null;
 
     // Decrypt metadata nếu có projectId và encryption key
-    if (projectId && actions.length > 0) {
+    if (projectId) {
       try {
         const encryptionKey = await (window as any).encryptionStore?.getKey?.(projectId);
-        if (encryptionKey && actions) {
-          actions = await Promise.all(
-            actions.map(async (action) => {
-              const decryptedAction = { ...action };
+        if (encryptionKey) {
+          // Decrypt basic_auth if present
+          if (basic_auth && basic_auth.username && basic_auth.password) {
+            try {
+              basic_auth = await decryptObject(basic_auth, encryptionKey, ['username', 'password']);
+            } catch (error) {
+              console.error('[TestExecutionService] Basic auth decryption failed:', error);
+              // Keep original if decryption fails (backward compatibility)
+            }
+          }
 
-              // Decrypt action_datas
-              if (action.action_datas && action.action_datas.length > 0) {
-                decryptedAction.action_datas = await Promise.all(
-                  action.action_datas.map(async (actionData) => {
-                    const fieldsToDecrypt = getFieldsToDecryptForActionData(actionData);
-                    if (fieldsToDecrypt.length > 0) {
-                      return await decryptObject(actionData, encryptionKey, fieldsToDecrypt);
-                    }
-                    return actionData;
-                  })
-                );
-              }
+          // Decrypt actions if present
+          if (actions.length > 0) {
+            actions = await Promise.all(
+              actions.map(async (action) => {
+                const decryptedAction = { ...action };
 
-              // Decrypt action_data_generation
-              if (action.action_data_generation && action.action_data_generation.length > 0) {
-                decryptedAction.action_data_generation = await Promise.all(
-                  action.action_data_generation.map(async (gen) => {
-                    const fieldsToDecrypt = getFieldsToDecryptForActionDataGeneration(gen);
-                    if (fieldsToDecrypt.length > 0) {
-                      return await decryptObject(gen, encryptionKey, fieldsToDecrypt);
-                    }
-                    return gen;
-                  })
-                );
-              }
+                // Decrypt action_datas
+                if (action.action_datas && action.action_datas.length > 0) {
+                  decryptedAction.action_datas = await Promise.all(
+                    action.action_datas.map(async (actionData) => {
+                      const fieldsToDecrypt = getFieldsToDecryptForActionData(actionData);
+                      if (fieldsToDecrypt.length > 0) {
+                        return await decryptObject(actionData, encryptionKey, fieldsToDecrypt);
+                      }
+                      return actionData;
+                    })
+                  );
+                }
 
-              return decryptedAction;
-            })
-          );
+                // Decrypt action_data_generation
+                if (action.action_data_generation && action.action_data_generation.length > 0) {
+                  decryptedAction.action_data_generation = await Promise.all(
+                    action.action_data_generation.map(async (gen) => {
+                      const fieldsToDecrypt = getFieldsToDecryptForActionDataGeneration(gen);
+                      if (fieldsToDecrypt.length > 0) {
+                        return await decryptObject(gen, encryptionKey, fieldsToDecrypt);
+                      }
+                      return gen;
+                    })
+                  );
+                }
+
+                return decryptedAction;
+              })
+            );
+          }
         }
       } catch (error) {
         console.error('[TestExecutionService] Decryption failed:', error);

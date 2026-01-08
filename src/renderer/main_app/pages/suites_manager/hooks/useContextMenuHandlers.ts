@@ -27,8 +27,8 @@ interface GroupContextMenuState {
 interface UseContextMenuHandlersProps {
   // Testcase context menu action handlers
   onTestcaseEvidence?: (testcase: TestCaseInSuite) => void;
-  onTestcaseEdit?: (testcase: TestCaseInSuite) => Promise<void>;
-  onTestcaseDuplicate?: (testcase: TestCaseInSuite) => Promise<void>;
+  onTestcaseEdit?: (testcase: TestCaseInSuite) => void | Promise<void>;
+  onTestcaseDuplicate?: (testcase: TestCaseInSuite) => void | Promise<void>;
   onTestcaseDelete?: (testcase: TestCaseInSuite) => void;
   onTestcaseDatatest?: (testcase: TestCaseInSuite) => void;
   onTestcaseChangeLevel?: (testcase: TestCaseInSuite) => void;
