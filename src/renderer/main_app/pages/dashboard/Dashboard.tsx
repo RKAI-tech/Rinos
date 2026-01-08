@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/header/Header';
-import Footer from '../../components/footer/Footer';
 import CreateProject from '../../components/project/create_project/CreateProject';
 import EditProject from '../../components/project/edit_project/EditProject';
 import { UserService } from '../../services/user';
@@ -457,7 +456,6 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -478,7 +476,6 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -902,8 +899,6 @@ const Dashboard: React.FC = () => {
           </section>
         </div>
       </main>
-
-      <Footer />
 
       {/* Create Project Modal */}
       <CreateProject
