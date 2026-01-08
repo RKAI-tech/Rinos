@@ -1,6 +1,7 @@
 /**
  * Encryption service using AES-256-GCM
  * Provides functions for key generation, encryption, and decryption
+ * Uses IPC crypto API (Node.js crypto in main process)
  */
 
 export class EncryptionError extends Error {
@@ -11,39 +12,33 @@ export class EncryptionError extends Error {
 }
 
 /**
+ * Get crypto API from window
+ */
+function getCryptoAPI(): {
+  generateKey: () => Promise<string>;
+  getRandomValues: (length: number) => Promise<Uint8Array>;
+  encrypt: (plaintext: string, keyBase64: string) => Promise<string>;
+  decrypt: (ciphertextBase64: string, keyBase64: string) => Promise<string>;
+} {
+  if (typeof window !== 'undefined' && (window as any).cryptoAPI) {
+    return (window as any).cryptoAPI;
+  }
+  throw new EncryptionError('Crypto API not available. Please ensure Electron API is properly initialized.');
+}
+
+/**
  * Generate a random 256-bit encryption key
  * @returns Base64 encoded key string (44 characters)
  */
 export async function generateKey(): Promise<string> {
-  // Generate 32 bytes (256 bits) of random data
-  const keyBytes = new Uint8Array(32);
-  crypto.getRandomValues(keyBytes);
-  
-  // Convert to Base64 string
-  const base64Key = btoa(String.fromCharCode(...keyBytes));
-  return base64Key;
-}
-
-/**
- * Convert Base64 key to CryptoKey for Web Crypto API
- */
-async function importKey(keyBase64: string): Promise<CryptoKey> {
   try {
-    // Decode Base64 to binary
-    const keyBytes = Uint8Array.from(atob(keyBase64), c => c.charCodeAt(0));
-    
-    // Import key for AES-GCM
-    const cryptoKey = await crypto.subtle.importKey(
-      'raw',
-      keyBytes,
-      { name: 'AES-GCM' },
-      false,
-      ['encrypt', 'decrypt']
-    );
-    
-    return cryptoKey;
+    const cryptoAPI = getCryptoAPI();
+    return await cryptoAPI.generateKey();
   } catch (error) {
-    throw new EncryptionError(`Invalid key format: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    if (error instanceof EncryptionError) {
+      throw error;
+    }
+    throw new EncryptionError(`Failed to generate key: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -60,36 +55,8 @@ export async function encrypt(plaintext: string, keyBase64: string): Promise<str
       throw new EncryptionError('Key must be a non-empty string');
     }
     
-    // Import key
-    const cryptoKey = await importKey(keyBase64);
-    
-    // Generate random IV (12 bytes for GCM)
-    const iv = new Uint8Array(12);
-    crypto.getRandomValues(iv);
-    
-    // Convert plaintext to Uint8Array
-    const plaintextBytes = new TextEncoder().encode(plaintext);
-    
-    // Encrypt
-    const encryptedData = await crypto.subtle.encrypt(
-      {
-        name: 'AES-GCM',
-        iv: iv,
-        tagLength: 128, // 16 bytes auth tag
-      },
-      cryptoKey,
-      plaintextBytes
-    );
-    
-    // Combine IV + encrypted data (which includes auth tag at the end)
-    // GCM mode automatically appends the auth tag to the encrypted data
-    const combined = new Uint8Array(iv.length + encryptedData.byteLength);
-    combined.set(iv, 0);
-    combined.set(new Uint8Array(encryptedData), iv.length);
-    
-    // Convert to Base64
-    const base64Result = btoa(String.fromCharCode(...combined));
-    return base64Result;
+    const cryptoAPI = getCryptoAPI();
+    return await cryptoAPI.encrypt(plaintext, keyBase64);
   } catch (error) {
     if (error instanceof EncryptionError) {
       throw error;
@@ -114,43 +81,18 @@ export async function decrypt(ciphertextBase64: string, keyBase64: string): Prom
       throw new EncryptionError('Key must be a non-empty string');
     }
     
-    // Import key
-    const cryptoKey = await importKey(keyBase64);
-    
-    // Decode Base64
-    const combined = Uint8Array.from(atob(ciphertextBase64), c => c.charCodeAt(0));
-    
-    // Extract IV (first 12 bytes) and encrypted data (rest, which includes auth tag)
-    if (combined.length < 13) {
-      throw new EncryptionError('Ciphertext too short - invalid format');
-    }
-    
-    const iv = combined.slice(0, 12);
-    const encryptedData = combined.slice(12);
-    
-    // Decrypt
-    const decryptedData = await crypto.subtle.decrypt(
-      {
-        name: 'AES-GCM',
-        iv: iv,
-        tagLength: 128,
-      },
-      cryptoKey,
-      encryptedData
-    );
-    
-    // Convert to string
-    const plaintext = new TextDecoder().decode(decryptedData);
-    return plaintext;
+    const cryptoAPI = getCryptoAPI();
+    return await cryptoAPI.decrypt(ciphertextBase64, keyBase64);
   } catch (error) {
     if (error instanceof EncryptionError) {
       throw error;
     }
-    // Web Crypto API throws DOMException for decryption failures
-    if (error instanceof DOMException) {
+    // Check for decryption failure messages
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (errorMessage.includes('Invalid key') || errorMessage.includes('tampered data') || errorMessage.includes('bad decrypt')) {
       throw new EncryptionError('Decryption failed: Invalid key or tampered data');
     }
-    throw new EncryptionError(`Decryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new EncryptionError(`Decryption failed: ${errorMessage}`);
   }
 }
 

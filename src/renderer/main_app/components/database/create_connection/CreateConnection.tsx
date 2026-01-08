@@ -170,6 +170,36 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
     }
   }, [isOpen]);
 
+  // Clear test result when any connection config changes
+  useEffect(() => {
+    // Only clear if modal is open and there's a test result to clear
+    if (isOpen && testResult !== null) {
+      setTestResult(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    dbType,
+    dbName,
+    host,
+    port,
+    username,
+    password,
+    securityType,
+    sslMode,
+    caCertificateFile,
+    clientCertificateFile,
+    clientPrivateKeyFile,
+    sslKeyPassphrase,
+    sshHost,
+    sshPort,
+    sshUsername,
+    sshAuthMethod,
+    sshPrivateKeyFile,
+    sshKeyPassphrase,
+    sshPassword,
+    localPort
+  ]);
+
   if (!isOpen) return null;
 
   const handleTestConnection = async () => {
