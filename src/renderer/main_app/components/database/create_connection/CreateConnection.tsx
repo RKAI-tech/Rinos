@@ -70,6 +70,8 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<'db_name' | 'host' | 'port' | 'username' | 'password', string>>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const dbNameInputRef = useRef<HTMLInputElement>(null);
 
   const isFormValid = useMemo(() => {
@@ -96,6 +98,8 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
       setUsername('');
       setPassword('');
       setErrors({});
+      setTestResult(null);
+      setIsTesting(false);
     }
   }, [isOpen]);
 
@@ -126,6 +130,46 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleTestConnection = async () => {
+    const newErrors: typeof errors = {};
+    const parsedPort = Number(port);
+    if (!dbName.trim()) newErrors.db_name = 'Database name is required';
+    if (!host.trim()) newErrors.host = 'Host is required';
+    if (!port.trim() || Number.isNaN(parsedPort) || parsedPort <= 0 || !Number.isInteger(parsedPort)) newErrors.port = 'Port must be a positive integer';
+    if (!username.trim()) newErrors.username = 'Username is required';
+    if (!password) newErrors.password = 'Password is required';
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setIsTesting(true);
+    setTestResult(null);
+    try {
+      const electronAPI = (window as any).electronAPI;
+      if (!electronAPI || !electronAPI.database) {
+        toast.error('Database API is not available');
+        return;
+      }
+
+      const result = await electronAPI.database.testConnection({
+        db_type: dbType,
+        host: host.trim(),
+        port: parsedPort,
+        db_name: dbName.trim(),
+        username: username.trim(),
+        password,
+      });
+
+      setTestResult(result);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to test connection';
+      setTestResult({ success: false, message: errorMessage });
+    } finally {
+      setIsTesting(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -303,8 +347,22 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
             </div>
           </div>
 
+          {testResult && (
+            <div className={`cc-test-result ${testResult.success ? 'cc-test-success' : 'cc-test-error'}`}>
+              <span>{testResult.message}</span>
+            </div>
+          )}
+
           <div className="cc-modal-actions">
             <button type="button" className="cc-btn cc-btn-cancel" onClick={handleClose}>Cancel</button>
+            <button 
+              type="button" 
+              className="cc-btn cc-btn-test" 
+              onClick={handleTestConnection}
+              disabled={!isFormValid || isTesting}
+            >
+              {isTesting ? 'Testing...' : 'Test Connection'}
+            </button>
             <button type="submit" className="cc-btn cc-btn-save" disabled={!isFormValid || isSaving}>{isSaving ? 'Saving...' : 'Save'}</button>
           </div>
         </form>

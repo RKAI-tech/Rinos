@@ -20,6 +20,13 @@
 .aq-btn-cancel:hover { background: #f9fafb; }
 .aq-btn-save { background: #5549f5; color: #fff; }
 .aq-btn-save:hover { background: #4338ca; }
+.aq-btn-test { background: #10b981; color: #fff; }
+.aq-btn-test:hover { background: #059669; }
+.aq-btn-test:disabled { background: #9ca3af; color: rgba(255, 255, 255, 0.7); cursor: not-allowed; }
+.aq-btn-test:disabled:hover { background: #9ca3af; }
+.aq-test-result { padding: 12px 16px; border-radius: 8px; margin: 12px 20px; font-size: 14px; }
+.aq-test-success { background: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+.aq-test-error { background: #fee2e2; color: #991b1b; border: 1px solid #ef4444; }
 
 @media (max-width: 640px) {
   .aq-modal-container { width: 100%; }

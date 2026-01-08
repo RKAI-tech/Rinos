@@ -185,6 +185,8 @@ const Queries: React.FC = () => {
     fetchConnections();
   }, [projectId]);
 
+  const [connectionMap, setConnectionMap] = useState<Record<string, any>>({});
+
   const fetchConnections = async () => {
     if (!projectId) return;
     try {
@@ -198,6 +200,13 @@ const Queries: React.FC = () => {
         if (conns.length > 0) {
           setSelectedConnectionId(conns[0].id);
         }
+        
+        // Store connection map for easy access
+        const map: Record<string, any> = {};
+        resp.data.connections.forEach(db => {
+          map[db.connection_id] = db;
+        });
+        setConnectionMap(map);
       }
     } catch (e) {
       // console.error('Failed to fetch connections:', e);
@@ -335,24 +344,42 @@ const Queries: React.FC = () => {
     
     try {
       setIsRunningQuery(true);
-      const resp = await statementService.runWithoutCreate({
-        connection_id: selectedConnectionId,
-        query: sqlQuery.trim()
-      });
       
-      if (resp.success && resp.data) {
-        // console.log(resp.data);
+      // Get connection details
+      const connection = connectionMap[selectedConnectionId];
+      if (!connection) {
+        toast.error('Connection not found');
+        return;
+      }
+
+      // Use local database API instead of API call
+      const electronAPI = (window as any).electronAPI;
+      if (!electronAPI || !electronAPI.database) {
+        toast.error('Database API is not available');
+        return;
+      }
+
+      const result = await electronAPI.database.executeQuery({
+        db_type: connection.db_type,
+        host: connection.host,
+        port: connection.port,
+        db_name: connection.db_name,
+        username: connection.username,
+        password: connection.password,
+      }, sqlQuery.trim());
+      
+      if (result.success && result.data) {
         // Handle array of objects response
         let items: any[] = [];
         let columns: string[] = [];
         
-        if (Array.isArray(resp.data.data)) {
+        if (Array.isArray(result.data)) {
           // Store the array of objects as-is
-          items = resp.data.data;
+          items = result.data;
           
           // Extract unique column names from all objects
           const allKeys = new Set<string>();
-          resp.data.data.forEach((obj: any) => {
+          result.data.forEach((obj: any) => {
             if (obj && typeof obj === 'object') {
               Object.keys(obj).forEach(key => allKeys.add(key));
             }
@@ -362,14 +389,14 @@ const Queries: React.FC = () => {
         
         setQueryResults(items);
         setQueryColumns(columns);
-        toast.success('Query executed successfully');
       } else {
-        toast.error(resp.error || 'Failed to execute query');
         setQueryResults([]);
+        setQueryColumns([]);
       }
     } catch (e) {
-      toast.error('Failed to execute query');
+      const errorMessage = e instanceof Error ? e.message : 'Failed to execute query';
       setQueryResults([]);
+      setQueryColumns([]);
     } finally {
       setIsRunningQuery(false);
     }
@@ -653,18 +680,90 @@ const Queries: React.FC = () => {
                                     if (!canEditPermission) { setOpenDropdownId(null); return; }
                                     try {
                                       setSelectedQuery({ id: q.id, name: q.name });
-                                      const resp = await statementService.runStatementById(q.id);
-                                      console.log('resp', resp);
-                                      if (resp.success) {
-                                        toast.success('Query is running');
-                                        // StatementRunByIdResponse does not include statement_text; keep last known
-                                        setRunSql(q.name);
-                                        // const items = (resp.data?.data || []).map((d: any) => ({ name: d.name, value: String(d.value) }));
-                                        // setRunItems(items);
-                                        setRunItems(resp.data?.data || []);
-                                        setIsRunOpen(true);
+                                      
+                                      // Get statement details to get statement_text and connection_id
+                                      const statementResp = await statementService.getStatementById(q.id);
+                                      if (!statementResp.success || !statementResp.data) {
+                                        toast.error(statementResp.error || 'Failed to get statement details');
+                                        return;
+                                      }
+
+                                      const statement = statementResp.data;
+                                      const connectionId = statement.connection_id;
+                                      
+                                      // Get connection details
+                                      const connection = connectionMap[connectionId];
+                                      if (!connection) {
+                                        // If not in map, fetch it
+                                        const connResp = await databaseService.getConnectionById(projectId!, connectionId);
+                                        if (!connResp.success || !connResp.data) {
+                                          toast.error('Connection not found');
+                                          return;
+                                        }
+                                        
+                                        // Use local database API to execute query
+                                        const electronAPI = (window as any).electronAPI;
+                                        if (!electronAPI || !electronAPI.database) {
+                                          toast.error('Database API is not available');
+                                          return;
+                                        }
+
+                                        const result = await electronAPI.database.executeQuery({
+                                          db_type: connResp.data.db_type,
+                                          host: connResp.data.host,
+                                          port: connResp.data.port,
+                                          db_name: connResp.data.db_name,
+                                          username: connResp.data.username,
+                                          password: connResp.data.password,
+                                        }, statement.statement_text);
+
+                                        if (result.success && result.data) {
+                                          setRunSql(statement.statement_text);
+                                          // Convert data to format expected by RunQuery modal
+                                          const items = result.data.map((row: any) => {
+                                            const item: any = {};
+                                            Object.keys(row).forEach(key => {
+                                              item[key] = String(row[key] ?? '');
+                                            });
+                                            return item;
+                                          });
+                                          setRunItems(items);
+                                          setIsRunOpen(true);
+                                        } else {
+                                          toast.error(result.error || 'Failed to execute query');
+                                        }
                                       } else {
-                                        toast.error(resp.error || 'Failed to run query');
+                                        // Use local database API to execute query
+                                        const electronAPI = (window as any).electronAPI;
+                                        if (!electronAPI || !electronAPI.database) {
+                                          toast.error('Database API is not available');
+                                          return;
+                                        }
+
+                                        const result = await electronAPI.database.executeQuery({
+                                          db_type: connection.db_type,
+                                          host: connection.host,
+                                          port: connection.port,
+                                          db_name: connection.db_name,
+                                          username: connection.username,
+                                          password: connection.password,
+                                        }, statement.statement_text);
+
+                                        if (result.success && result.data) {
+                                          setRunSql(statement.statement_text);
+                                          // Convert data to format expected by RunQuery modal
+                                          const items = result.data.map((row: any) => {
+                                            const item: any = {};
+                                            Object.keys(row).forEach(key => {
+                                              item[key] = String(row[key] ?? '');
+                                            });
+                                            return item;
+                                          });
+                                          setRunItems(items);
+                                          setIsRunOpen(true);
+                                        } else {
+                                          toast.error(result.error || 'Failed to execute query');
+                                        }
                                       }
                                     } catch (e) {
                                       toast.error('Failed to run query');
