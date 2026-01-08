@@ -72,6 +72,29 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
   const [isSaving, setIsSaving] = useState(false);
   const dbNameInputRef = useRef<HTMLInputElement>(null);
 
+  // Security options
+  const [securityType, setSecurityType] = useState<'none' | 'ssl' | 'ssh'>('none');
+  
+  // SSL/TLS fields
+  const [sslMode, setSslMode] = useState('require');
+  const [caCertificateFile, setCaCertificateFile] = useState<string>('');
+  const [clientCertificateFile, setClientCertificateFile] = useState<string>('');
+  const [clientPrivateKeyFile, setClientPrivateKeyFile] = useState<string>('');
+  const [sslKeyPassphrase, setSslKeyPassphrase] = useState('');
+  const [showSslPassphrase, setShowSslPassphrase] = useState(false);
+  
+  // SSH Tunnel fields
+  const [sshHost, setSshHost] = useState('bastion.example.com');
+  const [sshPort, setSshPort] = useState('22');
+  const [sshUsername, setSshUsername] = useState('ec2-user');
+  const [sshAuthMethod, setSshAuthMethod] = useState<'private_key' | 'password'>('private_key');
+  const [sshPrivateKeyFile, setSshPrivateKeyFile] = useState<string>('');
+  const [sshKeyPassphrase, setSshKeyPassphrase] = useState('');
+  const [showSshKeyPassphrase, setShowSshKeyPassphrase] = useState(false);
+  const [sshPassword, setSshPassword] = useState('');
+  const [showSshPassword, setShowSshPassword] = useState(false);
+  const [localPort, setLocalPort] = useState('Auto');
+
   const isFormValid = useMemo(() => {
     const parsedPort = Number(port);
     return Boolean(
@@ -96,6 +119,23 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
       setUsername('');
       setPassword('');
       setErrors({});
+      setSecurityType('none');
+      setSslMode('require');
+      setCaCertificateFile('');
+      setClientCertificateFile('');
+      setClientPrivateKeyFile('');
+      setSslKeyPassphrase('');
+      setShowSslPassphrase(false);
+      setSshHost('bastion.example.com');
+      setSshPort('22');
+      setSshUsername('ec2-user');
+      setSshAuthMethod('private_key');
+      setSshPrivateKeyFile('');
+      setSshKeyPassphrase('');
+      setShowSshKeyPassphrase(false);
+      setSshPassword('');
+      setShowSshPassword(false);
+      setLocalPort('Auto');
     }
   }, [isOpen]);
 
@@ -195,7 +235,34 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
     setErrors({});
     setShowPassword(false);
     setIsSaving(false);
+    setSecurityType('none');
+    setSslMode('require');
+    setCaCertificateFile('');
+    setClientCertificateFile('');
+    setClientPrivateKeyFile('');
+    setSslKeyPassphrase('');
+    setShowSslPassphrase(false);
+    setSshHost('bastion.example.com');
+    setSshPort('22');
+    setSshUsername('ec2-user');
+    setSshAuthMethod('private_key');
+    setSshPrivateKeyFile('');
+    setSshKeyPassphrase('');
+    setShowSshKeyPassphrase(false);
+    setSshPassword('');
+    setShowSshPassword(false);
+    setLocalPort('Auto');
     onClose();
+  };
+
+  // File upload handlers (UI only, no actual file handling)
+  const handleFileUpload = (setter: (value: string) => void, accept: string) => {
+    return (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        setter(file.name);
+      }
+    };
   };
 
   return (
@@ -301,6 +368,366 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
               </div>
               {errors.password && <span className="cc-error-message">{errors.password}</span>}
             </div>
+          </div>
+
+          {/* Security Section */}
+          <div className="cc-security-section">
+            <div className="cc-security-header">
+              <label className="cc-checkbox-label">
+                <input
+                  type="checkbox"
+                  className="cc-checkbox"
+                  checked={securityType !== 'none'}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSecurityType('ssl');
+                    } else {
+                      setSecurityType('none');
+                    }
+                  }}
+                />
+                <span className="cc-checkbox-text">Security (Optional)</span>
+              </label>
+            </div>
+
+            {securityType !== 'none' && (
+              <div className="cc-security-options">
+                <div className="cc-radio-group">
+                  <label className="cc-radio-label">
+                    <input
+                      type="radio"
+                      name="security-type"
+                      className="cc-radio"
+                      checked={securityType === 'ssl'}
+                      onChange={() => setSecurityType('ssl')}
+                    />
+                    <span>Enable SSL / TLS</span>
+                  </label>
+                  <label className="cc-radio-label">
+                    <input
+                      type="radio"
+                      name="security-type"
+                      className="cc-radio"
+                      checked={securityType === 'ssh'}
+                      onChange={() => setSecurityType('ssh')}
+                    />
+                    <span>Connect via SSH Tunnel</span>
+                  </label>
+                </div>
+
+                {/* SSL/TLS Fields */}
+                {securityType === 'ssl' && (
+                  <div className="cc-ssl-fields">
+                    <div className="cc-form-group">
+                      <label htmlFor="sslMode" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        SSL Mode <span className="cc-required">*</span>
+                      </label>
+                      <select
+                        id="sslMode"
+                        className="cc-form-select"
+                        value={sslMode}
+                        onChange={(e) => setSslMode(e.target.value)}
+                      >
+                        <option value="disable">disable</option>
+                        <option value="require">require</option>
+                        <option value="verify-ca">verify-ca</option>
+                        <option value="verify-full">verify-full</option>
+                      </select>
+                    </div>
+
+                    <div className="cc-form-group">
+                      <label className="cc-form-label">CA Certificate</label>
+                      <div className="cc-file-upload-wrapper">
+                        <input
+                          type="file"
+                          id="caCertificate"
+                          accept=".pem,.crt"
+                          className="cc-file-input"
+                          onChange={handleFileUpload(setCaCertificateFile, '.pem,.crt')}
+                        />
+                        <label htmlFor="caCertificate" className="cc-file-upload-btn">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <polyline points="17 8 12 3 7 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          <span>Upload .pem / .crt</span>
+                        </label>
+                        {caCertificateFile && (
+                          <div className="cc-file-name-display">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            <span className="cc-file-name">{caCertificateFile}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="cc-form-group">
+                      <label className="cc-form-label">Client Certificate</label>
+                      <div className="cc-file-upload-wrapper">
+                        <input
+                          type="file"
+                          id="clientCertificate"
+                          accept=".pem,.crt"
+                          className="cc-file-input"
+                          onChange={handleFileUpload(setClientCertificateFile, '.pem,.crt')}
+                        />
+                        <label htmlFor="clientCertificate" className="cc-file-upload-btn">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <polyline points="17 8 12 3 7 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          <span>Upload .pem / .crt</span>
+                        </label>
+                        {clientCertificateFile && (
+                          <div className="cc-file-name-display">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            <span className="cc-file-name">{clientCertificateFile}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="cc-form-group">
+                      <label className="cc-form-label">Client Private Key</label>
+                      <div className="cc-file-upload-wrapper">
+                        <input
+                          type="file"
+                          id="clientPrivateKey"
+                          accept=".pem,.key"
+                          className="cc-file-input"
+                          onChange={handleFileUpload(setClientPrivateKeyFile, '.pem,.key')}
+                        />
+                        <label htmlFor="clientPrivateKey" className="cc-file-upload-btn">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <polyline points="17 8 12 3 7 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          <span>Upload .pem / .key</span>
+                        </label>
+                        {clientPrivateKeyFile && (
+                          <div className="cc-file-name-display">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            <span className="cc-file-name">{clientPrivateKeyFile}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="cc-form-group">
+                      <label htmlFor="sslKeyPassphrase" className="cc-form-label">Key Passphrase (optional)</label>
+                      <div className="cc-password-wrapper">
+                        <input
+                          id="sslKeyPassphrase"
+                          type={showSslPassphrase ? 'text' : 'password'}
+                          className="cc-form-input"
+                          value={sslKeyPassphrase}
+                          onChange={(e) => setSslKeyPassphrase(e.target.value)}
+                          placeholder="••••••••"
+                        />
+                        <button
+                          type="button"
+                          className="cc-password-toggle"
+                          onClick={() => setShowSslPassphrase((prev) => !prev)}
+                          aria-label={showSslPassphrase ? 'Hide passphrase' : 'Show passphrase'}
+                        >
+                          <EyeIcon visible={showSslPassphrase} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* SSH Tunnel Fields */}
+                {securityType === 'ssh' && (
+                  <div className="cc-ssh-fields">
+                    <div className="cc-form-row">
+                      <div className="cc-form-group">
+                        <label htmlFor="sshHost" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          SSH Host <span className="cc-required">*</span>
+                        </label>
+                        <input
+                          id="sshHost"
+                          type="text"
+                          className="cc-form-input"
+                          value={sshHost}
+                          onChange={(e) => setSshHost(e.target.value)}
+                          placeholder="bastion.example.com"
+                        />
+                      </div>
+                      <div className="cc-form-group">
+                        <label htmlFor="sshPort" className="cc-form-label">SSH Port</label>
+                        <input
+                          id="sshPort"
+                          type="text"
+                          className="cc-form-input"
+                          value={sshPort}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (/^\d*$/.test(value)) {
+                              setSshPort(value);
+                            }
+                          }}
+                          placeholder="22"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="cc-form-group">
+                      <label htmlFor="sshUsername" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        SSH Username <span className="cc-required">*</span>
+                      </label>
+                      <input
+                        id="sshUsername"
+                        type="text"
+                        className="cc-form-input"
+                        value={sshUsername}
+                        onChange={(e) => setSshUsername(e.target.value)}
+                        placeholder="ec2-user"
+                      />
+                    </div>
+
+                    <div className="cc-form-group">
+                      <label className="cc-form-label">Authentication:</label>
+                      <div className="cc-radio-group">
+                        <label className="cc-radio-label">
+                          <input
+                            type="radio"
+                            name="ssh-auth"
+                            className="cc-radio"
+                            checked={sshAuthMethod === 'private_key'}
+                            onChange={() => setSshAuthMethod('private_key')}
+                          />
+                          <span>Private Key (PEM)</span>
+                        </label>
+                        <label className="cc-radio-label">
+                          <input
+                            type="radio"
+                            name="ssh-auth"
+                            className="cc-radio"
+                            checked={sshAuthMethod === 'password'}
+                            onChange={() => setSshAuthMethod('password')}
+                          />
+                          <span>Password</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {sshAuthMethod === 'private_key' && (
+                      <>
+                        <div className="cc-form-group">
+                          <label className="cc-form-label">SSH Private Key</label>
+                          <div className="cc-file-upload-wrapper">
+                            <input
+                              type="file"
+                              id="sshPrivateKey"
+                              accept=".pem"
+                              className="cc-file-input"
+                              onChange={handleFileUpload(setSshPrivateKeyFile, '.pem')}
+                            />
+                            <label htmlFor="sshPrivateKey" className="cc-file-upload-btn">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <polyline points="17 8 12 3 7 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                              <span>Upload .pem</span>
+                            </label>
+                            {sshPrivateKeyFile && (
+                              <div className="cc-file-name-display">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                <span className="cc-file-name">{sshPrivateKeyFile}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="cc-form-group">
+                          <label htmlFor="sshKeyPassphrase" className="cc-form-label">Key Passphrase (optional)</label>
+                          <div className="cc-password-wrapper">
+                            <input
+                              id="sshKeyPassphrase"
+                              type={showSshKeyPassphrase ? 'text' : 'password'}
+                              className="cc-form-input"
+                              value={sshKeyPassphrase}
+                              onChange={(e) => setSshKeyPassphrase(e.target.value)}
+                              placeholder="••••••••"
+                            />
+                            <button
+                              type="button"
+                              className="cc-password-toggle"
+                              onClick={() => setShowSshKeyPassphrase((prev) => !prev)}
+                              aria-label={showSshKeyPassphrase ? 'Hide passphrase' : 'Show passphrase'}
+                            >
+                              <EyeIcon visible={showSshKeyPassphrase} />
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {sshAuthMethod === 'password' && (
+                      <div className="cc-form-group">
+                        <label htmlFor="sshPassword" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          SSH Password <span className="cc-required">*</span>
+                        </label>
+                        <div className="cc-password-wrapper">
+                          <input
+                            id="sshPassword"
+                            type={showSshPassword ? 'text' : 'password'}
+                            className="cc-form-input"
+                            value={sshPassword}
+                            onChange={(e) => setSshPassword(e.target.value)}
+                            placeholder="••••••••"
+                          />
+                          <button
+                            type="button"
+                            className="cc-password-toggle"
+                            onClick={() => setShowSshPassword((prev) => !prev)}
+                            aria-label={showSshPassword ? 'Hide password' : 'Show password'}
+                          >
+                            <EyeIcon visible={showSshPassword} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="cc-ssh-info">
+                      <div className="cc-divider"></div>
+                      <p className="cc-info-text">Database Host will be accessed via SSH</p>
+                    </div>
+
+                    <div className="cc-form-group">
+                      <label htmlFor="localPort" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        Advanced: Local Port
+                      </label>
+                      <input
+                        id="localPort"
+                        type="text"
+                        className="cc-form-input"
+                        value={localPort}
+                        onChange={(e) => setLocalPort(e.target.value)}
+                        placeholder="Auto"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="cc-modal-actions">
