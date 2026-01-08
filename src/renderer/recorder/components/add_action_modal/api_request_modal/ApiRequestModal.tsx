@@ -72,7 +72,6 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
 
   useEffect(() => {
     if (selectedPageInfo) {
-      console.log('[ApiRequestModal] Page info received:', selectedPageInfo);
       toast.success('Page selected successfully');
     }
   }, [selectedPageInfo]);
@@ -114,7 +113,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       setAuthToken(initialData.auth?.token || '');
       setBody(initialData.body?.content || '');
       setBodyType(initialData.body?.type || 'none');
-      setBodyForm(initialData.body?.form_data ? initialData.body.form_data.map((fd: any) => ({ key: fd.name, value: fd.value })) : [{ key: '', value: '' }]);
+      setBodyForm(initialData.body?.form_datas ? initialData.body.form_datas.map((fd: any) => ({ key: fd.name, value: fd.value })) : [{ key: '', value: '' }]);
       setResponse(null);
     }
   }, [isOpen, initialData]);
@@ -209,6 +208,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       headers,
       auth: {
         type: authType,
+        storage_enabled: false,
         username: currentUsername,
         password: currentPassword,
         token: currentToken,
@@ -216,7 +216,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       body: {
         type: bodyType,
         content: body,
-        form_data: bodyType === 'form' ? bodyForm.map((p, i) => ({ name: p.key, value: p.value, orderIndex: i })) : undefined,
+        form_datas: bodyType === 'form' ? bodyForm.map((p, i) => ({ name: p.key, value: p.value, order_index: i })) : undefined,
       },
     };
 
@@ -279,7 +279,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       headers: headers.filter(h => h.key.trim() && h.value.trim()),
       auth: {
         type: authType,
-        storage_enabled: tokenStorageEnabled && authType !== 'none' ? true : false,
+        storage_enabled: (tokenStorageEnabled && authType !== 'none') ? true : false,
         username: authType === 'basic' && !hideBasic ? authUsername : undefined,
         password: authType === 'basic' && !hideBasic ? authPassword : undefined,
         token: authType === 'bearer' && !hideBearer ? authToken : undefined,
@@ -289,10 +289,10 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       body: {
         type: bodyType,
         content: bodyType === 'json' ? body : bodyType === 'form' ? undefined : '',
-        form_data: bodyType === 'form'
+        form_datas: bodyType === 'form'
           ? bodyForm
               .filter(p => p.key.trim())
-              .map((p, i) => ({ name: p.key.trim(), value: p.value, orderIndex: i }))
+              .map((p, i) => ({ name: p.key.trim(), value: p.value, order_index: i }))
           : undefined,
       },
     };
@@ -373,7 +373,7 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       setFetchedBasicUsername(result?.username ?? '');
       setFetchedBasicPassword(result?.password ?? '');
     } catch (e) {
-      console.error('Fetch basic auth failed:', e);
+      // console.error('Fetch basic auth failed:', e);
       toast.error('Fetch basic auth failed');
     } finally {
       setIsFetchingBasic(false);

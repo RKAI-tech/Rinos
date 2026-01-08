@@ -1,13 +1,35 @@
-export enum BrowserType {
-  chrome = "chrome",
-  firefox = "firefox",
-  edge = "edge",
-  safari = "safari",
-}
+import { BrowserType } from './testcases';
 
 export interface ProjectGetAllResponse {
     projects: Project[];
     number_project: number;
+}
+
+export interface ProjectSearchRequest {
+    page: number;
+    page_size: number;
+    q?: string | null;  // search keyword
+    sort_by?: string | null;  // field to sort by: name, description, created_at, number_testcase, number_testsuite, number_user
+    order?: string | null;  // asc or desc
+}
+
+export interface ProjectSearchResponse {
+    projects: Project[];
+    number_project: number;
+    current_page: number;
+    total_pages: number;
+}
+
+export interface ProjectGetResponse {
+    project_id: string;
+    name: string;
+    description: string;
+    created_at: string;
+    number_testcase: number;
+    number_testsuite: number;
+    number_member: number;
+    user_role: string;
+    user_permissions: string;
 }
 
 export interface ProjectCreateRequest {

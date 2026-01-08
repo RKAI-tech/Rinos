@@ -57,7 +57,7 @@ export interface AddTestCasesToSuiteResponse {
     message: string;
 }
 
-// Get test cases by test suite
+// Get test cases by test suite (legacy - kept for backward compatibility)
 export interface GetTestCasesBySuiteRequest {
     test_suite_id: string;
 }
@@ -80,6 +80,25 @@ export interface TestCaseInSuite {
 export interface GetTestCasesBySuiteResponse {
     testcases: TestCaseInSuite[];
     total: number;
+}
+
+// Search test cases by test suite (with pagination, filter, sort)
+export interface TestSuiteTestCaseSearchRequest {
+    page: number;
+    page_size: number;
+    q?: string | null;  // search keyword
+    sort_by?: string | null;  // field to sort by: name, description, created_at, updated_at, browser_type, level
+    order?: string;  // asc or desc, default desc
+    level?: number | null;  // filter by level
+    status?: string | null;  // filter by evidence status: Draft, Running, Passed, Failed
+    browser_type?: string | null;  // filter by browser type
+}
+
+export interface TestSuiteTestCaseSearchResponse {
+    testcases: TestCaseInSuite[];
+    number_testcase: number;
+    current_page: number;
+    total_pages: number;
 }
 
 // Execute Test Suite

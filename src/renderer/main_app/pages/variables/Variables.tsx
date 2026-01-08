@@ -10,16 +10,7 @@ import { ProjectService } from '../../services/projects';
 import DeleteVariable from '../../components/variable/delete_variable/DeleteVariable';
 import { toast } from 'react-toastify';
 import { canEdit } from '../../hooks/useProjectPermissions';
-
-interface VariableItem {
-  id: string;
-  customName: string;
-  originalName: string;
-  value: string;
-  databaseName: string;
-  databaseType: string;
-  queryName: string;
-}
+import { VariableListItem } from '../../types/variables';
 
 const Variables: React.FC = () => {
   const location = useLocation();
@@ -29,47 +20,79 @@ const Variables: React.FC = () => {
   const [resolvedProjectName, setResolvedProjectName] = useState<string>(projectData.projectName || 'Project');
   const canEditPermission = canEdit(projectId);
 
-  const [variables, setVariables] = useState<VariableItem[]>([]);
-  const [searchText, setSearchText] = useState('');
-  const [sortBy, setSortBy] = useState<'customName' | 'originalName' | 'value' | 'databaseName' | 'databaseType' | 'queryName'>('customName');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [itemsPerPage, setItemsPerPage] = useState('10 rows/page');
+  // Backend-driven search, pagination, and sorting state
+  const [variables, setVariables] = useState<VariableListItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<string | null>('user_defined_name');
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+  const [totalVariables, setTotalVariables] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // UI state
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // UI state
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedVar, setSelectedVar] = useState<{ id: string; name?: string } | null>(null);
-  const [isReloading, setIsReloading] = useState(false);
 
-  const reloadVariables = async () => {
+
+  // Service - use useMemo to avoid recreating on every render
+  const variableService = useMemo(() => new VariableService(), []);
+  const projectService = useMemo(() => new ProjectService(), []);
+
+  // Load variables with search, pagination, and sorting
+  useEffect(() => {
+    const loadVariables = async () => {
     if (!projectId) return;
+      
     try {
-      setIsReloading(true);
-      const svc = new VariableService();
-      const resp = await svc.getVariablesByProject(projectId);
-      if (resp.success && resp.data) {
-        const items: VariableItem[] = resp.data.items.map(v => ({
-          id: v.variable_id,
-          customName: v.user_defined_name || v.original_name,
-          originalName: v.original_name,
-          value: v.value,
-          databaseName: v.database_name,
-          databaseType: v.database_type,
-          queryName: v.query_name,
-        }));
-        setVariables(items);
+        setIsLoading(true);
+        const response = await variableService.searchVariables({
+          project_id: projectId,
+          page: page,
+          page_size: pageSize,
+          q: search || null,
+          sort_by: sortBy || null,
+          order: order || 'asc',
+        });
+
+        if (response.success && response.data) {
+          setVariables(response.data.variables);
+          setTotalVariables(response.data.number_variable);
+          // Only update page if different to prevent infinite loops
+          if (response.data.current_page !== currentPage) {
+            setCurrentPage(response.data.current_page);
+            setPage(response.data.current_page);
+          }
+          setTotalPages(response.data.total_pages);
       } else {
+          setVariables([]);
+          setTotalVariables(0);
+          setCurrentPage(1);
+          setTotalPages(1);
+          if (response.error) {
+            toast.error(response.error);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading variables:', error);
         setVariables([]);
-      }
-    } catch (e) {
-      setVariables([]);
+        setTotalVariables(0);
+        setCurrentPage(1);
+        setTotalPages(1);
+        toast.error('Failed to load variables');
     } finally {
-      setIsReloading(false);
+        setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    reloadVariables();
-  }, [projectId]);
+    loadVariables();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, page, pageSize, search, sortBy, order]);
 
   useEffect(() => {
     const loadProjectName = async () => {
@@ -78,13 +101,13 @@ const Variables: React.FC = () => {
         setResolvedProjectName(projectData.projectName);
         return;
       }
-      const svc = new ProjectService();
-      const resp = await svc.getProjectById(projectId);
+      const resp = await projectService.getProjectById(projectId);
       if (resp.success && resp.data) {
         setResolvedProjectName((resp.data as any).name || 'Project');
       }
     };
     loadProjectName();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   // Close dropdown when clicking outside
@@ -110,7 +133,7 @@ const Variables: React.FC = () => {
   }, [openDropdownId]);
 
   const sidebarItems = [
-    { id: 'suites-manager', label: 'Suites Manager', path: `/suites-manager/${projectId}`, isActive: false },
+    { id: 'suites-manager', label: 'Test Manager', path: `/suites-manager/${projectId}`, isActive: false },
     { id: 'testcases', label: 'Testcases', path: `/testcases/${projectId}`, isActive: false },
     // Temporarily disabled Test Suites navigation
     // { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
@@ -125,52 +148,41 @@ const Variables: React.FC = () => {
     { label: 'Projects', path: '/dashboard', isActive: false },
     { label: resolvedProjectName, path: `/variables/${projectId}`, isActive: true },
   ];
-
-  const filtered = variables.filter(v => {
-    const q = searchText.toLowerCase();
-    return (
-      (v.customName || '').toLowerCase().includes(q) ||
-      (v.originalName || '').toLowerCase().includes(q) ||
-      (v.value || '').toLowerCase().includes(q) ||
-      (v.databaseName || '').toLowerCase().includes(q) ||
-      (v.databaseType || '').toLowerCase().includes(q) ||
-      (v.queryName || '').toLowerCase().includes(q)
-    );
-  });
-
-  const sorted = useMemo(() => {
-    const copy = [...filtered];
-    const getVal = (it: VariableItem): string => {
-      switch (sortBy) {
-        case 'customName': return it.customName || '';
-        case 'originalName': return it.originalName || '';
-        case 'value': return it.value || '';
-        case 'databaseName': return it.databaseName || '';
-        case 'databaseType': return it.databaseType || '';
-        case 'queryName': return it.queryName || '';
-        default: return '';
-      }
-    };
-    copy.sort((a, b) => {
-      const av = getVal(a);
-      const bv = getVal(b);
-      const cmp = av.localeCompare(bv, undefined, { sensitivity: 'base' });
-      return sortOrder === 'asc' ? cmp : -cmp;
-    });
-    return copy;
-  }, [filtered, sortBy, sortOrder]);
-
-  const handleSort = (col: 'customName' | 'originalName' | 'value' | 'databaseName' | 'databaseType' | 'queryName') => {
-    if (sortBy === col) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    else { setSortBy(col); setSortOrder('asc'); }
-    setCurrentPage(1);
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setPage(1); // Reset page when searching
   };
 
-  const getItemsPerPageNumber = () => parseInt(itemsPerPage.split(' ')[0]);
-  const totalPages = Math.ceil(sorted.length / getItemsPerPageNumber());
-  const startIndex = (currentPage - 1) * getItemsPerPageNumber();
-  const endIndex = startIndex + getItemsPerPageNumber();
-  const currentItems = sorted.slice(startIndex, endIndex);
+  // Handle clear search
+  const handleClearSearch = () => {
+    setSearch('');
+    setPage(1);
+  };
+
+  // Handle sort
+  const handleSort = (col: string) => {
+    if (sortBy === col) {
+      setOrder(order === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(col);
+      setOrder('asc');
+    }
+    setPage(1); // Reset page when sorting
+  };
+
+  // Handle page size change
+  const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newPageSize = parseInt(e.target.value.split(' ')[0]);
+    setPageSize(newPageSize);
+    setPage(1); // Reset page when changing page size
+  };
+
+  // Reload variables (for reload button)
+  const reloadVariables = () => {
+    setPage(1);
+    // The useEffect will automatically trigger when page changes
+  };
 
   const generatePaginationNumbers = () => {
     const pages: (number | string)[] = [];
@@ -182,9 +194,13 @@ const Variables: React.FC = () => {
   };
   const paginationNumbers = generatePaginationNumbers();
 
-  const handlePageChange = (page: number) => setCurrentPage(page);
-  const handlePreviousPage = () => { if (currentPage > 1) setCurrentPage(currentPage - 1); };
-  const handleNextPage = () => { if (currentPage < totalPages) setCurrentPage(currentPage + 1); };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    // Don't reset page here - this is pagination, not a data-altering action
+  };
+  const handlePreviousPage = () => { if (page > 1) setPage(page - 1); };
+  const handleNextPage = () => { if (page < totalPages) setPage(page + 1); };
   const handleBreadcrumbNavigate = (path: string) => navigate(path);
   const handleSidebarNavigate = (path: string) => navigate(path);
 
@@ -209,17 +225,31 @@ const Variables: React.FC = () => {
                 <input
                   type="text"
                   placeholder="Search by name or value..."
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
+                  value={search}
+                  onChange={handleSearchChange}
                   className="vars-search-input"
                 />
+                {search && (
+                  <button
+                    className="clear-search-btn"
+                    onClick={handleClearSearch}
+                    title="Clear search"
+                    aria-label="Clear search"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                      <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                )}
+             
               </div>
 
               <div className="vars-controls-section">
                 <button
-                  className={`reload-btn ${isReloading ? 'is-loading' : ''}`}
+                  className={`reload-btn ${isLoading ? 'is-loading' : ''}`}
                   onClick={reloadVariables}
-                  disabled={isReloading}
+                  disabled={isLoading}
                   title="Reload variables"
                   aria-label="Reload variables"
                 >
@@ -232,8 +262,8 @@ const Variables: React.FC = () => {
                 </button>
 
                 <select
-                  value={itemsPerPage}
-                  onChange={(e) => { setItemsPerPage(e.target.value); setCurrentPage(1); }}
+                  value={`${pageSize} rows/page`}
+                  onChange={handlePageSizeChange}
                   className="vars-pagination-dropdown"
                 >
                   <option value="10 rows/page">10 rows/page</option>
@@ -247,34 +277,47 @@ const Variables: React.FC = () => {
               <table className="vars-table">
                 <thead>
                   <tr>
-                    <th className={`sortable ${sortBy === 'customName' ? 'sorted' : ''}`} onClick={() => handleSort('customName')}><span className="th-content"><span className="th-text">Custom name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'customName' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'customName' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span></th>
-                    <th className={`sortable ${sortBy === 'originalName' ? 'sorted' : ''}`} onClick={() => handleSort('originalName')}><span className="th-content"><span className="th-text">Original name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'originalName' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'originalName' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span></th>
-                    <th className={`sortable ${sortBy === 'value' ? 'sorted' : ''}`} onClick={() => handleSort('value')}><span className="th-content"><span className="th-text">Value</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'value' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'value' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span></th>
-                    <th className={`sortable ${sortBy === 'databaseName' ? 'sorted' : ''}`} onClick={() => handleSort('databaseName')}><span className="th-content"><span className="th-text">Database name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'databaseName' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'databaseName' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span></th>
-                    <th className={`sortable ${sortBy === 'databaseType' ? 'sorted' : ''}`} onClick={() => handleSort('databaseType')}><span className="th-content"><span className="th-text">Database type</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'databaseType' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'databaseType' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span></th>
-                    <th className={`sortable ${sortBy === 'queryName' ? 'sorted' : ''}`} onClick={() => handleSort('queryName')}><span className="th-content"><span className="th-text">Query name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'queryName' && sortOrder === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'queryName' && sortOrder === 'desc' ? 'active' : ''}`}></span></span></span></th>
-                    <th>Options</th>
+                    <th className={`sortable ${sortBy === 'user_defined_name' ? 'sorted' : ''}`} onClick={() => handleSort('user_defined_name')}><span className="th-content"><span className="th-text">Custom name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'user_defined_name' && order === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'user_defined_name' && order === 'desc' ? 'active' : ''}`}></span></span></span></th>
+                    <th className={`sortable ${sortBy === 'original_name' ? 'sorted' : ''}`} onClick={() => handleSort('original_name')}><span className="th-content"><span className="th-text">Original name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'original_name' && order === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'original_name' && order === 'desc' ? 'active' : ''}`}></span></span></span></th>
+                    <th className="th-content"><span className="th-text">Value</span></th>
+                    <th className="th-content"><span className="th-text">Database name</span></th>
+                    <th className="th-content"><span className="th-text">Database type</span></th>
+                    <th className="th-content"><span className="th-text">Query name</span></th>
+                      <th>Options</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {currentItems.map((v) => (
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '40px' }}>
+                        Loading...
+                      </td>
+                    </tr>
+                  ) : variables.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '40px' }}>
+                        No variables found
+                      </td>
+                    </tr>
+                  ) : (
+                    variables.map((v) => (
                     <tr 
-                      key={v.id}
-                      className={`${openDropdownId === v.id ? 'dropdown-open' : ''} ${openDropdownId ? 'has-open-dropdown' : ''}`}
+                        key={v.variable_id}
+                        className={`${openDropdownId === v.variable_id ? 'dropdown-open' : ''} ${openDropdownId ? 'has-open-dropdown' : ''}`}
                     >
-                      <td className="vars-name">{v.customName}</td>
-                      <td className="vars-original">{v.originalName}</td>
-                      <td className="vars-value">{v.value}</td>
-                      <td className="vars-db-name">{v.databaseName}</td>
-                      <td className="vars-db-type">{v.databaseType}</td>
-                      <td className="vars-query-name">{v.queryName}</td>
+                        <td className="vars-name">{v.user_defined_name}</td>
+                        <td className="vars-original">{v.original_name || '-'}</td>
+                        <td className="vars-value">{v.value || '-'}</td>
+                        <td className="vars-db-name">{v.database_name || '-'}</td>
+                        <td className="vars-db-type">{v.database_type || '-'}</td>
+                        <td className="vars-query-name">{v.query_name || '-'}</td>
                       <td className="vars-actions">
                         <div className="actions-container">
                           <button 
                             className="actions-btn" 
                             onClick={(e) => {
                               e.stopPropagation();
-                              setOpenDropdownId(openDropdownId === v.id ? null : v.id);
+                                setOpenDropdownId(openDropdownId === v.variable_id ? null : v.variable_id);
                             }}
                             disabled={!canEditPermission}
                           >
@@ -285,7 +328,7 @@ const Variables: React.FC = () => {
                             </svg>
                           </button>
 
-                          {openDropdownId === v.id && (
+                            {openDropdownId === v.variable_id && (
                             <div 
                               className="actions-dropdown"
                               onClick={(e) => {
@@ -306,7 +349,7 @@ const Variables: React.FC = () => {
                                     setOpenDropdownId(null); 
                                     return; 
                                   } 
-                                  setSelectedVar({ id: v.id, name: v.customName }); 
+                                    setSelectedVar({ id: v.variable_id, name: v.user_defined_name }); 
                                   setIsDeleteOpen(true); 
                                   setOpenDropdownId(null);
                                 }}
@@ -327,7 +370,8 @@ const Variables: React.FC = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -335,24 +379,24 @@ const Variables: React.FC = () => {
             {totalPages > 1 && (
               <div className="vars-pagination">
                 <div className="vars-pagination-info">
-                  Showing {filtered.length === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, filtered.length)} of {filtered.length} variables
+                  Showing {variables.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalVariables)} of {totalVariables} variables
                 </div>
                 <div className="vars-pagination-controls">
-                  <button className="vars-pagination-btn" onClick={handlePreviousPage} disabled={currentPage === 1}>Previous</button>
+                  <button className="vars-pagination-btn" onClick={handlePreviousPage} disabled={page === 1}>Previous</button>
                   <div className="vars-pagination-pages">
-                    {paginationNumbers.map((page, index) => (
+                    {paginationNumbers.map((pageNum, index) => (
                       <div key={index}>
-                        {page === '...' ? (
+                        {pageNum === '...' ? (
                           <span className="vars-pagination-ellipsis">...</span>
                         ) : (
-                          <button className={`vars-pagination-page ${currentPage === page ? 'active' : ''}`} onClick={() => handlePageChange(page as number)}>
-                            {page}
+                          <button className={`vars-pagination-page ${page === pageNum ? 'active' : ''}`} onClick={() => handlePageChange(pageNum as number)}>
+                            {pageNum}
                           </button>
                         )}
                       </div>
                     ))}
                   </div>
-                  <button className="vars-pagination-btn" onClick={handleNextPage} disabled={currentPage === totalPages}>Next</button>
+                  <button className="vars-pagination-btn" onClick={handleNextPage} disabled={page === totalPages}>Next</button>
                 </div>
               </div>
             )}
@@ -367,27 +411,12 @@ const Variables: React.FC = () => {
         variable={selectedVar}
         onDelete={async (id) => {
           try {
-            const svc = new VariableService();
-            const resp = await svc.deleteVariable(id);
+            const resp = await variableService.deleteVariable(id);
             if (resp.success) {
               toast.success('Variable deleted');
               setIsDeleteOpen(false);
-              // reload
-              if (projectId) {
-                const list = await svc.getVariablesByProject(projectId);
-                if (list.success && list.data) {
-                  const items: VariableItem[] = list.data.items.map(v => ({
-                    id: v.variable_id,
-                    customName: v.user_defined_name || v.original_name,
-                    originalName: v.original_name,
-                    value: v.value,
-                    databaseName: v.database_name,
-                    databaseType: v.database_type,
-                    queryName: v.query_name,
-                  }));
-                  setVariables(items);
-                }
-              }
+              // Reload variables - the useEffect will automatically trigger
+              reloadVariables();
             } else {
               toast.error(resp.error || 'Failed to delete variable');
             }

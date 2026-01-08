@@ -48,12 +48,12 @@ const ApiRequestActionDetail: React.FC<ApiRequestActionDetailProps> = ({
       // Tìm action_data có api_request, nếu không có thì tạo mới
       let foundIndex = actionDatas.findIndex(ad => ad.api_request !== undefined);
       if (foundIndex === -1) {
-        actionDatas.push({ api_request: {} as ApiRequestData });
+        actionDatas.push({ api_request: { method: 'get' } as ApiRequestData });
         foundIndex = actionDatas.length - 1;
       }
       
       // Cập nhật api_request tại foundIndex, giữ nguyên các action_data khác
-      const currentApiRequest = actionDatas[foundIndex].api_request || {} as ApiRequestData;
+      const currentApiRequest = actionDatas[foundIndex].api_request || { method: 'get' } as ApiRequestData;
       actionDatas[foundIndex] = {
         ...actionDatas[foundIndex],
         api_request: {
@@ -75,12 +75,12 @@ const ApiRequestActionDetail: React.FC<ApiRequestActionDetailProps> = ({
       // Tìm action_data có api_request, nếu không có thì tạo mới
       let foundIndex = actionDatas.findIndex(ad => ad.api_request !== undefined);
       if (foundIndex === -1) {
-        actionDatas.push({ api_request: {} as ApiRequestData });
+        actionDatas.push({ api_request: { method: 'get' } as ApiRequestData });
         foundIndex = actionDatas.length - 1;
       }
       
       // Cập nhật api_request tại foundIndex, giữ nguyên các action_data khác
-      const currentApiRequest = actionDatas[foundIndex].api_request || {} as ApiRequestData;
+      const currentApiRequest = actionDatas[foundIndex].api_request || { method: 'get' } as ApiRequestData;
       actionDatas[foundIndex] = {
         ...actionDatas[foundIndex],
         api_request: {

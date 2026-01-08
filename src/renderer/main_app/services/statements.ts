@@ -11,6 +11,8 @@ import {
     GenerateRowQueryRequest,
     GenerateRowQueryResponse,
     RunWithoutCreateRequest,
+    StatementSearchRequest,
+    StatementSearchResponse,
 } from '../types/statements';
 import { DefaultResponse } from '../types/api_responses';
 
@@ -78,6 +80,16 @@ export class StatementService {
         return await apiRouter.request<StatementRunResponse>('/statements/run_without_create', {
             method: 'POST',
             body: JSON.stringify(payload)
+        });
+    }
+
+    async searchStatements(request: StatementSearchRequest): Promise<ApiResponse<StatementSearchResponse>> {
+        if (!request.project_id) {
+            return { success: false, error: 'Project ID is required for search' };
+        }
+        return await apiRouter.request<StatementSearchResponse>('/statements/search', {
+            method: 'POST',
+            body: JSON.stringify(request),
         });
     }
 }

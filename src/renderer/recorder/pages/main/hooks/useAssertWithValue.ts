@@ -139,7 +139,7 @@ export const useAssertWithValue = ({
       (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
       return true;
     } catch (e: any) {
-      console.error('[useAssertWithValue] submit exception:', e);
+      // console.error('[useAssertWithValue] submit exception:', e);
       const message = e?.message || e?.error || e?.reason || e;
       toast.error(String(message || 'Failed to create assertion'));
       return false;

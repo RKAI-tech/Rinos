@@ -34,11 +34,15 @@ const Queries: React.FC = () => {
   const [queries, setQueries] = useState<QueryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchText, setSearchText] = useState('');
-  const [itemsPerPage, setItemsPerPage] = useState('10 rows/page');
-  const [sortBy, setSortBy] = useState<'name' | 'description' | 'status'>('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('All Status');
+  const [sortBy, setSortBy] = useState<string | null>(null);
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+  const [totalQueries, setTotalQueries] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedQuery, setSelectedQuery] = useState<{ id: string; name?: string } | null>(null);
@@ -53,48 +57,138 @@ const Queries: React.FC = () => {
   const [selectedConnectionId, setSelectedConnectionId] = useState('');
   const [connections, setConnections] = useState<{ id: string; name: string }[]>([]);
 
-  const fetchQueries = async () => {
+  const statementService = useMemo(() => new StatementService(), []);
+  const projectService = useMemo(() => new ProjectService(), []);
+  const databaseService = useMemo(() => new DatabaseService(), []);
+
+  useEffect(() => {
+    if (!projectId) {
+      return;
+    }
+
+    const loadQueries = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const apiStatus = statusFilter === 'All Status' ? null :
+                         statusFilter === 'Success' ? 'Success' :
+                         statusFilter === 'Failed' ? 'Failed' : null;
+
+        const request = {
+          project_id: projectId,
+          page: page,
+          page_size: pageSize,
+          q: search || null,
+          status: apiStatus,
+          sort_by: sortBy || null,
+          order: order || 'asc'
+        };
+
+        const response = await statementService.searchStatements(request);
+
+        if (response.success && response.data) {
+          const items: QueryItem[] = response.data.statements.map(it => ({
+            id: it.statement_id,
+            name: it.name || '',
+            description: it.description || '',
+            status: it.status,
+            db_name: it.connection?.db_name,
+            db_type: it.connection?.db_type,
+          }));
+          setQueries(items);
+          setTotalQueries(response.data.number_statement);
+          setCurrentPage(response.data.current_page);
+          setTotalPages(response.data.total_pages);
+          if (response.data.current_page !== page) {
+            setPage(response.data.current_page);
+          }
+        } else {
+          setError(response.error || 'Failed to load queries');
+          toast.error(response.error || 'Failed to load queries');
+          setQueries([]);
+          setTotalQueries(0);
+          setCurrentPage(1);
+          setTotalPages(1);
+          setPage(1);
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+        setError(errorMessage);
+        toast.error('Failed to load queries');
+        setQueries([]);
+        setTotalQueries(0);
+        setCurrentPage(1);
+        setTotalPages(1);
+        setPage(1);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadQueries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, search, statusFilter, sortBy, order, projectId]);
+
+  const reloadQueries = async () => {
     if (!projectId) return;
     try {
       setIsLoading(true);
       setError(null);
-      if (!projectId) {
-        setQueries([]);
-        return;
-      }
-      const svc = new StatementService();
-      const resp = await svc.getStatementsByProject(projectId);
-      if (resp.success && resp.data) {
-        const items: QueryItem[] = resp.data.items.map(it => ({
+
+      const apiStatus = statusFilter === 'All Status' ? null :
+                       statusFilter === 'Success' ? 'Success' :
+                       statusFilter === 'Failed' ? 'Failed' : null;
+
+      const request = {
+        project_id: projectId,
+        page: page,
+        page_size: pageSize,
+        q: search || null,
+        status: apiStatus,
+        sort_by: sortBy || null,
+        order: order || 'asc'
+      };
+
+      const response = await statementService.searchStatements(request);
+
+      if (response.success && response.data) {
+        const items: QueryItem[] = response.data.statements.map(it => ({
           id: it.statement_id,
-          name: it.name,
-          description: it.description,
+          name: it.name || '',
+          description: it.description || '',
           status: it.status,
           db_name: it.connection?.db_name,
           db_type: it.connection?.db_type,
         }));
-        // console.log('items', items);
         setQueries(items);
+        setTotalQueries(response.data.number_statement);
+        setCurrentPage(response.data.current_page);
+        setTotalPages(response.data.total_pages);
+        if (response.data.current_page !== page) {
+          setPage(response.data.current_page);
+        }
       } else {
-        setError(resp.error || 'Failed to load queries');
+        setError(response.error || 'Failed to load queries');
+        toast.error(response.error || 'Failed to load queries');
       }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'An error occurred');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
+      toast.error('Failed to load queries');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchQueries();
     fetchConnections();
   }, [projectId]);
 
   const fetchConnections = async () => {
     if (!projectId) return;
     try {
-      const svc = new DatabaseService();
-      const resp = await svc.getDatabaseConnections({ project_id: projectId });
+      const resp = await databaseService.getDatabaseConnections({ project_id: projectId });
       if (resp.success && resp.data) {
         const conns = resp.data.connections.map(db => ({ 
           id: db.connection_id, 
@@ -117,8 +211,7 @@ const Queries: React.FC = () => {
         setResolvedProjectName(projectData.projectName);
         return;
       }
-      const svc = new ProjectService();
-      const resp = await svc.getProjectById(projectId);
+      const resp = await projectService.getProjectById(projectId);
       if (resp.success && resp.data) {
         setResolvedProjectName((resp.data as any).name || 'Project');
       }
@@ -165,41 +258,51 @@ const Queries: React.FC = () => {
     { label: resolvedProjectName, path: `/queries/${projectId}`, isActive: true },
   ];
 
-  const filtered = queries.filter(q => {
-    const t = searchText.toLowerCase();
-    return (q.name || '').toLowerCase().includes(t) || (q.description || '').toLowerCase().includes(t) || (q.status || '').toLowerCase().includes(t);
-  });
-
-  const sorted = useMemo(() => {
-    const copy = [...filtered];
-    const getVal = (it: QueryItem): string => {
-      switch (sortBy) {
-        case 'name': return it.name || '';
-        case 'description': return it.description || '';
-        case 'status': return it.status || '';
-        default: return '';
-      }
-    };
-    copy.sort((a, b) => {
-      const av = getVal(a);
-      const bv = getVal(b);
-      const cmp = av.localeCompare(bv, undefined, { sensitivity: 'base' });
-      return sortOrder === 'asc' ? cmp : -cmp;
-    });
-    return copy;
-  }, [filtered, sortBy, sortOrder]);
-
-  const handleSort = (col: 'name' | 'description' | 'status') => {
-    if (sortBy === col) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    else { setSortBy(col); setSortOrder('asc'); }
-    setCurrentPage(1);
+  const handleSort = (col: string) => {
+    if (sortBy === col) {
+      setOrder(order === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(col);
+      setOrder('asc');
+    }
+    setPage(1);
   };
 
-  const getItemsPerPageNumber = () => parseInt(itemsPerPage.split(' ')[0]);
-  const totalPages = Math.ceil(sorted.length / getItemsPerPageNumber() || 1);
-  const startIndex = (currentPage - 1) * getItemsPerPageNumber();
-  const endIndex = startIndex + getItemsPerPageNumber();
-  const currentItems = sorted.slice(startIndex, endIndex);
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  const handleClearSearch = () => {
+    setSearch('');
+    setPage(1);
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
+
+  const handlePageSizeChange = (value: number) => {
+    setPageSize(value);
+    setPage(1);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setPage(currentPage + 1);
+    }
+  };
 
   const generatePaginationNumbers = () => {
     const pages: (number | string)[] = [];
@@ -220,10 +323,6 @@ const Queries: React.FC = () => {
   };
 
   const paginationNumbers = generatePaginationNumbers();
-
-  const handlePageChange = (page: number) => setCurrentPage(page);
-  const handlePreviousPage = () => { if (currentPage > 1) setCurrentPage(currentPage - 1); };
-  const handleNextPage = () => { if (currentPage < totalPages) setCurrentPage(currentPage + 1); };
   const handleBreadcrumbNavigate = (path: string) => navigate(path);
   const handleSidebarNavigate = (path: string) => navigate(path);
 
@@ -236,8 +335,7 @@ const Queries: React.FC = () => {
     
     try {
       setIsRunningQuery(true);
-      const svc = new StatementService();
-      const resp = await svc.runWithoutCreate({
+      const resp = await statementService.runWithoutCreate({
         connection_id: selectedConnectionId,
         query: sqlQuery.trim()
       });
@@ -379,16 +477,38 @@ const Queries: React.FC = () => {
                 <input
                   type="text"
                   placeholder="Search by name or description..."
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
+                  value={search}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="qry-search-input"
                 />
+                {search && (
+                  <button
+                    className="clear-search-btn"
+                    onClick={handleClearSearch}
+                    title="Clear search"
+                    aria-label="Clear search"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                      <path d="M15 9L9 15M9 9L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                )}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => handleStatusFilterChange(e.target.value)}
+                  className="status-dropdown"
+                >
+                  <option value="All Status">All Status</option>
+                  <option value="Success">Success</option>
+                  <option value="Failed">Failed</option>
+                </select>
               </div>
 
               <div className="qry-controls-section">
                 <button
                   className={`reload-btn ${isLoading ? 'is-loading' : ''}`}
-                  onClick={fetchQueries}
+                  onClick={reloadQueries}
                   disabled={isLoading}
                   title="Reload queries"
                   aria-label="Reload queries"
@@ -402,8 +522,8 @@ const Queries: React.FC = () => {
                 </button>
 
                 <select
-                  value={itemsPerPage}
-                  onChange={(e) => { setItemsPerPage(e.target.value); setCurrentPage(1); }}
+                  value={`${pageSize} rows/page`}
+                  onChange={(e) => handlePageSizeChange(parseInt(e.target.value.split(' ')[0]))}
                   className="qry-pagination-dropdown"
                 >
                   <option value="10 rows/page">10 rows/page</option>
@@ -428,8 +548,8 @@ const Queries: React.FC = () => {
                       <span className="th-content">
                         <span className="th-text">Name</span>
                         <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'name' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'name' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          <span className={`arrow up ${sortBy === 'name' && order === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'name' && order === 'desc' ? 'active' : ''}`}></span>
                         </span>
                       </span>
                     </th>
@@ -437,8 +557,8 @@ const Queries: React.FC = () => {
                       <span className="th-content">
                         <span className="th-text">Description</span>
                         <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'description' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'description' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          <span className={`arrow up ${sortBy === 'description' && order === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'description' && order === 'desc' ? 'active' : ''}`}></span>
                         </span>
                       </span>
                     </th>
@@ -446,8 +566,26 @@ const Queries: React.FC = () => {
                       <span className="th-content">
                         <span className="th-text">Status</span>
                         <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'status' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'status' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          <span className={`arrow up ${sortBy === 'status' && order === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'status' && order === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'created_at' ? 'sorted' : ''}`} onClick={() => handleSort('created_at')}>
+                      <span className="th-content">
+                        <span className="th-text">Created</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'created_at' && order === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'created_at' && order === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
+                    <th className={`sortable ${sortBy === 'updated_at' ? 'sorted' : ''}`} onClick={() => handleSort('updated_at')}>
+                      <span className="th-content">
+                        <span className="th-text">Updated</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'updated_at' && order === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'updated_at' && order === 'desc' ? 'active' : ''}`}></span>
                         </span>
                       </span>
                     </th>
@@ -458,13 +596,13 @@ const Queries: React.FC = () => {
                 </thead>
                 <tbody>
                   {isLoading ? (
-                    <tr><td colSpan={6} className="qry-center">Loading...</td></tr>
+                    <tr><td colSpan={8} className="qry-center">Loading...</td></tr>
                   ) : error ? (
-                    <tr><td colSpan={6} className="qry-center qry-error">{error}</td></tr>
-                  ) : currentItems.length === 0 ? (
-                    <tr><td colSpan={6} className="qry-center">No queries</td></tr>
+                    <tr><td colSpan={8} className="qry-center qry-error">{error}</td></tr>
+                  ) : queries.length === 0 ? (
+                    <tr><td colSpan={8} className="qry-center">No queries</td></tr>
                   ) : (
-                    currentItems.map((q) => (
+                    queries.map((q) => (
                       <tr 
                         key={q.id}
                         className={`${openDropdownId === q.id ? 'dropdown-open' : ''} ${openDropdownId ? 'has-open-dropdown' : ''}`}
@@ -514,9 +652,8 @@ const Queries: React.FC = () => {
                                     e.preventDefault();
                                     if (!canEditPermission) { setOpenDropdownId(null); return; }
                                     try {
-                                      const svc = new StatementService();
                                       setSelectedQuery({ id: q.id, name: q.name });
-                                      const resp = await svc.runStatementById(q.id);
+                                      const resp = await statementService.runStatementById(q.id);
                                       console.log('resp', resp);
                                       if (resp.success) {
                                         toast.success('Query is running');
@@ -582,7 +719,7 @@ const Queries: React.FC = () => {
             {totalPages > 1 && (
               <div className="qry-pagination">
                 <div className="qry-pagination-info">
-                  Showing {filtered.length === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, filtered.length)} of {filtered.length} queries
+                  Showing {queries.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalQueries)} of {totalQueries} queries
                 </div>
                 <div className="qry-pagination-controls">
                   <button className="qry-pagination-btn" onClick={handlePreviousPage} disabled={currentPage === 1}>Previous</button>
@@ -614,26 +751,11 @@ const Queries: React.FC = () => {
         projectId={projectId}
         onSave={async ({ connection_id, name, description, statement_text }) => {
           try {
-            const svc = new StatementService();
-            const resp = await svc.createAndRunStatement({ connection_id, name, description, statement_text });
+            const resp = await statementService.createAndRunStatement({ connection_id, name, description, statement_text });
             if (resp.success) {
               toast.success('Query created');
               setIsAddOpen(false);
-              // refresh list by project
-              if (projectId) {
-                const list = await svc.getStatementsByProject(projectId);
-                if (list.success && list.data) {
-                  const items: QueryItem[] = list.data.items.map(it => ({ 
-                    id: it.statement_id, 
-                    name: it.name, 
-                    description: it.description, 
-                    status: it.status,
-                    db_name: it.connection?.db_name,
-                    db_type: it.connection?.db_type,
-                  }));
-                  setQueries(items);
-                }
-              }
+              await reloadQueries();
             } else {
               toast.error(resp.error || 'Failed to create query');
             }
@@ -648,25 +770,11 @@ const Queries: React.FC = () => {
         query={selectedQuery}
         onDelete={async (id) => {
           try {
-            const svc = new StatementService();
-            const resp = await svc.deleteStatement(id);
+            const resp = await statementService.deleteStatement(id);
             if (resp.success) {
               toast.success('Query deleted');
               setIsDeleteOpen(false);
-              if (projectId) {
-                const list = await svc.getStatementsByProject(projectId);
-                if (list.success && list.data) {
-                  const items: QueryItem[] = list.data.items.map(it => ({ 
-                    id: it.statement_id, 
-                    name: it.name, 
-                    description: it.description, 
-                    status: it.status,
-                    db_name: it.connection?.db_name,
-                    db_type: it.connection?.db_type,
-                  }));
-                  setQueries(items);
-                }
-              }
+              await reloadQueries();
             } else {
               toast.error(resp.error || 'Failed to delete query');
             }

@@ -13,7 +13,10 @@ import {
     ExportTestSuiteRequest,
     ExportTestSuiteResponse,
     UpdateTestCaseLevelRequest,
-    UpdateTestSuiteGroupRequest
+    UpdateTestSuiteGroupRequest,
+
+    TestSuiteTestCaseSearchRequest,
+    TestSuiteTestCaseSearchResponse
 } from '../types/testsuites';
 import { DefaultResponse } from '../types/api_responses';
 
@@ -267,7 +270,7 @@ export class TestSuiteService {
         });
     }
 
-    // Get test cases by test suite
+    // Get test cases by test suite (legacy - kept for backward compatibility)
     async getTestCasesBySuite(request: GetTestCasesBySuiteRequest): Promise<ApiResponse<GetTestCasesBySuiteResponse>> {
         // Input validation
         if (!request.test_suite_id) {
@@ -277,10 +280,47 @@ export class TestSuiteService {
             };
         }
         
+        
         return await apiRouter.request<GetTestCasesBySuiteResponse>(`/test-suites/${request.test_suite_id}/testcases`, {
             method: 'POST',
             body: JSON.stringify(request),
         });
+    }
+
+    // Search test cases by test suite (with pagination, filter, sort)
+    async searchTestCasesBySuite(
+        testSuiteId: string,
+        request: TestSuiteTestCaseSearchRequest
+    ): Promise<ApiResponse<TestSuiteTestCaseSearchResponse>> {
+        // Input validation
+        if (!testSuiteId) {
+            return {
+                success: false,
+                error: 'Test suite ID is required'
+            };
+        }
+
+        if (request.page < 1) {
+            return {
+                success: false,
+                error: 'page must be >= 1'
+            };
+        }
+
+        if (request.page_size < 1 || request.page_size > 100) {
+            return {
+                success: false,
+                error: 'page_size must be >= 1 and <= 100'
+            };
+        }
+        
+        return await apiRouter.request<TestSuiteTestCaseSearchResponse>(
+            `/test-suites/${testSuiteId}/testcases/search`,
+            {
+                method: 'POST',
+                body: JSON.stringify(request),
+            }
+        );
     }
 
     // Export test suite to Excel

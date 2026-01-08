@@ -4,7 +4,9 @@ import {
 	BrowserStorageCreateRequest,
 	BrowserStorageUpdateRequest,
 	BrowserStorageResponse,
-	BrowserStorageListResponse
+	BrowserStorageListResponse,
+	BrowserStorageSearchRequest,
+	BrowserStorageSearchResponse
 } from '../types/browser_storage';
 
 export class BrowserStorageService {
@@ -48,8 +50,22 @@ export class BrowserStorageService {
 		const endpoint = `/browser-storage/get_by_project/${projectId}${qs ? `?${qs}` : ''}`;
 		return await apiRouter.request<BrowserStorageListResponse>(endpoint, { method: 'GET' });
 	}
+
+	async searchBrowserStorages(request: BrowserStorageSearchRequest): Promise<ApiResponse<BrowserStorageSearchResponse>> {
+		// Input validation
+		if (!request.project_id) {
+			return {
+				success: false,
+				error: 'Valid project ID is required'
+			};
+		}
+
+		return await apiRouter.request<BrowserStorageSearchResponse>('/browser-storage/search', {
+			method: 'POST',
+			body: JSON.stringify(request),
+		});
+	}
 }
 
 export const browserStorageService = new BrowserStorageService();
-
 

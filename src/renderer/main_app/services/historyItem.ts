@@ -6,7 +6,9 @@ import {
     ProjectTestcaseHistoriesRequest,
     ProjectTestsuiteHistoriesRequest,
     DeleteHistoryResponse,
-    DeleteHistoryRequest
+    DeleteHistoryRequest,
+    HistorySearchRequest,
+    HistorySearchResponse
 } from '../types/historyItem';
 
 export class HistoryItemService {
@@ -49,6 +51,17 @@ export class HistoryItemService {
     async deleteAllHistory(project_id: string): Promise<ApiResponse<DefaultResponse>> {
         return await apiRouter.request<DefaultResponse>(`/histories/project/${project_id}/all`, {
             method: 'DELETE'
+        });
+    }
+
+    // Search histories: POST /histories/search
+    async searchHistories(request: HistorySearchRequest): Promise<ApiResponse<HistorySearchResponse>> {
+        if (!request.project_id) {
+            return { success: false, error: 'Project ID is required for search' };
+        }
+        return await apiRouter.request<HistorySearchResponse>('/histories/search', {
+            method: 'POST',
+            body: JSON.stringify(request),
         });
     }
 }

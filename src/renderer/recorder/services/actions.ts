@@ -286,7 +286,7 @@ export class ActionService {
                     );
                 }
             } catch (error) {
-                console.error('[ActionService] Encryption failed:', error);
+                // console.error('[ActionService] Encryption failed:', error);
                 // Fallback: gửi không mã hóa nếu có lỗi
             }
         }

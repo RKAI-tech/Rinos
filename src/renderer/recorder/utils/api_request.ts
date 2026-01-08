@@ -357,7 +357,7 @@ function mapLegacyFormToNew(formData?: Array<{ key: string; value: string }>): A
     .map((item, index) => ({
       name: item.key,
       value: item.value,
-      orderIndex: index,
+      order_index: index,
     }));
 }
 
@@ -384,7 +384,7 @@ export function convertApiRequestDataToOptions(apiData: ApiRequestData): ApiRequ
     bodyType: body?.type || 'none',
     bodyForm:
       body?.type === 'form'
-        ? (body.form_data || []).map((item) => ({ key: item.name, value: item.value }))
+        ? (body.form_datas || []).map((item) => ({ key: item.name, value: item.value }))
         : undefined,
   };
 }
@@ -407,10 +407,10 @@ export function convertApiRequestOptionsToData(options: ApiRequestOptions): ApiR
 
   const auth: ApiRequestAuth = {
     type: options.authType,
+    storage_enabled: false,
     username: options.authUsername,
     password: options.authPassword,
     token: options.authToken,
-    storage_enabled: false,
     token_storages: [],
     basic_auth_storages: [],
   };
@@ -418,7 +418,7 @@ export function convertApiRequestOptionsToData(options: ApiRequestOptions): ApiR
   const body: ApiRequestBody = {
     type: options.bodyType,
     content: options.bodyType === 'json' ? options.body ?? '' : options.bodyType === 'none' ? '' : options.body,
-    form_data: mapLegacyFormToNew(options.bodyForm),
+    form_datas: mapLegacyFormToNew(options.bodyForm),
   };
 
   const data: ApiRequestData = {
@@ -426,7 +426,7 @@ export function convertApiRequestOptionsToData(options: ApiRequestOptions): ApiR
     url: options.url,
     params,
     headers,
-    auth: auth.type === 'none' ? undefined : auth,
+    auth: auth.type === 'none' ? { type: 'none', storage_enabled: false } : auth,
     body: options.bodyType === 'none' ? undefined : body,
   };
 

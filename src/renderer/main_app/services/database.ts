@@ -5,7 +5,8 @@ import {
     DatabaseConnectionListRequest,
     DatabaseConnection,
     DatabaseConnectionListResponse,
-
+    DatabaseConnectionSearchRequest,
+    DatabaseConnectionSearchResponse
 } from '../types/databases';
 import { DefaultResponse } from '../types/api_responses';
 
@@ -47,5 +48,19 @@ export class DatabaseService {
             body: JSON.stringify(payload),
         });
     }
-  
+
+    async searchDatabaseConnections(request: DatabaseConnectionSearchRequest): Promise<ApiResponse<DatabaseConnectionSearchResponse>> {
+        // Input validation
+        if (!request.project_id) {
+            return {
+                success: false,
+                error: 'Valid project ID is required'
+            };
+        }
+
+        return await apiRouter.request<DatabaseConnectionSearchResponse>('/database-connections/search', {
+            method: 'POST',
+            body: JSON.stringify(request),
+        });
+    }
 }

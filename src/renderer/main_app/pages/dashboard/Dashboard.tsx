@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/header/Header';
 import Footer from '../../components/footer/Footer';
@@ -11,12 +11,14 @@ import KeyManagementModal from '../../components/project/key_management/KeyManag
 import { ProjectService } from '../../services/projects';
 import { Project } from '../../types/projects';
 import { toast } from 'react-toastify';
+import { useAuth } from '../../contexts/AuthContext';
 import './Dashboard.css';
 
 // Using Project interface from types/projects.ts
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   
   // State for projects data from API
   const [projects, setProjects] = useState<Project[]>([]);
@@ -24,11 +26,18 @@ const Dashboard: React.FC = () => {
   const [isReloading, setIsReloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [filterText, setFilterText] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'created_at' | 'number_testcase' | 'number_testsuite' | 'user_role' | 'user_permissions' | 'number_member'>('created_at');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [itemsPerPage, setItemsPerPage] = useState('10 per page');
+  // Search, pagination, and sort state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<string | null>('created_at');
+  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
+  
+  // Pagination info from API
+  const [totalProjects, setTotalProjects] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -37,44 +46,92 @@ const Dashboard: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   
-  // Initialize ProjectService
-  const projectService = new ProjectService();
-  const userService = new UserService();
+  // Initialize ProjectService - use useMemo to avoid recreating on every render
+  const projectService = useMemo(() => new ProjectService(), []);
+  const userService = useMemo(() => new UserService(), []);
 
-  // Helper function to reload projects
-  const reloadProjects = async () => {
+  // Load projects when search/pagination/sort state changes, but only if authenticated
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) {
+      return;
+    }
+
+    const loadProjects = async () => {
     try {
-      setIsReloading(true);
+        setIsLoading(true);
       setError(null);
-      const response = await projectService.getProjects();
+        
+        const request = {
+          page: page,
+          page_size: pageSize,
+          q: search || null,
+          sort_by: sortBy || null,
+          order: order || 'asc'
+        };
+
+        const response = await projectService.searchProjects(request);
+        
       if (response.success && response.data) {
-        // console.log('Reloaded projects:', response.data.projects);
         setProjects(response.data.projects);
+          setTotalProjects(response.data.number_project);
+          setCurrentPage(response.data.current_page);
+          setTotalPages(response.data.total_pages);
+          // Only sync page if it's different from current page to avoid infinite loop
+          if (response.data.current_page !== page) {
+            setPage(response.data.current_page);
+          }
       } else {
         setError(response.error || 'Failed to load projects');
         toast.error(response.error || 'Failed to load projects');
+          setProjects([]);
+          setTotalProjects(0);
+          setCurrentPage(1);
+          setTotalPages(1);
+          setPage(1);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       setError(errorMessage);
       toast.error('Failed to load projects');
-      // console.error('Error reloading projects:', err);
+        setProjects([]);
+        setTotalProjects(0);
+        setCurrentPage(1);
+        setTotalPages(1);
+        setPage(1);
     } finally {
-      setIsReloading(false);
+        setIsLoading(false);
     }
   };
 
-  // Load projects from API on component mount
-  useEffect(() => {
-    const loadProjects = async () => {
+    loadProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, search, sortBy, order, authLoading, isAuthenticated]);
+
+  // Helper function to reload projects (for manual refresh)
+  const reloadProjects = useCallback(async () => {
       try {
-        setIsLoading(true);
+      setIsReloading(true);
         setError(null);
-        const response = await projectService.getProjects();
+      
+      const request = {
+        page: page,
+        page_size: pageSize,
+        q: search || null,
+        sort_by: sortBy || null,
+        order: order || 'asc'
+      };
+
+      const response = await projectService.searchProjects(request);
         
         if (response.success && response.data) {
-          // console.log('Loaded projects from API:', response.data.projects);
           setProjects(response.data.projects);
+        setTotalProjects(response.data.number_project);
+        setCurrentPage(response.data.current_page);
+        setTotalPages(response.data.total_pages);
+        // Only sync page if it's different to avoid infinite loop
+        if (response.data.current_page !== page) {
+          setPage(response.data.current_page);
+        }
         } else {
           setError(response.error || 'Failed to load projects');
           toast.error(response.error || 'Failed to load projects');
@@ -83,14 +140,11 @@ const Dashboard: React.FC = () => {
         const errorMessage = err instanceof Error ? err.message : 'An error occurred';
         setError(errorMessage);
         toast.error('Failed to load projects');
-        // console.error('Error loading projects:', err);
       } finally {
-        setIsLoading(false);
+      setIsReloading(false);
       }
-    };
-
-    loadProjects();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, search, sortBy, order]);
 
   // Share modal handles its own user loading
 
@@ -117,15 +171,16 @@ const Dashboard: React.FC = () => {
   }, []);
 
   // Statistics calculated from API data using useMemo for performance
+  // Note: These statistics are calculated from current page data only
+  // For accurate totals, backend should provide aggregated statistics
   const statistics = useMemo(() => {
-    // console.log('Calculating statistics for projects:', projects);
     return {
-      totalProjects: projects.length,
+      totalProjects: totalProjects, // Use total from API
       totalTestCases: projects.reduce((sum, project) => sum + (project.number_testcase || 0), 0),
       totalTestSuites: projects.reduce((sum, project) => sum + (project.number_testsuite || 0), 0),
       totalVariables: projects.reduce((sum, project) => sum + (project.number_variable || 0), 0)
     };
-  }, [projects]);
+  }, [projects, totalProjects]);
 
   const handleCreateProject = () => {
     setIsCreateModalOpen(true);
@@ -289,73 +344,57 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Sort projects before pagination
-  const sortedProjects = useMemo(() => {
-    const projectsCopy = [...projects];
-
-    const getComparableValue = (project: Project): string | number => {
-      switch (sortBy) {
-        case 'name':
-          return project.name || '';
-        case 'created_at': {
-          const time = project.created_at ? new Date(project.created_at).getTime() : 0;
-          return isNaN(time) ? 0 : time;
-        }
-        case 'number_testcase':
-          return project.number_testcase ?? 0;
-        case 'number_testsuite':
-          return project.number_testsuite ?? 0;
-        case 'user_role':
-          return project.user_role || '';
-        case 'user_permissions':
-          return project.user_permissions || '';
-        case 'number_member':
-          return project.number_member ?? 0;
-        default:
-          return 0;
-      }
-    };
-
-    projectsCopy.sort((a, b) => {
-      const aVal = getComparableValue(a);
-      const bVal = getComparableValue(b);
-
-      let comparison = 0;
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        comparison = aVal.localeCompare(bVal, undefined, { sensitivity: 'base' });
-      } else {
-        const aNum = typeof aVal === 'number' ? aVal : 0;
-        const bNum = typeof bVal === 'number' ? bVal : 0;
-        comparison = aNum === bNum ? 0 : aNum < bNum ? -1 : 1;
-      }
-
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-
-    return projectsCopy;
-  }, [projects, sortBy, sortOrder]);
-
+  // Handle sort - reset page to 1 when sort changes
   const handleSort = (
-    column: 'name' | 'created_at' | 'number_testcase' | 'number_testsuite' | 'user_role' | 'user_permissions' | 'number_member'
+    column: 'name' | 'created_at' | 'number_testcase' | 'number_testsuite' | 'number_user'
   ) => {
     if (sortBy === column) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      // Toggle order if same column
+      setOrder(order === 'asc' ? 'desc' : 'asc');
     } else {
+      // Set new column and default to asc
       setSortBy(column);
-      setSortOrder('asc');
+      setOrder('asc');
     }
-    setCurrentPage(1);
+    // Reset page to 1 when sort changes
+    setPage(1);
   };
 
-  // Pagination logic
-  const getItemsPerPageNumber = () => {
-    return parseInt(itemsPerPage.split(' ')[0]);
+  // Handle search - reset page to 1 when search changes
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1); // Reset page when search changes
   };
 
-  const totalPages = Math.ceil(sortedProjects.length / getItemsPerPageNumber());
-  const startIndex = (currentPage - 1) * getItemsPerPageNumber();
-  const endIndex = startIndex + getItemsPerPageNumber();
-  const currentProjects = sortedProjects.slice(startIndex, endIndex);
+  // Handle clear search - reset page to 1
+  const handleClearSearch = () => {
+    setSearch('');
+    setPage(1);
+  };
+
+  // Handle page size change - reset page to 1
+  const handlePageSizeChange = (value: string) => {
+    const newPageSize = parseInt(value.split(' ')[0]);
+    setPageSize(newPageSize);
+    setPage(1); // Reset page when page size changes
+  };
+
+  // Handle pagination - only update page, don't reset
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setPage(currentPage + 1);
+    }
+  };
 
   // Generate pagination numbers with ellipsis
   const generatePaginationNumbers = () => {
@@ -399,21 +438,9 @@ const Dashboard: React.FC = () => {
 
   const paginationNumbers = generatePaginationNumbers();
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handlePreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
+  // Calculate display range
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalProjects);
 
   // Show loading state
   if (isLoading) {
@@ -564,11 +591,23 @@ const Dashboard: React.FC = () => {
               <div className="filter-section">
                 <input
                   type="text"
-                  placeholder="Filter by project name or description..."
-                  value={filterText}
-                  onChange={(e) => setFilterText(e.target.value)}
+                  placeholder="Search by project name or description..."
+                  value={search}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="filter-input"
                 />
+                {search && (
+                  <button
+                    onClick={handleClearSearch}
+                    className="clear-search-btn"
+                    title="Clear search"
+                    aria-label="Clear search"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                )}
               </div>
 
               <div className="controls-section">
@@ -588,8 +627,8 @@ const Dashboard: React.FC = () => {
                 </button>
 
                 <select
-                  value={itemsPerPage}
-                  onChange={(e) => setItemsPerPage(e.target.value)}
+                  value={`${pageSize} per page`}
+                  onChange={(e) => handlePageSizeChange(e.target.value)}
                   className="pagination-dropdown"
                 >
                   <option value="10 per page">10 per page</option>
@@ -618,8 +657,8 @@ const Dashboard: React.FC = () => {
                       <span className="th-content">
                         <span className="th-text">Name</span>
                         <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'name' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'name' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          <span className={`arrow up ${sortBy === 'name' && order === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'name' && order === 'desc' ? 'active' : ''}`}></span>
                         </span>
                       </span>
                     </th>
@@ -630,8 +669,8 @@ const Dashboard: React.FC = () => {
                       <span className="th-content">
                         <span className="th-text">Created At</span>
                         <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'created_at' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'created_at' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          <span className={`arrow up ${sortBy === 'created_at' && order === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'created_at' && order === 'desc' ? 'active' : ''}`}></span>
                         </span>
                       </span>
                     </th>
@@ -642,8 +681,8 @@ const Dashboard: React.FC = () => {
                       <span className="th-content">
                         <span className="th-text">Test Cases</span>
                         <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'number_testcase' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'number_testcase' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          <span className={`arrow up ${sortBy === 'number_testcase' && order === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'number_testcase' && order === 'desc' ? 'active' : ''}`}></span>
                         </span>
                       </span>
                     </th>
@@ -654,44 +693,44 @@ const Dashboard: React.FC = () => {
                       <span className="th-content">
                         <span className="th-text">Test Suites</span>
                         <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'number_testsuite' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'number_testsuite' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          <span className={`arrow up ${sortBy === 'number_testsuite' && order === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'number_testsuite' && order === 'desc' ? 'active' : ''}`}></span>
                         </span>
                       </span>
                     </th>
                     <th
                       className={`sortable ${sortBy === 'user_role' ? 'sorted' : ''}`}
-                      onClick={() => handleSort('user_role')}
+                      onClick={() => handleSort('user_role' as any)}
                     >
                       <span className="th-content">
                         <span className="th-text">Role</span>
                         <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'user_role' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'user_role' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          <span className={`arrow up ${sortBy === 'user_role' && order === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'user_role' && order === 'desc' ? 'active' : ''}`}></span>
                         </span>
                       </span>
                     </th>
                     <th
                       className={`sortable ${sortBy === 'user_permissions' ? 'sorted' : ''}`}
-                      onClick={() => handleSort('user_permissions')}
+                      onClick={() => handleSort('user_permissions' as any)}
                     >
                       <span className="th-content">
                         <span className="th-text">Permissions</span>
                         <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'user_permissions' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'user_permissions' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          <span className={`arrow up ${sortBy === 'user_permissions' && order === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'user_permissions' && order === 'desc' ? 'active' : ''}`}></span>
                         </span>
                       </span>
                     </th>
                     <th
-                      className={`sortable ${sortBy === 'number_member' ? 'sorted' : ''}`}
-                      onClick={() => handleSort('number_member')}
+                      className={`sortable ${sortBy === 'number_user' ? 'sorted' : ''}`}
+                      onClick={() => handleSort('number_user')}
                     >
                       <span className="th-content">
                         <span className="th-text">Members</span>
                         <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'number_member' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'number_member' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                          <span className={`arrow up ${sortBy === 'number_user' && order === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'number_user' && order === 'desc' ? 'active' : ''}`}></span>
                         </span>
                       </span>
                     </th>
@@ -699,7 +738,7 @@ const Dashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentProjects.map((project) => (
+                  {projects.map((project) => (
                     <tr 
                       key={project.project_id}
                       className={`clickable-row ${openDropdownId === project.project_id ? 'dropdown-open' : ''} ${openDropdownId ? 'has-open-dropdown' : ''}`}
@@ -775,23 +814,6 @@ const Dashboard: React.FC = () => {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   e.preventDefault();
-                                  handleKeyProjectClick(project.project_id, e);
-                                }}
-                                onMouseDown={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                }}
-                              >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                                Key
-                              </button>
-                              <button 
-                                className="dropdown-item"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
                                   handleEditProject(project.project_id, e);
                                 }}
                                 onMouseDown={(e) => {
@@ -839,7 +861,7 @@ const Dashboard: React.FC = () => {
             {totalPages > 1 && (
               <div className="pagination">
                 <div className="pagination-info">
-                  Showing {startIndex + 1} to {Math.min(endIndex, projects.length)} of {projects.length} projects
+                  Showing {startIndex + 1} to {endIndex} of {totalProjects} projects
                 </div>
                 <div className="pagination-controls">
                   <button 

@@ -9,6 +9,8 @@ import {
     GroupTreeItem,
     GroupTreeWithSuitesItem,
     GroupTreeWithSuitesResponse,
+    GetGroupTreeRequest,
+    GetGroupTreeResponse,
 } from '../types/group';
 import { DefaultResponse } from '../types/api_responses';
 
@@ -68,5 +70,23 @@ export class GroupService {
             method: 'DELETE'
         });
     }
-    
+
+    /**
+     * Get group tree with ungrouped suites and children groups.
+     * 
+     * If group_id is provided: returns ungrouped suites and children groups of that group.
+     * If group_id is None: returns root level (ungrouped suites + root groups).
+     * 
+     * @param request - Request containing project_id, optional group_id, and include_suites flag
+     * @returns Response containing ungrouped suites, children groups, and metadata
+     */
+    async getGroupTree(request: GetGroupTreeRequest): Promise<ApiResponse<GetGroupTreeResponse>> {
+        if (!request.project_id) {
+            return { success: false, error: 'project_id is required' };
+        }
+        return await apiRouter.request<GetGroupTreeResponse>('/groups/tree', {
+            method: 'POST',
+            body: JSON.stringify(request),
+        });
+    }
 }

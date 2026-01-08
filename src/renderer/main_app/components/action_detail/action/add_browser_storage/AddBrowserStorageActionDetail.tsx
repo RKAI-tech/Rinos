@@ -195,7 +195,16 @@ const AddBrowserStorageActionDetail: React.FC<AddBrowserStorageActionDetailProps
                 <label className="rcd-action-detail-kv-label">Value</label>
                 <textarea
                   className="rcd-action-detail-input"
-                  value={selectedBrowserStorage ? JSON.stringify(selectedBrowserStorage.value, null, 2) : ''}
+                  value={(() => {
+                    if (!selectedBrowserStorage || selectedBrowserStorage.value === undefined || selectedBrowserStorage.value === null) {
+                      return '';
+                    }
+                    try {
+                      return JSON.stringify(selectedBrowserStorage.value, null, 2);
+                    } catch (e) {
+                      return String(selectedBrowserStorage.value);
+                    }
+                  })()}
                   readOnly
                   style={{
                     minHeight: '140px',

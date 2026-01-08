@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/header/Header';
 import Footer from '../../components/footer/Footer';
@@ -189,11 +189,19 @@ const BrowserStorage: React.FC = () => {
   const [resolvedProjectName, setResolvedProjectName] = useState<string>(projectData.projectName || 'Project');
 
   const [cookies, setCookies] = useState<CookieItem[]>([]);
-  const [searchText, setSearchText] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'description'>('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [itemsPerPage, setItemsPerPage] = useState('10 rows/page');
+  
+  // Search, pagination, and sort state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState('');
+  const [storageTypeFilter, setStorageTypeFilter] = useState<string>('All Types');
+  const [sortBy, setSortBy] = useState<string | null>('name');
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+  
+  // Pagination info from API
+  const [totalBrowserStorages, setTotalBrowserStorages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deletingCookie, setDeletingCookie] = useState<{ id: string; name?: string } | null>(null);
@@ -216,22 +224,126 @@ const BrowserStorage: React.FC = () => {
   const [valueError, setValueError] = useState<string>('');
   const [editValueError, setEditValueError] = useState<string>('');
 
-  const reloadCookies = async () => {
+  // Service - use useMemo to avoid recreating on every render
+  const browserStorageService = useMemo(() => new BrowserStorageService(), []);
+  const projectService = useMemo(() => new ProjectService(), []);
+
+  // Load browser storages with search/pagination/sort
+  useEffect(() => {
+    if (!projectId) return;
+
+    const loadBrowserStorages = async () => {
+      try {
+        setIsReloading(true);
+        
+        // Map storage type filter to API format
+        let storageTypeValue: string | null = null;
+        if (storageTypeFilter !== 'All Types') {
+          const typeMap: Record<string, string> = {
+            'cookie': 'cookie',
+            'localstorage': 'localStorage',
+            'sessionstorage': 'sessionStorage'
+          };
+          storageTypeValue = typeMap[storageTypeFilter.toLowerCase()] || storageTypeFilter;
+        }
+
+        const request = {
+          project_id: projectId,
+          page: page,
+          page_size: pageSize,
+          q: search || null,
+          storage_type: storageTypeValue,
+          sort_by: sortBy || null,
+          order: order || 'asc'
+        };
+
+        const response = await browserStorageService.searchBrowserStorages(request);
+        
+        if (response.success && response.data) {
+          const items: CookieItem[] = response.data.browser_storages.map((it) => ({
+            id: it.browser_storage_id,
+            name: it.name,
+            description: it.description,
+            updated: it.updated_at || (it as any).created_at,
+            value: it.value,
+            type: it.storage_type,
+          }));
+          setCookies(items);
+          setTotalBrowserStorages(response.data.number_browser_storage);
+          setCurrentPage(response.data.current_page);
+          setTotalPages(response.data.total_pages);
+          // Only sync page if it's different to avoid infinite loop
+          if (response.data.current_page !== page) {
+            setPage(response.data.current_page);
+          }
+        } else {
+          setCookies([]);
+          setTotalBrowserStorages(0);
+          setCurrentPage(1);
+          setTotalPages(1);
+          setPage(1);
+        }
+      } catch (e) {
+        setCookies([]);
+        setTotalBrowserStorages(0);
+        setCurrentPage(1);
+        setTotalPages(1);
+        setPage(1);
+      } finally {
+        setIsReloading(false);
+      }
+    };
+
+    loadBrowserStorages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, search, storageTypeFilter, sortBy, order, projectId, browserStorageService]);
+
+  // Helper: reload browser storages (for manual refresh and after operations)
+  const reloadCookies = useCallback(async () => {
     if (!projectId) return;
     try {
       setIsReloading(true);
-      const svc = new BrowserStorageService();
-      const resp = await svc.getBrowserStoragesByProject(projectId);
-      if (resp.success && resp.data) {
-        const items: CookieItem[] = resp.data.items.map((it) => ({
+      
+      // Map storage type filter to API format
+      let storageTypeValue: string | null = null;
+      if (storageTypeFilter !== 'All Types') {
+        const typeMap: Record<string, string> = {
+          'cookie': 'cookie',
+          'localstorage': 'localStorage',
+          'sessionstorage': 'sessionStorage'
+        };
+        storageTypeValue = typeMap[storageTypeFilter.toLowerCase()] || storageTypeFilter;
+      }
+
+      const request = {
+        project_id: projectId,
+        page: page,
+        page_size: pageSize,
+        q: search || null,
+        storage_type: storageTypeValue,
+        sort_by: sortBy || null,
+        order: order || 'asc'
+      };
+
+      const response = await browserStorageService.searchBrowserStorages(request);
+      
+      if (response.success && response.data) {
+        const items: CookieItem[] = response.data.browser_storages.map((it) => ({
           id: it.browser_storage_id,
           name: it.name,
           description: it.description,
-          updated: (it as any).updated_at || (it as any).created_at,
+          updated: it.updated_at || (it as any).created_at,
           value: it.value,
-          type: (it as any).storage_type,
+          type: it.storage_type,
         }));
         setCookies(items);
+        setTotalBrowserStorages(response.data.number_browser_storage);
+        setCurrentPage(response.data.current_page);
+        setTotalPages(response.data.total_pages);
+        // Only sync page if it's different to avoid infinite loop
+        if (response.data.current_page !== page) {
+          setPage(response.data.current_page);
+        }
       } else {
         setCookies([]);
       }
@@ -240,11 +352,7 @@ const BrowserStorage: React.FC = () => {
     } finally {
       setIsReloading(false);
     }
-  };
-
-  useEffect(() => {
-    reloadCookies();
-  }, [projectId]);
+  }, [projectId, page, pageSize, search, storageTypeFilter, sortBy, order, browserStorageService]);
 
   useEffect(() => {
     const loadProjectName = async () => {
@@ -253,13 +361,13 @@ const BrowserStorage: React.FC = () => {
         setResolvedProjectName(projectData.projectName);
         return;
       }
-      const svc = new ProjectService();
-      const resp = await svc.getProjectById(projectId);
+      const resp = await projectService.getProjectById(projectId);
       if (resp.success && resp.data) {
         setResolvedProjectName((resp.data as any).name || 'Project');
       }
     };
     loadProjectName();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   useEffect(() => {
@@ -294,7 +402,7 @@ const BrowserStorage: React.FC = () => {
   }, [openDropdownId]);
 
   const sidebarItems = [
-    { id: 'suites-manager', label: 'Suites Manager', path: `/suites-manager/${projectId}`, isActive: false },
+    { id: 'suites-manager', label: 'Test Manager', path: `/suites-manager/${projectId}`, isActive: false },
     { id: 'testcases', label: 'Testcases', path: `/testcases/${projectId}`, isActive: false },
     // Temporarily disabled Test Suites navigation
     // { id: 'test-suites', label: 'Test Suites', path: `/test-suites/${projectId}`, isActive: false },
@@ -310,49 +418,68 @@ const BrowserStorage: React.FC = () => {
     { label: resolvedProjectName, path: `/browser-storage/${projectId}`, isActive: true },
   ];
 
-  const filtered = cookies.filter((c) => {
-    const q = searchText.toLowerCase();
-    return (
-      (c.name || '').toLowerCase().includes(q) ||
-      (c.description || '').toLowerCase().includes(q)
-    );
-  });
+  // No need for client-side filtering/sorting - API handles it
+  const currentItems = cookies;
 
-  const sorted = useMemo(() => {
-    const copy = [...filtered];
-    const getVal = (it: CookieItem): string => {
-      switch (sortBy) {
-        case 'name':
-          return it.name || '';
-        case 'description':
-          return it.description || '';
-        default:
-          return '';
-      }
-    };
-    copy.sort((a, b) => {
-      const av = getVal(a);
-      const bv = getVal(b);
-      const cmp = av.localeCompare(bv, undefined, { sensitivity: 'base' });
-      return sortOrder === 'asc' ? cmp : -cmp;
-    });
-    return copy;
-  }, [filtered, sortBy, sortOrder]);
-
-  const handleSort = (col: 'name' | 'description') => {
-    if (sortBy === col) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    else {
+  // Handle sort - reset page to 1 when sort changes
+  const handleSort = (col: 'name' | 'description' | 'updated_at' | 'storage_type') => {
+    if (sortBy === col) {
+      // Toggle order if same column
+      setOrder(order === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new column and default to asc
       setSortBy(col);
-      setSortOrder('asc');
-    }
-    setCurrentPage(1);
+      setOrder('asc');
+      }
+    // Reset page to 1 when sort changes
+    setPage(1);
   };
 
-  const getItemsPerPageNumber = () => parseInt(itemsPerPage.split(' ')[0]);
-  const totalPages = Math.ceil(sorted.length / getItemsPerPageNumber() || 1);
-  const startIndex = (currentPage - 1) * getItemsPerPageNumber();
-  const endIndex = startIndex + getItemsPerPageNumber();
-  const currentItems = sorted.slice(startIndex, endIndex);
+  // Handle search - reset page to 1 when search changes
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1); // Reset page when search changes
+  };
+
+  // Handle clear search - reset page to 1
+  const handleClearSearch = () => {
+    setSearch('');
+    setPage(1);
+  };
+
+  // Handle storage type filter - reset page to 1
+  const handleStorageTypeFilterChange = (value: string) => {
+    setStorageTypeFilter(value);
+    setPage(1); // Reset page when filter changes
+  };
+
+  // Handle page size change - reset page to 1
+  const handlePageSizeChange = (value: string) => {
+    const newPageSize = parseInt(value.split(' ')[0]);
+    setPageSize(newPageSize);
+    setPage(1); // Reset page when page size changes
+  };
+
+  // Handle pagination - only update page, don't reset
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setPage(currentPage + 1);
+    }
+  };
+
+  // Calculate display range
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalBrowserStorages);
 
   const generatePaginationNumbers = () => {
     const pages: (number | string)[] = [];
@@ -373,13 +500,6 @@ const BrowserStorage: React.FC = () => {
   };
   const paginationNumbers = generatePaginationNumbers();
 
-  const handlePageChange = (page: number) => setCurrentPage(page);
-  const handlePreviousPage = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
-  };
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-  };
 
   const handleBreadcrumbNavigate = (path: string) => navigate(path);
   const handleSidebarNavigate = (path: string) => navigate(path);
@@ -390,23 +510,10 @@ const BrowserStorage: React.FC = () => {
 
   const handleDeleteBrowserStorage = async (id: string) => {
     try {
-      const svc = new BrowserStorageService();
-      const resp = await svc.deleteBrowserStorage(id);
+      const resp = await browserStorageService.deleteBrowserStorage(id);
       if (resp.success) {
         toast.success('Browser storage deleted');
-        if (projectId) {
-          const list = await svc.getBrowserStoragesByProject(projectId);
-          if (list.success && list.data) {
-            const items: CookieItem[] = list.data.items.map((it) => ({
-              id: it.browser_storage_id,
-              name: it.name,
-              description: it.description,
-              updated: (it as any).updated_at || (it as any).created_at,
-              type: (it as any).storage_type,
-            }));
-            setCookies(items);
-          }
-        }
+        await reloadCookies();
       } else {
         toast.error(resp.error || 'Failed to delete browser storage. Please try again.');
       }
@@ -440,20 +547,7 @@ const BrowserStorage: React.FC = () => {
   };
 
   const reloadList = async () => {
-    if (!projectId) return;
-    const svc = new BrowserStorageService();
-    const list = await svc.getBrowserStoragesByProject(projectId);
-    if (list.success && list.data) {
-      const items: CookieItem[] = list.data.items.map((it) => ({
-        id: it.browser_storage_id,
-        name: it.name,
-        description: it.description,
-        updated: (it as any).updated_at || (it as any).created_at,
-        value: it.value,
-        type: (it as any).storage_type,
-      }));
-      setCookies(items);
-    }
+    await reloadCookies();
   };
 
   const resetCreateForm = () => {
@@ -528,8 +622,7 @@ const BrowserStorage: React.FC = () => {
       // Use normalized value if available
       const finalValue = validation.normalizedValue !== undefined ? validation.normalizedValue : parsed;
       
-      const svc = new BrowserStorageService();
-      const resp = await svc.updateBrowserStorage(editingCookie.id, {
+      const resp = await browserStorageService.updateBrowserStorage(editingCookie.id, {
         name: editName.trim() || undefined,
         description: editDescription.trim() || undefined,
         value: finalValue,
@@ -586,8 +679,7 @@ const BrowserStorage: React.FC = () => {
       // Use normalized value if available
       const finalValue = validation.normalizedValue !== undefined ? validation.normalizedValue : parsedValue;
       
-      const svc = new BrowserStorageService();
-      const resp = await svc.createBrowserStorage({ project_id: projectId, name: newName.trim(), description: newDescription.trim() || undefined, value: finalValue, storage_type: newType });
+      const resp = await browserStorageService.createBrowserStorage({ project_id: projectId, name: newName.trim(), description: newDescription.trim() || undefined, value: finalValue, storage_type: newType });
       if (resp.success) {
         toast.success('Browser storage created');
         handleCloseCreate();
@@ -623,10 +715,32 @@ const BrowserStorage: React.FC = () => {
                 <input
                   type="text"
                   placeholder="Search by name or description..."
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
+                  value={search}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="search-input"
                 />
+                {search && (
+                  <button
+                    onClick={handleClearSearch}
+                    className="clear-search-btn"
+                    title="Clear search"
+                    aria-label="Clear search"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                )}
+                <select
+                  value={storageTypeFilter}
+                  onChange={(e) => handleStorageTypeFilterChange(e.target.value)}
+                  className="status-dropdown"
+                >
+                  <option value="All Types">All Types</option>
+                  <option value="cookie">Cookie</option>
+                  <option value="localStorage">Local Storage</option>
+                  <option value="sessionStorage">Session Storage</option>
+                </select>
               </div>
 
               <div className="controls-section">
@@ -646,11 +760,8 @@ const BrowserStorage: React.FC = () => {
                 </button>
 
                 <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(e.target.value);
-                    setCurrentPage(1);
-                  }}
+                  value={`${pageSize} rows/page`}
+                  onChange={(e) => handlePageSizeChange(e.target.value)}
                   className="pagination-dropdown"
                 >
                   <option value="10 rows/page">10 rows/page</option>
@@ -676,8 +787,8 @@ const BrowserStorage: React.FC = () => {
                         <span className="th-content">
                           <span className="th-text">Name</span>
                           <span className="sort-arrows">
-                            <span className={`arrow up ${sortBy === 'name' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                            <span className={`arrow down ${sortBy === 'name' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                            <span className={`arrow up ${sortBy === 'name' && order === 'asc' ? 'active' : ''}`}></span>
+                            <span className={`arrow down ${sortBy === 'name' && order === 'desc' ? 'active' : ''}`}></span>
                           </span>
                         </span>
                       </th>
@@ -685,19 +796,33 @@ const BrowserStorage: React.FC = () => {
                         <span className="th-content">
                           <span className="th-text">Description</span>
                           <span className="sort-arrows">
-                            <span className={`arrow up ${sortBy === 'description' && sortOrder === 'asc' ? 'active' : ''}`}></span>
-                            <span className={`arrow down ${sortBy === 'description' && sortOrder === 'desc' ? 'active' : ''}`}></span>
+                            <span className={`arrow up ${sortBy === 'description' && order === 'asc' ? 'active' : ''}`}></span>
+                            <span className={`arrow down ${sortBy === 'description' && order === 'desc' ? 'active' : ''}`}></span>
                           </span>
                         </span>
                       </th>
-                      <th>
+                      <th
+                        className={`sortable ${sortBy === 'storage_type' ? 'sorted' : ''}`}
+                        onClick={() => handleSort('storage_type')}
+                      >
                         <span className="th-content">
                           <span className="th-text">Type</span>
+                          <span className="sort-arrows">
+                            <span className={`arrow up ${sortBy === 'storage_type' && order === 'asc' ? 'active' : ''}`}></span>
+                            <span className={`arrow down ${sortBy === 'storage_type' && order === 'desc' ? 'active' : ''}`}></span>
+                          </span>
                         </span>
                       </th>
-                      <th>
+                      <th
+                        className={`sortable ${sortBy === 'updated_at' ? 'sorted' : ''}`}
+                        onClick={() => handleSort('updated_at')}
+                      >
                         <span className="th-content">
                           <span className="th-text">Updated</span>
+                          <span className="sort-arrows">
+                            <span className={`arrow up ${sortBy === 'updated_at' && order === 'asc' ? 'active' : ''}`}></span>
+                            <span className={`arrow down ${sortBy === 'updated_at' && order === 'desc' ? 'active' : ''}`}></span>
+                          </span>
                         </span>
                       </th>
                       <th>Options</th>
@@ -842,10 +967,10 @@ const BrowserStorage: React.FC = () => {
               </aside>
             </div>
 
-            {Math.ceil(filtered.length / getItemsPerPageNumber()) > 1 && (
+            {totalPages > 1 && (
               <div className="pagination">
                 <div className="pagination-info">
-                  Showing {filtered.length === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, filtered.length)} of {filtered.length} browser storages
+                  Showing {startIndex + 1} to {endIndex} of {totalBrowserStorages} browser storages
                 </div>
                 <div className="pagination-controls">
                   <button className="pagination-btn" onClick={handlePreviousPage} disabled={currentPage === 1}>Previous</button>
@@ -862,7 +987,7 @@ const BrowserStorage: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                  <button className="pagination-btn" onClick={handleNextPage} disabled={currentPage === totalPages}>Next</button>
+                  <button className="pagination-btn" onClick={handleNextPage} disabled={currentPage >= totalPages}>Next</button>
                 </div>
               </div>
             )}

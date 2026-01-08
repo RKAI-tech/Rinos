@@ -131,29 +131,27 @@ export type ApiRequestAuthType = 'none' | 'basic' | 'bearer';
 export type ApiRequestStorageType = 'cookie' | 'localStorage' | 'sessionStorage';
 
 export interface ApiRequestParam {
-  api_request_param_id?: string;
   key: string;
   value: string;
 }
 
 export interface ApiRequestHeader {
-  api_request_header_id?: string;
   key: string;
   value: string;
 }
 
 export interface ApiRequestBodyFormData {
-  api_request_body_form_data_id?: string;
+  body_form_data_id?: string;
   name: string;
   value: string;
-  order_index?: number;
+  order_index: number;
 }
 
 export interface ApiRequestBody {
-  api_request_id?: string;
+  api_request_body_id?: string;
   type: ApiRequestBodyType;
   content?: string | null;
-  form_data?: ApiRequestBodyFormData[];
+  form_datas?: ApiRequestBodyFormData[];
 }
 
 export interface ApiRequestTokenStorage {
@@ -167,13 +165,11 @@ export interface ApiRequestBasicAuthStorage {
   type: ApiRequestStorageType;
   username_key: string;
   password_key: string;
-  enabled?: boolean;
 }
 
 export interface ApiRequestAuth {
-  api_request_id?: string;
   type: ApiRequestAuthType;
-  storage_enabled?: boolean;
+  storage_enabled: boolean;
   username?: string;
   password?: string;
   token?: string;
@@ -185,7 +181,7 @@ export interface ApiRequestData {
   api_request_id?: string;
   create_type?: ApiCreateType;
   url?: string;
-  method?: ApiRequestMethod;
+  method: ApiRequestMethod;
   params?: ApiRequestParam[];
   headers?: ApiRequestHeader[];
   auth?: ApiRequestAuth;
@@ -306,9 +302,9 @@ export interface AiApiRequestSummary {
   endpoint: string;
   method: string;
   status: number;
-  headers: Record<string, any>;
+  headers?: Record<string, any>;
   response_time?: number;
-  payload: any;
+  payload?: any;
 }
 
 export interface AiAssertRequest {

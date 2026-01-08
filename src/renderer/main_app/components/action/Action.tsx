@@ -19,8 +19,8 @@ const formatDescription = (description?: string) => {
 const getFullValue = (action: ActionGetResponse) => {
   let value = '';
   for (const action_data of action.action_datas || []) {
-    if (action_data.value?.["value"]) {
-      value = action_data.value?.["value"];
+    if (action_data.value?.value) {
+      value = action_data.value.value;
       break;
     }
   }

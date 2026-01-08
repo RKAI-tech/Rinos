@@ -408,7 +408,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
     setSaveStatus('loading');
 
     try {
-      if (testcaseDataVersions.length < 0) {
+      if (testcaseDataVersions.length === 0) {
         toast.error('No testcase data versions found');
         return;
       }
@@ -416,6 +416,11 @@ const ActionTab: React.FC<ActionTabProps> = ({
       const normalized = normalizeResult(rawResult);
       if (normalized.success) {
         setSaveSuccessWithTimeout();
+        // ❌ XÓA phần này - Main.tsx đã xử lý reload rồi
+        // // Clear testcaseDataVersions after successful save
+        // if (onTestCaseDataVersionsChange) {
+        //   onTestCaseDataVersionsChange(() => []);
+        // }
       } else {
         setSaveStatus('idle');
       }
