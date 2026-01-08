@@ -7,7 +7,7 @@ import { registerEncryptionIpc } from "./ipc/encryption.js";
 import { registerScreenHandlersIpc } from "./ipc/screen_handle.js";
 import { registerBrowserIpc } from "./ipc/browser.js";
 import { registerPlaywrightHandlersIpc } from "./ipc/playwright.js";
-import { registerDatabaseIpc } from "./ipc/database.js";
+import { registerDatabaseTestIpc } from "./ipc/databaseTest.js";
 import "./env.js"; // Load environment variables
 
 // Disable Chromium/Electron sandbox in environments where SUID sandbox is unavailable (e.g., AppImage mount)
@@ -31,7 +31,7 @@ app.whenReady().then(() => {
   registerBrowserIpc(); // Register browser IPC first
   registerScreenHandlersIpc(); // Then register screen handlers
   registerPlaywrightHandlersIpc(); // Register playwright IPC
-  registerDatabaseIpc(); // Register database IPC
+  registerDatabaseTestIpc(); // Register database test IPC
   createMainAppWindow();
 
   try {
