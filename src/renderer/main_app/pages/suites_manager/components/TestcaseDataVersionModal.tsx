@@ -8,6 +8,7 @@ import { ActionDataGeneration } from '../../../types/actions';
 import { toast } from 'react-toastify';
 import EditVersionModal from './EditVersionModal';
 import NewVersionModal from './NewVersionModal';
+import { truncateText } from '../../../utils/textUtils';
 import './TestcaseDataVersionModal.css';
 
 interface TestcaseDataVersionModalProps {
@@ -206,6 +207,25 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
       ]);
       console.log('actionsResp', actionsResp);
       console.log('versionsResp', versionsResp);
+
+      // Check if testcase was deleted (both API calls return empty data or 404)
+      const isTestcaseDeleted = 
+        (!actionsResp.success && actionsResp.error && (
+          actionsResp.error.toLowerCase().includes('404') || 
+          actionsResp.error.toLowerCase().includes('not found') ||
+          actionsResp.error.toLowerCase().includes('does not exist')
+        )) ||
+        (!versionsResp.success && versionsResp.error && (
+          versionsResp.error.toLowerCase().includes('404') || 
+          versionsResp.error.toLowerCase().includes('not found') ||
+          versionsResp.error.toLowerCase().includes('does not exist')
+        ));
+
+      if (isTestcaseDeleted) {
+        console.info(`[TestcaseDataVersionModal] Testcase ${testcase.testcase_id} not found (likely deleted), closing modal`);
+        onClose();
+        return;
+      }
 
       if (actionsResp.success && actionsResp.data) {
         const loadedActions = actionsResp.data.actions || [];
@@ -1197,17 +1217,20 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
                                   {'. '}
                                   <span className="tdvm-action-name">{labelParts.name}</span>
                                 </td>
-                                {filteredVersions.map((version) => (
-                                  <td
-                                    key={version.testcase_data_version_id || version.version}
-                                    className="tdvm-td-value"
-                                    title={getValueForActionAndVersion(action.action_id, version)}
-                                  >
-                                    <div className="tdvm-cell-content">
-                                      {getValueForActionAndVersion(action.action_id, version)}
-                                    </div>
-                                  </td>
-                                ))}
+                                {filteredVersions.map((version) => {
+                                  const fullValue = getValueForActionAndVersion(action.action_id, version);
+                                  return (
+                                    <td
+                                      key={version.testcase_data_version_id || version.version}
+                                      className="tdvm-td-value"
+                                      title={fullValue}
+                                    >
+                                      <div className="tdvm-cell-content">
+                                        {truncateText(fullValue, 50)}
+                                      </div>
+                                    </td>
+                                  );
+                                })}
                               </tr>
                             );
                           })}

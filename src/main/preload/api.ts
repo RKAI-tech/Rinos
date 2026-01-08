@@ -54,6 +54,8 @@ const playwrightAPI = {
   installBrowsers: (browsers: string[]) => ipcRenderer.invoke('playwright:install-browsers', browsers),
   getBrowsersInfo: () => ipcRenderer.invoke('playwright:get-browsers-info'),
   removeBrowser: (browserType: string) => ipcRenderer.invoke('playwright:remove-browser', browserType),
+  runTest: (options: { scriptPath: string; browserType: string; outputDir: string; timeout?: number }) => 
+    ipcRenderer.invoke('playwright:run-test', options),
   onInstallProgress: (callback: (progress: { browser: string; progress: number; status: string }) => void) => {
     const handler = (_event: any, progress: { browser: string; progress: number; status: string }) => {
       callback(progress);
@@ -63,6 +65,15 @@ const playwrightAPI = {
   },
 };
 
+// File system API
+const fsAPI = {
+  writeFile: (filePath: string, content: string, encoding?: string) => ipcRenderer.invoke('fs:write-file', filePath, content, encoding),
+  readFile: (filePath: string) => ipcRenderer.invoke('fs:read-file', filePath),
+  deleteFile: (filePath: string) => ipcRenderer.invoke('fs:delete-file', filePath),
+  deleteDirectory: (dirPath: string) => ipcRenderer.invoke('fs:delete-directory', dirPath),
+  findFiles: (dirPath: string, extensions: string[]) => ipcRenderer.invoke('fs:find-files', dirPath, extensions),
+};
+
 // Expose APIs to renderer
 export function exposeAPIs() {
   contextBridge.exposeInMainWorld("electronAPI", {
@@ -70,6 +81,7 @@ export function exposeAPIs() {
     app: appAPI,
     system: systemAPI,
     playwright: playwrightAPI,
+    fs: fsAPI,
   });
 
   // Legacy support (giữ lại để tương thích)

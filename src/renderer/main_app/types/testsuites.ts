@@ -65,6 +65,7 @@ export interface GetTestCasesBySuiteRequest {
 export interface TestCaseInSuite {
     testcase_id: string;
     project_id: string;
+    evidence_id?: string;
     name: string;
     description: string;
     status: string;

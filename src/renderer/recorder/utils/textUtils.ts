@@ -5,8 +5,8 @@
  * @returns Truncated text with '...' if longer than maxLength
  */
 export const truncateText = (text: string, maxLength: number = 50): string => {
-    if (!text) return '';
-    const textStr = String(text);
-    if (textStr.length <= maxLength) return textStr;
-    return textStr.substring(0, maxLength) + '...';
+  if (!text) return '';
+  const textStr = String(text);
+  if (textStr.length <= maxLength) return textStr;
+  return textStr.substring(0, maxLength) + '...';
 };

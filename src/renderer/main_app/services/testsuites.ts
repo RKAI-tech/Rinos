@@ -54,10 +54,112 @@ export class TestSuiteService {
         if (!payload || !payload.test_suite_id) {
             return { success: false, error: 'test_suite_id is required' };
         }
-        return await apiRouter.request<{ message: string }>(`/runcode/execute_test_suite/${payload.test_suite_id}`, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        });
+
+        // Use local test execution service instead of API
+        try {
+            const { TestExecutionService } = await import('../../shared/services/testExecutionService');
+            
+            const testExecutionService = new TestExecutionService(
+                apiRouter,
+                undefined // Will use getElectronIPC() internally
+            );
+
+            // Get testcases from suite
+            const testcasesResponse = await this.getTestCasesBySuite({ 
+                test_suite_id: payload.test_suite_id 
+            });
+
+            if (!testcasesResponse.success || !testcasesResponse.data) {
+                return {
+                    success: false,
+                    error: testcasesResponse.error || 'Failed to get testcases from suite'
+                };
+            }
+
+            const testcases = testcasesResponse.data.testcases || [];
+
+            if (testcases.length === 0) {
+                return {
+                    success: false,
+                    error: 'No testcases found in test suite'
+                };
+            }
+
+            // Sort testcases by level (ascending - lower level = higher priority)
+            const sortedTestcases = [...testcases].sort((a, b) => {
+                const levelA = a.level ?? 0;
+                const levelB = b.level ?? 0;
+                return levelA - levelB;
+            });
+
+            // Group testcases by level
+            const groupedByLevel = new Map<number, TestCaseInSuite[]>();
+            sortedTestcases.forEach(testcase => {
+                const level = testcase.level ?? 0;
+                if (!groupedByLevel.has(level)) {
+                    groupedByLevel.set(level, []);
+                }
+                groupedByLevel.get(level)!.push(testcase);
+            });
+
+            // Get sorted levels (ascending order)
+            const sortedLevels = Array.from(groupedByLevel.keys()).sort((a, b) => a - b);
+
+            // Execute testcases sequentially by level
+            let successCount = 0;
+            let failureCount = 0;
+            const errors: string[] = [];
+
+            for (const level of sortedLevels) {
+                const testcasesInLevel = groupedByLevel.get(level) || [];
+                
+                // Execute testcases in this level sequentially
+                for (const testcase of testcasesInLevel) {
+                    try {
+                        const result = await testExecutionService.executeTestcase({
+                            testcase_id: testcase.testcase_id,
+                            test_suite_id: payload.test_suite_id,
+                            project_id: testcase.project_id,
+                            evidence_id: testcase.evidence_id,
+                            browser_type: testcase.browser_type,
+                            onSave: true,
+                        });
+
+                        if (result.success) {
+                            successCount++;
+                        } else {
+                            failureCount++;
+                            errors.push(`${testcase.name}: ${result.logs}`);
+                        }
+                    } catch (error) {
+                        failureCount++;
+                        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+                        errors.push(`${testcase.name}: ${errorMessage}`);
+                        console.error(`[TestSuiteService] Error executing testcase ${testcase.testcase_id}:`, error);
+                    }
+                }
+            }
+
+            // Return success if at least one testcase executed successfully
+            const hasSuccess = successCount > 0;
+            const totalCount = testcases.length;
+            const message = `Executed ${totalCount} testcase(s): ${successCount} passed, ${failureCount} failed`;
+
+            return {
+                success: hasSuccess,
+                data: {
+                    message: message
+                },
+                error: hasSuccess ? undefined : (errors.length > 0 ? errors.join('; ') : 'All testcases failed to execute')
+            };
+        } catch (error) {
+            console.error('[TestSuiteService] Error executing test suite locally:', error);
+            // Fallback to API if local execution fails
+            return await apiRouter.request<{ message: string }>(`/runcode/execute_test_suite/${payload.test_suite_id}`, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+        }
     }
     async getTestSuites(projectId: string): Promise<ApiResponse<TestSuiteGetAllResponse>> {
         if (!projectId) {

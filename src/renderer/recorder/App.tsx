@@ -8,6 +8,7 @@ export default function App() {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [browserType, setBrowserType] = useState<string | null>(null);
   const [testSuiteId, setTestSuiteId] = useState<string | null>(null);
+  const [evidenceId, setEvidenceId] = useState<string | null>(null);
   const [isTokenSynced, setIsTokenSynced] = useState(false);
 
 
@@ -61,6 +62,13 @@ export default function App() {
       return testSuiteIdFromUrl || null;
     };
 
+    const getEvidenceId = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const evidenceIdFromUrl = urlParams.get('evidenceId');
+      const evidenceIdFromAPI = (window as any).evidenceId;
+      return evidenceIdFromUrl || evidenceIdFromAPI || null;
+    };
+
     const id = getTestcaseId();
     if (id) {
       setTestcaseId(id);
@@ -88,6 +96,12 @@ export default function App() {
       setTestSuiteId(testSuiteId);
       // console.log('[Recorder App] Received test suite ID:', testSuiteId);
     }
+
+    const evidenceId = getEvidenceId();
+    if (evidenceId) {
+      setEvidenceId(evidenceId);
+      // console.log('[Recorder App] Received evidence ID:', evidenceId);
+    }
   }, []);
 
   // Chỉ render Main khi token đã được sync
@@ -108,7 +122,7 @@ export default function App() {
 
   return (
     <>
-      <Main testcaseId={testcaseId} projectId={projectId} browserType={browserType} testSuiteId={testSuiteId} />
+      <Main testcaseId={testcaseId} projectId={projectId} browserType={browserType} testSuiteId={testSuiteId} evidenceId={evidenceId || undefined} />
       <ToastContainer position="top-right" autoClose={3000} newestOnTop closeOnClick pauseOnHover theme="colored" />
     </>
   );

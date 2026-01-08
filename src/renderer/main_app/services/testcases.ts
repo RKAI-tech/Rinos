@@ -150,16 +150,60 @@ export class TestCaseService {
     }
 
     async executeTestCase(payload: ExecuteTestCaseRequest): Promise<ApiResponse<DefaultResponse>> {
-        return await apiRouter.request<DefaultResponse>(`/runcode/execute_test_case/${payload.testcase_id}`, {
-            method: 'POST',
-            body: JSON.stringify(payload),
-        });
+        // Use local test execution service instead of API
+        try {
+            const { TestExecutionService } = await import('../../shared/services/testExecutionService');
+            const { apiRouter } = await import('./baseAPIRequest');
+            
+            const testExecutionService = new TestExecutionService(
+                apiRouter,
+                undefined // Will use getElectronIPC() internally
+            );
+            
+            const result = await testExecutionService.executeTestcase({
+                testcase_id: payload.testcase_id,
+                test_suite_id: payload.test_suite_id,
+                project_id: payload.project_id,
+                onSave: true,
+            });
+            
+            return {
+                success: result.success,
+                data: {
+                    message: result.success ? 'Test executed successfully' : 'Test execution failed',
+                },
+                error: result.success ? undefined : result.logs,
+            };
+        } catch (error) {
+            console.error('[TestCaseService] Error executing testcase locally:', error);
+            // Fallback to API if local execution fails
+            return await apiRouter.request<DefaultResponse>(`/runcode/execute_test_case/${payload.testcase_id}`, {
+                method: 'POST',
+                body: JSON.stringify(payload),
+            });
+        }
     }
 
     async getTestCaseDataVersions(testcaseId: string): Promise<ApiResponse<TestCaseDataVersionBatch>> {
-        return await apiRouter.request<TestCaseDataVersionBatch>(`/testcases/data_version/get_by_testcase_id/${testcaseId}`, {
+        const response = await apiRouter.request<TestCaseDataVersionBatch>(`/testcases/data_version/get_by_testcase_id/${testcaseId}`, {
             method: 'POST',
             body: JSON.stringify({ testcase_id: testcaseId }),
         });
+
+        // Check if testcase was deleted (404 or Not Found error)
+        if (!response.success && response.error) {
+            const errorLower = response.error.toLowerCase();
+            if (errorLower.includes('404') || errorLower.includes('not found') || errorLower.includes('does not exist')) {
+                console.info(`[TestCaseService] Testcase ${testcaseId} not found (likely deleted), returning empty data versions`);
+                return {
+                    success: true,
+                    data: {
+                        testcase_data_versions: []
+                    }
+                };
+            }
+        }
+
+        return response;
     }
 }

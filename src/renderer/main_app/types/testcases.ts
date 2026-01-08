@@ -82,6 +82,7 @@ export interface TestCaseBatch {
 export interface ExecuteTestCaseRequest {
     testcase_id: string;
     test_suite_id?: string;
+    project_id?: string;
 }
 
 export interface TestCaseSearchRequest {

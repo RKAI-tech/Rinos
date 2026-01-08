@@ -3,10 +3,11 @@ import './EditTestcase.css';
 import '../../../../../renderer/recorder/components/action/Action.css';
 import '../../../../../renderer/recorder/components/action_tab/ActionTab.css';
 import MAAction from '../../action/Action';
-import { Action, Element as ActionElement } from '../../../types/actions';
+import { Action, Element as ActionElement, TestCaseDataVersion } from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
 import MAActionDetailModal from '../../action_detail/ActionDetailModal';
 import { BrowserType } from '../../../types/testcases';
+import { TestCaseService } from '../../../services/testcases';
 // import { BasicAuthService } from '../../../services/basic_auth'; // temporarily hidden
 
 interface MinimalTestcase {
@@ -20,7 +21,7 @@ interface MinimalTestcase {
 interface EditTestcaseProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { testcase_id: string; name: string; description: string | undefined; basic_authentication?: { username: string; password: string }; browser_type?: string; actions?: any[] }) => void;
+  onSave: (data: { testcase_id: string; name: string; description: string | undefined; basic_authentication?: { username: string; password: string }; browser_type?: string; actions?: any[]; testcase_data_versions?: TestCaseDataVersion[] }) => void;
   testcase: MinimalTestcase | null;
   projectId?: string;
 }
@@ -33,7 +34,9 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
   const [hasInitialBasicAuth, setHasInitialBasicAuth] = useState(false);
   const [actions, setActions] = useState<Action[]>([]);
   const [isLoadingActions, setIsLoadingActions] = useState(false);
+  const [testcaseDataVersions, setTestcaseDataVersions] = useState<TestCaseDataVersion[]>([]);
   const actionService = useMemo(() => new ActionService(), []);
+  const testCaseService = useMemo(() => new TestCaseService(), []);
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
   const testcaseNameInputRef = useRef<HTMLInputElement>(null);
   // const [basicAuthList, setBasicAuthList] = useState<{ username: string; password: string }[]>([]); // temporarily hidden
@@ -54,22 +57,59 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
       setBasicAuth(initialBasicAuth);
       setHasInitialBasicAuth(!!initialBasicAuth);
       // Prefer data from parent (already loaded with testcases), fallback to API fetch
-      // Load actions by testcase
-      const loadActions = async () => {
+      // Load actions and testcase_data_versions by testcase
+      const loadData = async () => {
         try {
           setIsLoadingActions(true);
-          const resp = await actionService.getActionsByTestCase(testcase.testcase_id, 1000, 0);
-          if (resp.success && resp.data) {
-            const mapped = (resp.data.actions || []) as Action[];
+          const [actionsResp, versionsResp] = await Promise.all([
+            actionService.getActionsByTestCase(testcase.testcase_id, 1000, 0, projectId),
+            testCaseService.getTestCaseDataVersions(testcase.testcase_id),
+          ]);
+          
+          // Check if testcase was deleted (both API calls return empty data)
+          const isTestcaseDeleted = 
+            (!actionsResp.success && actionsResp.error && (
+              actionsResp.error.toLowerCase().includes('404') || 
+              actionsResp.error.toLowerCase().includes('not found') ||
+              actionsResp.error.toLowerCase().includes('does not exist')
+            )) ||
+            (!versionsResp.success && versionsResp.error && (
+              versionsResp.error.toLowerCase().includes('404') || 
+              versionsResp.error.toLowerCase().includes('not found') ||
+              versionsResp.error.toLowerCase().includes('does not exist')
+            ));
+
+          if (isTestcaseDeleted) {
+            console.info(`[EditTestcase] Testcase ${testcase.testcase_id} not found (likely deleted), closing modal`);
+            onClose();
+            return;
+          }
+          
+          if (actionsResp.success && actionsResp.data) {
+            const mapped = (actionsResp.data.actions || []) as Action[];
             setActions(mapped);
           } else {
             setActions([]);
+          }
+
+          if (versionsResp.success && versionsResp.data) {
+            // Convert from API format (with action_data_generations) to save format (with action_data_generation_ids)
+            const versions: TestCaseDataVersion[] = (versionsResp.data.testcase_data_versions || []).map(v => ({
+              testcase_data_version_id: v.testcase_data_version_id,
+              version: v.version,
+              action_data_generation_ids: v.action_data_generations
+                ?.map(gen => gen.action_data_generation_id)
+                .filter((id): id is string => !!id) || [],
+            }));
+            setTestcaseDataVersions(versions);
+          } else {
+            setTestcaseDataVersions([]);
           }
         } finally {
           setIsLoadingActions(false);
         }
       };
-      loadActions();
+      loadData();
     }
   }, [testcase]);
 
@@ -142,6 +182,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
           })),
           assert_type: a.assert_type as any,
           action_datas: a.action_datas,
+          action_data_generation: a.action_data_generation, // Giữ lại action_data_generation
         }));
       }
 
@@ -152,7 +193,8 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
         description: testcaseTag.trim() || undefined,
         basic_authentication: basicAuth && (basicAuth.username || basicAuth.password) ? basicAuth : undefined,
         browser_type: browserType || BrowserType.chrome,
-        actions: actionRequests || []
+        actions: actionRequests || [],
+        testcase_data_versions: testcaseDataVersions.length > 0 ? testcaseDataVersions : undefined
       });
 
       setTestcaseName('');

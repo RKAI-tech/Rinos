@@ -16,7 +16,7 @@ import { ProjectService } from '../../services/projects';
 import { toast } from 'react-toastify';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { ActionService } from '../../services/actions';
-import { Action } from '../../types/actions';
+import { Action, TestCaseDataVersion } from '../../types/actions';
 import { canEdit } from '../../hooks/useProjectPermissions';
 import { Evidence, BrowserType } from '../../types/testcases';
 
@@ -829,16 +829,30 @@ const Testcases: React.FC = () => {
   }, [isInstallingBrowsers]);
 
   const handleSaveEditTestcase = async (
-    { testcase_id, name, description, basic_authentication, browser_type, actions }:
-    { testcase_id: string; name: string; description: string | undefined; basic_authentication?: { username: string; password: string }; browser_type?: string; actions?: any[] }) => {
+    { testcase_id, name, description, basic_authentication, browser_type, actions, testcase_data_versions }:
+    { testcase_id: string; name: string; description: string | undefined; basic_authentication?: { username: string; password: string }; browser_type?: string; actions?: any[]; testcase_data_versions?: TestCaseDataVersion[] }) => {
     try {
+      // 1) Save actions and testcase_data_versions using batchCreateActions if actions are provided
+      if (actions && actions.length > 0) {
+        const actionResp = await actionService.batchCreateActions(
+          actions,
+          testcase_data_versions,
+          projectId || undefined
+        );
+        
+        if (!actionResp.success) {
+          toast.error(actionResp.error || 'Failed to save actions. Please try again.');
+          return;
+        }
+      }
+      
+      // 2) Update testcase info (name, description, basic_auth, browser_type)
       const payload = {
         testcase_id,
         name,
         description: description || undefined,
         basic_authentication: basic_authentication || undefined,
         browser_type: browser_type || undefined,
-        actions: actions || undefined
       } as any;
       // console.log('[MAIN_APP] payload', payload);
       const resp = await testCaseService.updateTestCase(payload);
@@ -865,6 +879,31 @@ const Testcases: React.FC = () => {
     try {
       const resp = await testCaseService.deleteTestCase({ testcase_id: id });
       if (resp.success) {
+        // Đóng các modal đang mở với testcase này
+        if (selectedTestcase?.testcase_id === id) {
+          console.info('[Testcases] Closing modals for deleted testcase');
+          if (isEditModalOpen) {
+            handleCloseEditModal();
+          }
+          if (isDuplicateModalOpen) {
+            handleCloseDuplicateModal();
+          }
+          setSelectedTestcase(null);
+        }
+        
+        // Đóng recorder window nếu đang mở với testcase này
+        try {
+          const screenHandleAPI = (window as any)?.screenHandleAPI;
+          if (screenHandleAPI?.closeRecorder) {
+            const closeResult = await screenHandleAPI.closeRecorder();
+            if (closeResult?.success) {
+              console.info('[Testcases] Closed recorder window for deleted testcase');
+            }
+          }
+        } catch (e) {
+          console.error('[Testcases] Failed to close recorder window:', e);
+        }
+        
         toast.success('Testcase deleted successfully!');
         handleCloseDeleteModal();
         await reloadTestcases();

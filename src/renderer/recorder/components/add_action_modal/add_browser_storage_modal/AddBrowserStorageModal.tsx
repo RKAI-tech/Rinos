@@ -35,7 +35,7 @@ const AddBrowserStorageModal: React.FC<AddBrowserStorageModalProps> = ({
 
   useEffect(() => {
     if (selectedPageInfo) {
-      console.log('[AddBrowserStorageModal] Page info received:', selectedPageInfo);
+      // console.log('[AddBrowserStorageModal] Page info received:', selectedPageInfo);
       toast.success('Page selected successfully');
     }
   }, [selectedPageInfo]);
@@ -51,7 +51,7 @@ const AddBrowserStorageModal: React.FC<AddBrowserStorageModalProps> = ({
       try {
         const resp = await browserStorageService.getBrowserStoragesByProject(projectId);
         if (resp.success && resp.data) {
-          console.log(resp.data.items);
+          // console.log(resp.data.items);
           setBrowserStorages(resp.data.items || []);
         } else {
           setBrowserStorages([]);

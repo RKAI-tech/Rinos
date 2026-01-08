@@ -26,51 +26,51 @@ export function createDescription(action_received: any): string {
     }
     switch (type) {
         case ActionType.navigate:
-            return `Navigate to ${value}`;
+            return `Navigate to page.`;
         case ActionType.click:
-            return `Click on ${element}`;
+            return `Click on ${element}.`;
         case ActionType.input:
-            return `Enter ${value} into ${element}`;
+            return `Enter text into ${element}.`;
         case ActionType.select:
-            return `Select ${value} from ${element}`;
+            return `Select an option from ${element}.`;
         case ActionType.double_click:
-            return `Double click on ${element}`;
+            return `Double click on ${element}.`;
         case ActionType.right_click:
-            return `Right click on ${element}`;
+            return `Right click on ${element}.`;
         case ActionType.shift_click:
-            return `Shift click on ${element}`;
+            return `Shift click on ${element}.`;
         case ActionType.keydown:
-            return `Press ${value}`;
+            return `Press a key.`;
         case ActionType.keyup:
-            return `Key up ${value}`;
+            return `Release a key.`;
         case ActionType.keypress:
-            return `Key press ${value}`;
+            return `Press a key.`;
         case ActionType.upload:
-            return `Upload file ${files}`;
+            return `Upload: ${files}.`;
         case ActionType.scroll:
-            return `Scroll ${value}`;
+            return `Scroll the viewport.`;
         case ActionType.window_resize:
             return `Window resize`;
         case ActionType.connect_db:
-            return `Connect to database ${value}`;
+            return `Connect to a database.`;
         case ActionType.change:
-            return `Change ${value}`;
+            return `Change the value of ${element}.`;
         case ActionType.drag_and_drop:
-            return `Drag and drop ${element}`;
+            return `Drag and drop ${element}.`;
         case ActionType.drag_start:
-            return `Drag start ${element}`;
+            return `Drag start ${element}.`;
         case ActionType.drag_end:
-            return `Drag end ${element}`;
+            return `Drag end ${element}.`;
         case ActionType.drop:
-            return `Drop ${element}`;
+            return `Drop ${element}.`;
         case ActionType.reload:
-            return `Reload page`;
+            return `Reload the page.`;
         case ActionType.back:
-            return `Go back to previous page`;
+            return `Go back to the previous page.`;
         case ActionType.forward:
-            return `Go forward to next page`;
+            return `Go forward to the next page.`;
         case ActionType.wait:
-            return `Wait for ${value} ms`;
+            return `Wait for a certain amount of time.`;
         case ActionType.database_execution:
             let statement_text = action_received.action_datas?.[0]?.statement?.statement_text;
             for (const action_data of action_received.action_datas || []) {
@@ -79,7 +79,7 @@ export function createDescription(action_received: any): string {
                     break;
                 }
             }
-            return `Execute database query: ${statement_text}`;
+            return `Execute a database query.`;
         case ActionType.scroll:
                 return `Scroll viewport`;
         case ActionType.add_browser_storage:
@@ -90,15 +90,15 @@ export function createDescription(action_received: any): string {
                     break;
                 }
             }
-            return `Add browser storage ${browser_storage_name}`;
+            return `Add a browser storage.`;
         case ActionType.assert:
             switch (action_received.assert_type) {
                 case AssertType.toHaveText:
-                    return `Verify the element has text ${value}`;
+                    return `Verify the element has text.`;
                 case AssertType.toContainText:
-                    return `Verify the element contains text ${value}`;
+                    return `Verify the element contains text.`;
                 case AssertType.toHaveValue:
-                    return `Verify the element has value ${value}`;
+                    return `Verify the element has value.`;
                 // case AssertType.toHaveValues:
                 //     return `Verify the element has values ${value}`;
                 case AssertType.toBeVisible:
@@ -130,9 +130,9 @@ export function createDescription(action_received: any): string {
                 // case AssertType.toHaveRole:
                 //     return `Verify the element has role ${value}`;
                 case AssertType.pageHasAURL:
-                    return `Verify the page has URL ${value}`;
+                    return `Verify the page has URL.`;
                 case AssertType.pageHasATitle:
-                    return `Verify the page has title ${value}`;
+                    return `Verify the page has title.`;
                 case AssertType.ai:
                     return `${action_received.description}`;
                 
@@ -150,7 +150,7 @@ export function createDescription(action_received: any): string {
                         break;
                     }
                 }
-                return `Focus on page ${title} `;
+                return `Focus on page.`;
         case ActionType.page_create:
             let pageUrl = 'blank';
             for (const action_data of action_received.action_datas || []) {
@@ -159,7 +159,7 @@ export function createDescription(action_received: any): string {
                     break;
                 }
             }
-            return `Create page ${pageUrl}`;
+            return `Create page.`;
         case ActionType.page_close:
             let pageUrlClose = 'blank';
             for (const action_data of action_received.action_datas || []) {
@@ -168,7 +168,7 @@ export function createDescription(action_received: any): string {
                     break;
                 }
             }
-            return `Close page ${pageUrlClose}`;
+            return `Close page.`;
         case ActionType.api_request:
             let apiRequest = action_received.action_datas?.[0]?.api_request;
             for (const action_data of action_received.action_datas || []) {
@@ -179,7 +179,7 @@ export function createDescription(action_received: any): string {
             }
             const method = apiRequest?.method ? apiRequest.method.toUpperCase() : 'GET';
             const url = apiRequest?.url || '';
-            return `API Request: ${method} ${url}`;
+            return `API Request.`;
         default:
             return `Unknown action`;
     }
@@ -240,7 +240,7 @@ export function receiveAction(
     } as Action;
 
     // console.log('[Action sent from browser]', action_received);
-    console.log('[Received action]', receivedAction);
+    // console.log('[Received action]', receivedAction);
 
     const last_action = action_recorded[action_recorded.length - 1];
 

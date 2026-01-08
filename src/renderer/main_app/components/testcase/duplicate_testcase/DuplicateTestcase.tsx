@@ -59,6 +59,17 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
         try {
           setIsLoadingActions(true);
           const resp = await actionService.getActionsByTestCase(testcase.testcase_id, 1000, 0);
+          
+          // Check if testcase was deleted (404 or Not Found error)
+          if (!resp.success && resp.error) {
+            const errorLower = resp.error.toLowerCase();
+            if (errorLower.includes('404') || errorLower.includes('not found') || errorLower.includes('does not exist')) {
+              console.info(`[DuplicateTestcase] Testcase ${testcase.testcase_id} not found (likely deleted), closing modal`);
+              onClose();
+              return;
+            }
+          }
+          
           if (resp.success && resp.data) {
             const mapped = (resp.data.actions || []) as Action[];
             setActions(mapped);
