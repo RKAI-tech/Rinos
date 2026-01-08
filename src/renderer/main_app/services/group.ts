@@ -70,7 +70,7 @@ export class GroupService {
             method: 'DELETE'
         });
     }
-
+    
     /**
      * Get group tree with ungrouped suites and children groups.
      * 

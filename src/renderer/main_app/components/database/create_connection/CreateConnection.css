@@ -25,10 +25,68 @@
 .cc-password-wrapper .cc-form-input { width: 100%; padding-right: 40px; }
 .cc-password-toggle { position: absolute; right: 10px; color: #9ca3af; background: none; border: none; cursor: pointer; line-height: 1; padding: 4px; display: inline-flex; align-items: center; justify-content: center; }
 .cc-password-toggle:hover { color: #6b7280; }
+.cc-btn-test { background: #10b981; color: #fff; }
+.cc-btn-test:hover { background: #059669; }
+.cc-btn-test:disabled { background: #9ca3af; color: rgba(255, 255, 255, 0.7); cursor: not-allowed; }
+.cc-btn-test:disabled:hover { background: #9ca3af; }
 .cc-btn-save { background: #5549f5; color: #fff; }
 .cc-btn-save:hover { background: #4338ca; }
 .cc-btn-save:disabled { background: linear-gradient(135deg, rgba(85, 73, 245, 0.4) 0%, rgba(124, 58, 237, 0.4) 100%); color: rgba(255, 255, 255, 0.7); cursor: not-allowed; box-shadow: none; }
 .cc-btn-save:disabled:hover { background: linear-gradient(135deg, rgba(85, 73, 245, 0.4) 0%, rgba(124, 58, 237, 0.4) 100%); }
+
+/* Test Result Display */
+.cc-test-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 24px;
+  margin-bottom: 16px;
+}
+
+.cc-test-result-success {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+}
+
+.cc-test-result-error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+}
+
+.cc-test-result-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.cc-test-result-success .cc-test-result-icon {
+  color: #10b981;
+}
+
+.cc-test-result-error .cc-test-result-icon {
+  color: #ef4444;
+}
+
+.cc-test-result-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cc-test-result-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.cc-test-result-message {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+  word-break: break-word;
+}
 
 /* Security Section */
 .cc-security-section {

@@ -74,6 +74,11 @@ const fsAPI = {
   findFiles: (dirPath: string, extensions: string[]) => ipcRenderer.invoke('fs:find-files', dirPath, extensions),
 };
 
+// Database test API
+const databaseAPI = {
+  testConnection: (params: any) => ipcRenderer.invoke('database:test-connection', params),
+};
+
 // Expose APIs to renderer
 export function exposeAPIs() {
   contextBridge.exposeInMainWorld("electronAPI", {
@@ -82,6 +87,7 @@ export function exposeAPIs() {
     system: systemAPI,
     playwright: playwrightAPI,
     fs: fsAPI,
+    database: databaseAPI,
   });
 
   // Legacy support (giữ lại để tương thích)

@@ -62,7 +62,8 @@ export default defineConfig(({ mode }) => {
             }
             return 'assets/[name]-[hash].js';
           }
-        }
+        },
+        
       },
     },
     esbuild: {

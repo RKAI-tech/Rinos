@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'react-toastify';
 import './CreateConnection.css';
+import { testDatabaseConnection, DatabaseConnectionTestParams } from '../../../utils/testDatabaseConnection';
 
 // Tooltip for inline hints like in Cookies.tsx
 const Tooltip = ({ text }: { text: string }) => (
@@ -70,6 +71,8 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<'db_name' | 'host' | 'port' | 'username' | 'password', string>>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message?: string; error?: string } | null>(null);
   const dbNameInputRef = useRef<HTMLInputElement>(null);
 
   // Security options
@@ -136,6 +139,8 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
       setSshPassword('');
       setShowSshPassword(false);
       setLocalPort('Auto');
+      setTestResult(null);
+      setIsTesting(false);
     }
   }, [isOpen]);
 
@@ -166,6 +171,96 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleTestConnection = async () => {
+    // Validate basic fields
+    const newErrors: typeof errors = {};
+    const parsedPort = Number(port);
+    if (!dbName.trim()) newErrors.db_name = 'Database name is required';
+    if (!host.trim()) newErrors.host = 'Host is required';
+    if (!port.trim() || Number.isNaN(parsedPort) || parsedPort <= 0 || !Number.isInteger(parsedPort)) newErrors.port = 'Port must be a positive integer';
+    if (!username.trim()) newErrors.username = 'Username is required';
+    if (!password) newErrors.password = 'Password is required';
+    if (!projectId) {
+      toast.error('Project ID is required');
+      return;
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setIsTesting(true);
+    setTestResult(null);
+
+    try {
+      const testParams: DatabaseConnectionTestParams = {
+        project_id: projectId as string,
+        db_type: dbType,
+        db_name: dbName.trim(),
+        host: host.trim(),
+        port: parsedPort,
+        username: username.trim(),
+        password,
+        securityType: securityType,
+      };
+
+      // Add SSL/TLS options if enabled
+      if (securityType === 'ssl') {
+        testParams.sslMode = sslMode as 'disable' | 'require' | 'verify-ca' | 'verify-full';
+        // Note: File paths are not available in component (only file names are stored)
+        // If you need to test with SSL certificates, you'll need to implement file upload to get actual paths
+        // For now, we'll test without certificate paths
+        if (sslKeyPassphrase) {
+          testParams.sslKeyPassphrase = sslKeyPassphrase;
+        }
+      }
+
+      // Add SSH Tunnel options if enabled
+      if (securityType === 'ssh') {
+        testParams.sshHost = sshHost;
+        testParams.sshPort = Number(sshPort) || 22;
+        testParams.sshUsername = sshUsername;
+        testParams.sshAuthMethod = sshAuthMethod;
+        // Note: File paths are not available in component (only file names are stored)
+        // If you need to test with SSH keys, you'll need to implement file upload to get actual paths
+        // For now, we'll test with password auth or skip if private key is required
+        if (sshAuthMethod === 'password') {
+          testParams.sshPassword = sshPassword;
+        } else if (sshAuthMethod === 'private_key') {
+          // Private key file path is required but we only have file name
+          // You'll need to implement file path handling
+          toast.warning('SSH private key file path is required for testing. Please implement file upload to get actual file paths.');
+          setIsTesting(false);
+          return;
+        }
+        if (localPort && localPort !== 'Auto') {
+          testParams.localPort = Number(localPort);
+        }
+        if (sshKeyPassphrase) {
+          testParams.sshKeyPassphrase = sshKeyPassphrase;
+        }
+      }
+
+      const result = await testDatabaseConnection(testParams);
+      setTestResult(result);
+
+      if (result.success) {
+        toast.success(result.message || 'Connection test successful!');
+      } else {
+        toast.error(result.error || 'Connection test failed');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setTestResult({
+        success: false,
+        error: errorMessage,
+      });
+      toast.error(`Connection test failed: ${errorMessage}`);
+    } finally {
+      setIsTesting(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -730,8 +825,41 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
             )}
           </div>
 
+          {/* Test Result Display */}
+          {testResult && (
+            <div className={`cc-test-result ${testResult.success ? 'cc-test-result-success' : 'cc-test-result-error'}`}>
+              <div className="cc-test-result-icon">
+                {testResult.success ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
+              <div className="cc-test-result-content">
+                <div className="cc-test-result-title">
+                  {testResult.success ? 'Connection Test Successful' : 'Connection Test Failed'}
+                </div>
+                <div className="cc-test-result-message">
+                  {testResult.success ? (testResult.message || 'Connection established successfully') : (testResult.error || 'Connection test failed')}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="cc-modal-actions">
             <button type="button" className="cc-btn cc-btn-cancel" onClick={handleClose}>Cancel</button>
+            <button 
+              type="button" 
+              className="cc-btn cc-btn-test" 
+              onClick={handleTestConnection}
+              disabled={!isFormValid || isTesting || isSaving}
+            >
+              {isTesting ? 'Testing...' : 'Test Connection'}
+            </button>
             <button type="submit" className="cc-btn cc-btn-save" disabled={!isFormValid || isSaving}>{isSaving ? 'Saving...' : 'Save'}</button>
           </div>
         </form>
