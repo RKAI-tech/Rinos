@@ -327,6 +327,30 @@
   min-width: 0;
 }
 
+.cc-file-remove-btn {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.cc-file-remove-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.cc-file-remove-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
 @media (max-width: 640px) {
   .cc-modal-container { max-width: calc(100vw - 20px); }
   .cc-modal-overlay { padding: 10px; }

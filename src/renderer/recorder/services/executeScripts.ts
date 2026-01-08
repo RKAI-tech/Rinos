@@ -143,14 +143,6 @@ export class ExecuteScriptsService {
                 throw error;
             }
 
-            return {
-                success: result.success,
-                data: {
-                    success: result.success,
-                    logs: result.logs,
-                } as ExecuteActionsResponse,
-                error: result.success ? undefined : result.logs,
-            };
         } catch (error) {
             console.error('[ExecuteScriptsService] Error executing actions locally:', error);
             // Fallback to API if local execution fails

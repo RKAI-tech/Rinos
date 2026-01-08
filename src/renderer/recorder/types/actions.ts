@@ -72,12 +72,34 @@ export enum ConnectionType {
   mssql = "mssql",
 }
 
-export interface Connection {
+// Security options for database connections
+// Note: These fields use snake_case to match backend API convention
+export interface ConnectionSecurityOptions {
+  // SSL/TLS options
+  security_type?: 'none' | 'ssl' | 'ssh';
+  ssl_mode?: 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full';
+  ca_certificate?: string; // Base64 encoded CA certificate content
+  client_certificate?: string; // Base64 encoded client certificate content
+  client_private_key?: string; // Base64 encoded client private key content
+  ssl_key_passphrase?: string;
+  
+  // SSH Tunnel options
+  ssh_host?: string;
+  ssh_port?: number;
+  ssh_username?: string;
+  ssh_auth_method?: 'private_key' | 'password';
+  ssh_private_key?: string; // Base64 encoded SSH private key content
+  ssh_key_passphrase?: string;
+  ssh_password?: string;
+  local_port?: number | 'Auto';
+}
+
+export interface Connection extends ConnectionSecurityOptions {
   connection_id?: string;
   username: string;
   password: string;
   host: string;
-  port: string;
+  port: number; // Changed from string to number for consistency
   db_name: string;
   db_type: ConnectionType;
 }
@@ -250,12 +272,12 @@ export interface GenerateRandomDataFunctionResponse {
 
 
 // AI Assert Request types
-export interface AiAssertDatabaseConnection {
+export interface AiAssertDatabaseConnection extends ConnectionSecurityOptions {
   connection_id: string;
   username: string;
   password: string;
   host: string;
-  port: string;
+  port: number; // Changed from string to number for consistency
   db_name: string;
   db_type: string; // e.g., 'postgres'
 }

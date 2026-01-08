@@ -116,8 +116,8 @@ export function registerIpcHandlers() {
         const base64Content = extractBase64FromDataURL(content);
         fs.writeFileSync(fullPath, Buffer.from(base64Content, 'base64'));
       } else {
-        fs.writeFileSync(fullPath, content, encoding || 'utf-8');
-      }
+        fs.writeFileSync(fullPath, content, { encoding: encoding as BufferEncoding || 'utf-8' });
+            }
       return { success: true };
     } catch (error) {
       console.error('Failed to write file:', error);

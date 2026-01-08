@@ -80,9 +80,9 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
   
   // SSL/TLS fields
   const [sslMode, setSslMode] = useState('require');
-  const [caCertificateFile, setCaCertificateFile] = useState<string>('');
-  const [clientCertificateFile, setClientCertificateFile] = useState<string>('');
-  const [clientPrivateKeyFile, setClientPrivateKeyFile] = useState<string>('');
+  const [caCertificateFile, setCaCertificateFile] = useState<File | null>(null);
+  const [clientCertificateFile, setClientCertificateFile] = useState<File | null>(null);
+  const [clientPrivateKeyFile, setClientPrivateKeyFile] = useState<File | null>(null);
   const [sslKeyPassphrase, setSslKeyPassphrase] = useState('');
   const [showSslPassphrase, setShowSslPassphrase] = useState(false);
   
@@ -91,7 +91,7 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
   const [sshPort, setSshPort] = useState('22');
   const [sshUsername, setSshUsername] = useState('ec2-user');
   const [sshAuthMethod, setSshAuthMethod] = useState<'private_key' | 'password'>('private_key');
-  const [sshPrivateKeyFile, setSshPrivateKeyFile] = useState<string>('');
+  const [sshPrivateKeyFile, setSshPrivateKeyFile] = useState<File | null>(null);
   const [sshKeyPassphrase, setSshKeyPassphrase] = useState('');
   const [showSshKeyPassphrase, setShowSshKeyPassphrase] = useState(false);
   const [sshPassword, setSshPassword] = useState('');
@@ -124,16 +124,16 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
       setErrors({});
       setSecurityType('none');
       setSslMode('require');
-      setCaCertificateFile('');
-      setClientCertificateFile('');
-      setClientPrivateKeyFile('');
+      setCaCertificateFile(null);
+      setClientCertificateFile(null);
+      setClientPrivateKeyFile(null);
       setSslKeyPassphrase('');
       setShowSslPassphrase(false);
       setSshHost('bastion.example.com');
       setSshPort('22');
       setSshUsername('ec2-user');
       setSshAuthMethod('private_key');
-      setSshPrivateKeyFile('');
+      setSshPrivateKeyFile(null);
       setSshKeyPassphrase('');
       setShowSshKeyPassphrase(false);
       setSshPassword('');
@@ -223,7 +223,37 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
     setIsTesting(true);
     setTestResult(null);
 
+    const tempFilePaths: string[] = [];
+    const electronAPI = (window as any).electronAPI;
+
     try {
+      // Save SSL/TLS certificate files to temp location if needed
+      let caCertPath: string | undefined;
+      let clientCertPath: string | undefined;
+      let clientKeyPath: string | undefined;
+      let sshKeyPath: string | undefined;
+
+      if (securityType === 'ssl') {
+        if (caCertificateFile) {
+          caCertPath = await saveFileToTemp(caCertificateFile);
+          tempFilePaths.push(caCertPath);
+        }
+        if (clientCertificateFile) {
+          clientCertPath = await saveFileToTemp(clientCertificateFile);
+          tempFilePaths.push(clientCertPath);
+        }
+        if (clientPrivateKeyFile) {
+          clientKeyPath = await saveFileToTemp(clientPrivateKeyFile);
+          tempFilePaths.push(clientKeyPath);
+        }
+      }
+
+      // Save SSH private key file to temp location if needed
+      if (securityType === 'ssh' && sshAuthMethod === 'private_key' && sshPrivateKeyFile) {
+        sshKeyPath = await saveFileToTemp(sshPrivateKeyFile);
+        tempFilePaths.push(sshKeyPath);
+      }
+
       const testParams: DatabaseConnectionTestParams = {
         project_id: projectId as string,
         db_type: dbType,
@@ -232,43 +262,51 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
         port: parsedPort,
         username: username.trim(),
         password,
-        securityType: securityType,
+        security_type: securityType,
       };
 
       // Add SSL/TLS options if enabled
       if (securityType === 'ssl') {
-        testParams.sslMode = sslMode as 'disable' | 'require' | 'verify-ca' | 'verify-full';
-        // Note: File paths are not available in component (only file names are stored)
-        // If you need to test with SSL certificates, you'll need to implement file upload to get actual paths
-        // For now, we'll test without certificate paths
+        testParams.ssl_mode = sslMode as 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full';
+        
+        // Add certificate file paths
+        if (caCertPath) {
+          testParams.ca_certificate_path = caCertPath;
+        }
+        if (clientCertPath) {
+          testParams.client_certificate_path = clientCertPath;
+        }
+        if (clientKeyPath) {
+          testParams.client_private_key_path = clientKeyPath;
+        }
+        
         if (sslKeyPassphrase) {
-          testParams.sslKeyPassphrase = sslKeyPassphrase;
+          testParams.ssl_key_passphrase = sslKeyPassphrase;
         }
       }
 
       // Add SSH Tunnel options if enabled
       if (securityType === 'ssh') {
-        testParams.sshHost = sshHost;
-        testParams.sshPort = Number(sshPort) || 22;
-        testParams.sshUsername = sshUsername;
-        testParams.sshAuthMethod = sshAuthMethod;
-        // Note: File paths are not available in component (only file names are stored)
-        // If you need to test with SSH keys, you'll need to implement file upload to get actual paths
-        // For now, we'll test with password auth or skip if private key is required
+        testParams.ssh_host = sshHost;
+        testParams.ssh_port = Number(sshPort) || 22;
+        testParams.ssh_username = sshUsername;
+        testParams.ssh_auth_method = sshAuthMethod;
         if (sshAuthMethod === 'password') {
-          testParams.sshPassword = sshPassword;
+          testParams.ssh_password = sshPassword;
         } else if (sshAuthMethod === 'private_key') {
-          // Private key file path is required but we only have file name
-          // You'll need to implement file path handling
-          toast.warning('SSH private key file path is required for testing. Please implement file upload to get actual file paths.');
-          setIsTesting(false);
-          return;
+          if (sshKeyPath) {
+            testParams.ssh_private_key_path = sshKeyPath;
+          } else {
+            toast.warning('SSH private key file is required for private key authentication.');
+            setIsTesting(false);
+            return;
+          }
         }
         if (localPort && localPort !== 'Auto') {
-          testParams.localPort = Number(localPort);
+          testParams.local_port = Number(localPort);
         }
         if (sshKeyPassphrase) {
-          testParams.sshKeyPassphrase = sshKeyPassphrase;
+          testParams.ssh_key_passphrase = sshKeyPassphrase;
         }
       }
 
@@ -288,6 +326,16 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
       });
       toast.error(`Connection test failed: ${errorMessage}`);
     } finally {
+      // Cleanup temp files
+      if (electronAPI?.fs && tempFilePaths.length > 0) {
+        for (const tempPath of tempFilePaths) {
+          try {
+            await electronAPI.fs.deleteFile(tempPath);
+          } catch (cleanupError) {
+            console.warn('Failed to cleanup temp file:', tempPath, cleanupError);
+          }
+        }
+      }
       setIsTesting(false);
     }
   };
@@ -304,19 +352,64 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
     if (!projectId) newErrors.host = (newErrors.host ? newErrors.host + ' | ' : '') + 'Missing project id';
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
 
-    const payload = {
-      project_id: projectId as string,
-      db_type: dbType,
-      db_name: dbName.trim(),
-      host: host.trim(),
-      port: parsedPort,
-      username: username.trim(),
-      password,
-    };
-
     setIsSaving(true);
     let shouldClose = true;
     try {
+      // Build payload with security options
+      const payload: any = {
+        project_id: projectId as string,
+        db_type: dbType,
+        db_name: dbName.trim(),
+        host: host.trim(),
+        port: parsedPort,
+        username: username.trim(),
+        password,
+      };
+
+      // Add SSL/TLS options if enabled
+      if (securityType === 'ssl') {
+        payload.security_type = securityType;
+        payload.ssl_mode = sslMode;
+        
+        // Convert certificate files to base64
+        if (caCertificateFile) {
+          payload.ca_certificate = await fileToBase64(caCertificateFile);
+        }
+        if (clientCertificateFile) {
+          payload.client_certificate = await fileToBase64(clientCertificateFile);
+        }
+        if (clientPrivateKeyFile) {
+          payload.client_private_key = await fileToBase64(clientPrivateKeyFile);
+        }
+        
+        if (sslKeyPassphrase) {
+          payload.ssl_key_passphrase = sslKeyPassphrase;
+        }
+      }
+
+      // Add SSH Tunnel options if enabled
+      if (securityType === 'ssh') {
+        payload.security_type = securityType;
+        payload.ssh_host = sshHost;
+        payload.ssh_port = Number(sshPort) || 22;
+        payload.ssh_username = sshUsername;
+        payload.ssh_auth_method = sshAuthMethod;
+        
+        if (sshAuthMethod === 'password') {
+          payload.ssh_password = sshPassword;
+        } else if (sshAuthMethod === 'private_key' && sshPrivateKeyFile) {
+          payload.ssh_private_key = await fileToBase64(sshPrivateKeyFile);
+        }
+        
+        if (localPort && localPort !== 'Auto') {
+          payload.local_port = Number(localPort);
+        }
+        
+        if (sshKeyPassphrase) {
+          payload.ssh_key_passphrase = sshKeyPassphrase;
+        }
+      }
+
       let response: any;
       try {
         response = await Promise.resolve(onSave(payload));
@@ -342,6 +435,10 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
         toast.error(response.error || 'Failed to create database connection. Please check your connection details and try again.');
         shouldClose = false;
       }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to create database connection: ${errorMessage}`);
+      shouldClose = false;
     } finally {
       setIsSaving(false);
       if (shouldClose) {
@@ -362,16 +459,16 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
     setIsSaving(false);
     setSecurityType('none');
     setSslMode('require');
-    setCaCertificateFile('');
-    setClientCertificateFile('');
-    setClientPrivateKeyFile('');
+    setCaCertificateFile(null);
+    setClientCertificateFile(null);
+    setClientPrivateKeyFile(null);
     setSslKeyPassphrase('');
     setShowSslPassphrase(false);
     setSshHost('bastion.example.com');
     setSshPort('22');
     setSshUsername('ec2-user');
     setSshAuthMethod('private_key');
-    setSshPrivateKeyFile('');
+    setSshPrivateKeyFile(null);
     setSshKeyPassphrase('');
     setShowSshKeyPassphrase(false);
     setSshPassword('');
@@ -381,13 +478,78 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
   };
 
   // File upload handlers (UI only, no actual file handling)
-  const handleFileUpload = (setter: (value: string) => void, accept: string) => {
+  const handleFileUpload = (setter: (value: File | null) => void, accept: string) => {
     return (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
-        setter(file.name);
+        setter(file);
+      } else {
+        setter(null);
       }
     };
+  };
+
+  // Helper function to convert File object to base64 string
+  const fileToBase64 = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const dataUrl = reader.result as string;
+          // Extract base64 from data URL (format: data:...;base64,<base64-content>)
+          const base64Content = dataUrl.split(',')[1];
+          resolve(base64Content);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Helper function to save File object to temp location and get path (for test connection)
+  const saveFileToTemp = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const dataUrl = reader.result as string;
+          // Extract base64 from data URL (format: data:...;base64,<base64-content>)
+          const base64Content = dataUrl.split(',')[1];
+          
+          // Get Electron API
+          const electronAPI = (window as any).electronAPI;
+          if (!electronAPI?.fs) {
+            reject(new Error('Electron API not available'));
+            return;
+          }
+          
+          // Create temp file path using OS temp directory
+          const timestamp = Date.now();
+          const random = Math.round(Math.random() * 1E9);
+          const tempFileName = `db-cert-${timestamp}-${random}-${file.name}`;
+          const tempFilePath = `/tmp/${tempFileName}`;
+          
+          // Write file via IPC with base64 encoding
+          const result = await electronAPI.fs.writeFile(tempFilePath, base64Content, 'base64');
+          if (!result.success) {
+            reject(new Error(result.error || 'Failed to save file to temp location'));
+            return;
+          }
+          
+          resolve(tempFilePath);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'));
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   return (
@@ -546,6 +708,7 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
                     <div className="cc-form-group">
                       <label htmlFor="sslMode" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         SSL Mode <span className="cc-required">*</span>
+                        <Tooltip text="SSL connection mode: disable (no SSL), allow (try non-SSL first, fallback to SSL), prefer (try SSL first, fallback to non-SSL), require (use SSL but don't verify), verify-ca (verify CA certificate), verify-full (verify full certificate chain)" />
                       </label>
                       <select
                         id="sslMode"
@@ -553,10 +716,12 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
                         value={sslMode}
                         onChange={(e) => setSslMode(e.target.value)}
                       >
-                        <option value="disable">disable</option>
-                        <option value="require">require</option>
-                        <option value="verify-ca">verify-ca</option>
-                        <option value="verify-full">verify-full</option>
+                        <option value="disable">disable - No SSL/TLS encryption</option>
+                        <option value="allow">allow - Try non-SSL first, fallback to SSL if fails</option>
+                        <option value="prefer">prefer - Try SSL first, fallback to non-SSL if fails</option>
+                        <option value="require">require - Use SSL but don't verify certificate</option>
+                        <option value="verify-ca">verify-ca - Verify CA certificate (requires CA certificate)</option>
+                        <option value="verify-full">verify-full - Verify full certificate chain including hostname (requires CA certificate)</option>
                       </select>
                     </div>
 
@@ -584,7 +749,17 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
                               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                               <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
-                            <span className="cc-file-name">{caCertificateFile}</span>
+                            <span className="cc-file-name">{caCertificateFile.name}</span>
+                            <button
+                              type="button"
+                              className="cc-file-remove-btn"
+                              onClick={() => setCaCertificateFile(null)}
+                              aria-label="Remove file"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -614,7 +789,17 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
                               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                               <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
-                            <span className="cc-file-name">{clientCertificateFile}</span>
+                            <span className="cc-file-name">{clientCertificateFile.name}</span>
+                            <button
+                              type="button"
+                              className="cc-file-remove-btn"
+                              onClick={() => setClientCertificateFile(null)}
+                              aria-label="Remove file"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -644,7 +829,17 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
                               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                               <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
-                            <span className="cc-file-name">{clientPrivateKeyFile}</span>
+                            <span className="cc-file-name">{clientPrivateKeyFile.name}</span>
+                            <button
+                              type="button"
+                              className="cc-file-remove-btn"
+                              onClick={() => setClientPrivateKeyFile(null)}
+                              aria-label="Remove file"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -775,7 +970,17 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
                                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                   <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
-                                <span className="cc-file-name">{sshPrivateKeyFile}</span>
+                                <span className="cc-file-name">{sshPrivateKeyFile.name}</span>
+                                <button
+                                  type="button"
+                                  className="cc-file-remove-btn"
+                                  onClick={() => setSshPrivateKeyFile(null)}
+                                  aria-label="Remove file"
+                                >
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                </button>
                               </div>
                             )}
                           </div>
