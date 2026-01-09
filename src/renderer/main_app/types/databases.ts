@@ -41,6 +41,7 @@ export interface DatabaseConnectionUpdateRequest extends DatabaseConnectionSecur
     port?: number;
     db_name?: string;
     db_type?: SupportedDbType;
+    project_id?: string;
 }
 
 export interface DatabaseConnectionListRequest {

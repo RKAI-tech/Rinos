@@ -434,6 +434,7 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
       // Build payload - only include fields that should be updated
       const payload: any = {
         connection_id: connection.connection_id,
+        project_id: projectId,
       };
 
       // Only include fields that have changed or are being set

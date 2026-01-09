@@ -77,7 +77,8 @@ export class DatabaseService {
             };
         }
 
-        let encryptedPayload = payload;
+        let { project_id, ...rest } = payload;
+        let encryptedPayload = rest;
         
         // Get project_id from payload or need to fetch it - for now, we'll try to get it from the connection
         // Since update might not have project_id, we need to handle this case

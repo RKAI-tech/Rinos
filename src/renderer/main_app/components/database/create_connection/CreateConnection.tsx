@@ -87,9 +87,9 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
   const [showSslPassphrase, setShowSslPassphrase] = useState(false);
   
   // SSH Tunnel fields
-  const [sshHost, setSshHost] = useState('bastion.example.com');
-  const [sshPort, setSshPort] = useState('22');
-  const [sshUsername, setSshUsername] = useState('ec2-user');
+  const [sshHost, setSshHost] = useState('');
+  const [sshPort, setSshPort] = useState('');
+  const [sshUsername, setSshUsername] = useState('');
   const [sshAuthMethod, setSshAuthMethod] = useState<'private_key' | 'password'>('private_key');
   const [sshPrivateKeyFile, setSshPrivateKeyFile] = useState<File | null>(null);
   const [sshKeyPassphrase, setSshKeyPassphrase] = useState('');
@@ -129,9 +129,9 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
       setClientPrivateKeyFile(null);
       setSslKeyPassphrase('');
       setShowSslPassphrase(false);
-      setSshHost('bastion.example.com');
-      setSshPort('22');
-      setSshUsername('ec2-user');
+      setSshHost('');
+      setSshPort('');
+      setSshUsername('');
       setSshAuthMethod('private_key');
       setSshPrivateKeyFile(null);
       setSshKeyPassphrase('');
@@ -464,9 +464,9 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
     setClientPrivateKeyFile(null);
     setSslKeyPassphrase('');
     setShowSslPassphrase(false);
-    setSshHost('bastion.example.com');
-    setSshPort('22');
-    setSshUsername('ec2-user');
+    setSshHost('');
+    setSshPort('');
+    setSshUsername('');
     setSshAuthMethod('private_key');
     setSshPrivateKeyFile(null);
     setSshKeyPassphrase('');
@@ -883,7 +883,7 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
                           className="cc-form-input"
                           value={sshHost}
                           onChange={(e) => setSshHost(e.target.value)}
-                          placeholder="bastion.example.com"
+                          placeholder="e.g. bastion.example.com or 192.168.1.100"
                         />
                       </div>
                       <div className="cc-form-group">
@@ -899,7 +899,7 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
                               setSshPort(value);
                             }
                           }}
-                          placeholder="22"
+                          placeholder="e.g. 22 (default SSH port)"
                         />
                       </div>
                     </div>
@@ -914,7 +914,7 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
                         className="cc-form-input"
                         value={sshUsername}
                         onChange={(e) => setSshUsername(e.target.value)}
-                        placeholder="ec2-user"
+                        placeholder="e.g. ec2-user, ubuntu, or your SSH username"
                       />
                     </div>
 
