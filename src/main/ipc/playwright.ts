@@ -926,7 +926,7 @@ export function registerPlaywrightHandlersIpc() {
         
         // Use Electron's node to run npx via child_process
         // This ensures we use the correct node environment
-        const npxCommand = process.platform === 'win32' ? 'npx.cmd' : '/home/vietdb/.nvm/versions/node/v20.19.4/bin/npx';
+        const npxCommand = process.platform === 'win32' ? 'npx.cmd' : 'npx';
         const child = spawn(npxCommand, spawnArgs, {
           env: env,
           cwd: sandboxDir,
