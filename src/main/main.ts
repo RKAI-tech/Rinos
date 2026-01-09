@@ -7,7 +7,6 @@ import { registerEncryptionIpc } from "./ipc/encryption.js";
 import { registerScreenHandlersIpc } from "./ipc/screen_handle.js";
 import { registerBrowserIpc } from "./ipc/browser.js";
 import { registerPlaywrightHandlersIpc } from "./ipc/playwright.js";
-import { registerDatabaseTestIpc } from "./ipc/databaseTest.js";
 import { registerDatabaseIpc } from "./ipc/database.js";
 import "./env.js"; // Load environment variables
 
@@ -32,8 +31,7 @@ app.whenReady().then(() => {
   registerBrowserIpc(); // Register browser IPC first
   registerScreenHandlersIpc(); // Then register screen handlers
   registerPlaywrightHandlersIpc(); // Register playwright IPC
-  registerDatabaseTestIpc(); // Register database test IPC
-  registerDatabaseIpc(); // Register database IPC
+  registerDatabaseIpc(); // Register database IPC (includes test connection and execute query)
   createMainAppWindow();
 
   try {

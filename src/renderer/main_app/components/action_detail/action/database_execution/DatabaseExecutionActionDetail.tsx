@@ -172,10 +172,13 @@ const DatabaseExecutionActionDetail: React.FC<DatabaseExecutionActionDetailProps
       setIsRunningQuery(true);
       setQueryError('');
       setQueryStatus('Executing query...');
+      
+      // Get projectId from browserAPI
+      const projectId = await (window as any).browserAPI?.browser?.getProjectId?.();
       const resp = await statementService.runWithoutCreate({ 
         connection_id: selectedConnectionId, 
         query: query.trim() 
-      });
+      }, projectId);
       
       const data = (resp as any)?.data?.data || [];
       const preview = data.length > 0 ? JSON.stringify(data) : 'No rows returned';

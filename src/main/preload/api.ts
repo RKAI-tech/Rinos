@@ -85,6 +85,22 @@ const databaseAPI = {
     db_name: string;
     username: string;
     password: string;
+    // SSL/TLS options
+    security_type?: 'none' | 'ssl' | 'ssh';
+    ssl_mode?: 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full';
+    ca_certificate_path?: string;
+    client_certificate_path?: string;
+    client_private_key_path?: string;
+    ssl_key_passphrase?: string;
+    // SSH Tunnel options
+    ssh_host?: string;
+    ssh_port?: number;
+    ssh_username?: string;
+    ssh_auth_method?: 'private_key' | 'password';
+    ssh_private_key_path?: string;
+    ssh_key_passphrase?: string;
+    ssh_password?: string;
+    local_port?: number | 'Auto';
   }, query: string) => ipcRenderer.invoke('database:execute-query', params, query),
 };
 
