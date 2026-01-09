@@ -375,7 +375,7 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
                   username: dbConn.username,
                   password: dbConn.password,
                   host: dbConn.host,
-                  port: dbConn.port !== undefined ? String(dbConn.port) : "",
+                  port: dbConn.port !== undefined ? dbConn.port : 0,
                   db_name: dbConn.db_name,
                   db_type: dbConn.db_type,
                 } as Connection,

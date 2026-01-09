@@ -82,10 +82,7 @@ export const useAssertWithValue = ({
           statement_id: statement.statement_id || '',
           statement_text: statement.query || '',
           connection_id: (statement.connection as any)?.connection_id || '',
-          connection: statement.connection ? {
-            ...statement.connection,
-            port: statement.connection.port !== undefined ? String(statement.connection.port) : undefined,
-          } : undefined,
+          connection: statement.connection,
         }
       });
     }

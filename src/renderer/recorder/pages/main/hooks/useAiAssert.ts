@@ -143,9 +143,7 @@ export const useAiAssert = ({
       .filter(el => el.type === 'Database')
       .map(el => ({
         data: el.queryResultPreview || '',
-        connection: el.connection
-          ? { ...el.connection, port: String((el.connection as any).port) }
-          : undefined,
+        connection: el.connection,
         query: el.query || '',
       }));
 
