@@ -5,8 +5,10 @@ import Breadcrumb from '../../components/breadcumb/Breadcrumb';
 import SidebarNavigator from '../../components/sidebar_navigator/SidebarNavigator';
 import './Databases.css';
 import CreateConnection from '../../components/database/create_connection/CreateConnection';
+import UpdateConnection from '../../components/database/update_connection/UpdateConnection';
 import DeleteConnection from '../../components/database/delete_connection/DeleteConnection';
 import { DatabaseService } from '../../services/database';
+import { DatabaseConnection } from '../../types/databases';
 import { ProjectService } from '../../services/projects';
 import { toast } from 'react-toastify';
 import { canEdit } from '../../hooks/useProjectPermissions';
@@ -43,8 +45,10 @@ const Databases: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isUpdateOpen, setIsUpdateOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<{ id: string; name?: string } | null>(null);
+  const [selectedConnectionForUpdate, setSelectedConnectionForUpdate] = useState<DatabaseConnection | null>(null);
   const [isReloading, setIsReloading] = useState(false);
 
   // Service - use useMemo to avoid recreating on every render
@@ -298,6 +302,21 @@ const Databases: React.FC = () => {
   const handleSidebarNavigate = (path: string) => navigate(path);
 
   const handleCreateDatabase = () => { if (!canEditPermission) return; setIsCreateOpen(true); };
+  const handleOpenUpdate = async (item: DatabaseItem) => {
+    if (!canEditPermission || !projectId) return;
+    try {
+      const resp = await databaseService.getConnectionById(projectId, item.id);
+      if (resp.success && resp.data) {
+        setSelectedConnectionForUpdate(resp.data);
+        setIsUpdateOpen(true);
+        setOpenDropdownId(null);
+      } else {
+        toast.error(resp.error || 'Failed to load connection details');
+      }
+    } catch (e) {
+      toast.error('Failed to load connection details');
+    }
+  };
   const handleOpenDelete = (item: DatabaseItem) => {
     if (!canEditPermission) return;
     setSelectedConnection({ id: item.id, name: item.name });
@@ -469,9 +488,11 @@ const Databases: React.FC = () => {
                             >
                               <button 
                                 className="dropdown-item" 
-                                onClick={(e) => {
+                                onClick={async (e) => {
                                   e.stopPropagation();
                                   e.preventDefault();
+                                  if (!canEditPermission) { setOpenDropdownId(null); return; }
+                                  await handleOpenUpdate(db);
                                 }}
                                 onMouseDown={(e) => {
                                   e.stopPropagation();
@@ -557,6 +578,18 @@ const Databases: React.FC = () => {
             const message = e instanceof Error ? e.message : 'Failed to create connection';
             return { success: false, error: message };
           }
+        }}
+      />
+      <UpdateConnection
+        isOpen={isUpdateOpen}
+        onClose={() => {
+          setIsUpdateOpen(false);
+          setSelectedConnectionForUpdate(null);
+        }}
+        projectId={projectId}
+        connection={selectedConnectionForUpdate}
+        onSave={async () => {
+          await reloadConnections();
         }}
       />
       <DeleteConnection

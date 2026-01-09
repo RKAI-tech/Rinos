@@ -4,9 +4,9 @@ import { BrowserContext, Locator, Page, Request } from "playwright";
 import { BasicAuthentication } from "../renderer/recorder/types/basic_auth";
 import { FileService } from "./services/files";
 import { StatementService } from "./services/statements";
-const os = require('os');
-const fs = require('fs');
-const path = require('path');
+import  os from 'os';
+import fs from 'fs';
+import path from 'path';
 const tmpDir = os.tmpdir();
 console.log('[Controller] tmpDir', tmpDir);
 

@@ -9,18 +9,21 @@ import { DatabaseService } from "./services/database";
 import { StatementService } from "./services/statements";
 import { apiRouter } from "./services/baseAPIRequest";
 import { randomUUID } from "crypto";
-
 // Định nghĩa type Playwright (chỉ dùng cho type, không trigger import runtime)
 type PlaywrightModule = typeof import("playwright");
 type Browser = import("playwright").Browser;
 type BrowserContext = import("playwright").BrowserContext;
 type Page = import("playwright").Page;
 type Request = import("playwright").Request;
-
-// Các launcher sẽ được gán sau khi set ENV và require("playwright")
-let chromium: PlaywrightModule["chromium"];
-let firefox: PlaywrightModule["firefox"];
-let webkit: PlaywrightModule["webkit"];
+let playwrightRuntime: PlaywrightModule | null = null;
+export async function getPlaywright(): Promise<PlaywrightModule> {
+    if (!playwrightRuntime) {
+      const mod = await import('playwright');
+      playwrightRuntime = mod as unknown as PlaywrightModule;
+    }
+    return playwrightRuntime;
+  }
+  
 let browsersPath: string;
 
 if (!app.isPackaged) {
@@ -35,14 +38,6 @@ if (!app.isPackaged) {
 process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
 // Skip host requirement validation on end-user machines to avoid missing lib errors
 process.env.PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "1";
-
-// Bây giờ mới load Playwright bằng require để tôn trọng ENV ở trên
-// (import ESModule bị hoist nên không dùng được cho mục đích này)
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const playwrightRuntime: PlaywrightModule = require("playwright");
-chromium = playwrightRuntime.chromium;
-firefox = playwrightRuntime.firefox;
-webkit = playwrightRuntime.webkit;
 
 // console.log('[BrowserManager] Playwright browsers path:', browsersPath);
 // console.log('[BrowserManager] Platform:', process.platform);
@@ -208,10 +203,13 @@ export class BrowserManager extends EventEmitter {
                 return;
             }
 
+            // Load Playwright module (lazy load)
+            const playwright = await getPlaywright();
+
             // Map browser type to Playwright browser launcher
             // Default to chrome if not specified or invalid
             const normalizedBrowserType = (browserType || 'chrome').toLowerCase();
-            let browserLauncher: typeof chromium | typeof firefox | typeof webkit;
+            let browserLauncher: typeof playwright.chromium | typeof playwright.firefox | typeof playwright.webkit;
             let launchOptions: any = {
                 headless: false,
             };
@@ -220,7 +218,7 @@ export class BrowserManager extends EventEmitter {
                 case BrowserType.chrome:
                 case 'chrome':
                 default:
-                    browserLauncher = chromium;
+                    browserLauncher = playwright.chromium;
                     // Luôn dùng Chromium do Playwright quản lý (không dùng Chrome hệ thống)
                     launchOptions.args = [
                         '--no-sandbox',
@@ -233,7 +231,7 @@ export class BrowserManager extends EventEmitter {
                     break;
                 case BrowserType.firefox:
                 case 'firefox':
-                    browserLauncher = firefox;
+                    browserLauncher = playwright.firefox;
                     // Luôn dùng Firefox do Playwright quản lý (không dùng Firefox hệ thống)
                     launchOptions.args = [
                         '--no-sandbox',
@@ -248,14 +246,14 @@ export class BrowserManager extends EventEmitter {
                     break;
                 case BrowserType.safari:
                 case 'safari':
-                    browserLauncher = webkit;
+                    browserLauncher = playwright.webkit;
                     // Safari: Luôn sử dụng Playwright WebKit (Safari hệ thống không được dùng)
                     // WebKit doesn't support Chromium-specific args like --no-sandbox
                     launchOptions.args = [];
                     break;
                 case BrowserType.edge:
                 case 'edge':
-                    browserLauncher = chromium;
+                    browserLauncher = playwright.chromium;
                     // Edge: trên Windows dùng hệ thống, Mac/Linux dùng custom
                     const customEdgePath = this.getCustomEdgePath();
                     if (customEdgePath) {
