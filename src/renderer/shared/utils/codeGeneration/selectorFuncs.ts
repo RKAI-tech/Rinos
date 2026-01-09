@@ -18,6 +18,51 @@ export function getResolveUniqueSelectorFunctionString(): string {
   /**
    * Returns the JS function string for resolveUniqueSelector.
    */
+//   return `async function resolveUniqueSelector(page, selectors) {
+//   if (!page || !Array.isArray(selectors) || selectors.length === 0) {
+//     throw new Error('Page or selectors is invalid.');
+//   }
+
+//   const locators = selectors.map(s => eval(\`page.\${ s } \`));
+//   const counts = new Array(locators.length).fill(0);
+
+//   // Poll count() và cache kết quả
+//   await Promise.allSettled(
+//     locators.map((l, i) =>
+//       expect
+//         .poll(async () => {
+//           const c = await l.count();
+//           counts[i] = c;
+//           return c;
+//         }, { timeout: 3000 })
+//         .toBeGreaterThan(0)
+//         .catch(() => {})
+//     )
+//   );
+
+//   let minIndex = -1;
+//   let minCount = Infinity;
+
+//   for (let i = 0; i < counts.length; i++) {
+//     const c = counts[i];
+
+//     if (c === 1) {
+//       return locators[i];
+//     }
+
+//     if (c > 0 && c < minCount) {
+//       minCount = c;
+//       minIndex = i;
+//     }
+//   }
+
+//   if (minIndex !== -1) {
+//     return locators[minIndex].first();
+//   }
+
+//   throw new Error('Invalid selectors. Please check the selectors and try again.');
+// }`;
+
   return `async function resolveUniqueSelector(page, selectors) {
   if (!page || !selectors || !Array.isArray(selectors) || selectors.length === 0) {
     throw new Error('Page or selectors is invalid.');
@@ -46,24 +91,24 @@ export function convertListSelectorsToLiteral(elements: Element[] | null | undef
    * Generate JS array literal for selectors from a list of elements.
    */
   const candidatesLiteral: string[] = [];
-  
+
   if (elements && elements.length > 0) {
     for (const element of elements) {
       const elementSelectors = element.selectors || [];
       const selectors: string[] = [];
-      
+
       for (const selector of elementSelectors) {
         const value = selector.value;
         if (value !== null && value !== undefined) {
           selectors.push(escape(value));
         }
       }
-      
+
       candidatesLiteral.push('[' + selectors.join(', ') + ']');
     }
   } else {
     candidatesLiteral.push('[]');
   }
-  
+
   return candidatesLiteral;
 }

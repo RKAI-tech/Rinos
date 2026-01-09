@@ -1,4 +1,4 @@
-import { Action } from '../../types/actions';
+import { Action, ActionDataGeneration } from '../../types/actions';
 import { TestCaseDataVersion } from '../../types/testcase';
 
 /**
@@ -342,6 +342,67 @@ export const syncVersionOnActionSave = (
             affectedVersionNames.push(version.version);
           }
         }
+      } else {
+        // ⭐ XỬ LÝ GENERATION MỚI
+        // Generation mới được thêm vào action
+        const activeVersionName = findActiveVersionInActions(allActions);
+        
+        if (activeVersionName) {
+          // Kiểm tra xem generation này có đang được chọn không
+          const currentValue = updatedAction.action_datas?.find(
+            ad => ad.value && typeof ad.value === 'object' && ad.value.value !== undefined
+          )?.value?.value;
+          
+          const genValue = updatedGen.value?.value || 
+            (typeof updatedGen.value === 'string' ? updatedGen.value : '');
+          
+          const isSelected = currentValue !== undefined && 
+            String(currentValue) === String(genValue);
+          
+          if (isSelected) {
+            // Thêm generation mới vào version đang active
+            updatedVersions = updatedVersions.map(version => {
+              if (version.version === activeVersionName) {
+                const existingGenerations = version.action_data_generations || [];
+                
+                // Kiểm tra xem đã có generation nào cho action này chưa
+                const hasGenerationForAction = existingGenerations.some(gen => {
+                  return allActions
+                    .find(a => a.action_id === updatedAction.action_id)
+                    ?.action_data_generation
+                    ?.some(g => g.action_data_generation_id === gen.action_data_generation_id);
+                });
+                
+                if (!hasGenerationForAction) {
+                  // Thêm generation mới
+                  return {
+                    ...version,
+                    action_data_generations: [...existingGenerations, updatedGen],
+                  };
+                } else {
+                  // Thay thế generation cũ bằng generation mới
+                  return {
+                    ...version,
+                    action_data_generations: existingGenerations.map(gen => {
+                      const isForThisAction = allActions
+                        .find(a => a.action_id === updatedAction.action_id)
+                        ?.action_data_generation
+                        ?.some(g => g.action_data_generation_id === gen.action_data_generation_id);
+                      
+                      return isForThisAction ? updatedGen : gen;
+                    }),
+                  };
+                }
+              }
+              return version;
+            });
+            
+            const version = updatedVersions.find(v => v.version === activeVersionName);
+            if (version && version.version && !affectedVersionNames.includes(version.version)) {
+              affectedVersionNames.push(version.version);
+            }
+          }
+        }
       }
     }
   }
@@ -349,3 +410,136 @@ export const syncVersionOnActionSave = (
   return { updatedVersions, affectedVersionNames };
 };
 
+/**
+ * Đồng bộ 2 chiều: Đảm bảo action_data_generation trong actions và versions luôn đồng bộ
+ * 
+ * Nguyên tắc:
+ * - Actions là source of truth cho danh sách generation
+ * - Versions chỉ chứa reference đến generation từ actions
+ * - Mọi thay đổi trong actions phải được phản ánh vào versions
+ */
+export const syncGenerationsBetweenActionsAndVersions = (
+  actions: Action[],
+  testcaseDataVersions: TestCaseDataVersion[],
+  activeVersionName: string | null
+): {
+  updatedActions: Action[];
+  updatedVersions: TestCaseDataVersion[];
+} => {
+  let updatedActions = [...actions];
+  let updatedVersions = [...testcaseDataVersions];
+
+  // 1. Xây dựng map: actionId -> generations
+  const actionGenerationsMap = new Map<string, ActionDataGeneration[]>();
+  actions.forEach(action => {
+    if (action.action_id && action.action_data_generation) {
+      actionGenerationsMap.set(action.action_id, action.action_data_generation);
+    }
+  });
+
+  // 2. Đồng bộ từ actions → versions
+  // Loại bỏ generation không còn tồn tại trong actions và cập nhật generation objects
+  updatedVersions = updatedVersions.map(version => {
+    if (!version.action_data_generations) {
+      return version;
+    }
+
+    // Lọc và cập nhật generations từ actions (source of truth)
+    const validGenerations: ActionDataGeneration[] = [];
+    
+    for (const versionGen of version.action_data_generations) {
+      if (!versionGen.action_data_generation_id) continue;
+
+      // Tìm generation này trong actions
+      let foundGeneration: ActionDataGeneration | null = null;
+      for (const [actionId, generations] of actionGenerationsMap) {
+        const found = generations.find(
+          g => g.action_data_generation_id === versionGen.action_data_generation_id
+        );
+        if (found) {
+          foundGeneration = found; // Dùng generation từ action (source of truth)
+          break;
+        }
+      }
+
+      if (foundGeneration) {
+        validGenerations.push(foundGeneration);
+      }
+    }
+
+    return {
+      ...version,
+      action_data_generations: validGenerations,
+    };
+  });
+
+  // 3. Thêm generation mới vào version đang active (nếu đang được chọn)
+  if (activeVersionName) {
+    const activeVersion = updatedVersions.find(v => v.version === activeVersionName);
+    if (activeVersion) {
+      const updatedActiveVersion = { ...activeVersion };
+      const activeVersionGenerations = [...(updatedActiveVersion.action_data_generations || [])];
+
+      // Duyệt qua tất cả actions
+      actions.forEach(action => {
+        if (!action.action_id || !action.action_data_generation) return;
+
+        // Tìm generation đang được chọn trong action này
+        const currentValue = action.action_datas?.find(
+          ad => ad.value && typeof ad.value === 'object' && ad.value.value !== undefined
+        )?.value?.value;
+
+        if (currentValue === undefined) return;
+
+        // Tìm generation có value khớp
+        const selectedGeneration = action.action_data_generation.find(gen => {
+          const genValue = gen.value?.value || 
+            (typeof gen.value === 'string' ? gen.value : '');
+          return String(genValue) === String(currentValue);
+        });
+
+        if (!selectedGeneration || !selectedGeneration.action_data_generation_id) return;
+
+        // Kiểm tra xem version đã có generation này chưa
+        const existingIndex = activeVersionGenerations.findIndex(
+          g => g.action_data_generation_id === selectedGeneration.action_data_generation_id
+        );
+
+        if (existingIndex === -1) {
+          // Generation chưa có trong version
+          // Kiểm tra xem version đã có generation nào cho action này chưa
+          const hasGenerationForAction = activeVersionGenerations.some(gen => {
+            return action.action_data_generation?.some(
+              g => g.action_data_generation_id === gen.action_data_generation_id
+            );
+          });
+
+          if (!hasGenerationForAction) {
+            // Chưa có generation nào cho action này, thêm generation mới
+            activeVersionGenerations.push(selectedGeneration);
+          } else {
+            // Đã có generation khác cho action này, thay thế
+            const indexToReplace = activeVersionGenerations.findIndex(gen => {
+              return action.action_data_generation?.some(
+                g => g.action_data_generation_id === gen.action_data_generation_id
+              );
+            });
+            if (indexToReplace !== -1) {
+              activeVersionGenerations[indexToReplace] = selectedGeneration;
+            }
+          }
+        } else {
+          // Generation đã có, cập nhật để đảm bảo value mới nhất
+          activeVersionGenerations[existingIndex] = selectedGeneration;
+        }
+      });
+
+      updatedActiveVersion.action_data_generations = activeVersionGenerations;
+      updatedVersions = updatedVersions.map(v =>
+        v.version === activeVersionName ? updatedActiveVersion : v
+      );
+    }
+  }
+
+  return { updatedActions, updatedVersions };
+};
