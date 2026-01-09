@@ -88,8 +88,11 @@ export function serializeApiRequest(apiRequest: ApiRequestData | null | undefine
 }
 
 export function needsApiRequestSupport(actions: any[]): boolean {
+  if (!Array.isArray(actions)) {
+    return false;
+  }
   for (const action of actions) {
-    if (action.action_datas) {
+    if (action.action_datas && Array.isArray(action.action_datas)) {
       for (const ad of action.action_datas) {
         if (ad.api_request) {
           return true;

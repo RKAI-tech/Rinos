@@ -46,15 +46,18 @@ export default defineConfig(({ mode }) => {
           trackingScript: path.resolve(rootPath, "src/browser/tracker/trackingScript.js"),
         },
         output: {
-          // Đảm bảo định dạng đầu ra là CommonJS nếu bạn dùng native modules trong Electron
-          format: 'cjs', 
+          format: 'esm',
+          // Sửa ở đây: Để assets luôn nằm cùng cấp hoặc dễ tìm hơn
+          assetFileNames: 'assets/[name]-[hash][extname]',
+          chunkFileNames: 'assets/[name]-[hash].js',
           entryFileNames: (chunkInfo) => {
             if (chunkInfo.name === "trackingScript") {
               return "browser/tracker/trackingScript.js";
             }
-            return 'assets/[name]-[hash].js';
+            // Đưa các file entry chính ra ngoài cùng để tránh sai lệch path assets
+            return '[name].js'; 
           }
-        },
+        }
       },
     },
     esbuild: {

@@ -2,7 +2,7 @@ import { BrowserWindow, app, ipcMain, screen } from "electron";
 import { MainEnv } from "./env.js";
 import path from "path";
 
-const isDev = !app.isPackaged;
+const isDev = false;
 const __dirnameResolved = __dirname;
 const iconFileNamePng="images/icon.png";
 const iconFileNameIco="images/icon.ico";
@@ -37,7 +37,6 @@ async function tryLoadDevPaths(win: BrowserWindow, page: string) {
 }
 
 function createWindow(options: Electron.BrowserWindowConstructorOptions, page: string) {
-
   const win = new BrowserWindow({
     ...options,
     icon: resolveIconPath(),
@@ -56,6 +55,9 @@ function createWindow(options: Electron.BrowserWindowConstructorOptions, page: s
   } else {
     win.loadFile(path.join(__dirnameResolved, `renderer/${page}/index.html`));
   }
+  win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('[windowManager] did-fail-load', errorCode, errorDescription);
+  });
   // win.webContents.openDevTools();
   return win;
 }

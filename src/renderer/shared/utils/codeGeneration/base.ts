@@ -66,11 +66,14 @@ export function getImportDb(actions: any[]): string {
   /**
    * Returns JS import statements for DB clients based on actions.
    */
+  if (!Array.isArray(actions)) {
+    return '';
+  }
   const importDb = new Set<string>();
   let needsSsh = false;
   
   for (const action of actions) {
-    if (action.action_datas) {
+    if (action.action_datas && Array.isArray(action.action_datas)) {
       for (const actionData of action.action_datas) {
         if (actionData.statement?.connection) {
           const connection = actionData.statement.connection;

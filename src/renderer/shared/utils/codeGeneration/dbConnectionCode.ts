@@ -4,8 +4,11 @@
 import { Connection } from '../../types/actions';
 
 export function checkNeedConnectDb(actions: any[]): boolean {
+  if (!Array.isArray(actions)) {
+    return false;
+  }
   for (const action of actions) {
-    if (action.action_datas) {
+    if (action.action_datas && Array.isArray(action.action_datas)) {
       for (const actionData of action.action_datas) {
         if (actionData.statement) {
           // Handle both query and statement_text field names
