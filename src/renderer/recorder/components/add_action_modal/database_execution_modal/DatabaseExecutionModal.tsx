@@ -51,7 +51,7 @@ const DatabaseExecutionModal: React.FC<DatabaseExecutionModalProps> = ({
           const rawConns: Connection[] = (resp as any).data.connections;
           const opts: ConnectionOption[] = rawConns.map((c: any) => ({
             id: c.connection_id,
-            label: `${String(c.db_type).toUpperCase()} • PLANE@:${c.port}`
+            label: `${String(c.db_type).toUpperCase()} • ${c.db_name}@:${c.port}`
           }));
           setConnections(opts);
           const map: Record<string, Connection> = {};

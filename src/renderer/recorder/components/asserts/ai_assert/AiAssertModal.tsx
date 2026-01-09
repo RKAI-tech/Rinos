@@ -268,7 +268,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
           const opts: ConnectionOption[] = rawConns.map((c: any) => ({
             id: c.connection_id,
             // label: `${String(c.db_type).toUpperCase()} • ${c.db_name}@:${c.port}`,
-            label: `${String(c.db_type).toUpperCase()} • PLANE@:${c.port}`
+            label: `${String(c.db_type).toUpperCase()} • ${c.db_name}@:${c.port}`
           }));
           setConnections(opts);
           const map: Record<string, Connection> = {};

@@ -17,7 +17,7 @@ export class CodeGenerator {
     actions: Action[],
     filePathMapping?: Map<string, string>
   ): string {
-    if (!actions || actions.length === 0) {
+    if (!actions || !Array.isArray(actions) || actions.length === 0) {
       return '';
     }
     

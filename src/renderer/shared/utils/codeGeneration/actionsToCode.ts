@@ -23,7 +23,7 @@ export function actionsToCode(
   
   // Normalize action_datas structure (handle database_connection -> connection)
   for (const action of actions) {
-    if (action.action_datas) {
+    if (action.action_datas && Array.isArray(action.action_datas)) {
       for (const actionData of action.action_datas) {
         if (actionData.statement) {
           // Handle both database_connection and connection
@@ -72,7 +72,7 @@ export function actionsToCode(
   
   for (const action of actions) {
     if (action.action_type === ActionType.page_create) {
-      if (action.action_datas) {
+      if (action.action_datas && Array.isArray(action.action_datas)) {
         for (const actionData of action.action_datas) {
           if (actionData.value && typeof actionData.value === 'object' && 'opener_index' in actionData.value && actionData.value.opener_index != null) {
             if (actionData.value.page_index != null && 
@@ -88,7 +88,7 @@ export function actionsToCode(
   
   for (const action of actions) {
     if (action.action_type === ActionType.page_create) {
-      if (action.action_datas) {
+      if (action.action_datas && Array.isArray(action.action_datas)) {
         for (const actionData of action.action_datas) {
           if (actionData.value && typeof actionData.value === 'object' && 'page_index' in actionData.value) {
             if (actionData.value.page_index != null && 

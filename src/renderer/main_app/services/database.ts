@@ -27,7 +27,6 @@ function getFieldsToEncryptForDatabaseConnection(): string[] {
         'client_private_key',
         'ssl_key_passphrase',
         'ssh_host',
-        'ssh_port',
         'ssh_username',
         'ssh_private_key',
         'ssh_key_passphrase',
@@ -69,7 +68,7 @@ export class DatabaseService {
         });
     }
 
-    async updateDatabaseConnection(payload: DatabaseConnectionUpdateRequest): Promise<ApiResponse<DefaultResponse>> {
+    async updateDatabaseConnection(payload: DatabaseConnectionUpdateRequest, projectId: string | number): Promise<ApiResponse<DefaultResponse>> {
         if (!payload || !payload.connection_id) {
             return {
                 success: false,
@@ -83,8 +82,7 @@ export class DatabaseService {
         // Get project_id from payload or need to fetch it - for now, we'll try to get it from the connection
         // Since update might not have project_id, we need to handle this case
         // For update, we'll encrypt only if project_id is available
-        if (payload.project_id) {
-            const projectId = typeof payload.project_id === 'string' ? payload.project_id : String(payload.project_id);
+        if (projectId) {
             try {
                 const encryptionKey = await (window as any).encryptionStore?.getKey(projectId);
                 if (encryptionKey) {

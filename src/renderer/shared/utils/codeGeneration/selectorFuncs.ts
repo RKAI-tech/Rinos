@@ -5,6 +5,9 @@ import { Element } from '../../types/actions';
 import { escape } from './base';
 
 export function checkNeedResolveUniqueSelector(actions: any[]): boolean {
+  if (!Array.isArray(actions)) {
+    return false;
+  }
   for (const action of actions) {
     const elements = action.elements;
     if (elements && elements.length > 0) {

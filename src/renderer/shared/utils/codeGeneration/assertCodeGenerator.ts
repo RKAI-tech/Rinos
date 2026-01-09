@@ -9,9 +9,12 @@ import { serializeApiRequest } from './apiRequestFuncs';
 
 export function getListAiFunctions(actions: Action[]): string {
   let codeReturn = '\n';
+  if (!Array.isArray(actions)) {
+    return codeReturn;
+  }
   for (const action of actions) {
     if (action.assert_type === AssertType.ai) {
-      if (action.action_datas) {
+      if (action.action_datas && Array.isArray(action.action_datas)) {
         for (const actionData of action.action_datas) {
           if (actionData.value && typeof actionData.value === 'object' && 'function_code' in actionData.value) {
             const functionCode = actionData.value.function_code;
@@ -35,7 +38,7 @@ export function generateAssertCode(action: Action, index: number): string {
   const assertType = action.assert_type;
   const values: any[] = [];
 
-  if (action.action_datas) {
+  if (action.action_datas && Array.isArray(action.action_datas)) {
     for (const actionData of action.action_datas) {
       if (actionData.value && typeof actionData.value === 'object' && 'value' in actionData.value) {
         const value = actionData.value.value;
@@ -51,7 +54,7 @@ export function generateAssertCode(action: Action, index: number): string {
   const apiRequests: any[] = [];
   const apiRequestsPages: number[] = [];
 
-  if (action.action_datas) {
+  if (action.action_datas && Array.isArray(action.action_datas)) {
     for (const actionData of action.action_datas) {
       if (actionData.statement) {
         connections.push(actionData.statement.connection);
@@ -79,7 +82,7 @@ export function generateAssertCode(action: Action, index: number): string {
     function_code: '',
   };
 
-  if (action.action_datas) {
+  if (action.action_datas && Array.isArray(action.action_datas)) {
     for (const actionData of action.action_datas) {
       if (actionData.value && typeof actionData.value === 'object') {
         if ('function_name' in actionData.value) {
@@ -94,7 +97,7 @@ export function generateAssertCode(action: Action, index: number): string {
   }
 
   let pageIndex = 0;
-  if (action.action_datas) {
+  if (action.action_datas && Array.isArray(action.action_datas)) {
     for (const actionData of action.action_datas) {
       if (actionData.value && typeof actionData.value === 'object' && 'page_index' in actionData.value) {
         if (actionData.value.page_index != null) {
@@ -255,7 +258,7 @@ export function generateAssertCode(action: Action, index: number): string {
   } else if (assertType === AssertType.toHaveCSS) {
     let cssProperty = '';
     let cssValue = '';
-    if (action.action_datas) {
+    if (action.action_datas && Array.isArray(action.action_datas)) {
       for (const actionData of action.action_datas) {
         if (actionData.value && typeof actionData.value === 'object') {
           if ('css_property' in actionData.value) {
@@ -376,7 +379,7 @@ export function generateAssertCode(action: Action, index: number): string {
     const elementsPages: Array<{ page_index: number; element_index: number }> = [];
     let codeReturn = '';
     
-    if (action.action_datas) {
+    if (action.action_datas && Array.isArray(action.action_datas)) {
       for (const actionData of action.action_datas) {
         if (actionData.value && typeof actionData.value === 'object' && 'page_index' in actionData.value && 'element_index' in actionData.value && actionData.value.element_index != null) {
           const pageElementIndex = parseInt(String(actionData.value.page_index || 0), 10);

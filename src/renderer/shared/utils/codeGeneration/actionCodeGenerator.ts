@@ -28,7 +28,7 @@ export function generateActionCode(
   let value: any = null;
 
   // Extract value from action_datas
-  if (action.action_datas) {
+  if (action.action_datas && Array.isArray(action.action_datas)) {
     for (const actionData of action.action_datas) {
       if (actionData.value && typeof actionData.value === 'object' && 'value' in actionData.value) {
         if (actionData.value.value != null) {
@@ -50,7 +50,7 @@ export function generateActionCode(
   }
 
   let connection = null;
-  if (action.action_datas) {
+  if (action.action_datas && Array.isArray(action.action_datas)) {
     for (const actionData of action.action_datas) {
       if (actionData.statement) {
         connection = actionData.statement.connection;
@@ -162,7 +162,7 @@ export function generateActionCode(
     return generateAssertCode(action, index);
   } else if (actionType === ActionType.upload) {
     const files: any[] = [];
-    if (action.action_datas) {
+    if (action.action_datas && Array.isArray(action.action_datas)) {
       for (const data of action.action_datas) {
         if (data.file_upload) {
           files.push(data.file_upload);
@@ -287,7 +287,7 @@ export function generateActionCode(
     );
   } else if (actionType === ActionType.api_request) {
     let apiRequest = null;
-    if (action.action_datas) {
+    if (action.action_datas && Array.isArray(action.action_datas)) {
       for (const ad of action.action_datas) {
         if (ad.api_request) {
           apiRequest = ad.api_request;
@@ -326,7 +326,7 @@ export function generateActionCode(
     );
   } else if (actionType === ActionType.add_browser_storage) {
     let browserStorage = null;
-    if (action.action_datas) {
+    if (action.action_datas && Array.isArray(action.action_datas)) {
       for (const actionData of action.action_datas) {
         if (actionData.browser_storage) {
           browserStorage = actionData.browser_storage;
@@ -391,7 +391,7 @@ export function generateActionCode(
     return preProcessCookies(code);
   } else if (actionType === ActionType.page_create) {
     let openerIndex: number | null = null;
-    if (action.action_datas) {
+    if (action.action_datas && Array.isArray(action.action_datas)) {
       for (const actionData of action.action_datas) {
         if (actionData.value && typeof actionData.value === 'object' && 'opener_index' in actionData.value) {
           if (actionData.value.opener_index != null) {
