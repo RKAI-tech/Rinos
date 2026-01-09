@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { toast } from 'react-toastify';
 import './AddQuery.css';
 import { DatabaseService } from '../../../services/database';
 
@@ -25,7 +26,10 @@ const AddQuery: React.FC<AddQueryProps> = ({ isOpen, projectId, onClose, onSave 
   const [statement, setStatement] = useState('');
   const [connectionId, setConnectionId] = useState('');
   const [connections, setConnections] = useState<ConnectionOption[]>([]);
+  const [connectionMap, setConnectionMap] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Partial<Record<'name' | 'statement' | 'connection', string>>>({});
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; data?: any[]; error?: string } | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -38,8 +42,16 @@ const AddQuery: React.FC<AddQueryProps> = ({ isOpen, projectId, onClose, onSave 
           const opts = resp.data.connections.map(c => ({ id: c.connection_id, label: `${c.db_type.toUpperCase()} • ${c.db_name}@${c.host}:${c.port}` }));
           setConnections(opts);
           if (opts.length > 0) setConnectionId(prev => prev || opts[0].id);
+          
+          // Store connection map for easy access
+          const map: Record<string, any> = {};
+          resp.data.connections.forEach(c => {
+            map[c.connection_id] = c;
+          });
+          setConnectionMap(map);
         } else {
           setConnections([]);
+          setConnectionMap({});
         }
       } catch {
         setConnections([]);
@@ -76,6 +88,46 @@ const AddQuery: React.FC<AddQueryProps> = ({ isOpen, projectId, onClose, onSave 
 
   if (!isOpen) return null;
 
+  const handleTestQuery = async () => {
+    const newErrors: typeof errors = {};
+    if (!statement.trim()) newErrors.statement = 'SQL statement is required';
+    if (!connectionId) newErrors.connection = 'Database is required';
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
+    setIsTesting(true);
+    setTestResult(null);
+    try {
+      const connection = connectionMap[connectionId];
+      if (!connection) {
+        toast.error('Connection not found');
+        return;
+      }
+
+      const electronAPI = (window as any).electronAPI;
+      if (!electronAPI || !electronAPI.database) {
+        toast.error('Database API is not available');
+        return;
+      }
+
+      const result = await electronAPI.database.executeQuery({
+        db_type: connection.db_type,
+        host: connection.host,
+        port: connection.port,
+        db_name: connection.db_name,
+        username: connection.username,
+        password: connection.password,
+      }, statement.trim());
+
+      setTestResult(result);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to test query';
+      setTestResult({ success: false, error: errorMessage });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: typeof errors = {};
@@ -93,6 +145,8 @@ const AddQuery: React.FC<AddQueryProps> = ({ isOpen, projectId, onClose, onSave 
     setStatement('');
     setConnectionId('');
     setErrors({});
+    setTestResult(null);
+    setIsTesting(false);
     onClose();
   };
 
@@ -152,8 +206,41 @@ const AddQuery: React.FC<AddQueryProps> = ({ isOpen, projectId, onClose, onSave 
             {errors.connection && <span className="aq-error-message">{errors.connection}</span>}
           </div>
 
+          {testResult && (
+            <div className={`aq-test-result ${testResult.success ? 'aq-test-success' : 'aq-test-error'}`}>
+              {testResult.success ? (
+                <div>
+                  <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>Query executed successfully</div>
+                  {testResult.data && testResult.data.length > 0 && (
+                    <div style={{ fontSize: '12px', color: '#666' }}>
+                      {testResult.data.length} row(s) returned
+                      {testResult.data.length <= 5 && (
+                        <pre style={{ marginTop: '8px', padding: '8px', background: '#f5f5f5', borderRadius: '4px', overflow: 'auto', maxHeight: '200px' }}>
+                          {JSON.stringify(testResult.data, null, 2)}
+                        </pre>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>Query execution failed</div>
+                  <div style={{ fontSize: '12px', color: '#666' }}>{testResult.error}</div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="aq-modal-actions">
             <button type="button" className="aq-btn aq-btn-cancel" onClick={handleClose}>Cancel</button>
+            <button 
+              type="button" 
+              className="aq-btn aq-btn-test" 
+              onClick={handleTestQuery}
+              disabled={!statement.trim() || !connectionId || isTesting}
+            >
+              {isTesting ? 'Testing...' : 'Test Query'}
+            </button>
             <button type="submit" className="aq-btn aq-btn-save">Save</button>
           </div>
         </form>

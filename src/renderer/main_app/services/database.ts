@@ -63,4 +63,29 @@ export class DatabaseService {
             body: JSON.stringify(request),
         });
     }
+
+    async getConnectionById(projectId: string, connectionId: string): Promise<ApiResponse<DatabaseConnection | null>> {
+        if (!projectId || !connectionId) {
+            return {
+                success: false,
+                error: 'project_id and connection_id are required',
+                data: null
+            };
+        }
+
+        const resp = await this.getDatabaseConnections({ project_id: projectId });
+        if (resp.success && resp.data) {
+            const connection = resp.data.connections.find(c => c.connection_id === connectionId);
+            return {
+                success: true,
+                data: connection || null
+            };
+        }
+
+        return {
+            success: false,
+            error: resp.error || 'Failed to get connection',
+            data: null
+        };
+    }
 }
