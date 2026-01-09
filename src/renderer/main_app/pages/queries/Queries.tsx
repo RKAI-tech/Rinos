@@ -13,6 +13,7 @@ import { toast } from 'react-toastify';
 import DeleteQuery from '../../components/query/delete_query/DeleteQuery';
 import RunQuery from '../../components/query/run_query/RunQuery';
 import { canEdit } from '../../hooks/useProjectPermissions';
+import { connectionToIpcParams } from '../../utils/databaseConnection';
 
 interface QueryItem {
   id: string;
@@ -342,31 +343,27 @@ const Queries: React.FC = () => {
       return;
     }
     
-    try {
       setIsRunningQuery(true);
       
+    try {
       // Get connection details
       const connection = connectionMap[selectedConnectionId];
       if (!connection) {
         toast.error('Connection not found');
+        setIsRunningQuery(false);
         return;
       }
 
-      // Use local database API instead of API call
+      // Use IPC to execute query with connection security options
       const electronAPI = (window as any).electronAPI;
       if (!electronAPI || !electronAPI.database) {
         toast.error('Database API is not available');
+        setIsRunningQuery(false);
         return;
       }
 
-      const result = await electronAPI.database.executeQuery({
-        db_type: connection.db_type,
-        host: connection.host,
-        port: connection.port,
-        db_name: connection.db_name,
-        username: connection.username,
-        password: connection.password,
-      }, sqlQuery.trim());
+      const ipcParams = await connectionToIpcParams(connection);
+      const result = await electronAPI.database.executeQuery(ipcParams, sqlQuery.trim());
       
       if (result.success && result.data) {
         // Handle array of objects response
@@ -389,14 +386,17 @@ const Queries: React.FC = () => {
         
         setQueryResults(items);
         setQueryColumns(columns);
+        toast.success(`Query executed successfully. ${items.length} row(s) returned.`);
       } else {
         setQueryResults([]);
         setQueryColumns([]);
+        toast.error(result.error || 'Failed to execute query');
       }
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'Failed to execute query';
       setQueryResults([]);
       setQueryColumns([]);
+      toast.error(errorMessage);
     } finally {
       setIsRunningQuery(false);
     }
@@ -598,24 +598,6 @@ const Queries: React.FC = () => {
                         </span>
                       </span>
                     </th>
-                    <th className={`sortable ${sortBy === 'created_at' ? 'sorted' : ''}`} onClick={() => handleSort('created_at')}>
-                      <span className="th-content">
-                        <span className="th-text">Created</span>
-                        <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'created_at' && order === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'created_at' && order === 'desc' ? 'active' : ''}`}></span>
-                        </span>
-                      </span>
-                    </th>
-                    <th className={`sortable ${sortBy === 'updated_at' ? 'sorted' : ''}`} onClick={() => handleSort('updated_at')}>
-                      <span className="th-content">
-                        <span className="th-text">Updated</span>
-                        <span className="sort-arrows">
-                          <span className={`arrow up ${sortBy === 'updated_at' && order === 'asc' ? 'active' : ''}`}></span>
-                          <span className={`arrow down ${sortBy === 'updated_at' && order === 'desc' ? 'active' : ''}`}></span>
-                        </span>
-                      </span>
-                    </th>
                     <th>Database</th>
                     <th>Type</th>
                     <th>Options</th>
@@ -623,11 +605,11 @@ const Queries: React.FC = () => {
                 </thead>
                 <tbody>
                   {isLoading ? (
-                    <tr><td colSpan={8} className="qry-center">Loading...</td></tr>
+                    <tr><td colSpan={6} className="qry-center">Loading...</td></tr>
                   ) : error ? (
-                    <tr><td colSpan={8} className="qry-center qry-error">{error}</td></tr>
+                    <tr><td colSpan={6} className="qry-center qry-error">{error}</td></tr>
                   ) : queries.length === 0 ? (
-                    <tr><td colSpan={8} className="qry-center">No queries</td></tr>
+                    <tr><td colSpan={6} className="qry-center">No queries</td></tr>
                   ) : (
                     queries.map((q) => (
                       <tr 
@@ -701,21 +683,15 @@ const Queries: React.FC = () => {
                                           return;
                                         }
                                         
-                                        // Use local database API to execute query
+                                        // Use IPC to execute query with connection security options
                                         const electronAPI = (window as any).electronAPI;
                                         if (!electronAPI || !electronAPI.database) {
                                           toast.error('Database API is not available');
                                           return;
                                         }
 
-                                        const result = await electronAPI.database.executeQuery({
-                                          db_type: connResp.data.db_type,
-                                          host: connResp.data.host,
-                                          port: connResp.data.port,
-                                          db_name: connResp.data.db_name,
-                                          username: connResp.data.username,
-                                          password: connResp.data.password,
-                                        }, statement.statement_text);
+                                        const ipcParams = await connectionToIpcParams(connResp.data);
+                                        const result = await electronAPI.database.executeQuery(ipcParams, statement.statement_text);
 
                                         if (result.success && result.data) {
                                           setRunSql(statement.statement_text);
@@ -733,21 +709,15 @@ const Queries: React.FC = () => {
                                           toast.error(result.error || 'Failed to execute query');
                                         }
                                       } else {
-                                        // Use local database API to execute query
+                                        // Use IPC to execute query with connection security options
                                         const electronAPI = (window as any).electronAPI;
                                         if (!electronAPI || !electronAPI.database) {
                                           toast.error('Database API is not available');
                                           return;
                                         }
 
-                                        const result = await electronAPI.database.executeQuery({
-                                          db_type: connection.db_type,
-                                          host: connection.host,
-                                          port: connection.port,
-                                          db_name: connection.db_name,
-                                          username: connection.username,
-                                          password: connection.password,
-                                        }, statement.statement_text);
+                                        const ipcParams = await connectionToIpcParams(connection);
+                                        const result = await electronAPI.database.executeQuery(ipcParams, statement.statement_text);
 
                                         if (result.success && result.data) {
                                           setRunSql(statement.statement_text);

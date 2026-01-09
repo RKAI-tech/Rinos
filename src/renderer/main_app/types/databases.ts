@@ -33,6 +33,16 @@ export interface DatabaseConnectionCreateRequest extends DatabaseConnectionSecur
     db_type: SupportedDbType;
 }
 
+export interface DatabaseConnectionUpdateRequest extends DatabaseConnectionSecurityOptions {
+    connection_id: string;
+    username?: string;
+    password?: string;
+    host?: string;
+    port?: number;
+    db_name?: string;
+    db_type?: SupportedDbType;
+}
+
 export interface DatabaseConnectionListRequest {
     project_id: string | number;
 }

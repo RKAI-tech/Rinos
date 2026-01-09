@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { toast } from 'react-toastify';
 import './AddQuery.css';
 import { DatabaseService } from '../../../services/database';
+import { connectionToIpcParams } from '../../../utils/databaseConnection';
 
 // Tooltip giống pattern tạo trong CreateConnection
 const Tooltip = ({ text }: { text: string }) => (
@@ -110,14 +111,8 @@ const AddQuery: React.FC<AddQueryProps> = ({ isOpen, projectId, onClose, onSave 
         return;
       }
 
-      const result = await electronAPI.database.executeQuery({
-        db_type: connection.db_type,
-        host: connection.host,
-        port: connection.port,
-        db_name: connection.db_name,
-        username: connection.username,
-        password: connection.password,
-      }, statement.trim());
+      const ipcParams = await connectionToIpcParams(connection);
+      const result = await electronAPI.database.executeQuery(ipcParams, statement.trim());
 
       setTestResult(result);
     } catch (error) {

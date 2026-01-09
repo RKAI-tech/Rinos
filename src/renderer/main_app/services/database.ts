@@ -2,6 +2,7 @@ import { apiRouter } from './baseAPIRequest';
 import { ApiResponse } from '../types/api_responses';
 import {
     DatabaseConnectionCreateRequest,
+    DatabaseConnectionUpdateRequest,
     DatabaseConnectionListRequest,
     DatabaseConnection,
     DatabaseConnectionListResponse,
@@ -22,6 +23,20 @@ export class DatabaseService {
 
         return await apiRouter.request<DefaultResponse>('/database-connections/create', {
             method: 'POST',
+            body: JSON.stringify(payload),
+        });
+    }
+
+    async updateDatabaseConnection(payload: DatabaseConnectionUpdateRequest): Promise<ApiResponse<DefaultResponse>> {
+        if (!payload || !payload.connection_id) {
+            return {
+                success: false,
+                error: 'connection_id is required'
+            };
+        }
+
+        return await apiRouter.request<DefaultResponse>('/database-connections/update', {
+            method: 'PUT',
             body: JSON.stringify(payload),
         });
     }

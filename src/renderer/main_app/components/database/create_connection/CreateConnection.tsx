@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'react-toastify';
 import './CreateConnection.css';
-import { testDatabaseConnection, DatabaseConnectionTestParams } from '../../../utils/testDatabaseConnection';
+import { testDatabaseConnection, DatabaseConnectionTestParams } from '../../../utils/databaseConnection';
 
 // Tooltip for inline hints like in Cookies.tsx
 const Tooltip = ({ text }: { text: string }) => (
@@ -357,14 +357,14 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
     try {
       // Build payload with security options
       const payload: any = {
-        project_id: projectId as string,
-        db_type: dbType,
-        db_name: dbName.trim(),
-        host: host.trim(),
-        port: parsedPort,
-        username: username.trim(),
-        password,
-      };
+      project_id: projectId as string,
+      db_type: dbType,
+      db_name: dbName.trim(),
+      host: host.trim(),
+      port: parsedPort,
+      username: username.trim(),
+      password,
+    };
 
       // Add SSL/TLS options if enabled
       if (securityType === 'ssl') {
