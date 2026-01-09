@@ -4,10 +4,11 @@ import { BasicAuthService } from '../../../services/basic_auth';
 
 interface UseBasicAuthProps {
   testcaseId: string | null;
+  projectId?: string | null;
   onDirtyChange?: (isDirty: boolean) => void;
 }
 
-export const useBasicAuth = ({ testcaseId, onDirtyChange }: UseBasicAuthProps) => {
+export const useBasicAuth = ({ testcaseId, projectId, onDirtyChange }: UseBasicAuthProps) => {
   const [basicAuth, setBasicAuth] = useState<BasicAuthentication>();
   const [basicAuthStatus, setBasicAuthStatus] = useState<'idle' | 'success'>('idle');
   const [savedBasicAuthSnapshot, setSavedBasicAuthSnapshot] = useState<BasicAuthentication | undefined>(undefined);
@@ -19,7 +20,7 @@ export const useBasicAuth = ({ testcaseId, onDirtyChange }: UseBasicAuthProps) =
         try {
           const { BasicAuthService } = await import('../../../services/basic_auth');
           const basicAuthService = new BasicAuthService();
-          const response = await basicAuthService.getBasicAuthenticationByTestcaseId(testcaseId);
+          const response = await basicAuthService.getBasicAuthenticationByTestcaseId(testcaseId, projectId || undefined);
           if (response.success && response.data) {
             setBasicAuth(response.data);
             setSavedBasicAuthSnapshot(JSON.parse(JSON.stringify(response.data)));
@@ -39,7 +40,7 @@ export const useBasicAuth = ({ testcaseId, onDirtyChange }: UseBasicAuthProps) =
     };
 
     loadBasicAuth();
-  }, [testcaseId]);
+  }, [testcaseId, projectId]);
 
   const handleOpenBasicAuth = useCallback(() => {
     setBasicAuthStatus('idle');
@@ -57,18 +58,18 @@ export const useBasicAuth = ({ testcaseId, onDirtyChange }: UseBasicAuthProps) =
         setSavedBasicAuthSnapshot(undefined);
         onDirtyChange?.(false);
       } else {
-        await basicAuthService.upsertBasicAuthentication(basicAuth);
+        await basicAuthService.upsertBasicAuthentication(basicAuth, projectId || undefined);
         setSavedBasicAuthSnapshot(JSON.parse(JSON.stringify(basicAuth)));
         onDirtyChange?.(false);
       }
     } catch (error) {
       throw new Error('Failed to save basic authentication');
     }
-  }, [testcaseId, basicAuth, onDirtyChange]);
+  }, [testcaseId, projectId, basicAuth, onDirtyChange]);
 
   const reloadBasicAuth = useCallback(async () => {
     const basicAuthService = new BasicAuthService();
-    const response = await basicAuthService.getBasicAuthenticationByTestcaseId(testcaseId || '');
+    const response = await basicAuthService.getBasicAuthenticationByTestcaseId(testcaseId || '', projectId || undefined);
     if (response.success && response.data) {
       setBasicAuth(response.data);
       setSavedBasicAuthSnapshot(JSON.parse(JSON.stringify(response.data)));
@@ -76,7 +77,7 @@ export const useBasicAuth = ({ testcaseId, onDirtyChange }: UseBasicAuthProps) =
       setBasicAuth(undefined);
       setSavedBasicAuthSnapshot(undefined);
     }
-  }, [testcaseId]);
+  }, [testcaseId, projectId]);
 
   const handleBasicAuthSaved = useCallback((auth: BasicAuthentication) => {
     setBasicAuth(auth);

@@ -58,7 +58,7 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
       const loadActions = async () => {
         try {
           setIsLoadingActions(true);
-          const resp = await actionService.getActionsByTestCase(testcase.testcase_id, 1000, 0);
+          const resp = await actionService.getActionsByTestCase(testcase.testcase_id, 1000, 0, projectId);
           
           // Check if testcase was deleted (404 or Not Found error)
           if (!resp.success && resp.error) {

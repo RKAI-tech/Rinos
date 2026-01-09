@@ -67,14 +67,23 @@ export function getImportDb(actions: any[]): string {
    * Returns JS import statements for DB clients based on actions.
    */
   const importDb = new Set<string>();
+  let needsSsh = false;
   
   for (const action of actions) {
     if (action.action_datas) {
       for (const actionData of action.action_datas) {
         if (actionData.statement?.connection) {
-          const dbType = enumToStr(actionData.statement.connection.db_type, '', true);
+          const connection = actionData.statement.connection;
+          const dbType = enumToStr(connection.db_type, '', true);
           if (dbType) {
             importDb.add(dbType);
+          }
+          // Check if connection needs SSH tunnel
+          if (connection.security_type === 'ssh' && 
+              connection.ssh_host && 
+              connection.ssh_username && 
+              connection.ssh_auth_method) {
+            needsSsh = true;
           }
         }
 
@@ -89,6 +98,9 @@ export function getImportDb(actions: any[]): string {
             }
             if (code.includes('await sql.connect')) {
               importDb.add('mssql');
+            }
+            if (code.includes('SshClient') || code.includes('ssh2')) {
+              needsSsh = true;
             }
           }
         }
@@ -105,6 +117,10 @@ export function getImportDb(actions: any[]): string {
   }
   if (importDb.has('mssql')) {
     importDbCode += "import sql from 'mssql';\n";
+  }
+  if (needsSsh) {
+    importDbCode += "import { Client as SshClient } from 'ssh2';\n";
+    importDbCode += "import * as net from 'net';\n";
   }
   return importDbCode;
 }

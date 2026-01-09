@@ -500,7 +500,7 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
         payload.security_type = 'none';
       }
 
-      const response = await databaseService.updateDatabaseConnection(payload);
+      const response = await databaseService.updateDatabaseConnection(payload, projectId as string);
 
       if (response.success) {
         toast.success('Database connection updated successfully');

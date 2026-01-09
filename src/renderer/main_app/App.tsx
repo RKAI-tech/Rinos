@@ -17,6 +17,7 @@ import ChangeLog from './pages/change_log/ChangeLog';
 import ConfirmCloseModal from '../recorder/components/confirm_close/ConfirmCloseModal';
 import LoadingScreen from './components/loading/LoadingScreen';
 import { VersionProvider } from './contexts/VersionContext';
+import ScrollToTop from './components/scroll_to_top/ScrollToTop';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -90,6 +91,7 @@ function App() {
     <AuthProvider>
       <VersionProvider>
         <Router>
+          <ScrollToTop />
           <Routes>
             <Route path="/login" element={
               <PublicRoute>

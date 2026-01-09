@@ -75,6 +75,7 @@ export interface TestCaseInSuite {
     url_video: string;
     level: number;
     browser_type: BrowserType;
+    basic_authentication?: { username: string; password: string };
 }
 
 export interface GetTestCasesBySuiteResponse {

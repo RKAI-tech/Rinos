@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/header/Header';
-import Footer from '../../components/footer/Footer';
 import CreateProject from '../../components/project/create_project/CreateProject';
 import EditProject from '../../components/project/edit_project/EditProject';
 import { UserService } from '../../services/user';
@@ -457,7 +456,6 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -478,7 +476,6 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -847,6 +844,23 @@ const Dashboard: React.FC = () => {
                                 </svg>
                                 Delete
                               </button>
+                              <button 
+                                className="dropdown-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  handleKeyProjectClick(project.project_id, e);
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }}
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Key
+                              </button>
                             </div>
                           )}
                         </div>
@@ -902,8 +916,6 @@ const Dashboard: React.FC = () => {
           </section>
         </div>
       </main>
-
-      <Footer />
 
       {/* Create Project Modal */}
       <CreateProject

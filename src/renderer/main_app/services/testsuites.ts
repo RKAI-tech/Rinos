@@ -19,6 +19,7 @@ import {
     TestSuiteTestCaseSearchResponse
 } from '../types/testsuites';
 import { DefaultResponse } from '../types/api_responses';
+import { decryptObject } from './encryption';
 
 export class TestSuiteService {
     async removeTestCaseFromTestSuite(testcaseId: string, testSuiteId: string): Promise<ApiResponse<DefaultResponse>> {
@@ -290,7 +291,8 @@ export class TestSuiteService {
     // Search test cases by test suite (with pagination, filter, sort)
     async searchTestCasesBySuite(
         testSuiteId: string,
-        request: TestSuiteTestCaseSearchRequest
+        request: TestSuiteTestCaseSearchRequest,
+        projectId?: string
     ): Promise<ApiResponse<TestSuiteTestCaseSearchResponse>> {
         // Input validation
         if (!testSuiteId) {
@@ -314,13 +316,47 @@ export class TestSuiteService {
             };
         }
         
-        return await apiRouter.request<TestSuiteTestCaseSearchResponse>(
+        const response = await apiRouter.request<TestSuiteTestCaseSearchResponse>(
             `/test-suites/${testSuiteId}/testcases/search`,
             {
                 method: 'POST',
                 body: JSON.stringify(request),
             }
         );
+
+        // Giải mã basic_authentication trong response nếu có projectId và encryption key
+        if (response.success && response.data && projectId && response.data.testcases) {
+            try {
+                const encryptionKey = await (window as any).encryptionStore?.getKey(projectId);
+                if (encryptionKey) {
+                    // Giải mã basic_authentication cho từng testcase
+                    response.data.testcases = await Promise.all(
+                        response.data.testcases.map(async (testcase) => {
+                            if (testcase.basic_authentication && 
+                                testcase.basic_authentication.username && 
+                                testcase.basic_authentication.password) {
+                                try {
+                                    testcase.basic_authentication = await decryptObject(
+                                        testcase.basic_authentication,
+                                        encryptionKey,
+                                        ['username', 'password']
+                                    );
+                                } catch (error) {
+                                    console.error('[TestSuiteService] Decryption failed for testcase:', testcase.testcase_id, error);
+                                    // Keep original if decryption fails (backward compatibility)
+                                }
+                            }
+                            return testcase;
+                        })
+                    );
+                }
+            } catch (error) {
+                console.error('[TestSuiteService] Decryption failed:', error);
+                // Keep original response if decryption fails (backward compatibility)
+            }
+        }
+
+        return response;
     }
 
     // Export test suite to Excel

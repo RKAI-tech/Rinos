@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/header/Header';
-import Footer from '../../components/footer/Footer';
 import Breadcrumb from '../../components/breadcumb/Breadcrumb';
 import SidebarNavigator from '../../components/sidebar_navigator/SidebarNavigator';
 import './ChangeLog.css';
@@ -708,8 +707,6 @@ const ChangeLog: React.FC = () => {
           </div>
         </div>
       )}
-
-      <Footer />
     </div>
   );
 };

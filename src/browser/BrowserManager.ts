@@ -391,6 +391,8 @@ export class BrowserManager extends EventEmitter {
         try {
             this.isClosingContext = true;
             this.contextScriptsPrepared = false;
+            // Set flag để signal execution nên dừng ngay lập tức
+            this.isExecuting = false;
             console.log('[BrowserManager] Stopping browser');
             //close all pages
             this.emit('browser-stopped');

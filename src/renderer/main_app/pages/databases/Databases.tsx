@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/header/Header';
-import Footer from '../../components/footer/Footer';
 import Breadcrumb from '../../components/breadcumb/Breadcrumb';
 import SidebarNavigator from '../../components/sidebar_navigator/SidebarNavigator';
 import './Databases.css';
@@ -564,7 +563,6 @@ const Databases: React.FC = () => {
         </main>
       </div>
 
-      <Footer />
       <CreateConnection
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}

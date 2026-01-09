@@ -516,6 +516,35 @@ export class Controller {
         await new Promise(resolve => setTimeout(resolve, 100));
     }
 
+    /**
+     * Check if execution should be stopped
+     * Returns true if browser is closed or execution flag is set to false
+     */
+    private shouldStop(): boolean {
+        // Kiểm tra browser manager có còn tồn tại và context có còn valid không
+        if (!this.browserManager || !this.browserManager.context) {
+            return true;
+        }
+        // Kiểm tra isExecuting flag
+        if ((this.browserManager as any).isExecuting === false) {
+            return true;
+        }
+        // Kiểm tra isClosingContext flag
+        if ((this.browserManager as any).isClosingContext === true) {
+            return true;
+        }
+        // Kiểm tra context có bị đóng không
+        try {
+            const browser = (this.browserManager.context as any).browser();
+            if (!browser || browser === null) {
+                return true;
+            }
+        } catch {
+            return true;
+        }
+        return false;
+    }
+
     async executeMultipleActions(context: BrowserContext, actions: Action[]): Promise<void> {
         if (!context) {
             throw new Error('The browser context is not available. Please check if the browser is opened or contact support.');
@@ -524,6 +553,13 @@ export class Controller {
             throw new Error('The actions array is required and cannot be empty. Please check the actions or contact support.');
         }
         for (let i = 0; i < actions.length; i++) {
+            // Kiểm tra trước mỗi action xem có nên dừng không
+            if (this.shouldStop()) {
+                console.log(`[Controller] Execution stopped at action ${i + 1}/${actions.length}`);
+                this.onActionExecuting?.(-1);
+                return;
+            }
+
             const action = actions[i];
             let pageIndex = 0;
             for (const action_data of action.action_datas || []) {
@@ -924,6 +960,12 @@ export class Controller {
                     await this.waitForPageLoaded(activePage);
                 }
 
+                // Kiểm tra sau mỗi action xem có nên dừng không
+                if (this.shouldStop()) {
+                    console.log(`[Controller] Execution stopped after action ${i + 1}/${actions.length}`);
+                    this.onActionExecuting?.(-1);
+                    return;
+                }
 
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);

@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/header/Header';
-import Footer from '../../components/footer/Footer';
 import Breadcrumb from '../../components/breadcumb/Breadcrumb';
 import SidebarNavigator from '../../components/sidebar_navigator/SidebarNavigator';
 import { GroupService } from '../../services/group';
@@ -508,7 +507,8 @@ const SuitesManager: React.FC = () => {
         browser_type: apiBrowserType,
       };
       
-      const resp = await suiteService.searchTestCasesBySuite(suiteId, request);
+      const resp = await suiteService.searchTestCasesBySuite(suiteId, request, projectId);
+      
       if (resp.success && resp.data) {
         setTestcases(resp.data.testcases || []);
         setTotalPages(resp.data.total_pages || 1);
@@ -543,7 +543,7 @@ const SuitesManager: React.FC = () => {
     } finally {
       setIsLoadingTestcases(false);
     }
-  }, [suiteService, selectedLevel, currentPage, itemsPerPage, testcasesSearchText, sortColumn, sortDirection, selectedOrderFilter, selectedStatusFilter, selectedBrowserFilter]);
+  }, [suiteService, projectId, selectedLevel, currentPage, itemsPerPage, testcasesSearchText, sortColumn, sortDirection, selectedOrderFilter, selectedStatusFilter, selectedBrowserFilter]);
 
   // Reload testcases when filter/search/pagination/sort changes
   useEffect(() => {
@@ -674,7 +674,6 @@ const SuitesManager: React.FC = () => {
     isEditTestcaseModalOpen,
     editingTestcase,
     isSavingTestcase,
-    isLoadingTestcaseData,
     handleOpenEditTestcase,
     handleSaveEditTestcase,
     handleCloseEditTestcaseModal,
@@ -682,7 +681,6 @@ const SuitesManager: React.FC = () => {
     duplicatingTestcase,
     duplicatingTestcaseLevel,
     isDuplicatingTestcase,
-    isLoadingDuplicateTestcaseData,
     handleOpenDuplicateTestcase,
     createTestcaseWithActions,
     handleDuplicateTestcaseSave,
@@ -1380,8 +1378,6 @@ const SuitesManager: React.FC = () => {
         onDelete={handleDeleteGroup}
       />
 
-      <Footer />
-
       {/* Delete Suite Modal */}
       <DeleteSuite
         isOpen={isDeleteSuiteModalOpen}
@@ -1432,23 +1428,12 @@ const SuitesManager: React.FC = () => {
         testSuiteId={selectedSuiteId}
       />
 
-      <LoadingOverlay
-        visible={isLoadingTestcaseData}
-        text="Loading testcase data..."
-        zIndex={2147483646}
-      />
       <EditTestcase
         isOpen={isEditTestcaseModalOpen}
         onClose={handleCloseEditTestcaseModal}
         onSave={handleSaveEditTestcase}
         testcase={editingTestcase}
         projectId={projectId}
-      />
-
-      <LoadingOverlay
-        visible={isLoadingDuplicateTestcaseData}
-        text="Loading testcase data..."
-        zIndex={2147483646}
       />
       <LoadingOverlay
         visible={isDuplicatingTestcase}

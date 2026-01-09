@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/header/Header';
-import Footer from '../../components/footer/Footer';
 import Breadcrumb from '../../components/breadcumb/Breadcrumb';
 import SidebarNavigator from '../../components/sidebar_navigator/SidebarNavigator';
 import './Testcases.css';
@@ -855,7 +854,7 @@ const Testcases: React.FC = () => {
         browser_type: browser_type || undefined,
       } as any;
       // console.log('[MAIN_APP] payload', payload);
-      const resp = await testCaseService.updateTestCase(payload);
+      const resp = await testCaseService.updateTestCase(payload, projectId || undefined);
       if (resp.success) {
         toast.success('Testcase updated successfully!');
         handleCloseEditModal();
@@ -1302,8 +1301,6 @@ const Testcases: React.FC = () => {
           </div>
         </main>
       </div>
-
-      <Footer />
       
       {/* Create Testcase Modal */}
       <CreateTestcase

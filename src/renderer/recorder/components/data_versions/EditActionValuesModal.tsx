@@ -3,6 +3,7 @@ import { Action, ActionDataGeneration } from '../../types/actions';
 import { TestCaseDataVersion } from '../../types/testcase';
 import { toast } from 'react-toastify';
 import EditValueItem from './EditValueItem';
+import { findActiveVersionInActions, syncGenerationsBetweenActionsAndVersions } from './versionSyncUtils';
 import './EditActionValuesModal.css';
 
 interface EditActionValuesModalProps {
@@ -66,23 +67,38 @@ const EditActionValuesModal: React.FC<EditActionValuesModalProps> = ({
     // Nếu đang thêm value mới
     if (isAddingNew && tempNewValue) {
       // Thêm value mới vào danh sách
-      onActionsChange(prev => prev.map(a => {
-        if (a.action_id === currentAction.action_id) {
-          const updatedAction = {
-            ...a,
-            action_data_generation: [
-              ...(a.action_data_generation || []),
-              {
-                ...tempNewValue,
-                value: { value: value },
-              }
-            ],
-          };
-          setCurrentAction(updatedAction);
-          return updatedAction;
+      onActionsChange(prev => {
+        const updated = prev.map(a => {
+          if (a.action_id === currentAction.action_id) {
+            const updatedAction = {
+              ...a,
+              action_data_generation: [
+                ...(a.action_data_generation || []),
+                {
+                  ...tempNewValue,
+                  value: { value: value },
+                }
+              ],
+            };
+            setCurrentAction(updatedAction);
+            return updatedAction;
+          }
+          return a;
+        });
+
+        // SYNC: Đồng bộ với versions
+        if (testcaseDataVersions && onTestCaseDataVersionsChange) {
+          const activeVersionName = findActiveVersionInActions(updated);
+          const { updatedVersions } = syncGenerationsBetweenActionsAndVersions(
+            updated,
+            testcaseDataVersions,
+            activeVersionName
+          );
+          onTestCaseDataVersionsChange(() => updatedVersions);
         }
-        return a;
-      }));
+
+        return updated;
+      });
 
       setIsAddingNew(false);
       setTempNewValue(null);
@@ -124,46 +140,59 @@ const EditActionValuesModal: React.FC<EditActionValuesModalProps> = ({
       };
 
       // Cập nhật actions
-      onActionsChange(prev => prev.map(a => {
-        if (a.action_id === currentAction.action_id) {
-          const updatedGenerations = [...(a.action_data_generation || [])];
-          if (updatedGenerations[editingIndex]) {
-            updatedGenerations[editingIndex] = updatedGeneration;
-          }
-          
-          // Nếu generation này đang được chọn, cập nhật action_datas để giữ selection
-          let updatedActionDatas = [...(a.action_datas || [])];
-          if (isCurrentlySelected) {
-            // Tìm action_data có value property
-            let foundIndex = updatedActionDatas.findIndex(ad => ad.value !== undefined);
-            if (foundIndex === -1) {
-              // Tạo action_data mới nếu chưa có
-              updatedActionDatas.push({ value: {} });
-              foundIndex = updatedActionDatas.length - 1;
+      onActionsChange(prev => {
+        const updated = prev.map(a => {
+          if (a.action_id === currentAction.action_id) {
+            const updatedGenerations = [...(a.action_data_generation || [])];
+            if (updatedGenerations[editingIndex]) {
+              updatedGenerations[editingIndex] = updatedGeneration;
             }
             
-            // Cập nhật action_data với giá trị mới
-            updatedActionDatas[foundIndex] = {
-              ...updatedActionDatas[foundIndex],
-              value: {
-                ...(updatedActionDatas[foundIndex].value || {}),
-                value: String(value)
+            // Nếu generation này đang được chọn, cập nhật action_datas để giữ selection
+            let updatedActionDatas = [...(a.action_datas || [])];
+            if (isCurrentlySelected) {
+              // Tìm action_data có value property
+              let foundIndex = updatedActionDatas.findIndex(ad => ad.value !== undefined);
+              if (foundIndex === -1) {
+                // Tạo action_data mới nếu chưa có
+                updatedActionDatas.push({ value: {} });
+                foundIndex = updatedActionDatas.length - 1;
               }
+              
+              // Cập nhật action_data với giá trị mới
+              updatedActionDatas[foundIndex] = {
+                ...updatedActionDatas[foundIndex],
+                value: {
+                  ...(updatedActionDatas[foundIndex].value || {}),
+                  value: String(value)
+                }
+              };
+            }
+            
+            const updatedAction = {
+              ...a,
+              action_data_generation: updatedGenerations,
+              action_datas: updatedActionDatas,
             };
+            setCurrentAction(updatedAction);
+            return updatedAction;
           }
-          
-          const updatedAction = {
-            ...a,
-            action_data_generation: updatedGenerations,
-            action_datas: updatedActionDatas,
-          };
-          setCurrentAction(updatedAction);
-          return updatedAction;
-        }
-        return a;
-      }));
+          return a;
+        });
 
-      // Sync sẽ được thực hiện khi Save trong ActionDetailModal
+        // SYNC: Đồng bộ với versions
+        if (testcaseDataVersions && onTestCaseDataVersionsChange) {
+          const activeVersionName = findActiveVersionInActions(updated);
+          const { updatedVersions } = syncGenerationsBetweenActionsAndVersions(
+            updated,
+            testcaseDataVersions,
+            activeVersionName
+          );
+          onTestCaseDataVersionsChange(() => updatedVersions);
+        }
+
+        return updated;
+      });
 
       setEditingIndex(null);
       toast.success('Value updated successfully');
@@ -226,26 +255,41 @@ const EditActionValuesModal: React.FC<EditActionValuesModalProps> = ({
       return;
     }
 
-    onActionsChange(prev => prev.map(a => {
-      if (a.action_id === currentAction.action_id) {
-        const updatedGenerations = [...(a.action_data_generation || [])];
-        updatedGenerations.splice(index, 1);
-        const updatedAction = {
-          ...a,
-          action_data_generation: updatedGenerations,
-        };
-        setCurrentAction(updatedAction);
-        // Cancel editing if the deleted item was being edited
-        if (editingIndex === index) {
-          setEditingIndex(null);
-        } else if (editingIndex !== null && editingIndex > index) {
-          // Adjust editing index if a previous item was deleted
-          setEditingIndex(editingIndex - 1);
+    onActionsChange(prev => {
+      const updated = prev.map(a => {
+        if (a.action_id === currentAction.action_id) {
+          const updatedGenerations = [...(a.action_data_generation || [])];
+          updatedGenerations.splice(index, 1);
+          const updatedAction = {
+            ...a,
+            action_data_generation: updatedGenerations,
+          };
+          setCurrentAction(updatedAction);
+          // Cancel editing if the deleted item was being edited
+          if (editingIndex === index) {
+            setEditingIndex(null);
+          } else if (editingIndex !== null && editingIndex > index) {
+            // Adjust editing index if a previous item was deleted
+            setEditingIndex(editingIndex - 1);
+          }
+          return updatedAction;
         }
-        return updatedAction;
+        return a;
+      });
+
+      // SYNC: Đồng bộ với versions (loại bỏ generation đã xóa)
+      if (testcaseDataVersions && onTestCaseDataVersionsChange) {
+        const activeVersionName = findActiveVersionInActions(updated);
+        const { updatedVersions } = syncGenerationsBetweenActionsAndVersions(
+          updated,
+          testcaseDataVersions,
+          activeVersionName
+        );
+        onTestCaseDataVersionsChange(() => updatedVersions);
       }
-      return a;
-    }));
+
+      return updated;
+    });
 
     if (onValueUpdated) {
       onValueUpdated();
