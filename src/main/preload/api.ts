@@ -74,9 +74,18 @@ const fsAPI = {
   findFiles: (dirPath: string, extensions: string[]) => ipcRenderer.invoke('fs:find-files', dirPath, extensions),
 };
 
+
 // Database test API
 const databaseAPI = {
   testConnection: (params: any) => ipcRenderer.invoke('database:test-connection', params),
+  executeQuery: (params: {
+    db_type: 'postgres' | 'mysql' | 'mssql';
+    host: string;
+    port: number;
+    db_name: string;
+    username: string;
+    password: string;
+  }, query: string) => ipcRenderer.invoke('database:execute-query', params, query),
 };
 
 // Expose APIs to renderer

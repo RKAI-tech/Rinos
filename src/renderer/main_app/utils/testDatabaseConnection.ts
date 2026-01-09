@@ -7,24 +7,15 @@ export interface TestConnectionResult {
 }
 
 // Extended interface to include security options from CreateConnection component
+// Note: Test params use file paths (with _path suffix) while storage uses base64 content
 export interface DatabaseConnectionTestParams extends DatabaseConnectionCreateRequest {
-  // SSL/TLS options
-  securityType?: 'none' | 'ssl' | 'ssh';
-  sslMode?: 'disable' | 'require' | 'verify-ca' | 'verify-full';
-  caCertificatePath?: string;
-  clientCertificatePath?: string;
-  clientPrivateKeyPath?: string;
-  sslKeyPassphrase?: string;
+  // SSL/TLS options - file paths for test connection (IPC)
+  ca_certificate_path?: string;
+  client_certificate_path?: string;
+  client_private_key_path?: string;
   
-  // SSH Tunnel options
-  sshHost?: string;
-  sshPort?: number;
-  sshUsername?: string;
-  sshAuthMethod?: 'private_key' | 'password';
-  sshPrivateKeyPath?: string;
-  sshKeyPassphrase?: string;
-  sshPassword?: string;
-  localPort?: number | 'Auto';
+  // SSH Tunnel options - file paths for test connection (IPC)
+  ssh_private_key_path?: string;
 }
 
 /**
@@ -57,9 +48,9 @@ function getDatabaseAPI(): { testConnection: (params: DatabaseConnectionTestPara
  *   username: 'user',
  *   password: 'password',
  *   project_id: 'project-id',
- *   securityType: 'ssl',
- *   sslMode: 'require',
- *   caCertificatePath: '/path/to/ca.crt'
+ *   security_type: 'ssl',
+ *   ssl_mode: 'require',
+ *   ca_certificate_path: '/path/to/ca.crt'
  * });
  * 
  * if (result.success) {
@@ -86,7 +77,7 @@ export async function testDatabaseConnection(
       error: 'Host is required',
     };
   }
-
+  
   if (!connectionParams.port || connectionParams.port <= 0 || connectionParams.port > 65535) {
     return {
       success: false,
@@ -119,9 +110,9 @@ export async function testDatabaseConnection(
     const databaseAPI = getDatabaseAPI();
     return await databaseAPI.testConnection(connectionParams);
   } catch (error) {
-    return {
+  return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
-    };
+  };
   }
 }
