@@ -144,7 +144,7 @@ export class ExecuteScriptsService {
             }
 
         } catch (error) {
-            console.error('[ExecuteScriptsService] Error executing actions locally:', error);
+            /* console.error('[ExecuteScriptsService] Error executing actions locally:', error); */
             // Fallback to API if local execution fails
             return await apiRouter.request<ExecuteActionsResponse>('/runcode/execute_actions', {
                 method: 'POST',
@@ -174,7 +174,7 @@ export class ExecuteScriptsService {
                 },
             };
         } catch (error: any) {
-            console.error('[ExecuteScriptsService] Error generating code:', error);
+            /* console.error('[ExecuteScriptsService] Error generating code:', error); */
             return {
                 success: false,
                 error: error.message || 'Failed to generate code',

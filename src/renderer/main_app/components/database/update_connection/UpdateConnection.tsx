@@ -404,7 +404,7 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
           try {
             await electronAPI.fs.deleteFile(tempPath);
           } catch (cleanupError) {
-            console.warn('Failed to cleanup temp file:', tempPath, cleanupError);
+            /* console.warn('Failed to cleanup temp file:', tempPath, cleanupError); */
           }
         }
       }
@@ -651,7 +651,7 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
     try {
       const electronAPI = (window as any).electronAPI;
       if (!electronAPI?.fs) {
-        console.error('Electron API not available');
+        /* console.error('Electron API not available'); */
         return undefined;
       }
       
@@ -661,13 +661,13 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
       
       const result = await electronAPI.fs.writeFile(tempFilePath, base64Content, 'base64');
       if (!result.success) {
-        console.error(`Failed to write ${filename} to temp file:`, result.error);
+        /* console.error(`Failed to write ${filename} to temp file:`, result.error); */
         return undefined;
       }
       
       return tempFilePath;
     } catch (error) {
-      console.error(`Failed to write ${filename} to temp file:`, error);
+      /* console.error(`Failed to write ${filename} to temp file:`, error); */
       return undefined;
     }
   };

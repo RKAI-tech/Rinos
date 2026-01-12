@@ -6,7 +6,7 @@ import { registerTokenIpc } from "./ipc/token.js";
 import { registerEncryptionIpc } from "./ipc/encryption.js";
 import { registerScreenHandlersIpc } from "./ipc/screen_handle.js";
 import { registerBrowserIpc } from "./ipc/browser.js";
-import { registerPlaywrightHandlersIpc } from "./ipc/playwright.js";
+import { registerPlaywrightHandlersIpc, initializeSandbox } from "./ipc/playwright.js";
 import { registerDatabaseIpc } from "./ipc/database.js";
 import "./env.js"; // Load environment variables
 
@@ -23,6 +23,14 @@ app.whenReady().then(() => {
   try {
     Menu.setApplicationMenu(null);
   } catch {}
+  
+  // Initialize sandbox in background (non-blocking) for production mode
+  if (app.isPackaged) {
+    initializeSandbox().catch((error) => {
+      /* console.error('[Main] Failed to initialize sandbox:', error); */
+      // Don't block app startup if sandbox init fails
+    });
+  }
   
   registerIpcHandlers();
   registerTokenIpc();

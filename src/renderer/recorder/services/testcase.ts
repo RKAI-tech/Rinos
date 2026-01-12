@@ -32,7 +32,7 @@ export class TestCaseService {
         if (!response.success && response.error) {
             const errorLower = response.error.toLowerCase();
             if (errorLower.includes('404') || errorLower.includes('not found') || errorLower.includes('does not exist')) {
-                console.info(`[TestCaseService] Testcase ${testcaseId} not found (likely deleted), returning empty data versions`);
+                /* console.info(`[TestCaseService] Testcase ${testcaseId} not found (likely deleted), returning empty data versions`); */
                 return {
                     success: true,
                     data: {
@@ -77,7 +77,7 @@ export class TestCaseService {
                     };
                 }
             } catch (error) {
-                console.error('[TestCaseService] Decryption failed:', error);
+                /* console.error('[TestCaseService] Decryption failed:', error); */
                 // Fallback: trả về versions không decrypt nếu có lỗi
             }
         }

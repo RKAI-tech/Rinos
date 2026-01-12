@@ -277,7 +277,7 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
         setValue("");
       }
     } catch (error) {
-      console.error("Error extracting value from element:", error);
+      /* console.error("Error extracting value from element:", error); */
       setValue("");
     }
   }, [valueSourceType, selectedElement, assertType]);
@@ -382,11 +382,11 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
               } as Statement;
             }
           } else {
-            toast.warning("Failed to load statement information for variable");
-          }
-        } catch (error: any) {
-          console.error("Error loading statement:", error);
           toast.warning("Failed to load statement information for variable");
+        }
+      } catch (error: any) {
+        /* console.error("Error loading statement:", error); */
+        toast.warning("Failed to load statement information for variable");
         }
       }
     }

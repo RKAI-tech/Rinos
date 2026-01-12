@@ -29,7 +29,7 @@ export const useBasicAuth = ({ testcaseId, projectId, onDirtyChange }: UseBasicA
             setSavedBasicAuthSnapshot(undefined);
           }
         } catch (error) {
-          console.error('[useBasicAuth] Error loading basic auth:', error);
+          /* console.error('[useBasicAuth] Error loading basic auth:', error); */
           setBasicAuth(undefined);
           setSavedBasicAuthSnapshot(undefined);
         }

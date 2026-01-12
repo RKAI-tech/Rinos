@@ -89,8 +89,8 @@ async function createSshTunnel(
   sshKeyPassphrase?: string,
   sshPassword?: string
 ): Promise<{ tunnel: SshClient; localPort: number; cleanup: () => void }> {
-  console.log('[Database Test] Creating SSH tunnel...');
-  console.log('[Database Test] SSH config:', {
+  /* console.log('[Database Test] Creating SSH tunnel...'); */
+  /* console.log('[Database Test] SSH config:', {
     sshHost,
     sshPort,
     sshUsername,
@@ -98,7 +98,7 @@ async function createSshTunnel(
     dbHost,
     dbPort,
     localPort,
-  });
+  }); */
 
   return new Promise((resolve, reject) => {
     const sshClient = new SshClient();
@@ -136,12 +136,12 @@ async function createSshTunnel(
     }
 
     sshClient.on('error', (err: Error) => {
-      console.error('[Database Test] SSH connection error:', err);
+      /* console.error('[Database Test] SSH connection error:', err); */
       reject(new Error(`SSH connection error: ${err.message}`));
     });
 
     sshClient.on('ready', () => {
-      console.log('[Database Test] SSH connection established');
+      /* console.log('[Database Test] SSH connection established'); */
       // Create a local TCP server that forwards connections through SSH
       const assignedLocalPort = localPort === 'Auto' || !localPort ? 0 : localPort;
       const localServer = net.createServer((localSocket: net.Socket) => {
@@ -164,32 +164,32 @@ async function createSshTunnel(
       localServer.listen(assignedLocalPort, '127.0.0.1', () => {
         const address = localServer.address();
         const actualPort = (address && typeof address === 'object') ? address.port : assignedLocalPort;
-        console.log('[Database Test] Local TCP server started on port:', actualPort);
-        console.log('[Database Test] SSH tunnel ready, forwarding to:', `${dbHost}:${dbPort}`);
+        /* console.log('[Database Test] Local TCP server started on port:', actualPort); */
+        /* console.log('[Database Test] SSH tunnel ready, forwarding to:', `${dbHost}:${dbPort}`); */
         resolve({
           tunnel: sshClient,
           localPort: actualPort as number,
           cleanup: () => {
-            console.log('[Database Test] Cleaning up SSH tunnel (closing local server and SSH connection)...');
+            /* console.log('[Database Test] Cleaning up SSH tunnel (closing local server and SSH connection)...'); */
             try {
               localServer.close();
               sshClient.end();
-              console.log('[Database Test] SSH tunnel cleanup completed');
+              /* console.log('[Database Test] SSH tunnel cleanup completed'); */
             } catch (cleanupError) {
-              console.error('[Database Test] Error during SSH tunnel cleanup:', cleanupError);
+              /* console.error('[Database Test] Error during SSH tunnel cleanup:', cleanupError); */
             }
           },
         });
       });
 
       localServer.on('error', (err: Error) => {
-        console.error('[Database Test] Local TCP server error:', err);
+        /* console.error('[Database Test] Local TCP server error:', err); */
         sshClient.end();
         reject(new Error(`Local server error: ${err.message}`));
       });
     });
 
-    console.log('[Database Test] Connecting to SSH server...');
+    /* console.log('[Database Test] Connecting to SSH server...'); */
     sshClient.connect(connectionConfig);
   });
 }
@@ -268,44 +268,44 @@ async function testPostgresConnection(params: DatabaseConnectionTestParams): Pro
 
     if (params.security_type === 'ssl' && params.ssl_mode && params.ssl_mode !== 'disable') {
       clientConfig.ssl = sslConfig;
-      console.log('[Database Test] SSL configuration applied');
+      /* console.log('[Database Test] SSL configuration applied'); */
     } else if (params.security_type !== 'ssl') {
       clientConfig.ssl = false;
-      console.log('[Database Test] SSL disabled');
+      /* console.log('[Database Test] SSL disabled'); */
     }
 
-    console.log('[Database Test] Creating PostgreSQL client with config:', {
+    /* console.log('[Database Test] Creating PostgreSQL client with config:', { 
       host: clientConfig.host,
       port: clientConfig.port,
       database: clientConfig.database,
       user: clientConfig.user,
       hasPassword: !!clientConfig.password,
       hasSsl: !!clientConfig.ssl,
-    });
+    }); */
 
     client = new PgClient(clientConfig);
 
     // Connect and test
-    console.log('[Database Test] Attempting to connect to PostgreSQL...');
+    /* console.log('[Database Test] Attempting to connect to PostgreSQL...'); */
     await client.connect();
-    console.log('[Database Test] PostgreSQL connection established successfully');
+    /* console.log('[Database Test] PostgreSQL connection established successfully'); */
 
-    console.log('[Database Test] Executing test query: SELECT 1');
+    /* console.log('[Database Test] Executing test query: SELECT 1'); */
     await client.query('SELECT 1');
-    console.log('[Database Test] Test query executed successfully');
+    /* console.log('[Database Test] Test query executed successfully'); */
 
-    console.log('[Database Test] PostgreSQL connection test completed successfully');
+    /* console.log('[Database Test] PostgreSQL connection test completed successfully'); */
     return {
       success: true,
       message: 'Database connection successful',
     };
   } catch (error) {
-    console.error('[Database Test] PostgreSQL connection test failed:', error);
-    console.error('[Database Test] Error details:', {
+    /* console.error('[Database Test] PostgreSQL connection test failed:', error); */
+    /* console.error('[Database Test] Error details:', { 
       name: error instanceof Error ? error.name : 'Unknown',
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
-    });
+    }); */
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -314,9 +314,9 @@ async function testPostgresConnection(params: DatabaseConnectionTestParams): Pro
     if (client) {
       try {
         await client.end();
-        console.log('[Database Test] PostgreSQL client closed');
+        /* console.log('[Database Test] PostgreSQL client closed'); */
       } catch (err) {
-        console.error('[Database Test] Error closing PostgreSQL client:', err);
+        /* console.error('[Database Test] Error closing PostgreSQL client:', err); */
       }
     }
     if (sshCleanup) {
@@ -387,29 +387,29 @@ async function testMysqlConnection(params: DatabaseConnectionTestParams): Promis
       }
     }
 
-    console.log('[Database Test] Creating MySQL connection with config:', {
+    /* console.log('[Database Test] Creating MySQL connection with config:', {
       host: connectionConfig.host,
       port: connectionConfig.port,
       database: connectionConfig.database,
       user: connectionConfig.user,
       hasPassword: !!connectionConfig.password,
       hasSsl: !!connectionConfig.ssl,
-    });
+    }); */
 
     connection = await mysql.createConnection(connectionConfig);
-    console.log('[Database Test] MySQL connection established successfully');
+    /* console.log('[Database Test] MySQL connection established successfully'); */
 
-    console.log('[Database Test] Executing test query: SELECT 1');
+    /* console.log('[Database Test] Executing test query: SELECT 1'); */
     await connection.query('SELECT 1');
-    console.log('[Database Test] Test query executed successfully');
+    /* console.log('[Database Test] Test query executed successfully'); */
 
-    console.log('[Database Test] MySQL connection test completed successfully');
+    /* console.log('[Database Test] MySQL connection test completed successfully'); */
     return {
       success: true,
       message: 'Database connection successful',
     };
   } catch (error) {
-    console.error('[Database Test] MySQL connection test failed:', error);
+    /* console.error('[Database Test] MySQL connection test failed:', error); */
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -418,9 +418,9 @@ async function testMysqlConnection(params: DatabaseConnectionTestParams): Promis
     if (connection) {
       try {
         await connection.end();
-        console.log('[Database Test] MySQL connection closed');
+        /* console.log('[Database Test] MySQL connection closed'); */
       } catch (err) {
-        console.error('[Database Test] Error closing MySQL connection:', err);
+        /* console.error('[Database Test] Error closing MySQL connection:', err); */
       }
     }
     if (sshCleanup) {
@@ -494,29 +494,29 @@ async function testMssqlConnection(params: DatabaseConnectionTestParams): Promis
       }
     }
 
-    console.log('[Database Test] Creating MSSQL connection pool with config:', {
+    /* console.log('[Database Test] Creating MSSQL connection pool with config:', { 
       server: config.server,
       port: config.port,
       database: config.database,
       user: config.user,
       hasPassword: !!config.password,
       encrypt: config.options.encrypt,
-    });
+    }); */
 
     pool = await sql.connect(config);
-    console.log('[Database Test] MSSQL connection established successfully');
+    /* console.log('[Database Test] MSSQL connection established successfully'); */
 
-    console.log('[Database Test] Executing test query: SELECT 1');
+    /* console.log('[Database Test] Executing test query: SELECT 1'); */
     await pool.request().query('SELECT 1');
-    console.log('[Database Test] Test query executed successfully');
+    /* console.log('[Database Test] Test query executed successfully'); */
 
-    console.log('[Database Test] MSSQL connection test completed successfully');
+    /* console.log('[Database Test] MSSQL connection test completed successfully'); */
     return {
       success: true,
       message: 'Database connection successful',
     };
   } catch (error) {
-    console.error('[Database Test] MSSQL connection test failed:', error);
+    /* console.error('[Database Test] MSSQL connection test failed:', error); */
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -525,9 +525,9 @@ async function testMssqlConnection(params: DatabaseConnectionTestParams): Promis
     if (pool) {
       try {
         await pool.close();
-        console.log('[Database Test] MSSQL connection pool closed');
+        /* console.log('[Database Test] MSSQL connection pool closed'); */
       } catch (err) {
-        console.error('[Database Test] Error closing MSSQL connection pool:', err);
+        /* console.error('[Database Test] Error closing MSSQL connection pool:', err); */
       }
     }
     if (sshCleanup) {
@@ -544,13 +544,13 @@ async function testMssqlConnection(params: DatabaseConnectionTestParams): Promis
  * Test database connection handler
  */
 async function testDatabaseConnection(params: DatabaseConnectionTestParams): Promise<TestConnectionResult> {
-  console.log('[Database Test] ========================================');
-  console.log('[Database Test] Starting database connection test');
-  console.log('[Database Test] Database type:', params.db_type);
+  /* console.log('[Database Test] ========================================'); */
+  /* console.log('[Database Test] Starting database connection test'); */
+  /* console.log('[Database Test] Database type:', params.db_type); */
   
   // Basic validation
   if (!params.db_type) {
-    console.error('[Database Test] Validation failed: Database type is required');
+    /* console.error('[Database Test] Validation failed: Database type is required'); */
     return {
       success: false,
       error: 'Database type is required',
@@ -558,7 +558,7 @@ async function testDatabaseConnection(params: DatabaseConnectionTestParams): Pro
   }
 
   if (!params.host || !params.host.trim()) {
-    console.error('[Database Test] Validation failed: Host is required');
+    /* console.error('[Database Test] Validation failed: Host is required'); */
     return {
       success: false,
       error: 'Host is required',
@@ -566,7 +566,7 @@ async function testDatabaseConnection(params: DatabaseConnectionTestParams): Pro
   }
 
   if (!params.port || params.port <= 0 || params.port > 65535) {
-    console.error('[Database Test] Validation failed: Invalid port:', params.port);
+    /* console.error('[Database Test] Validation failed: Invalid port:', params.port); */
     return {
       success: false,
       error: 'Port must be a number between 1 and 65535',
@@ -574,7 +574,7 @@ async function testDatabaseConnection(params: DatabaseConnectionTestParams): Pro
   }
 
   if (!params.db_name || !params.db_name.trim()) {
-    console.error('[Database Test] Validation failed: Database name is required');
+    /* console.error('[Database Test] Validation failed: Database name is required'); */
     return {
       success: false,
       error: 'Database name is required',
@@ -582,7 +582,7 @@ async function testDatabaseConnection(params: DatabaseConnectionTestParams): Pro
   }
 
   if (!params.username || !params.username.trim()) {
-    console.error('[Database Test] Validation failed: Username is required');
+    /* console.error('[Database Test] Validation failed: Username is required'); */
     return {
       success: false,
       error: 'Username is required',
@@ -590,14 +590,14 @@ async function testDatabaseConnection(params: DatabaseConnectionTestParams): Pro
   }
 
   if (params.password === undefined || params.password === null) {
-    console.error('[Database Test] Validation failed: Password is required');
+    /* console.error('[Database Test] Validation failed: Password is required'); */
     return {
       success: false,
       error: 'Password is required',
     };
   }
 
-  console.log('[Database Test] Validation passed, proceeding with connection test');
+  /* console.log('[Database Test] Validation passed, proceeding with connection test'); */
 
   // Test connection based on database type
   try {
@@ -625,7 +625,7 @@ async function testDatabaseConnection(params: DatabaseConnectionTestParams): Pro
         };
     }
   } catch (error) {
-    console.error('[Database Test] Unhandled error during connection test:', error);
+    /* console.error('[Database Test] Unhandled error during connection test:', error); */
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -643,14 +643,14 @@ async function testDatabaseConnection(params: DatabaseConnectionTestParams): Pro
 export function registerDatabaseIpc() {
   // Test database connection
   ipcMain.handle('database:test-connection', async (_event, params: DatabaseConnectionTestParams) => {
-    console.log('[Database Test IPC] Received test connection request');
+    /* console.log('[Database Test IPC] Received test connection request'); */
     try {
       const result = await testDatabaseConnection(params);
-      console.log('[Database Test IPC] Test completed, returning result');
+      /* console.log('[Database Test IPC] Test completed, returning result'); */
       return result;
     } catch (error) {
-      console.error('[Database Test IPC] Unhandled error:', error);
-      console.error('[Database Test IPC] Error stack:', error instanceof Error ? error.stack : undefined);
+      /* console.error('[Database Test IPC] Unhandled error:', error); */
+      /* console.error('[Database Test IPC] Error stack:', error instanceof Error ? error.stack : undefined); */
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',

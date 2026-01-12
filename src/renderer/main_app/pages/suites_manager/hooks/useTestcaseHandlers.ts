@@ -54,7 +54,7 @@ export const useTestcaseHandlers = ({
   const handleOpenEditTestcase = useCallback((testcase: TestCaseInSuite) => {
     if (!testcase || !projectId) return;
 
-    console.log('[useTestcaseHandlers] Opening EditTestcase modal for testcase:', testcase);
+    /* console.log('[useTestcaseHandlers] Opening EditTestcase modal for testcase:', testcase); */
     
     // Sử dụng trực tiếp dữ liệu từ prop, không cần fetch API
     setEditingTestcase({
@@ -251,12 +251,12 @@ export const useTestcaseHandlers = ({
       if (resp.success) {
         // Đóng các modal đang mở với testcase này
         if (editingTestcase?.testcase_id === testcaseId) {
-          console.info('[useTestcaseHandlers] Closing EditTestcase modal for deleted testcase');
+          /* console.info('[useTestcaseHandlers] Closing EditTestcase modal for deleted testcase'); */
           setIsEditTestcaseModalOpen(false);
           setEditingTestcase(null);
         }
         if (duplicatingTestcase?.testcase_id === testcaseId) {
-          console.info('[useTestcaseHandlers] Closing DuplicateTestcase modal for deleted testcase');
+          /* console.info('[useTestcaseHandlers] Closing DuplicateTestcase modal for deleted testcase'); */
           setIsDuplicateTestcaseModalOpen(false);
           setDuplicatingTestcase(null);
         }
@@ -267,11 +267,11 @@ export const useTestcaseHandlers = ({
           if (screenHandleAPI?.closeRecorder) {
             const closeResult = await screenHandleAPI.closeRecorder();
             if (closeResult?.success) {
-              console.info('[useTestcaseHandlers] Closed recorder window for deleted testcase');
+              /* console.info('[useTestcaseHandlers] Closed recorder window for deleted testcase'); */
             }
           }
         } catch (e) {
-          console.error('[useTestcaseHandlers] Failed to close recorder window:', e);
+          /* console.error('[useTestcaseHandlers] Failed to close recorder window:', e); */
         }
         
         toast.success('Testcase removed from suite successfully');

@@ -14,6 +14,8 @@ import { Action, BasicAuthentication, ActionType, ActionData } from '../types/ac
 import { ApiRouterLike } from '../utils/apiRequest';
 import { decryptObject } from '../../main_app/services/encryption';
 
+import * as fs from "fs";
+
 // Simple UUID generator
 function generateUUID(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -134,7 +136,7 @@ export class TestExecutionService {
   async executeTestcase(options: ExecuteTestcaseOptions): Promise<TestExecutionResult> {
     let tempFiles: string[] = [];
     try {
-      console.log('[TestExecutionService] Options', options);
+      /* console.log('[TestExecutionService] Options', options); */
       // Get actions and basic auth from API
       const { actions, basic_auth } = await this.getActionsByTestCase(options.testcase_id, options.project_id);
 
@@ -263,14 +265,14 @@ export class TestExecutionService {
     } catch (error) {
       // Update evidence status to Failed if onSave is true
       if (options.evidence_id && options.onSave) {
-        console.log('[TestExecutionService] Updating evidence status to Failed', error);
+        /* console.log('[TestExecutionService] Updating evidence status to Failed', error); */
         try {
           await this.evidenceService.updateEvidenceStatus(
             options.evidence_id,
             'Failed'
           );
         } catch (updateError) {
-          console.error('Failed to update evidence status:', updateError);
+          /* console.error('Failed to update evidence status:', updateError); */
         }
       }
 
@@ -304,7 +306,7 @@ export class TestExecutionService {
         await this.deleteFile(filePath);
       } catch (error) {
         // Ignore errors during cleanup
-        console.error(`Failed to delete temp file ${filePath}:`, error);
+        /* console.error(`Failed to delete temp file ${filePath}:`, error); */
       }
     }
   }
@@ -339,7 +341,7 @@ export class TestExecutionService {
         videoUrl = latestVideo;
       }
     } catch (error) {
-      console.error('Error finding video file:', error);
+      /* console.error('Error finding video file:', error); */
     }
 
     // Find image files
@@ -348,7 +350,7 @@ export class TestExecutionService {
       const imageFiles = await this.findFiles(outputDir, ['.png', '.jpg', '.jpeg']);
       imagesUrls = imageFiles;
     } catch (error) {
-      console.error('Error finding image files:', error);
+      /* console.error('Error finding image files:', error); */
     }
 
     return {
@@ -393,7 +395,7 @@ export class TestExecutionService {
           });
         }
       } catch (error) {
-        console.error('Error loading video file:', error);
+        /* console.error('Error loading video file:', error); */
       }
     }
 
@@ -410,7 +412,7 @@ export class TestExecutionService {
             }));
           }
         } catch (error) {
-          console.error('Error loading image file:', error);
+          /* console.error('Error loading image file:', error); */
         }
       }
     }
@@ -458,7 +460,7 @@ export class TestExecutionService {
             try {
               basic_auth = await decryptObject(basic_auth, encryptionKey, ['username', 'password']);
             } catch (error) {
-              console.error('[TestExecutionService] Basic auth decryption failed:', error);
+              /* console.error('[TestExecutionService] Basic auth decryption failed:', error); */
               // Keep original if decryption fails (backward compatibility)
             }
           }
@@ -498,12 +500,12 @@ export class TestExecutionService {
                 return decryptedAction;
               })
             );
-          }
         }
-      } catch (error) {
-        console.error('[TestExecutionService] Decryption failed:', error);
-        // Fallback: trả về actions không decrypt nếu có lỗi
       }
+    } catch (error) {
+      /* console.error('[TestExecutionService] Decryption failed:', error); */
+      // Fallback: trả về actions không decrypt nếu có lỗi
+    }
     }
 
     return { actions, basic_auth };
@@ -571,7 +573,7 @@ export class TestExecutionService {
         }
       }
     } catch (error) {
-      console.error('Error loading file as blob:', error);
+      /* console.error('Error loading file as blob:', error); */
     }
     return null;
   }

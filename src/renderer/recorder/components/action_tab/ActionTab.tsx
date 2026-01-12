@@ -760,7 +760,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
       // Chỉ log error nếu không phải là action type được xử lý bởi modal
       const modalHandledTypes = ['back', 'forward', 'reload', 'api_request', 'database_execution'];
       if (!modalHandledTypes.includes(actionType)) {
-        console.error("Failed to create action for type:", actionType);
+        /* console.error("Failed to create action for type:", actionType); */
       }
     }
   };

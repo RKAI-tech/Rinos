@@ -10,7 +10,7 @@ import { previewNode, extractElementText } from '../dom/domUtils.js';
 
 // Xử lý sự kiện change cho <select>
 export function handleSelectChangeEvent(e) {
-  console.log('handleSelectChangeEvent', e);
+  /* console.log('handleSelectChangeEvent', e); */
   const el = e?.target;
   const tag = el?.tagName?.toLowerCase?.();
   if (tag !== 'select') return;

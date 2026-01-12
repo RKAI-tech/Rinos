@@ -63,7 +63,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
       if (!response.success && response.error) {
         const errorLower = response.error.toLowerCase();
         if (errorLower.includes('404') || errorLower.includes('not found') || errorLower.includes('does not exist')) {
-          console.info(`[Main] Testcase ${testcaseId} not found (likely deleted), clearing data versions`);
+          /* console.info(`[Main] Testcase ${testcaseId} not found (likely deleted), clearing data versions`); */
           setTestCaseDataVersions([]);
           return;
         }

@@ -127,7 +127,7 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
           if (!response.success && response.error) {
             const errorLower = response.error.toLowerCase();
             if (errorLower.includes('404') || errorLower.includes('not found') || errorLower.includes('does not exist')) {
-              console.info(`[useActions] Testcase ${testcaseId} not found (likely deleted), clearing actions`);
+              /* console.info(`[useActions] Testcase ${testcaseId} not found (likely deleted), clearing actions`); */
               setActions([]);
               setSelectedInsertPosition(0);
               setSavedActionsSnapshot([]);
@@ -299,12 +299,12 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
     setIsLoading(true);
     try {
       const response = await actionService.getActionsByTestCase(effectiveId, 0, 0, projectId || undefined);
-      console.log('[useActions] Response', response);
+      /* console.log('[useActions] Response', response); */
       // Check if testcase was deleted (404 or Not Found error)
       if (!response.success && response.error) {
         const errorLower = response.error.toLowerCase();
         if (errorLower.includes('404') || errorLower.includes('not found') || errorLower.includes('does not exist')) {
-          console.info(`[useActions] Testcase ${effectiveId} not found (likely deleted) during reload, clearing actions`);
+          /* console.info(`[useActions] Testcase ${effectiveId} not found (likely deleted) during reload, clearing actions`); */
           setActions([]);
           setSelectedInsertPosition(0);
           setDisplayInsertPosition(0);
@@ -507,7 +507,7 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
           }))
         : undefined;
 
-      console.log('Actions to save', actionsToSave);
+      /* console.log('Actions to save', actionsToSave); */
 
       const response = await actionService.batchCreateActions(actionsToSave, versionsToSaveFormatted, projectId || undefined);
       if (response.success) {

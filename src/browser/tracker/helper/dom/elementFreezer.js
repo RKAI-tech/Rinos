@@ -321,7 +321,7 @@ export function unfreezeEntireScreen() {
     const timeoutsToRun = queuedTimeouts.slice();
     queuedTimeouts = [];
     timeoutsToRun.forEach(run => {
-      try { run(); } catch (e) { console.warn('Queued timeout error:', e); }
+      try { run(); } catch (e) { /* console.warn('Queued timeout error:', e); */ }
     });
   }
   

@@ -22,8 +22,8 @@ export function registerScreenHandlersIpc() {
         return { success: true, created: false, alreadyOpen: true, testcaseId };
       }
 
-      console.log('[Screen Handle] TestSuite ID', testSuiteId);
-      console.log('[Screen Handle] Evidence ID', evidenceId);
+      /* console.log('[Screen Handle] TestSuite ID', testSuiteId); */
+      /* console.log('[Screen Handle] Evidence ID', evidenceId); */
       
       const win: BrowserWindow = createRecorderWindow(testcaseId, projectId, testcaseName, browserType, testSuiteId, evidenceId);
       if (key) testcaseIdToWindow.set(key, win);

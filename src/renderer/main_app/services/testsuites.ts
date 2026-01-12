@@ -136,7 +136,7 @@ export class TestSuiteService {
                         failureCount++;
                         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
                         errors.push(`${testcase.name}: ${errorMessage}`);
-                        console.error(`[TestSuiteService] Error executing testcase ${testcase.testcase_id}:`, error);
+                        /* console.error(`[TestSuiteService] Error executing testcase ${testcase.testcase_id}:`, error); */
                     }
                 }
             }
@@ -154,7 +154,7 @@ export class TestSuiteService {
                 error: hasSuccess ? undefined : (errors.length > 0 ? errors.join('; ') : 'All testcases failed to execute')
             };
         } catch (error) {
-            console.error('[TestSuiteService] Error executing test suite locally:', error);
+            /* console.error('[TestSuiteService] Error executing test suite locally:', error); */
             // Fallback to API if local execution fails
             return await apiRouter.request<{ message: string }>(`/runcode/execute_test_suite/${payload.test_suite_id}`, {
                 method: 'POST',
@@ -342,7 +342,7 @@ export class TestSuiteService {
                                         ['username', 'password']
                                     );
                                 } catch (error) {
-                                    console.error('[TestSuiteService] Decryption failed for testcase:', testcase.testcase_id, error);
+                                    /* console.error('[TestSuiteService] Decryption failed for testcase:', testcase.testcase_id, error); */
                                     // Keep original if decryption fails (backward compatibility)
                                 }
                             }
@@ -351,7 +351,7 @@ export class TestSuiteService {
                     );
                 }
             } catch (error) {
-                console.error('[TestSuiteService] Decryption failed:', error);
+                /* console.error('[TestSuiteService] Decryption failed:', error); */
                 // Keep original response if decryption fails (backward compatibility)
             }
         }

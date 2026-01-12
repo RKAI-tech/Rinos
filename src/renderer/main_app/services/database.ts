@@ -57,7 +57,7 @@ export class DatabaseService {
                     encryptedPayload = await encryptObject(payload, encryptionKey, fieldsToEncrypt);
                 }
             } catch (error) {
-                console.error('[DatabaseService] Encryption failed:', error);
+                /* console.error('[DatabaseService] Encryption failed:', error); */
                 // Fallback: send unencrypted if encryption fails
             }
         }
@@ -91,7 +91,7 @@ export class DatabaseService {
                     encryptedPayload = await encryptObject(payload, encryptionKey, fieldsToEncrypt);
                 }
             } catch (error) {
-                console.error('[DatabaseService] Encryption failed:', error);
+                /* console.error('[DatabaseService] Encryption failed:', error); */
                 // Fallback: send unencrypted if encryption fails
             }
         }
@@ -136,7 +136,7 @@ export class DatabaseService {
                             try {
                                 return await decryptObject(connection, encryptionKey, fieldsToDecrypt);
                             } catch (error) {
-                                console.error('[DatabaseService] Decryption failed for connection:', connection.connection_id, error);
+                                /* console.error('[DatabaseService] Decryption failed for connection:', connection.connection_id, error); */
                                 // Keep original connection if decryption fails (backward compatibility)
                                 return connection;
                             }
@@ -144,7 +144,7 @@ export class DatabaseService {
                     );
                 }
             } catch (error) {
-                console.error('[DatabaseService] Decryption failed:', error);
+                /* console.error('[DatabaseService] Decryption failed:', error); */
                 // Keep original response if decryption fails (backward compatibility)
             }
         }
@@ -178,7 +178,7 @@ export class DatabaseService {
                             try {
                                 return await decryptObject(connection, encryptionKey, fieldsToDecrypt);
                             } catch (error) {
-                                console.error('[DatabaseService] Decryption failed for connection:', connection.connection_id, error);
+                                /* console.error('[DatabaseService] Decryption failed for connection:', connection.connection_id, error); */
                                 // Keep original connection if decryption fails (backward compatibility)
                                 return connection;
                             }
@@ -186,7 +186,7 @@ export class DatabaseService {
                     );
                 }
             } catch (error) {
-                console.error('[DatabaseService] Decryption failed:', error);
+                /* console.error('[DatabaseService] Decryption failed:', error); */
                 // Keep original response if decryption fails (backward compatibility)
             }
         }

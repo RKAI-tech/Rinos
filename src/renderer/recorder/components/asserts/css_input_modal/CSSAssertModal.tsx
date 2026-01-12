@@ -156,7 +156,7 @@ const CSSAssertModal: React.FC<CSSAssertModalProps> = ({
           setCssValue('');
         }
       } catch (error) {
-        console.error('Error extracting CSS value from element_data:', error);
+        /* console.error('Error extracting CSS value from element_data:', error); */
         setCssValue('');
       }
     } else {

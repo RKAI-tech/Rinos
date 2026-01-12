@@ -79,6 +79,7 @@ const Testcases: React.FC = () => {
   // Service - use useMemo to avoid recreating on every render
   const testCaseService = useMemo(() => new TestCaseService(), []);
   const projectService = useMemo(() => new ProjectService(), []);
+  const actionService = useMemo(() => new ActionService(), []);
 
   // Helper: map API response to Testcase format
   const mapApiResponseToTestcase = useCallback((resp: any[]): Testcase[] => {
@@ -700,7 +701,7 @@ const Testcases: React.FC = () => {
     try {
       const playwrightAPI = (window as any).playwrightAPI || (window as any).electronAPI?.playwright;
       if (!playwrightAPI) {
-        console.warn('[Testcases] Playwright API not available');
+        /* console.warn('[Testcases] Playwright API not available'); */
         return true; // Assume installed if API not available
       }
       
@@ -712,7 +713,7 @@ const Testcases: React.FC = () => {
       }
       return false;
     } catch (err) {
-      console.error('[Testcases] Error checking browser:', err);
+      /* console.error('[Testcases] Error checking browser:', err); */
       return false;
     }
   };
@@ -733,7 +734,7 @@ const Testcases: React.FC = () => {
       } else if (result?.created) {
       }
     } catch (err) {
-      console.error('[Testcases] openRecorder error:', err);
+      /* console.error('[Testcases] openRecorder error:', err); */
       toast.error('Failed to open recorder');
     }
   };
@@ -764,7 +765,7 @@ const Testcases: React.FC = () => {
         await openRecorderAfterCheck(id);
       }
     } catch (err) {
-      console.error('[Testcases] Error in handleOpenRecorder:', err);
+      /* console.error('[Testcases] Error in handleOpenRecorder:', err); */
       toast.error('Failed to check browser installation');
     }
   };
@@ -806,7 +807,7 @@ const Testcases: React.FC = () => {
         throw new Error(result?.error || 'Installation failed');
       }
     } catch (err) {
-      console.error('[Testcases] Error installing browsers:', err);
+      /* console.error('[Testcases] Error installing browsers:', err); */
       toast.error(err instanceof Error ? err.message : 'Failed to install browsers');
       setIsInstallingBrowsers(false);
       setInstallProgress(null);
@@ -880,7 +881,7 @@ const Testcases: React.FC = () => {
       if (resp.success) {
         // Đóng các modal đang mở với testcase này
         if (selectedTestcase?.testcase_id === id) {
-          console.info('[Testcases] Closing modals for deleted testcase');
+          /* console.info('[Testcases] Closing modals for deleted testcase'); */
           if (isEditModalOpen) {
             handleCloseEditModal();
           }
@@ -896,11 +897,11 @@ const Testcases: React.FC = () => {
           if (screenHandleAPI?.closeRecorder) {
             const closeResult = await screenHandleAPI.closeRecorder();
             if (closeResult?.success) {
-              console.info('[Testcases] Closed recorder window for deleted testcase');
+              /* console.info('[Testcases] Closed recorder window for deleted testcase'); */
             }
           }
         } catch (e) {
-          console.error('[Testcases] Failed to close recorder window:', e);
+          /* console.error('[Testcases] Failed to close recorder window:', e); */
         }
         
         toast.success('Testcase deleted successfully!');

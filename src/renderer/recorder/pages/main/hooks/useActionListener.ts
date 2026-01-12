@@ -226,7 +226,7 @@ export const useActionListener = ({
       
       // Handle page selection for NavigateModal
       if (isActionTabNavigateOpen && action?.action_type === 'click') {
-        console.log('[useActionListener] Click event received while NavigateModal is open:', action);
+        /* console.log('[useActionListener] Click event received while NavigateModal is open:', action); */
         let pageInfo = null;
         if (action?.action_datas && Array.isArray(action.action_datas)) {
           for (const ad of action.action_datas) {
@@ -243,17 +243,17 @@ export const useActionListener = ({
             page_url: pageInfo.page_url || '',
             page_title: pageInfo.page_title || '',
           };
-          console.log('[useActionListener] Page selected/updated for NavigateModal:', pageData);
+          /* console.log('[useActionListener] Page selected/updated for NavigateModal:', pageData); */
           setNavigateSelectedPageInfo(pageData);
           return;
         } else {
-          console.warn('[useActionListener] No page info found in click action. action_datas:', action?.action_datas);
+          /* console.warn('[useActionListener] No page info found in click action. action_datas:', action?.action_datas); */
         }
       }
 
       // Handle page selection for BrowserActionModal
       if (isActionTabBrowserActionOpen && action?.action_type === 'click') {
-        console.log('[useActionListener] Click event received while BrowserActionModal is open:', action);
+        /* console.log('[useActionListener] Click event received while BrowserActionModal is open:', action); */
         let pageInfo = null;
         if (action?.action_datas && Array.isArray(action.action_datas)) {
           for (const ad of action.action_datas) {
@@ -270,17 +270,17 @@ export const useActionListener = ({
             page_url: pageInfo.page_url || '',
             page_title: pageInfo.page_title || '',
           };
-          console.log('[useActionListener] Page selected/updated for BrowserActionModal:', pageData);
+          /* console.log('[useActionListener] Page selected/updated for BrowserActionModal:', pageData); */
           setBrowserActionSelectedPageInfo(pageData);
           return;
         } else {
-          console.warn('[useActionListener] No page info found in click action. action_datas:', action?.action_datas);
+          /* console.warn('[useActionListener] No page info found in click action. action_datas:', action?.action_datas); */
         }
       }
 
       // Handle page selection for AddBrowserStorageModal
       if (isActionTabAddBrowserStorageOpen && action?.action_type === 'click') {
-        console.log('[useActionListener] Click event received while AddBrowserStorageModal is open:', action);
+        /* console.log('[useActionListener] Click event received while AddBrowserStorageModal is open:', action); */
         let pageInfo = null;
         if (action?.action_datas && Array.isArray(action.action_datas)) {
           for (const ad of action.action_datas) {
@@ -297,17 +297,17 @@ export const useActionListener = ({
             page_url: pageInfo.page_url || '',
             page_title: pageInfo.page_title || '',
           };
-          console.log('[useActionListener] Page selected/updated for AddBrowserStorageModal:', pageData);
+          /* console.log('[useActionListener] Page selected/updated for AddBrowserStorageModal:', pageData); */
           setAddBrowserStorageSelectedPageInfo(pageData);
           return;
         } else {
-          console.warn('[useActionListener] No page info found in click action. action_datas:', action?.action_datas);
+          /* console.warn('[useActionListener] No page info found in click action. action_datas:', action?.action_datas); */
         }
       }
 
       // Handle page selection for ApiRequestModal
       if (isActionTabApiRequestOpen && action?.action_type === 'click') {
-        console.log('[useActionListener] Click event received while ApiRequestModal is open:', action);
+        /* console.log('[useActionListener] Click event received while ApiRequestModal is open:', action); */
         let pageInfo = null;
         if (action?.action_datas && Array.isArray(action.action_datas)) {
           for (const ad of action.action_datas) {
@@ -324,17 +324,17 @@ export const useActionListener = ({
             page_url: pageInfo.page_url || '',
             page_title: pageInfo.page_title || '',
           };
-          console.log('[useActionListener] Page selected/updated for ApiRequestModal:', pageData);
+          /* console.log('[useActionListener] Page selected/updated for ApiRequestModal:', pageData); */
           setApiRequestSelectedPageInfo(pageData);
           return;
         } else {
-          console.warn('[useActionListener] No page info found in click action. action_datas:', action?.action_datas);
+          /* console.warn('[useActionListener] No page info found in click action. action_datas:', action?.action_datas); */
         }
       }
 
       // Handle page selection for URLInputModal (assert URL)
       if (isUrlInputOpen && action?.action_type === 'click') {
-        console.log('[useActionListener] Click event received while URLInputModal is open:', action);
+        /* console.log('[useActionListener] Click event received while URLInputModal is open:', action); */
         let pageInfo = null;
         if (action?.action_datas && Array.isArray(action.action_datas)) {
           for (const ad of action.action_datas) {
@@ -354,13 +354,13 @@ export const useActionListener = ({
           setUrlInputSelectedPageInfo(pageData);
           return;
         } else {
-          console.warn('[useActionListener] No page info found in click action. action_datas:', action?.action_datas);
+          /* console.warn('[useActionListener] No page info found in click action. action_datas:', action?.action_datas); */
         }
       }
 
       // Handle page selection for TitleInputModal (assert title)
       if (isTitleInputOpen && action?.action_type === 'click') {
-        console.log('[useActionListener] Click event received while TitleInputModal is open:', action);
+        /* console.log('[useActionListener] Click event received while TitleInputModal is open:', action); */
         let pageInfo = null;
         if (action?.action_datas && Array.isArray(action.action_datas)) {
           for (const ad of action.action_datas) {
@@ -380,14 +380,14 @@ export const useActionListener = ({
           setTitleInputSelectedPageInfo(pageData);
           return;
         } else {
-          console.warn('[useActionListener] No page info found in click action. action_datas:', action?.action_datas);
+          /* console.warn('[useActionListener] No page info found in click action. action_datas:', action?.action_datas); */
         }
       }
 
       // Handle element and page selection for CSSAssertModal (assert CSS)
       // Chỉ xử lý click action, không xử lý assert action (assert action sẽ bị chặn ở dưới)
       if (isCssInputOpen && action?.action_type === 'click') {
-        console.log('[useActionListener] Click event received while CSSAssertModal is open:', action);
+        /* console.log('[useActionListener] Click event received while CSSAssertModal is open:', action); */
         
         // Extract element info
         const selectors = action.elements?.[0]?.selectors?.map((s: any) => s.value) || [];
@@ -450,14 +450,14 @@ export const useActionListener = ({
 
       // Chặn action assert toHaveCSS khi CSS modal đang mở (phải đặt sau phần xử lý click)
       if (isCssInputOpen && (action?.action_type === 'assert') && (action?.assert_type === 'toHaveCSS')) {
-        console.log('[useActionListener] Assert toHaveCSS action received while CSSAssertModal is open - ignoring to prevent auto-creation');
+        /* console.log('[useActionListener] Assert toHaveCSS action received while CSSAssertModal is open - ignoring to prevent auto-creation'); */
         // Không xử lý action này, chỉ capture element thông qua click action
         return;
       }
       
       // CSS assert goes to modal only - chặn action assert toHaveCSS khi CSS modal đang mở
       if (isCssInputOpen && (action?.action_type === 'assert') && (action?.assert_type === 'toHaveCSS')) {
-        console.log('[useActionListener] Assert toHaveCSS action received while CSSAssertModal is open - ignoring');
+        /* console.log('[useActionListener] Assert toHaveCSS action received while CSSAssertModal is open - ignoring'); */
         // Không xử lý action này, chỉ capture element thông qua click action
         return;
       }
@@ -618,7 +618,7 @@ export const useActionListener = ({
 
       // Skip action if any modal is open
       if (isAnyModalOpen) {
-        console.log('[useActionListener] Skipping action - modal is open');
+        /* console.log('[useActionListener] Skipping action - modal is open'); */
         return;
       }
       

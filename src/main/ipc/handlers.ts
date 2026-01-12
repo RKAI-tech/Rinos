@@ -19,6 +19,30 @@ function extractBase64FromDataURL(dataURL: string): string {
   return dataURL || '';
 }
 
+/**
+ * Helper function to resolve sandbox paths correctly
+ * Handles both dev mode (process.cwd()/sandbox) and production mode (userData/sandbox)
+ */
+function resolveSandboxPath(filePath: string): string {
+  if (path.isAbsolute(filePath)) {
+    return filePath;
+  }
+  
+  // If path starts with 'sandbox/', resolve to correct sandbox directory
+  if (filePath.startsWith('sandbox/') || filePath.startsWith('sandbox\\')) {
+    const isDev = !app.isPackaged;
+    const sandboxDir = isDev
+      ? path.resolve(process.cwd(), "sandbox")
+      : path.join(app.getPath("userData"), "sandbox");
+    // Remove 'sandbox/' prefix and join with actual sandbox directory
+    const relativePath = filePath.replace(/^sandbox[/\\]/, '');
+    return path.join(sandboxDir, relativePath);
+  }
+  
+  // For other relative paths, resolve from process.cwd() (backward compatibility)
+  return path.resolve(process.cwd(), filePath);
+}
+
 // Đăng ký tất cả IPC handlers
 export function registerIpcHandlers() {
   // Microsoft login
@@ -93,7 +117,7 @@ export function registerIpcHandlers() {
       await shell.openExternal(url);
       return { success: true };
     } catch (error) {
-      console.error('Failed to open external URL:', error);
+      /* console.error('Failed to open external URL:', error); */
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
@@ -104,7 +128,7 @@ export function registerIpcHandlers() {
   // File system handlers for test execution
   ipcMain.handle('fs:write-file', async (_event, filePath: string, content: string, encoding?: string) => {
     try {
-      const fullPath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
+      const fullPath = resolveSandboxPath(filePath);
       // Ensure directory exists
       const dir = path.dirname(fullPath);
       if (!fs.existsSync(dir)) {
@@ -120,7 +144,7 @@ export function registerIpcHandlers() {
       }
       return { success: true };
     } catch (error) {
-      console.error('Failed to write file:', error);
+      /* console.error('Failed to write file:', error); */
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
@@ -130,7 +154,7 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('fs:read-file', async (_event, filePath: string) => {
     try {
-      const fullPath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
+      const fullPath = resolveSandboxPath(filePath);
       if (!fs.existsSync(fullPath)) {
         return { success: false, error: 'File not found' };
       }
@@ -154,7 +178,7 @@ export function registerIpcHandlers() {
         mimeType: mimeTypes[ext] || 'application/octet-stream'
       };
     } catch (error) {
-      console.error('Failed to read file:', error);
+      /* console.error('Failed to read file:', error); */
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
@@ -164,13 +188,13 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('fs:delete-file', async (_event, filePath: string) => {
     try {
-      const fullPath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
+      const fullPath = resolveSandboxPath(filePath);
       if (fs.existsSync(fullPath)) {
         fs.unlinkSync(fullPath);
       }
       return { success: true };
     } catch (error) {
-      console.error('Failed to delete file:', error);
+      /* console.error('Failed to delete file:', error); */
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
@@ -180,13 +204,13 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('fs:delete-directory', async (_event, dirPath: string) => {
     try {
-      const fullPath = path.isAbsolute(dirPath) ? dirPath : path.resolve(process.cwd(), dirPath);
+      const fullPath = resolveSandboxPath(dirPath);
       if (fs.existsSync(fullPath)) {
         fs.rmSync(fullPath, { recursive: true, force: true });
       }
       return { success: true };
     } catch (error) {
-      console.error('Failed to delete directory:', error);
+      /* console.error('Failed to delete directory:', error); */
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
@@ -196,7 +220,7 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('fs:find-files', async (_event, dirPath: string, extensions: string[]) => {
     try {
-      const fullPath = path.isAbsolute(dirPath) ? dirPath : path.resolve(process.cwd(), dirPath);
+      const fullPath = resolveSandboxPath(dirPath);
       if (!fs.existsSync(fullPath)) {
         return { success: true, files: [] };
       }
@@ -228,7 +252,7 @@ export function registerIpcHandlers() {
       
       return { success: true, files };
     } catch (error) {
-      console.error('Failed to find files:', error);
+      /* console.error('Failed to find files:', error); */
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error',

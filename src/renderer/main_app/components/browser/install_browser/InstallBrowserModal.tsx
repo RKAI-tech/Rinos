@@ -93,7 +93,7 @@ const InstallBrowserModal: React.FC<InstallBrowserModalProps> = ({
             setInstalledBrowsers(installed);
           }
         } catch (err) {
-          console.error('[InstallBrowserModal] Error checking installed browsers:', err);
+          /* console.error('[InstallBrowserModal] Error checking installed browsers:', err); */
         }
       };
       
@@ -157,7 +157,7 @@ const InstallBrowserModal: React.FC<InstallBrowserModalProps> = ({
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to open Edge download page';
-        console.error('[InstallBrowserModal] Error opening Edge download page:', error);
+        /* console.error('[InstallBrowserModal] Error opening Edge download page:', error); */
         setInstallError(message);
       }
       return;
@@ -178,7 +178,7 @@ const InstallBrowserModal: React.FC<InstallBrowserModalProps> = ({
       await onInstall(Array.from(playwrightBrowsers));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to install browsers';
-      console.error('[InstallBrowserModal] Install error:', error);
+      /* console.error('[InstallBrowserModal] Install error:', error); */
       setInstallError(message);
     }
   }, [selectedBrowsers, onInstall, normalizedPlatform, availableBrowsers]);

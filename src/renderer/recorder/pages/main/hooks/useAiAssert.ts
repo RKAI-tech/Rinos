@@ -219,7 +219,7 @@ export const useAiAssert = ({
       
       if (!functionCode || !functionCode.trim()) {
         const errorMessage = 'function_code is required but not provided';
-        console.error('[useAiAssert] generateAiAssert validation failed:', errorMessage, response);
+        /* console.error('[useAiAssert] generateAiAssert validation failed:', errorMessage, response); */
         toast.error(errorMessage);
         return false;
       }

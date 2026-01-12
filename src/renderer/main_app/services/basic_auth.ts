@@ -16,7 +16,7 @@ export class BasicAuthService {
                     payload = await encryptObject(basicAuthentication, encryptionKey, ['username', 'password']);
                 }
             } catch (error) {
-                console.error('[BasicAuthService] Encryption failed:', error);
+                /* console.error('[BasicAuthService] Encryption failed:', error); */
                 // Fallback: send unencrypted if encryption fails
             }
         }
@@ -34,7 +34,7 @@ export class BasicAuthService {
                     response.data = await decryptObject(response.data, encryptionKey, ['username', 'password']);
                 }
             } catch (error) {
-                console.error('[BasicAuthService] Decryption failed:', error);
+                /* console.error('[BasicAuthService] Decryption failed:', error); */
                 // Keep original response if decryption fails (backward compatibility)
             }
         }
@@ -58,7 +58,7 @@ export class BasicAuthService {
                             try {
                                 return await decryptObject(item, encryptionKey, ['username', 'password']);
                             } catch (error) {
-                                console.error('[BasicAuthService] Decryption failed for item:', error);
+                                /* console.error('[BasicAuthService] Decryption failed for item:', error); */
                                 // Keep original item if decryption fails (backward compatibility)
                                 return item;
                             }
@@ -66,7 +66,7 @@ export class BasicAuthService {
                     );
                 }
             } catch (error) {
-                console.error('[BasicAuthService] Decryption failed:', error);
+                /* console.error('[BasicAuthService] Decryption failed:', error); */
                 // Keep original response if decryption fails (backward compatibility)
             }
         }
@@ -89,7 +89,7 @@ export class BasicAuthService {
                                 try {
                                     return await encryptObject(item, encryptionKey, ['username', 'password']);
                                 } catch (error) {
-                                    console.error('[BasicAuthService] Encryption failed for item:', error);
+                                    /* console.error('[BasicAuthService] Encryption failed for item:', error); */
                                     return item; // Fallback: send unencrypted
                                 }
                             }
@@ -98,7 +98,7 @@ export class BasicAuthService {
                     );
                 }
             } catch (error) {
-                console.error('[BasicAuthService] Encryption failed:', error);
+                /* console.error('[BasicAuthService] Encryption failed:', error); */
                 // Fallback: send unencrypted if encryption fails
             }
         }
@@ -118,7 +118,7 @@ export class BasicAuthService {
                             try {
                                 return await decryptObject(item, encryptionKey, ['username', 'password']);
                             } catch (error) {
-                                console.error('[BasicAuthService] Decryption failed for item:', error);
+                                /* console.error('[BasicAuthService] Decryption failed for item:', error); */
                                 // Keep original item if decryption fails (backward compatibility)
                                 return item;
                             }
@@ -126,7 +126,7 @@ export class BasicAuthService {
                     );
                 }
             } catch (error) {
-                console.error('[BasicAuthService] Decryption failed:', error);
+                /* console.error('[BasicAuthService] Decryption failed:', error); */
                 // Keep original response if decryption fails (backward compatibility)
             }
         }

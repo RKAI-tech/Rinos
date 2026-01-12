@@ -25,12 +25,10 @@ export async function getPlaywright(): Promise<PlaywrightModule> {
   }
   
 let browsersPath: string;
-
-if (!app.isPackaged) {
+const isDev = process.env.DEV_MODE;
+if (isDev) {
     browsersPath = pathenv.resolve(process.cwd(), "playwright-browsers");
 } else {
-    // Packaged: tránh ghi vào resources (có thể read-only, nhất là AppImage),
-    // dùng userData giống như trong Playwright IPC.
     browsersPath = pathenv.join(app.getPath("userData"), "playwright-browsers");
 }
 
@@ -124,10 +122,9 @@ export class BrowserManager extends EventEmitter {
         
         // Mac và Linux: tìm custom installation
         let customBrowsersPath: string;
-        if (!app.isPackaged) {
+        if (isDev) {
             customBrowsersPath = pathenv.resolve(process.cwd(), "my-browsers");
         } else {
-            // Packaged: đặt trong userData để đồng bộ với Playwright IPC & edge_install scripts
             customBrowsersPath = pathenv.join(app.getPath("userData"), "my-browsers");
         }
         
@@ -310,7 +307,7 @@ export class BrowserManager extends EventEmitter {
             await newPage.waitForLoadState('domcontentloaded');
             this.context?.on('close', async () => {
                 this.isClosingContext = true;
-                console.log('[BrowserManager] Closing context');
+                /* console.log('[BrowserManager] Closing context'); */
                 for (const pageId of this.pages.keys()) {
                     await this.pages.get(pageId)?.close();
                 }
@@ -320,7 +317,7 @@ export class BrowserManager extends EventEmitter {
             this.context.on('page', async (page: Page) => {
                 for (const [pageId, p] of this.pages.entries()) {
                     if (p === page) {
-                        console.log('[BrowserManager] Page already in pages', pageId, page.url());
+                        /* console.log('[BrowserManager] Page already in pages', pageId, page.url()); */
                         return;
                     }
                 }
@@ -375,7 +372,7 @@ export class BrowserManager extends EventEmitter {
                 this.emit('page-created', { pageId, index: newIndex });
             });
             this.browser?.on('disconnected', () => {
-                console.log('[BrowserManager] Browser disconnected');
+                /* console.log('[BrowserManager] Browser disconnected'); */
                 this.emit('browser-closed');
             });
             if (this.visibilityCheckInterval) {
@@ -393,7 +390,7 @@ export class BrowserManager extends EventEmitter {
             this.contextScriptsPrepared = false;
             // Set flag để signal execution nên dừng ngay lập tức
             this.isExecuting = false;
-            console.log('[BrowserManager] Stopping browser');
+            /* console.log('[BrowserManager] Stopping browser'); */
             //close all pages
             this.emit('browser-stopped');
 
@@ -427,7 +424,7 @@ export class BrowserManager extends EventEmitter {
             }
             await page.waitForLoadState('domcontentloaded');
             if (url) {
-                console.log('goto', url);
+                /* console.log('goto', url); */
                 await page.goto(url);
                 await page.waitForLoadState('domcontentloaded');
             }
@@ -632,7 +629,7 @@ export class BrowserManager extends EventEmitter {
               const resp = await variableService.getVariablesWithConnection(projectId);
             //   console.log('[BrowserManager] Variables API response:', resp);
               resp.data?.items.forEach((v: any) => {
-                console.log('Variable object:', v);
+                /* console.log('Variable object:', v); */
               })
               return resp;
             } catch (e) {
@@ -775,7 +772,7 @@ export class BrowserManager extends EventEmitter {
                     }
                 }, { isAssertMode: enabled, type: assertType });
             } catch (error) {
-                console.warn('[BrowserManager] Failed to set assert mode on page, will retry when content loads', error);
+                /* console.warn('[BrowserManager] Failed to set assert mode on page, will retry when content loads', error); */
             }
         }
     }

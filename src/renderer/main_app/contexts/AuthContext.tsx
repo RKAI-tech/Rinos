@@ -93,7 +93,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const log = (...args: unknown[]) => console.log('[AuthContext]', ...args);
+  const log = (...args: unknown[]) => { /* console.log('[AuthContext]', ...args); */ };
   
   // Kiểm tra token có sẵn khi component mount
   useEffect(() => {
@@ -155,7 +155,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await (window as any).electronAPI?.window?.closeAllWindows({ preserveSender: true });
         toast.warning('Session expired. Please login to continue.');
       } catch (error) {
-        console.error('[AuthContext] Error closing all windows:', error);
+        /* console.error('[AuthContext] Error closing all windows:', error); */
       }
     // }
   };

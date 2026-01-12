@@ -8,7 +8,7 @@ import { app } from "electron";
 const execAsync = promisify(exec);
 async function fixPermissions(browserPath: string) {
   if (process.platform !== 'darwin' && process.platform !== 'linux') return;
-  console.log(`[Permission] Fixing permissions for: ${browserPath}`);
+  /* console.log(`[Permission] Fixing permissions for: ${browserPath}`); */
   
   // Lệnh: chmod +x và xóa xattr com.apple.quarantine
   const command = `chmod -R 755 "${browserPath}" && xattr -r -d com.apple.quarantine "${browserPath}" || true`;
@@ -16,26 +16,26 @@ async function fixPermissions(browserPath: string) {
   return new Promise<void>((resolve) => {
     exec(command, (err) => {
       // Lỗi xattr là bình thường nếu file không bị gắn nhãn, chỉ cần log warning
-      if (err) console.log("[Permission] Note:", err.message); 
+      if (err) { /* console.log("[Permission] Note:", err.message); */ }
       resolve();
     });
   });
 }
+
+const isDev = !app.isPackaged;
 // Get playwright browsers path (dev: project folder, packaged: userData, writable on all OS)
 function getBrowsersPath(): string {
-  if (!app.isPackaged) {
+  if (isDev) {
     // Dev mode: dùng thư mục trong project để dễ debug/clean
     return path.resolve(process.cwd(), "playwright-browsers");
   } else {
-    // Packaged (Linux AppImage, macOS, Windows): resources thường read-only,
-    // nên dùng userData (vd: ~/.config/<App>/playwright-browsers trên Linux)
     return path.join(app.getPath("userData"), "playwright-browsers");
   }
 }
 
 // Get custom browsers path (my-browsers directory)
 function getCustomBrowsersPath(): string {
-  if (!app.isPackaged) {
+  if (isDev) {
     return path.resolve(process.cwd(), "my-browsers");
   } else {
     // Packaged: đặt trong userData giống playwright-browsers
@@ -202,7 +202,7 @@ async function isBrowserInstalled(browserName: string): Promise<boolean> {
     
     return false;
   } catch (error) {
-    console.error(`[Playwright IPC] Error checking browser ${browserName}:`, error);
+    /* console.error(`[Playwright IPC] Error checking browser ${browserName}:`, error); */
     return false;
   }
 }
@@ -431,7 +431,7 @@ async function installEdgeCustom(
   
   // Get script directory - handle both packaged and dev modes
   let scriptDir: string;
-  if (app.isPackaged) {
+  if (!isDev) {
     // In packaged app, scripts are bundled in resources,
     // nhưng quá trình cài đặt Edge sẽ chạy tại userData (ghi được).
     scriptDir = path.join(process.resourcesPath, "edge_install");
@@ -446,11 +446,11 @@ async function installEdgeCustom(
     
     scriptDir = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
     
-    console.log(`[Playwright IPC] Looking for Edge install scripts in: ${scriptDir}`);
-    console.log(`[Playwright IPC] Possible paths tried:`, possiblePaths);
+    /* console.log(`[Playwright IPC] Looking for Edge install scripts in: ${scriptDir}`); */
+    /* console.log(`[Playwright IPC] Possible paths tried:`, possiblePaths); */
   }
   
-  console.log(`[Playwright IPC] Using script directory: ${scriptDir}`);
+  /* console.log(`[Playwright IPC] Using script directory: ${scriptDir}`); */
   
   return new Promise((resolve, reject) => {
     let scriptPath: string;
@@ -489,7 +489,7 @@ async function installEdgeCustom(
     onProgress?.('edge', 0, `Starting Edge installation...`);
     
     // Determine working directory - nơi sẽ tạo my-browsers/edge-*
-    const workingDir = app.isPackaged
+    const workingDir = !isDev
       ? app.getPath("userData") // packaged: ghi vào userData
       : process.cwd(); // dev mode: project root
     
@@ -529,12 +529,12 @@ async function installEdgeCustom(
     // Timeout handler
     timeoutId = setTimeout(() => {
       if (child && !child.killed && child.pid) {
-        console.error('[Playwright IPC] Edge installation timeout, killing process...');
+        /* console.error('[Playwright IPC] Edge installation timeout, killing process...'); */
         try {
           // Kill the process and all its children (Mac/Linux only)
           process.kill(-child.pid, 'SIGKILL');
         } catch (err) {
-          console.error('[Playwright IPC] Error killing process:', err);
+          /* console.error('[Playwright IPC] Error killing process:', err); */
         }
         reject(new Error('Edge installation timeout after 30 minutes'));
       }
@@ -644,13 +644,13 @@ function getPlaywrightInstallCommand(browser: string): { command: string; useShe
     // Dùng process.execPath (Electron's node) để chạy playwright CLI
     // Điều này đảm bảo hoạt động trong packaged app mà không cần node/npx trong PATH
     const command = `"${process.execPath}" "${cliPath}" install ${browser}`;
-    console.log(`[Playwright IPC] Using Playwright CLI: ${cliPath}`);
-    console.log(`[Playwright IPC] Command: ${command}`);
+    /* console.log(`[Playwright IPC] Using Playwright CLI: ${cliPath}`); */
+    /* console.log(`[Playwright IPC] Command: ${command}`); */
     
     return { command, useShell: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`[Playwright IPC] Failed to get Playwright CLI path: ${errorMessage}`);
+    /* console.error(`[Playwright IPC] Failed to get Playwright CLI path: ${errorMessage}`); */
     throw new Error(`Cannot find Playwright CLI: ${errorMessage}`);
   }
 }
@@ -709,7 +709,7 @@ export async function installPlaywrightBrowsers(
     }
 
     updateProgress(browser, i, 0, `Starting installation of ${browser}...`);
-    console.log(`[Playwright IPC] Forking CLI: ${cliPath} to install ${browser}`);
+    /* console.log(`[Playwright IPC] Forking CLI: ${cliPath} to install ${browser}`); */
 
     await new Promise<void>((resolve, reject) => {
       // SỬ DỤNG FORK THAY VÌ EXEC
@@ -766,13 +766,13 @@ export async function installPlaywrightBrowsers(
           resolve();
         } else {
           const err = new Error(`Installation failed with code ${code}`);
-          console.error(`[Playwright IPC]`, err);
+          /* console.error(`[Playwright IPC]`, err); */
           reject(err);
         }
       });
 
       child.on('error', (err) => {
-        console.error(`[Playwright IPC] Child process error:`, err);
+        /* console.error(`[Playwright IPC] Child process error:`, err); */
         reject(err);
       });
     });
@@ -781,6 +781,116 @@ export async function installPlaywrightBrowsers(
 // Export function to get Edge executable path
 export function getEdgeExecutablePathForBrowser(): string | null {
   return getEdgeExecutablePath();
+}
+
+// Initialize sandbox directory in production mode
+export async function initializeSandbox(): Promise<void> {
+  // In dev mode, sandbox already exists with all files
+  if (isDev) {
+    return;
+  }
+
+  const sandboxDir = path.join(app.getPath("userData"), "sandbox");
+
+  // Check if sandbox is already initialized
+  const packageJsonPath = path.join(sandboxDir, "package.json");
+  const nodeModulesPath = path.join(sandboxDir, "node_modules");
+  const configPath = path.join(sandboxDir, "playwright.config.ts");
+  
+  // If package.json exists and node_modules exists, consider it initialized
+  if (fs.existsSync(packageJsonPath) && fs.existsSync(nodeModulesPath) && fs.existsSync(configPath)) {
+    /* console.log('[Playwright IPC] Sandbox already initialized'); */
+    return;
+  }
+
+  /* console.log('[Playwright IPC] Initializing sandbox...'); */
+  
+  // Ensure sandbox directory exists
+  if (!fs.existsSync(sandboxDir)) {
+    fs.mkdirSync(sandboxDir, { recursive: true });
+  }
+
+  // Get source sandbox path from app.asar
+  // In packaged app, sandbox is in app.asar
+  const sourceSandboxPath = path.join(process.resourcesPath, "app.asar", "sandbox");
+  
+  // Files to copy from app.asar
+  const filesToCopy = [
+    "package.json",
+    "playwright.config.ts",
+    "reporter.ts"
+  ];
+
+  // Copy files from app.asar
+  // Note: We need to read from asar using fs.readFileSync (asar is transparent to fs)
+  for (const file of filesToCopy) {
+    const sourcePath = path.join(sourceSandboxPath, file);
+    const destPath = path.join(sandboxDir, file);
+    
+    try {
+      // Check if file exists in asar
+      if (fs.existsSync(sourcePath)) {
+        const content = fs.readFileSync(sourcePath, 'utf-8');
+        fs.writeFileSync(destPath, content, 'utf-8');
+        /* console.log(`[Playwright IPC] Copied ${file} to sandbox`); */
+      } else {
+        /* console.warn(`[Playwright IPC] File not found in asar: ${sourcePath}`); */
+      }
+    } catch (error) {
+      /* console.error(`[Playwright IPC] Error copying ${file}:`, error); */
+      throw new Error(`Failed to copy ${file} to sandbox: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Create necessary directories
+  const dirsToCreate = ['uploads', 'test-results'];
+  for (const dir of dirsToCreate) {
+    const dirPath = path.join(sandboxDir, dir);
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+  }
+
+  // Install npm dependencies
+  /* console.log('[Playwright IPC] Installing npm dependencies...'); */
+  const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+  
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn(npmCommand, ['install', '--production'], {
+      cwd: sandboxDir,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        ELECTRON_RUN_AS_NODE: '1',
+      },
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout?.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr?.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        /* console.log('[Playwright IPC] npm install completed successfully'); */
+        resolve();
+      } else {
+        /* console.error('[Playwright IPC] npm install failed:', stderr); */
+        reject(new Error(`npm install failed with code ${code}: ${stderr}`));
+      }
+    });
+
+    child.on('error', (error) => {
+      /* console.error('[Playwright IPC] Failed to start npm install:', error); */
+      reject(new Error(`Failed to start npm install: ${error.message}`));
+    });
+  });
 }
 
 // Register IPC handlers
@@ -852,22 +962,28 @@ export function registerPlaywrightHandlersIpc() {
     timeout?: number;
   }) => {
     try {
+      // Initialize sandbox first (only in production, as fallback if not initialized on app start)
+      await initializeSandbox();
       
       const { scriptPath, browserType, outputDir, timeout = 600000 } = options;
       
       // Get sandbox directory path
-      const sandboxDir = app.isPackaged
+      const sandboxDir = !isDev
         ? path.join(app.getPath("userData"), "sandbox")
         : path.resolve(process.cwd(), "sandbox");
+
+      /* console.log('[Playwright IPC] Sandbox directory:', sandboxDir); */
       
       // Ensure sandbox directory exists
       if (!fs.existsSync(sandboxDir)) {
+        /* console.log('[Playwright IPC] Creating sandbox directory:', sandboxDir); */
         fs.mkdirSync(sandboxDir, { recursive: true });
       }
       
       // Ensure output directory exists
       const fullOutputDir = path.isAbsolute(outputDir) ? outputDir : path.join(sandboxDir, outputDir);
       if (!fs.existsSync(fullOutputDir)) {
+        /* console.log('[Playwright IPC] Creating output directory:', fullOutputDir); */
         fs.mkdirSync(fullOutputDir, { recursive: true });
       }
       
@@ -937,11 +1053,11 @@ export function registerPlaywrightHandlersIpc() {
         // Set timeout
         timeoutId = setTimeout(() => {
           if (child && !child.killed && child.pid) {
-            console.error('[Playwright IPC] Test execution timeout, killing process...');
+            /* console.error('[Playwright IPC] Test execution timeout, killing process...'); */
             try {
               process.kill(-child.pid, 'SIGKILL');
             } catch (err) {
-              console.error('[Playwright IPC] Error killing process:', err);
+              /* console.error('[Playwright IPC] Error killing process:', err); */
             }
             child.kill('SIGKILL');
             reject(new Error(`Test execution timeout after ${(timeout || 600000) / 1000} seconds`));
@@ -973,14 +1089,14 @@ export function registerPlaywrightHandlersIpc() {
         
         // Handle process error
         child.on('error', (error) => {
-          console.log('error\n', error);
+          /* console.log('error\n', error); */
           if (timeoutId) clearTimeout(timeoutId);
           reject(new Error(`Failed to start test execution: ${error.message}`));
         });
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('[Playwright IPC] Error running test:', errorMessage);
+      /* console.error('[Playwright IPC] Error running test:', errorMessage); */
       return {
         success: false,
         exitCode: -1,

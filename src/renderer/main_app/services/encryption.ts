@@ -210,7 +210,7 @@ export async function decryptObject(
       } catch (error) {
         // If decryption fails, keep the original value
         // This allows for backward compatibility with unencrypted data
-        console.warn(`Failed to decrypt field ${fieldPath}:`, error);
+        /* console.warn(`Failed to decrypt field ${fieldPath}:`, error); */
       }
     }
   }

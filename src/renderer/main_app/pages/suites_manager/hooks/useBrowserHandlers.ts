@@ -32,7 +32,7 @@ export const useBrowserHandlers = ({
     try {
       const playwrightAPI = (window as any).playwrightAPI || (window as any).electronAPI?.playwright;
       if (!playwrightAPI) {
-        console.warn('[SuitesManager] Playwright API not available');
+        /* console.warn('[SuitesManager] Playwright API not available'); */
         return true; // Assume installed if API not available
       }
       
@@ -44,7 +44,7 @@ export const useBrowserHandlers = ({
       }
       return false;
     } catch (err) {
-      console.error('[SuitesManager] Error checking browser:', err);
+      /* console.error('[SuitesManager] Error checking browser:', err); */
       return false;
     }
   }, []);
@@ -58,7 +58,7 @@ export const useBrowserHandlers = ({
       (window as any).browserAPI?.browser?.setAuthToken?.(token);
       
       const testcase = testcases.find(tc => tc.testcase_id === id);
-      console.log('[SuitesManager] Testcase', testcase);
+      /* console.log('[SuitesManager] Testcase', testcase); */
       const testcaseName = testcase?.name || id;
       const browserType = testcase?.browser_type || BrowserType.chrome;
       
@@ -69,7 +69,7 @@ export const useBrowserHandlers = ({
         // Recorder opened successfully
       }
     } catch (err) {
-      console.error('[SuitesManager] openRecorder error:', err);
+      /* console.error('[SuitesManager] openRecorder error:', err); */
       toast.error('Failed to open recorder');
     }
   }, [testcases, projectId, testSuiteId]);
@@ -103,7 +103,7 @@ export const useBrowserHandlers = ({
         await openRecorderAfterCheck(id);
       }
     } catch (err) {
-      console.error('[SuitesManager] Error in handleOpenRecorder:', err);
+      /* console.error('[SuitesManager] Error in handleOpenRecorder:', err); */
       toast.error('Failed to check browser installation');
     }
   }, [testcases, checkBrowserInstalled, openRecorderAfterCheck, setPendingRecorderTestcaseId, setIsInstallBrowserModalOpen]);
@@ -147,7 +147,7 @@ export const useBrowserHandlers = ({
         throw new Error(result?.error || 'Installation failed');
       }
     } catch (err) {
-      console.error('[SuitesManager] Error installing browsers:', err);
+      /* console.error('[SuitesManager] Error installing browsers:', err); */
       toast.error(err instanceof Error ? err.message : 'Failed to install browsers');
       setIsInstallingBrowsers(false);
       setInstallProgress(null);

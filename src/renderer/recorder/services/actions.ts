@@ -135,7 +135,7 @@ export class ActionService {
         if (!response.success && response.error) {
             const errorLower = response.error.toLowerCase();
             if (errorLower.includes('404') || errorLower.includes('not found') || errorLower.includes('does not exist')) {
-                console.info(`[ActionService] Testcase ${testcaseId} not found (likely deleted), returning empty actions`);
+                /* console.info(`[ActionService] Testcase ${testcaseId} not found (likely deleted), returning empty actions`); */
                 return {
                     success: true,
                     data: {
@@ -193,7 +193,7 @@ export class ActionService {
                     };
                 }
             } catch (error) {
-                console.error('[ActionService] Decryption failed:', error);
+                /* console.error('[ActionService] Decryption failed:', error); */
                 // Fallback: trả về actions không decrypt nếu có lỗi
             }
         }

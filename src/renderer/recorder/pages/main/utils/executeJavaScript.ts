@@ -82,7 +82,7 @@ export function executeJavaScript(code: string): ExecuteJavaScriptResult {
           try {
             ${trimmedCode}
           } catch (error) {
-            console.error('Execution error:', error.message);
+            /* console.error('Execution error:', error.message); */
             throw error;
           }
         `;
@@ -133,7 +133,7 @@ export function executeJavaScript(code: string): ExecuteJavaScriptResult {
       result.error = 'Function executed with errors. Check console output above.';
     }
   } catch (error: any) {
-    console.error('Error testing function code:', error);
+    /* console.error('Error testing function code:', error); */
     const errorMsg = error.message || 'Failed to execute function';
     result.result = `Error: ${errorMsg}\n\nStack trace:\n${error.stack || 'N/A'}`;
     result.error = errorMsg;

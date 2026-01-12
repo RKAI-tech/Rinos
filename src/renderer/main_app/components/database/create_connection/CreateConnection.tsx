@@ -332,7 +332,7 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
           try {
             await electronAPI.fs.deleteFile(tempPath);
           } catch (cleanupError) {
-            console.warn('Failed to cleanup temp file:', tempPath, cleanupError);
+            /* console.warn('Failed to cleanup temp file:', tempPath, cleanupError); */
           }
         }
       }

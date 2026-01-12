@@ -83,7 +83,7 @@ export const VersionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       await (window as any).electronAPI?.system?.openExternalUrl?.('https://automation-test.rikkei.org/download');
     } catch (error) {
-      console.error('Failed to open download URL:', error);
+      /* console.error('Failed to open download URL:', error); */
     }
   };
 

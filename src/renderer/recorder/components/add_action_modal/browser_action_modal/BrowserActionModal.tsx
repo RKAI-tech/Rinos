@@ -56,7 +56,7 @@ const BrowserActionModal: React.FC<BrowserActionModalProps> = ({
 
   useEffect(() => {
     if (selectedPageInfo) {
-      console.log(`[BrowserActionModal] Page info received for ${actionType}:`, selectedPageInfo);
+      /* console.log(`[BrowserActionModal] Page info received for ${actionType}:`, selectedPageInfo); */
       toast.success('Page selected successfully');
     }
   }, [selectedPageInfo, actionType]);

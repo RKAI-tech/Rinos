@@ -2,18 +2,19 @@ import { BrowserWindow, app, ipcMain, screen } from "electron";
 import { MainEnv } from "./env.js";
 import path from "path";
 
-const isDev = false; 
+/* console.log('[windowManager] process.env.DEV_MODE', process.env.DEV_MODE); */
+const isDev = process.env.DEV_MODE === 'true';
 const __dirnameResolved = __dirname;
 const iconFileNamePng="images/icon.png";
 const iconFileNameIco="images/icon.ico";
 const resolveIconPath = () => {
   if (process.platform === 'win32') {
-    if (app.isPackaged) {
+    if (!isDev) {
       return path.join(process.resourcesPath, path.basename(iconFileNameIco));
     }
     return path.join(process.cwd(), iconFileNameIco);
   }
-  if (app.isPackaged) {
+  if (!isDev) {
     return path.join(process.resourcesPath, iconFileNamePng);
   }
   return path.join(process.cwd(), iconFileNamePng);
@@ -49,10 +50,10 @@ function createWindow(options: Electron.BrowserWindowConstructorOptions, page: s
   });
 
   if (isDev) {
-    console.log('[windowManager] in dev mode');
+    /* console.log('[windowManager] in dev mode'); */
     // Open dev tools after window is ready
     win.webContents.once('did-finish-load', () => {
-      console.log('[windowManager] openDevTools - after did-finish-load');
+      /* console.log('[windowManager] openDevTools - after did-finish-load'); */
       // Add small delay to ensure renderer is fully ready
       setTimeout(() => {
         try {
@@ -60,34 +61,34 @@ function createWindow(options: Electron.BrowserWindowConstructorOptions, page: s
             win.webContents.openDevTools();
           }
         } catch (err) {
-          console.error('[windowManager] Error opening dev tools:', err);
+          /* console.error('[windowManager] Error opening dev tools:', err); */
         }
       }, 100);
     });
     
     // Fallback: if did-finish-load doesn't fire, try with ready-to-show
     win.once('ready-to-show', () => {
-      console.log('[windowManager] ready-to-show');
+      /* console.log('[windowManager] ready-to-show'); */
       setTimeout(() => {
         if (!win.webContents.isDevToolsOpened()) {
           try {
             win.webContents.openDevTools();
           } catch (err) {
-            console.error('[windowManager] Error opening dev tools (fallback):', err);
+            /* console.error('[windowManager] Error opening dev tools (fallback):', err); */
           }
         }
       }, 200);
     });
     
     tryLoadDevPaths(win, page).catch((err) => {
-      console.error('[windowManager] Error loading dev paths:', err);
+      /* console.error('[windowManager] Error loading dev paths:', err); */
     });
   } else {
-    console.log('[windowManager] in prod mode');
+    /* console.log('[windowManager] in prod mode'); */
     win.loadFile(path.join(__dirnameResolved, `renderer/${page}/index.html`));
   }
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    console.error('[windowManager] did-fail-load', errorCode, errorDescription);
+    /* console.error('[windowManager] did-fail-load', errorCode, errorDescription); */
   });
   // win.webContents.openDevTools();
   return win;

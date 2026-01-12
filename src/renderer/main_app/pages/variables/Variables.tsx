@@ -78,7 +78,7 @@ const Variables: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('Error loading variables:', error);
+        /* console.error('Error loading variables:', error); */
         setVariables([]);
         setTotalVariables(0);
         setCurrentPage(1);

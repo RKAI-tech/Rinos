@@ -155,7 +155,7 @@ export function registerBrowserIpc() {
         const manager = getOrCreateManagerForWindow(win);
         //check current page
         if (!manager.activePageId) {
-            console.error('[Browser] Cannot add browser storage: active page is null');
+            /* console.error('[Browser] Cannot add browser storage: active page is null'); */
             return;
         }
         let pageId = null;
@@ -169,12 +169,12 @@ export function registerBrowserIpc() {
             pageId = manager.activePageId;
         }
         if (!pageId) {
-            console.error('[Browser] Cannot add browser storage: page is null');
+            /* console.error('[Browser] Cannot add browser storage: page is null'); */
             return;
         }
         const currentPage = manager.pages.get(pageId);
         if (!currentPage) {
-            console.error('[Browser] Cannot add browser storage: current page is null');
+            /* console.error('[Browser] Cannot add browser storage: current page is null'); */
             return;
         }
         
@@ -192,7 +192,7 @@ export function registerBrowserIpc() {
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
         if (!manager.activePageId) {
-            console.error('[Browser] Cannot navigate: active page is null');
+            /* console.error('[Browser] Cannot navigate: active page is null'); */
             return;
         }
         let pageId = null;
@@ -206,12 +206,12 @@ export function registerBrowserIpc() {
             pageId = manager.activePageId;
         }
         if (!pageId) {
-            console.error('[Browser] Cannot navigate: page is null');
+            /* console.error('[Browser] Cannot navigate: page is null'); */
             return;
         }
         const currentPage = manager.pages.get(pageId);
         if (!currentPage) {
-            console.error('[Browser] Cannot navigate: current page is null');
+            /* console.error('[Browser] Cannot navigate: current page is null'); */
             return;
         }
         await currentPage.bringToFront();
@@ -223,7 +223,7 @@ export function registerBrowserIpc() {
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
         if (!manager.activePageId) {
-            console.error('[Browser] Cannot reload: active page is null');
+            /* console.error('[Browser] Cannot reload: active page is null'); */
             return;
         }
         let pageId = null;
@@ -237,12 +237,12 @@ export function registerBrowserIpc() {
             pageId = manager.activePageId;
         }
         if (!pageId) {
-            console.error('[Browser] Cannot reload: page is null');
+            /* console.error('[Browser] Cannot reload: page is null'); */
             return;
         }
         const currentPage = manager.pages.get(pageId);
         if (!currentPage) {
-            console.error('[Browser] Cannot reload: page is null');
+            /* console.error('[Browser] Cannot reload: page is null'); */
             return;
         }
 
@@ -255,7 +255,7 @@ export function registerBrowserIpc() {
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
         if (!manager.activePageId) {
-            console.error('[Browser] Cannot go back: active page is null');
+            /* console.error('[Browser] Cannot go back: active page is null'); */
             return;
         }
         let pageId = null;
@@ -269,12 +269,12 @@ export function registerBrowserIpc() {
             pageId = manager.activePageId;
         }
         if (!pageId) {
-            console.error('[Browser] Cannot go back: page is null');
+            /* console.error('[Browser] Cannot go back: page is null'); */
             return;
         }
         const currentPage = manager.pages.get(pageId);
         if (!currentPage) {
-            console.error('[Browser] Cannot go back: page is null');
+            /* console.error('[Browser] Cannot go back: page is null'); */
             return;
         }
         await currentPage.bringToFront();
@@ -286,7 +286,7 @@ export function registerBrowserIpc() {
         if (!win) return;
         const manager = getOrCreateManagerForWindow(win);
         if (!manager.activePageId) {
-            console.error('[Browser] Cannot go forward: active page is null');
+            /* console.error('[Browser] Cannot go forward: active page is null'); */
             return;
         }
         let pageId = null;
@@ -300,12 +300,12 @@ export function registerBrowserIpc() {
             pageId = manager.activePageId;
         }
         if (!pageId) {
-            console.error('[Browser] Cannot go forward: page is null');
+            /* console.error('[Browser] Cannot go forward: page is null'); */
             return;
         }
         const currentPage = manager.pages.get(pageId);
         if (!currentPage) {
-            console.error('[Browser] Cannot go forward: page is null');
+            /* console.error('[Browser] Cannot go forward: page is null'); */
             return;
         }
         await currentPage.bringToFront();

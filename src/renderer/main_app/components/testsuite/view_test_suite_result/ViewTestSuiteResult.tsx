@@ -290,7 +290,7 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       if (!silent) setIsLoading(true);
       setError(null);
       const resp = await svc.getTestCasesBySuite({ test_suite_id: testSuiteId });
-      console.log('Testcases by suite:', resp.data?.testcases || []);
+      /* console.log('Testcases by suite:', resp.data?.testcases || []); */
       if (resp.success && resp.data) {
         const mapped: CaseItem[] = (resp.data.testcases || []).map((tc) => {
           // Extract screenshots - handle both array of strings and array of objects

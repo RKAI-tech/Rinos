@@ -16,7 +16,7 @@ export class BasicAuthService {
                     payload = await encryptObject(basicAuthentication, encryptionKey, ['username', 'password']);
                 }
             } catch (error) {
-                console.error('[BasicAuthService] Encryption failed:', error);
+                /* console.error('[BasicAuthService] Encryption failed:', error); */
                 // Fallback: send unencrypted if encryption fails
             }
         }
@@ -34,7 +34,7 @@ export class BasicAuthService {
                     response.data = await decryptObject(response.data, encryptionKey, ['username', 'password']);
                 }
             } catch (error) {
-                console.error('[BasicAuthService] Decryption failed:', error);
+                /* console.error('[BasicAuthService] Decryption failed:', error); */
                 // Keep original response if decryption fails (backward compatibility)
             }
         }
@@ -56,7 +56,7 @@ export class BasicAuthService {
                     response.data = await decryptObject(response.data, encryptionKey, ['username', 'password']);
                 }
             } catch (error) {
-                console.error('[BasicAuthService] Decryption failed:', error);
+                /* console.error('[BasicAuthService] Decryption failed:', error); */
                 // Keep original response if decryption fails (backward compatibility)
             }
         }

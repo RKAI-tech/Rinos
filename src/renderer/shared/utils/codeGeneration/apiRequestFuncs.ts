@@ -118,7 +118,7 @@ export function getExecuteApiRequestFunctionString(): string {
       }
     }
   } catch (err) {
-    try { console.warn('[Controller][API] Build params error', err); } catch (_) {}
+    try { /* console.warn('[Controller][API] Build params error', err); */ } catch (_) {}
   }
 
   const headers = {};
@@ -130,7 +130,7 @@ export function getExecuteApiRequestFunctionString(): string {
       }
     });
   } catch (err) {
-    try { console.warn('[Controller][API] Build headers error', err); } catch (_) {}
+    try { /* console.warn('[Controller][API] Build headers error', err); */ } catch (_) {}
   }
 
   try {
@@ -179,7 +179,7 @@ export function getExecuteApiRequestFunctionString(): string {
       }
     }
   } catch (err) {
-    try { console.warn('[Controller][API] Resolve auth error', err); } catch (_) {}
+    try { /* console.warn('[Controller][API] Resolve auth error', err); */ } catch (_) {}
   }
 
   const options = { headers };
@@ -197,15 +197,15 @@ export function getExecuteApiRequestFunctionString(): string {
       }
     }
   } catch (err) {
-    try { console.warn('[Controller][API] Build options error', err); } catch (_) {}
+    try { /* console.warn('[Controller][API] Build options error', err); */ } catch (_) {}
   }
 
   const method = (apiData.method || 'get').toLowerCase();
-  try { console.log('[Controller][API] Sending request', { method, url, hasHeaders: Object.keys(headers).length > 0 }); } catch (_) {}
+  try { /* console.log('[Controller][API] Sending request', { method, url, hasHeaders: Object.keys(headers).length > 0 }); */ } catch (_) {}
   const client = page.request;
   const requestFn = typeof client[method] === 'function' ? client[method].bind(client) : client.get.bind(client);
   const response = await requestFn(url, options);
-  try { console.log('[Controller][API] Response status:', await response.status()); } catch (_) {}
+  try { /* console.log('[Controller][API] Response status:', await response.status()); */ } catch (_) {}
   return response;
 }
 `;

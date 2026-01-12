@@ -112,7 +112,7 @@ function handleAssertCaptureBlocking(e) {
               };
               window.sendActionToMain(action);
             } catch (error) {
-              console.error('Error sending assert action:', error);
+              /* console.error('Error sending assert action:', error); */
             }
           }
         });

@@ -51,7 +51,7 @@ export function registerEncryptionIpc() {
     }
     
     if (!validateKeyFormat(key)) {
-      console.error('[Encryption] Invalid key format');
+      /* console.error('[Encryption] Invalid key format'); */
       return false;
     }
     
@@ -61,7 +61,7 @@ export function registerEncryptionIpc() {
       store.set(ENCRYPTION_KEYS_STORE_KEY, keys);
       return true;
     } catch (error) {
-      console.error('[Encryption] Failed to set key:', error);
+      /* console.error('[Encryption] Failed to set key:', error); */
       return false;
     }
   });
@@ -96,7 +96,7 @@ export function registerEncryptionIpc() {
       store.set(ENCRYPTION_KEYS_STORE_KEY, keys);
       return true;
     } catch (error) {
-      console.error('[Encryption] Failed to remove key:', error);
+      /* console.error('[Encryption] Failed to remove key:', error); */
       return false;
     }
   });
@@ -120,7 +120,7 @@ export function registerEncryptionIpc() {
       // Convert to Base64 string
       return keyBytes.toString('base64');
     } catch (error) {
-      console.error('[Crypto] Failed to generate key:', error);
+      /* console.error('[Crypto] Failed to generate key:', error); */
       throw new Error(`Failed to generate key: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
@@ -138,7 +138,7 @@ export function registerEncryptionIpc() {
       const randomBytes = crypto.randomBytes(length);
       return Array.from(randomBytes); // Convert to array for IPC serialization
     } catch (error) {
-      console.error('[Crypto] Failed to get random values:', error);
+      /* console.error('[Crypto] Failed to get random values:', error); */
       throw new Error(`Failed to get random values: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
@@ -181,7 +181,7 @@ export function registerEncryptionIpc() {
       // Convert to Base64
       return combined.toString('base64');
     } catch (error) {
-      console.error('[Crypto] Encryption failed:', error);
+      /* console.error('[Crypto] Encryption failed:', error); */
       throw new Error(`Encryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
@@ -231,7 +231,7 @@ export function registerEncryptionIpc() {
       // Convert to string
       return decrypted.toString('utf8');
     } catch (error) {
-      console.error('[Crypto] Decryption failed:', error);
+      /* console.error('[Crypto] Decryption failed:', error); */
       // Check if it's an authentication error
       if (error instanceof Error && (error.message.includes('Unsupported state') || error.message.includes('bad decrypt'))) {
         throw new Error('Decryption failed: Invalid key or tampered data');

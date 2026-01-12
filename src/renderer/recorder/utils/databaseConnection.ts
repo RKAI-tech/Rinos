@@ -29,7 +29,7 @@ async function base64ToTempFile(base64Content: string | undefined, filename: str
   try {
     const electronAPI = (window as any).electronAPI;
     if (!electronAPI?.fs) {
-      console.error('Electron API not available');
+      /* console.error('Electron API not available'); */
       return undefined;
     }
 
@@ -40,13 +40,13 @@ async function base64ToTempFile(base64Content: string | undefined, filename: str
     // Write base64 content to file using Electron API
     const result = await electronAPI.fs.writeFile(filePath, base64Content, 'base64');
     if (!result.success) {
-      console.error(`Failed to write ${filename} to temp file:`, result.error);
+      /* console.error(`Failed to write ${filename} to temp file:`, result.error); */
       return undefined;
     }
     
     return filePath;
   } catch (error) {
-    console.error(`Failed to write ${filename} to temp file:`, error);
+    /* console.error(`Failed to write ${filename} to temp file:`, error); */
     return undefined;
   }
 }
@@ -172,7 +172,7 @@ export async function cleanupTempFiles(filePaths: (string | undefined)[]): Promi
       try {
         await electronAPI.fs.deleteFile(filePath);
       } catch (error) {
-        console.error(`Failed to delete temp file ${filePath}:`, error);
+        /* console.error(`Failed to delete temp file ${filePath}:`, error); */
       }
     }
   }

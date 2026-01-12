@@ -8,7 +8,7 @@ import  os from 'os';
 import fs from 'fs';
 import path from 'path';
 const tmpDir = os.tmpdir();
-console.log('[Controller] tmpDir', tmpDir);
+/* console.log('[Controller] tmpDir', tmpDir); */
 
 /**
  * Helper function to extract base64 content from data URL
@@ -56,7 +56,7 @@ export class Controller {
     }
 
     async addLocalStorage(page: Page, localStorageJSON: any): Promise<void> {
-        console.log('addLocalStorage', localStorageJSON);
+        /* console.log('addLocalStorage', localStorageJSON); */
         await page.evaluate((data: any) => {
             Object.entries(data).forEach(([key, value]) => {
                 const valid_value = typeof value === 'object' ? JSON.stringify(value) : value;
@@ -277,7 +277,7 @@ export class Controller {
         let minIndex = -1; let minCount = Infinity;
         for (let i = 0; i < locators.length; i++) {
             const count = await locators[i].count();
-            console.log(`[Controller] Resolve Unique Selector: ${selectors[i]} count: ${count}`)
+            /* console.log(`[Controller] Resolve Unique Selector: ${selectors[i]} count: ${count}`) */
             if (count === 1) {
                 return locators[i];
             }
@@ -555,7 +555,7 @@ export class Controller {
         for (let i = 0; i < actions.length; i++) {
             // Kiểm tra trước mỗi action xem có nên dừng không
             if (this.shouldStop()) {
-                console.log(`[Controller] Execution stopped at action ${i + 1}/${actions.length}`);
+                /* console.log(`[Controller] Execution stopped at action ${i + 1}/${actions.length}`); */
                 this.onActionExecuting?.(-1);
                 return;
             }
@@ -631,11 +631,11 @@ export class Controller {
                             const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
                             if (selectors) {
                                 try {
-                                    console.log('[Controller] Click by Playwright')
+                                    /* console.log('[Controller] Click by Playwright') */
                                     const locator = await this.resolveUniqueSelector(activePage, selectors);
                                     await locator.click();
                                 } catch (err) {
-                                    console.log('[Controller] Click by Force Action')
+                                    /* console.log('[Controller] Click by Force Action') */
                                     await this.forceAction(activePage!, selectors, 'click');
                                 }
                             }
@@ -876,7 +876,7 @@ export class Controller {
                         {
                             const apiData = (action.action_datas || []).find(d => (d as any).api_request)?.api_request as ApiRequestData | undefined;
                             if (apiData) {
-                                console.log('[Controller] Executing API request:', apiData);
+                                /* console.log('[Controller] Executing API request:', apiData); */
                                 if (activePage) {
                                     await this.executeApiRequest(activePage, apiData as ApiRequestData);
                                 }
@@ -909,7 +909,7 @@ export class Controller {
                         }
                         // Nếu có lỗi trong response data, log warning
                         if (response.data?.error) {
-                            console.warn('[Controller] Database execution warning:', response.data.error);
+                            /* console.warn('[Controller] Database execution warning:', response.data.error); */
                         }
                         break;
                     case ActionType.page_create:
@@ -938,7 +938,7 @@ export class Controller {
                                 break;
                             }
                         }
-                        console.log('[Controller] Opener Page Index:', openerPageIndex);
+                        /* console.log('[Controller] Opener Page Index:', openerPageIndex); */
                         if (openerPageIndex === undefined) {
 
                             const newPage = await this.browserManager?.createPage(pageIndex, url);
@@ -962,14 +962,14 @@ export class Controller {
 
                 // Kiểm tra sau mỗi action xem có nên dừng không
                 if (this.shouldStop()) {
-                    console.log(`[Controller] Execution stopped after action ${i + 1}/${actions.length}`);
+                    /* console.log(`[Controller] Execution stopped after action ${i + 1}/${actions.length}`); */
                     this.onActionExecuting?.(-1);
                     return;
                 }
 
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
-                console.error(`[Controller] Error executing action ${i + 1} (${action.action_type}):`, message);
+                /* console.error(`[Controller] Error executing action ${i + 1} (${action.action_type}):`, message); */
                 this.onActionFailed?.(i, message);
                 // break; // stop executing further actions on failure
                 this.onActionExecuting?.(-1);

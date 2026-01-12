@@ -764,7 +764,7 @@ const TestSuites: React.FC = () => {
               test_suite_id: selectedSuite.id,
               testcase_ids: testcaseIds
             };
-            console.log('payload', payload);
+            /* console.log('payload', payload); */
             const resp = await svc.addTestCasesToSuite(payload);
             if (resp.success) {
               toast.success('Added testcases to suite');

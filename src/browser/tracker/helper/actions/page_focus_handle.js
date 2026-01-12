@@ -15,7 +15,7 @@ function sendPageFocusAction() {
   const pageTitle = document.title || '';
   const pageUrl = window.location.href;
 
-  console.log(`[TabFocusTracker] Sending focus action for page_index=${window.__PAGE_INDEX__}, title=${pageTitle}`);
+  /* console.log(`[TabFocusTracker] Sending focus action for page_index=${window.__PAGE_INDEX__}, title=${pageTitle}`); */
 
   sendAction({
     action_type: 'page_focus',
@@ -33,7 +33,7 @@ function sendPageFocusAction() {
 }
 
 export function initializeTabActivateListener() {
-  console.log(`[TabFocusTracker] Sending focus action for page_index=${window.__PAGE_INDEX__}, title=${pageTitle}`);
+  /* console.log(`[TabFocusTracker] Sending focus action for page_index=${window.__PAGE_INDEX__}, title=${pageTitle}`); */
   if (getPauseMode && getPauseMode()) return;
   if(!document) return;
   lastVisibilityState = document.visibilityState;
@@ -58,7 +58,7 @@ export function initializeTabActivateListener() {
   if (document.visibilityState === 'visible' && !hasReportedInitialFocus) {
     hasReportedInitialFocus = true;
 
-    console.log(`[TabFocusTracker] Initial visible page detected → send immediate page_focus`);
+    /* console.log(`[TabFocusTracker] Initial visible page detected → send immediate page_focus`); */
     sendPageFocusAction(true);
   }
 }

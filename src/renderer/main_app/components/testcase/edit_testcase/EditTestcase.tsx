@@ -80,7 +80,7 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
             ));
 
           if (isTestcaseDeleted) {
-            console.info(`[EditTestcase] Testcase ${testcase.testcase_id} not found (likely deleted), closing modal`);
+            /* console.info(`[EditTestcase] Testcase ${testcase.testcase_id} not found (likely deleted), closing modal`); */
             onClose();
             return;
           }

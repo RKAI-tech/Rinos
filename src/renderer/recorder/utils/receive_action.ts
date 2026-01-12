@@ -220,7 +220,7 @@ export function receiveAction(
 ): Action[] {
     // Nếu có flag skip và flag là true, bỏ qua xử lý action
     if (skipIfModalOpen) {
-        console.log('[receiveAction] Skipping action - modal is open');
+        /* console.log('[receiveAction] Skipping action - modal is open'); */
         return action_recorded;
     }
     // console.log('[receiveAction] Skipping action - modal is open', skipIfModalOpen);
@@ -352,7 +352,7 @@ export function receiveActionWithInsert(
 ): Action[] {
     // Nếu có flag skip và flag là true, bỏ qua xử lý action
     if (skipIfModalOpen) {
-        console.log('[receiveActionWithInsert] Skipping action - modal is open');
+        /* console.log('[receiveActionWithInsert] Skipping action - modal is open'); */
         return actions;
     }
 

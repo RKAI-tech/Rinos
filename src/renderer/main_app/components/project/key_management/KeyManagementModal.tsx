@@ -67,7 +67,7 @@ const KeyManagementModal: React.FC<KeyManagementModalProps> = ({ isOpen, onClose
         setKey(projectKey || null);
       }
     } catch (error) {
-      console.error('Error loading key:', error);
+      /* console.error('Error loading key:', error); */
       toast.error('Failed to load key');
     } finally {
       setIsLoading(false);

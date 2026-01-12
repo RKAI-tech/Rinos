@@ -205,8 +205,8 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
         actionService.getActionsByTestCase(testcase.testcase_id, 1000, 0, testcase?.project_id),
         testCaseService.getTestCaseDataVersions(testcase.testcase_id, testcase?.project_id),
       ]);
-      console.log('actionsResp', actionsResp);
-      console.log('versionsResp', versionsResp);
+      /* console.log('actionsResp', actionsResp); */
+      /* console.log('versionsResp', versionsResp); */
 
       // Check if testcase was deleted (both API calls return empty data or 404)
       const isTestcaseDeleted = 
@@ -222,7 +222,7 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
         ));
 
       if (isTestcaseDeleted) {
-        console.info(`[TestcaseDataVersionModal] Testcase ${testcase.testcase_id} not found (likely deleted), closing modal`);
+        /* console.info(`[TestcaseDataVersionModal] Testcase ${testcase.testcase_id} not found (likely deleted), closing modal`); */
         onClose();
         return;
       }
@@ -774,7 +774,7 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
             toast.success('Recorder opened successfully');
           }
         } catch (err) {
-          console.error('[TestcaseDataVersionModal] openRecorder error:', err);
+          /* console.error('[TestcaseDataVersionModal] openRecorder error:', err); */
           toast.error('Failed to open recorder');
         }
       } else {

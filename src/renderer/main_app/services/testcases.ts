@@ -117,7 +117,7 @@ export class TestCaseService {
                                         ['username', 'password']
                                     );
                                 } catch (error) {
-                                    console.error('[TestCaseService] Decryption failed for testcase:', error);
+                                    /* console.error('[TestCaseService] Decryption failed for testcase:', error); */
                                     // Keep original if decryption fails (backward compatibility)
                                 }
                             }
@@ -126,7 +126,7 @@ export class TestCaseService {
                     );
                 }
             } catch (error) {
-                console.error('[TestCaseService] Decryption failed:', error);
+                /* console.error('[TestCaseService] Decryption failed:', error); */
                 // Keep original response if decryption fails (backward compatibility)
             }
         }
@@ -164,7 +164,7 @@ export class TestCaseService {
                                         ['username', 'password']
                                     );
                                 } catch (error) {
-                                    console.error('[TestCaseService] Decryption failed for testcase:', error);
+                                    /* console.error('[TestCaseService] Decryption failed for testcase:', error); */
                                     // Keep original if decryption fails (backward compatibility)
                                 }
                             }
@@ -173,7 +173,7 @@ export class TestCaseService {
                     );
                 }
             } catch (error) {
-                console.error('[TestCaseService] Decryption failed:', error);
+                /* console.error('[TestCaseService] Decryption failed:', error); */
                 // Keep original response if decryption fails (backward compatibility)
             }
         }
@@ -280,7 +280,7 @@ export class TestCaseService {
                     }
                 }
             } catch (error) {
-                console.error('[TestCaseService] Encryption failed:', error);
+                /* console.error('[TestCaseService] Encryption failed:', error); */
                 // Fallback: gửi không mã hóa nếu có lỗi
             }
         }
@@ -320,7 +320,7 @@ export class TestCaseService {
                     );
                 }
             } catch (error) {
-                console.error('[TestCaseService] Encryption failed:', error);
+                /* console.error('[TestCaseService] Encryption failed:', error); */
                 // Fallback: send unencrypted if encryption fails
             }
         }
@@ -342,7 +342,7 @@ export class TestCaseService {
                     );
                 }
             } catch (error) {
-                console.error('[TestCaseService] Decryption failed:', error);
+                /* console.error('[TestCaseService] Decryption failed:', error); */
                 // Keep original response if decryption fails (backward compatibility)
             }
         }
@@ -400,7 +400,7 @@ export class TestCaseService {
                 error: result.success ? undefined : result.logs,
             };
         } catch (error) {
-            console.error('[TestCaseService] Error executing testcase locally:', error);
+            /* console.error('[TestCaseService] Error executing testcase locally:', error); */
             // Fallback to API if local execution fails
             return await apiRouter.request<DefaultResponse>(`/runcode/execute_test_case/${payload.testcase_id}`, {
                 method: 'POST',
@@ -419,7 +419,7 @@ export class TestCaseService {
         if (!response.success && response.error) {
             const errorLower = response.error.toLowerCase();
             if (errorLower.includes('404') || errorLower.includes('not found') || errorLower.includes('does not exist')) {
-                console.info(`[TestCaseService] Testcase ${testcaseId} not found (likely deleted), returning empty data versions`);
+                /* console.info(`[TestCaseService] Testcase ${testcaseId} not found (likely deleted), returning empty data versions`); */
                 return {
                     success: true,
                     data: {
@@ -464,7 +464,7 @@ export class TestCaseService {
                     };
                 }
             } catch (error) {
-                console.error('[TestCaseService] Decryption failed:', error);
+                /* console.error('[TestCaseService] Decryption failed:', error); */
                 // Fallback: trả về versions không decrypt nếu có lỗi
             }
         }

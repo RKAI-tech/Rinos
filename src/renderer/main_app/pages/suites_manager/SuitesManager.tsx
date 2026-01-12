@@ -293,7 +293,7 @@ const SuitesManager: React.FC = () => {
       }
     } catch (e) {
       // Silently fail - user can try again
-      console.error('Failed to load group children:', e);
+      /* console.error('Failed to load group children:', e); */
     }
   }, [groupService, projectId, convertGroupBasicToTreeGroup, convertSuiteItemToGroupSuiteItem]);
 
@@ -424,7 +424,7 @@ const SuitesManager: React.FC = () => {
         setRowHeights(heightsMap);
       }
     } catch (e) {
-      console.error('Failed to load table resize settings from localStorage:', e);
+      /* console.error('Failed to load table resize settings from localStorage:', e); */
     }
   }, []);
 
@@ -433,7 +433,7 @@ const SuitesManager: React.FC = () => {
     try {
       localStorage.setItem('testcases-column-widths', JSON.stringify(columnWidths));
     } catch (e) {
-      console.error('Failed to save column widths to localStorage:', e);
+      /* console.error('Failed to save column widths to localStorage:', e); */
     }
   }, [columnWidths]);
 
@@ -446,7 +446,7 @@ const SuitesManager: React.FC = () => {
       });
       localStorage.setItem('testcases-row-heights', JSON.stringify(heightsObj));
     } catch (e) {
-      console.error('Failed to save row heights to localStorage:', e);
+      /* console.error('Failed to save row heights to localStorage:', e); */
     }
   }, [rowHeights]);
 
