@@ -10,7 +10,10 @@ export function exposeScreenHandleAPI() {
       browserType?: string, 
       testSuiteId?: string, 
       evidenceId?: string
-    ) => ipcRenderer.invoke("screen:open_recorder", testcaseId, projectId, testcaseName, browserType, testSuiteId, evidenceId),
+    ) => {
+      console.log('[Screen Handle] openRecorder evidenceId', evidenceId);
+      return ipcRenderer.invoke("screen:open_recorder", testcaseId, projectId, testcaseName, browserType, testSuiteId, evidenceId);
+    },
     closeRecorder: () => ipcRenderer.invoke("screen:close_recorder"),
     onRecorderClosed: (callback: () => void) => {
       const listener = () => callback();

@@ -25,7 +25,7 @@ export async function getPlaywright(): Promise<PlaywrightModule> {
   }
   
 let browsersPath: string;
-const isDev = process.env.DEV_MODE;
+const isDev = !app.isPackaged;
 if (isDev) {
     browsersPath = pathenv.resolve(process.cwd(), "playwright-browsers");
 } else {

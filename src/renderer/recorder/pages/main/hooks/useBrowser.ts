@@ -104,32 +104,27 @@ export const useBrowser = ({
     if (isBrowserOpen) {
       return;
     }
-
     if (actions.length === 0 && !url) {
       toast.error('Please enter a URL to start recording');
       return;
     }
-
     // Check browser compatibility
     const compatibility = checkBrowserCompatibility(browserType);
     if (!compatibility.supported) {
       toast.error(compatibility.warning || 'This browser is not supported on your platform');
       return;
     }
-    
     if (compatibility.warning) {
       toast.warning(compatibility.warning, { autoClose: 5000 });
     }
-
     try {
       setIsBrowserOpen(true);
       setIsPaused(true);
       let basicAuthentication = {
-        username: basicAuth?.username || '',
-        password: basicAuth?.password || '',
+        username: String(basicAuth?.username || ''),
+        password: String(basicAuth?.password || ''),
       };
       await (window as any).browserAPI?.browser?.start(basicAuthentication, browserType);
-      
       if (actions.length > 0) {
         const limit = (typeof executeUntilIndex === 'number' && executeUntilIndex >= 0)
           ? Math.min(executeUntilIndex, actions.length)
@@ -143,7 +138,6 @@ export const useBrowser = ({
         if (!url.startsWith('http')) {
           url = 'https://' + url;
         }
-        
         await (window as any).browserAPI?.browser?.navigate(url);
         setSelectedInsertPosition(selectedInsertPosition + 1);
         setDisplayInsertPosition(selectedInsertPosition + 1);
@@ -298,7 +292,7 @@ export const useBrowser = ({
         test_suite_id: testSuiteId || undefined,
         basic_auth: basicAuth,
       };
-
+      console.log('[useBrowser] handleRunScript payload', payload);
       const resp = await service.executeActions(payload);
       if (resp.success) {
         setRunResult((resp.data as any).logs || 'Executed successfully');

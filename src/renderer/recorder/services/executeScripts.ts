@@ -48,6 +48,7 @@ export class ExecuteScriptsService {
     }
 
     async executeActions(request: GenerationCodeRequest): Promise<ApiResponse<ExecuteActionsResponse>> {
+        console.log('[ExecuteScriptsService] executeActions request', request);
         if (!request || typeof request.actions !== 'object') {
             return { success: false, error: 'actions is required' };
         }
@@ -119,13 +120,14 @@ export class ExecuteScriptsService {
                 }
                 
                 // Execute code
-                const result = await testExecutionService.executeCode({
+                const payload_to_execute = {
                     code,
                     browser_type: undefined, // Will use default
                     onSave: false,
                     evidence_id: request.evidence_id,
                     tempFiles: tempFiles,
-                });
+                }
+                const result = await testExecutionService.executeCode(payload_to_execute);
                 
                 return {
                     success: result.success,

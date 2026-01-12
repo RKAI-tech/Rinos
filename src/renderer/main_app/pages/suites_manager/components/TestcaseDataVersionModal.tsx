@@ -765,7 +765,8 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
             projectId,
             testcaseName,
             browserType,
-            testSuiteId || undefined
+            testSuiteId || undefined,
+            testcase.evidence_id || undefined
           );
           
           if (result?.alreadyOpen) {

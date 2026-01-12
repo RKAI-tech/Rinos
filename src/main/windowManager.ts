@@ -3,7 +3,7 @@ import { MainEnv } from "./env.js";
 import path from "path";
 
 /* console.log('[windowManager] process.env.DEV_MODE', process.env.DEV_MODE); */
-const isDev = process.env.DEV_MODE === 'true';
+const isDev = !app.isPackaged;
 const __dirnameResolved = __dirname;
 const iconFileNamePng="images/icon.png";
 const iconFileNameIco="images/icon.ico";
