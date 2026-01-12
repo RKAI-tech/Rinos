@@ -16,7 +16,7 @@ echo "SIGN ID: $SIGN_ID"
 ENTITLEMENTS="build_mac/entitlements.mac.plist"
 
 # Danh sách các thư mục Mac cần sign
-MAC_DIRS=("mac" "mac-arm64" "mac-universal")
+MAC_DIRS=("mac" "mac-arm64")
 
 # Hàm sign một app
 sign_app() {

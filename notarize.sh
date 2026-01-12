@@ -39,9 +39,6 @@ notarize_app() {
     "mac-arm64")
       ARCH="arm64"
       ;;
-    "mac-universal")
-      ARCH="universal"
-      ;;
     *)
       ARCH="$DIR"
       ;;
