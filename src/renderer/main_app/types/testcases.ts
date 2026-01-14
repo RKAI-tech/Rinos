@@ -57,6 +57,8 @@ export interface Evidence {
     evidence_id: string;
     video: Video | null;
     screenshots: Screenshot[] | null;
+    database_files: string[] | null;
+    api_files: string[] | null;
     log: Log | null;
 }
 
@@ -83,6 +85,7 @@ export interface ExecuteTestCaseRequest {
     testcase_id: string;
     test_suite_id?: string;
     project_id?: string;
+    evidence_id?: string;
 }
 
 export interface TestCaseSearchRequest {

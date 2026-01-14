@@ -48,12 +48,21 @@ const normalizeCookieDict = (cookie: any): any => {
   // Normalize sameSite: lowercase and convert to proper case
   if (normalized.sameSite !== undefined && typeof normalized.sameSite === 'string') {
     const lowerSameSite = normalized.sameSite.toLowerCase();
-    if (lowerSameSite === 'lax') {
-      normalized.sameSite = 'Lax';
-    } else if (lowerSameSite === 'strict') {
-      normalized.sameSite = 'Strict';
-    } else if (lowerSameSite === 'none') {
-      normalized.sameSite = 'None';
+    switch (lowerSameSite) {
+      case 'lax':
+        normalized.sameSite = 'Lax';
+        break;
+      case 'strict':
+        normalized.sameSite = 'Strict';
+        break;
+      case 'none':
+        normalized.sameSite = 'None';
+        normalized.secure = true;
+        break;
+      default:
+        normalized.sameSite = 'None';
+        normalized.secure = true;
+        break;
     }
   }
   

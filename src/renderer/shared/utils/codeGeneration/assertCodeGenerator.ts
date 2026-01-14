@@ -7,6 +7,7 @@ import { generateConnectDbCode } from './dbConnectionCode';
 import { sanitizeJsString, escape } from './base';
 import { serializeApiRequest } from './apiRequestFuncs';
 import { generateExcelExportCode } from './excelExport';
+import { generateApiExportCode } from './apiExport';
 
 export function getListAiFunctions(actions: Action[]): string {
   let codeReturn = '\n';
@@ -227,9 +228,14 @@ export function generateAssertCode(action: Action, index: number): string {
       codeReturn += `      await ${dbVar}.end();\n`;
       codeReturn += `      await expect(locator).toContainText(String(resultText));\n`;
     } else if (apiRequests.length > 0 && apiRequests[0]) {
-      codeReturn += `      var apiData = ${JSON.stringify(serializeApiRequest(apiRequests[0]), null, 4)};\n`;
+      const apiInfo = serializeApiRequest(apiRequests[0]);
+      const endpoint = apiInfo.url || '';
+      const method = apiInfo.method || '';
+      codeReturn += `      var apiData = ${JSON.stringify(apiInfo, null, 4)};\n`;
       codeReturn += `      var response = await executeApiRequest(page${currentPage}, apiData);\n`;
       codeReturn += `      var responseJson = await response.json();\n`;
+      codeReturn += `      var apiResult = {endpoint: '${sanitizeJsString(endpoint)}', method: '${method}', status: await response.status(), status_text: response.statusText(), headers: response.headers(), payload: responseJson};\n`;
+      codeReturn += generateApiExportCode('apiResult', index);
       codeReturn += `      var responseText = responseJson['${values[0] || ''}'];\n`;
       codeReturn += `      await expect(locator).toContainText(String(responseText));\n`;
     } else {
@@ -303,9 +309,14 @@ export function generateAssertCode(action: Action, index: number): string {
       codeReturn += `      await ${dbVar}.end();\n`;
       codeReturn += `      await expect(locator).toHaveText(String(resultText));\n`;
     } else if (apiRequests.length > 0) {
-      codeReturn += `      var apiData = ${JSON.stringify(serializeApiRequest(apiRequests[0]), null, 4)};\n`;
+      const apiInfo = serializeApiRequest(apiRequests[0]);
+      const endpoint = apiInfo.url || '';
+      const method = apiInfo.method || '';
+      codeReturn += `      var apiData = ${JSON.stringify(apiInfo, null, 4)};\n`;
       codeReturn += `      var response = await executeApiRequest(page${currentPage}, apiData);\n`;
       codeReturn += `      var responseJson = await response.json();\n`;
+      codeReturn += `      var apiResult = {endpoint: '${sanitizeJsString(endpoint)}', method: '${method}', status: await response.status(), status_text: response.statusText(), headers: response.headers(), payload: responseJson};\n`;
+      codeReturn += generateApiExportCode('apiResult', index);
       codeReturn += `      var responseText = responseJson['${values[0] || ''}'];\n`;
       codeReturn += `      await expect(locator).toHaveText(String(responseText));\n`;
     } else {
@@ -330,9 +341,14 @@ export function generateAssertCode(action: Action, index: number): string {
       codeReturn += `      await ${dbVar}.end();\n`;
       codeReturn += `      await expect(locator).toHaveValue(String(resultText));\n`;
     } else if (apiRequests.length > 0) {
-      codeReturn += `      var apiData = ${JSON.stringify(serializeApiRequest(apiRequests[0]), null, 4)};\n`;
+      const apiInfo = serializeApiRequest(apiRequests[0]);
+      const endpoint = apiInfo.url || '';
+      const method = apiInfo.method || '';
+      codeReturn += `      var apiData = ${JSON.stringify(apiInfo, null, 4)};\n`;
       codeReturn += `      var response = await executeApiRequest(page${currentPage}, apiData);\n`;
       codeReturn += `      var responseJson = await response.json();\n`;
+      codeReturn += `      var apiResult = {endpoint: '${sanitizeJsString(endpoint)}', method: '${method}', status: await response.status(), status_text: response.statusText(), headers: response.headers(), payload: responseJson};\n`;
+      codeReturn += generateApiExportCode('apiResult', index);
       codeReturn += `      var responseText = responseJson['${values[0] || ''}'];\n`;
       codeReturn += `      await expect(locator).toHaveValue(String(responseText));\n`;
     } else {
@@ -357,9 +373,14 @@ export function generateAssertCode(action: Action, index: number): string {
       codeReturn += `      await ${dbVar}.end();\n`;
       codeReturn += `      await expect(locator).toHaveValues(String(resultText));\n`;
     } else if (apiRequests.length > 0) {
-      codeReturn += `      var apiData = ${JSON.stringify(serializeApiRequest(apiRequests[0]), null, 4)};\n`;
+      const apiInfo = serializeApiRequest(apiRequests[0]);
+      const endpoint = apiInfo.url || '';
+      const method = apiInfo.method || '';
+      codeReturn += `      var apiData = ${JSON.stringify(apiInfo, null, 4)};\n`;
       codeReturn += `      var response = await executeApiRequest(page${currentPage}, apiData);\n`;
       codeReturn += `      var responseJson = await response.json();\n`;
+      codeReturn += `      var apiResult = {endpoint: '${sanitizeJsString(endpoint)}', method: '${method}', status: await response.status(), status_text: response.statusText(), headers: response.headers(), payload: responseJson};\n`;
+      codeReturn += generateApiExportCode('apiResult', index);
       codeReturn += `      var responseText = responseJson['${values[0] || ''}'];\n`;
       codeReturn += `      await expect(locator).toHaveValues(String(responseText));\n`;
     } else {
@@ -409,7 +430,7 @@ export function generateAssertCode(action: Action, index: number): string {
       codeReturn += `    await page${currentPageAi}.screenshot({ path: '<images-folder>/Step_${index}_${elementsPage.element_index}.png' });\n`;
     }
     
-    codeReturn += `    await test.step('${escape(`${index}. ${action.description || ''}`)}', async () => {\n`;
+    codeReturn += `    await test.step('${index}. ${action.description || ''}', async () => {\n`;
     
     if (selectors.length > 0) {
       codeReturn += `      let outerHTMLs = [];\n`;
@@ -447,13 +468,14 @@ export function generateAssertCode(action: Action, index: number): string {
         if (apiRequestsPages[idx] && apiRequestsPages[idx] !== 0) {
           currentPageAi = String(apiRequestsPages[idx]);
         }
-        codeReturn += `      var apiData = ${JSON.stringify(serializeApiRequest(apiRequests[idx]), null, 4)};\n`;
-        codeReturn += `      var response = await executeApiRequest(page${currentPageAi}, apiData);\n`;
-        codeReturn += `      var responseJson = await response.json();\n`;
         const apiInfo = serializeApiRequest(apiRequests[idx]);
         const endpoint = apiInfo.url || '';
         const method = apiInfo.method || '';
-        codeReturn += `      var apiResult = {endpoint: '${endpoint}', method: '${method}', status: await response.status(), headers: await response.headers(), payload: responseJson};\n`;
+        codeReturn += `      var apiData = ${JSON.stringify(apiInfo, null, 4)};\n`;
+        codeReturn += `      var response = await executeApiRequest(page${currentPageAi}, apiData);\n`;
+        codeReturn += `      var responseJson = await response.json();\n`;
+        codeReturn += `      var apiResult = {endpoint: '${sanitizeJsString(endpoint)}', method: '${method}', status: await response.status(), status_text: response.statusText(), headers: response.headers(),payload: responseJson};\n`;
+        codeReturn += generateApiExportCode('apiResult', index, idx);
         codeReturn += `      apiResults.push(apiResult);\n`;
       }
     }

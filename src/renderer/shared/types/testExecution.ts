@@ -29,6 +29,7 @@ export interface TestExecutionResult {
   video_url?: string;
   images_urls?: string[];
   database_files_urls?: string[];
+  api_files_urls?: string[];
   execution_time: number;
 }
 
@@ -52,4 +53,5 @@ export interface EvidenceUpdateFiles {
   log_file?: File;
   image_files?: File[];
   database_files?: File[];
+  api_files?: File[];
 }
