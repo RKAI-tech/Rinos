@@ -549,17 +549,8 @@ const Testcases: React.FC = () => {
           tc.testcase_id === id ? { ...tc, status: 'Running' as const } : tc
         )
       );
-      
-      const resp = await testCaseService.executeTestCase({ testcase_id: id });
-      // if (resp.success) {
-      //   if (resp.data?.data?.success) {
-      //     toast.success('Passed!');
-      //   } else {
-      //     toast.error('Failed!');
-      //   }
-      // } else {
-      //   toast.error('Failed to execute testcase');
-      // }
+      const tc = testcases.find(t => t.testcase_id === id) || null;
+      await testCaseService.executeTestCase({ testcase_id: id, evidence_id: tc?.evidence?.evidence_id || undefined, project_id: projectId || undefined });
 
     } catch (err) {
       toast.error('Failed to execute testcase. Please try again.');

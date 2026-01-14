@@ -83,6 +83,7 @@ export interface ExecuteTestCaseRequest {
     testcase_id: string;
     test_suite_id?: string;
     project_id?: string;
+    evidence_id?: string;
 }
 
 export interface TestCaseSearchRequest {

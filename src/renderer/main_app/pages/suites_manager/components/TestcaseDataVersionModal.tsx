@@ -856,7 +856,9 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
         // Sau đó mới gọi API run testcase
         const executeResponse = await testCaseService.executeTestCase({
           testcase_id: testcase.testcase_id,
-          test_suite_id: testSuiteId || undefined
+          test_suite_id: testSuiteId || undefined,
+          evidence_id: testcase.evidence_id || undefined,
+          project_id: testcase.project_id || undefined
         });
 
         if (executeResponse.success) {

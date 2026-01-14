@@ -138,7 +138,9 @@ export class TestExecutionService {
     try {
       /* console.log('[TestExecutionService] Options', options); */
       // Get actions and basic auth from API
+      console.log('[TestExecutionService] Options', options);
       const { actions, basic_auth } = await this.getActionsByTestCase(options.testcase_id, options.project_id);
+      console.log('[TestExecutionService] Actions', actions);
 
       // console.log('[TestExecutionService] Actions', actions);
       // console.log('[TestExecutionService] Basic auth', basic_auth);

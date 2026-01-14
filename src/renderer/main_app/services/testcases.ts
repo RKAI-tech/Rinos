@@ -389,6 +389,7 @@ export class TestCaseService {
                 testcase_id: payload.testcase_id,
                 test_suite_id: payload.test_suite_id,
                 project_id: payload.project_id,
+                evidence_id: payload.evidence_id,
                 onSave: true,
             });
             

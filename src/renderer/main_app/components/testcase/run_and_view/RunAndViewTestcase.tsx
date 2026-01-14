@@ -77,7 +77,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
     if (!testcaseId || !canEditPermission) return;
     try {
       setIsRunning(true);
-      const resp = await svc.executeTestCase({ testcase_id: testcaseId });
+      const resp = await svc.executeTestCase({ testcase_id: testcaseId, evidence_id: testcaseData?.evidence?.evidence_id || undefined, project_id: projectId || undefined });
       
       if (resp.success) {
         toast.success('Testcase executed successfully!', {
