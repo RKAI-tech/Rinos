@@ -27,12 +27,16 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [showControls, setShowControls] = useState<boolean>(false);
+  const [videoError, setVideoError] = useState<boolean>(false);
   const svc = useMemo(() => new TestCaseService(), []);
   const canEditPermission = canEdit(projectId);
 
   // Load testcase data when modal opens (always try to fetch the latest)
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      setVideoError(false);
+      return;
+    }
     if (testcaseData) {
       // Show existing data immediately while fetching the freshest logs
       setResult(testcaseData);
@@ -41,6 +45,18 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
       void loadTestcaseData();
     }
   }, [isOpen, testcaseId, projectId, testcaseData]);
+
+  // Reset video error when URL changes
+  useEffect(() => {
+    setVideoError(false);
+  }, [result?.evidence?.video?.url]);
+
+  // Reset video error when tab changes to video
+  useEffect(() => {
+    if (activeTab === 'video') {
+      setVideoError(false);
+    }
+  }, [activeTab]);
   
   const loadTestcaseData = async () => {
     if (!testcaseId) return;
@@ -110,6 +126,35 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
     onClose();
   };
 
+  const processImageName = (screenshot: Screenshot, index: number) => {
+    // Extract image name from URL pattern: after code and _ prefix, before .png
+    console.log('[RunAndViewTestcase] Screenshot URL', screenshot.url);
+    const urlParts = screenshot.url.split('/');
+    console.log('[RunAndViewTestcase] URL Parts', urlParts);
+    const fileName = urlParts[urlParts.length - 1];
+    console.log('[RunAndViewTestcase] File Name', fileName);
+    let imageName = fileName;
+    
+    // Try to extract name from pattern: code_name.png
+    if (fileName.includes('_')) {
+      const parts = fileName.split('_');
+      if (parts.length > 1) {
+        // Remove the code part (first part) and .png extension
+        // Lấy phần tử (1) và (2) trong mảng parts (sau dấu _ đầu tiên và sau đó)
+        // Nếu phần (2) có đoạn sau '.png', xóa nó đi
+        let part1 = parts[1] || '';
+        let part2 = parts[2] || '';
+        if (part2.includes('.png')) {
+          part2 = part2.split('.png')[0];
+        }
+        imageName = [part1, part2].filter(Boolean).join('_');
+      }
+    } else {
+      // Fallback: remove extension
+      imageName = `Verification (${index + 1})`;
+    }
+    return imageName;
+  };
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -220,7 +265,19 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                 {activeTab === 'video' && (
                   <div className="ravt-video-container">
                     {result.evidence?.video?.url ? (
-                      <video style={{ width: '100%', height: '100%' }} controls src={result.evidence?.video?.url} />
+                      videoError ? (
+                        <div className="ravt-no-video">
+                          <div className="ravt-no-video-icon">⚠️</div>
+                          <div className="ravt-no-video-text">Failed to load video. The video URL may be invalid or the file is not available.</div>
+                        </div>
+                      ) : (
+                        <video 
+                          style={{ width: '100%', height: '100%' }} 
+                          controls 
+                          src={result.evidence?.video?.url}
+                          onError={() => setVideoError(true)}
+                        />
+                      )
                     ) : (
                       <div className="ravt-no-video">
                         <div className="ravt-no-video-icon">🎥</div>
@@ -235,30 +292,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                     {result.evidence?.screenshots && result.evidence?.screenshots.length > 0 ? (
                       <div className="ravt-screenshots-list">
                         {result.evidence?.screenshots.map((screenshot: Screenshot, index: number) => {
-                          // Extract image name from URL pattern: after code and _ prefix, before .png
-                          const urlParts = screenshot.url.split('/');
-                          const fileName = urlParts[urlParts.length - 1];
-                          let imageName = fileName;
-                          
-                          // Try to extract name from pattern: code_name.png
-                          if (fileName.includes('_')) {
-                            const parts = fileName.split('_');
-                            if (parts.length > 1) {
-                              // Remove the code part (first part) and .png extension
-                              // Lấy phần tử (1) và (2) trong mảng parts (sau dấu _ đầu tiên và sau đó)
-                              // Nếu phần (2) có đoạn sau '.png', xóa nó đi
-                              let part1 = parts[1] || '';
-                              let part2 = parts[2] || '';
-                              if (part2.includes('.png')) {
-                                part2 = part2.split('.png')[0];
-                              }
-                              imageName = [part1, part2].filter(Boolean).join('_');
-                            }
-                          } else {
-                            // Fallback: remove extension
-                            imageName = `screenshot_${index + 1}`;
-                          }
-                          
+                          const imageName = processImageName(screenshot, index);
                           return (
                             <div key={index} className="ravt-screenshot-item">
                               <button 

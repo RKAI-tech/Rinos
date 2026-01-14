@@ -32,16 +32,30 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [showControls, setShowControls] = useState<boolean>(false);
+  const [videoError, setVideoError] = useState<boolean>(false);
   const svc = useMemo(() => new TestSuiteService(), []);
 
   // Load evidence data when modal opens
   useEffect(() => {
     if (!isOpen || !testcase || !testSuiteId) {
       setEvidenceData(null);
+      setVideoError(false);
       return;
     }
     void loadEvidenceData();
   }, [isOpen, testcase, testSuiteId]);
+
+  // Reset video error when URL changes
+  useEffect(() => {
+    setVideoError(false);
+  }, [evidenceData?.video?.url]);
+
+  // Reset video error when tab changes to video
+  useEffect(() => {
+    if (activeTab === 'video') {
+      setVideoError(false);
+    }
+  }, [activeTab]);
   
   const loadEvidenceData = async () => {
     if (!testcase || !testSuiteId) return;
@@ -105,6 +119,7 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
     setSelectedImage(null);
     setIsFullscreen(false);
     setShowControls(false);
+    setVideoError(false);
     onClose();
   };
 
@@ -206,7 +221,19 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
                 {activeTab === 'video' && (
                   <div className="vte-video-container">
                     {evidenceData.video?.url ? (
-                      <video style={{ width: '100%', height: '100%' }} controls src={evidenceData.video.url} />
+                      videoError ? (
+                        <div className="vte-no-video">
+                          <div className="vte-no-video-icon">⚠️</div>
+                          <div className="vte-no-video-text">Failed to load video. The video URL may be invalid or the file is not available.</div>
+                        </div>
+                      ) : (
+                        <video 
+                          style={{ width: '100%', height: '100%' }} 
+                          controls 
+                          src={evidenceData.video.url}
+                          onError={() => setVideoError(true)}
+                        />
+                      )
                     ) : (
                       <div className="vte-no-video">
                         <div className="vte-no-video-icon">🎥</div>

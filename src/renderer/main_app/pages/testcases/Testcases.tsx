@@ -719,7 +719,14 @@ const Testcases: React.FC = () => {
       const testcaseName = testcase?.name || id;
       const browserType = testcase?.browser_type || BrowserType.chrome;
       
-      const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectData?.projectId, testcaseName, browserType, testcase?.evidence?.evidence_id);
+      const result = await (window as any).screenHandleAPI?.openRecorder?.(
+        id, 
+        projectData?.projectId, 
+        testcaseName, 
+        browserType,
+        undefined,
+        testcase?.evidence?.evidence_id
+      );
       if (result?.alreadyOpen) {
         toast.warning('Recorder for this testcase is already open.');
       } else if (result?.created) {

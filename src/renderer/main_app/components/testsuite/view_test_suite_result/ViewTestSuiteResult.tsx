@@ -43,6 +43,7 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, testcaseName, logs
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [showControls, setShowControls] = useState<boolean>(false);
+  const [videoError, setVideoError] = useState<boolean>(false);
 
   // Reset state when modal closes
   useEffect(() => {
@@ -52,8 +53,21 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, testcaseName, logs
       setIsFullscreen(false);
       setShowControls(false);
       setActiveTab('logs');
+      setVideoError(false);
     }
   }, [isOpen]);
+
+  // Reset video error when URL changes
+  useEffect(() => {
+    setVideoError(false);
+  }, [videoUrl]);
+
+  // Reset video error when tab changes to video
+  useEffect(() => {
+    if (activeTab === 'video') {
+      setVideoError(false);
+    }
+  }, [activeTab]);
 
   if (!isOpen) return null;
 
@@ -118,7 +132,19 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, testcaseName, logs
             {activeTab === 'video' && (
               <div className="vtsr-log-video-container">
                 {videoUrl ? (
-                  <video style={{ width: '100%', height: '100%' }} controls src={videoUrl} />
+                  videoError ? (
+                    <div className="vtsr-log-no-video">
+                      <div className="vtsr-log-no-video-icon">⚠️</div>
+                      <div className="vtsr-log-no-video-text">Failed to load video. The video URL may be invalid or the file is not available.</div>
+                    </div>
+                  ) : (
+                    <video 
+                      style={{ width: '100%', height: '100%' }} 
+                      controls 
+                      src={videoUrl}
+                      onError={() => setVideoError(true)}
+                    />
+                  )
                 ) : (
                   <div className="vtsr-log-no-video">
                     <div className="vtsr-log-no-video-icon">🎥</div>
