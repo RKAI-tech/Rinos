@@ -402,11 +402,7 @@ export class TestCaseService {
             };
         } catch (error) {
             /* console.error('[TestCaseService] Error executing testcase locally:', error); */
-            // Fallback to API if local execution fails
-            return await apiRouter.request<DefaultResponse>(`/runcode/execute_test_case/${payload.testcase_id}`, {
-                method: 'POST',
-                body: JSON.stringify(payload),
-            });
+            return { success: false, error: 'Failed to execute testcase' };
         }
     }
 

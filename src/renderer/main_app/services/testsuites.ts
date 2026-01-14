@@ -155,11 +155,7 @@ export class TestSuiteService {
             };
         } catch (error) {
             /* console.error('[TestSuiteService] Error executing test suite locally:', error); */
-            // Fallback to API if local execution fails
-            return await apiRouter.request<{ message: string }>(`/runcode/execute_test_suite/${payload.test_suite_id}`, {
-                method: 'POST',
-                body: JSON.stringify(payload)
-            });
+            return { success: false, error: 'Failed to execute test suite' };
         }
     }
     async getTestSuites(projectId: string): Promise<ApiResponse<TestSuiteGetAllResponse>> {

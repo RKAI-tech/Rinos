@@ -146,12 +146,8 @@ export class ExecuteScriptsService {
             }
 
         } catch (error) {
-            /* console.error('[ExecuteScriptsService] Error executing actions locally:', error); */
-            // Fallback to API if local execution fails
-            return await apiRouter.request<ExecuteActionsResponse>('/runcode/execute_actions', {
-                method: 'POST',
-                body: JSON.stringify(request)
-            });
+            // /* console.error('[ExecuteScriptsService] Error executing actions locally:', error); */
+            return { success: false, error: 'Failed to execute actions' };
         }
     }
     async generateCode(request: GenerationCodeRequest): Promise<ApiResponse<GenerationCodeResponse>>{
