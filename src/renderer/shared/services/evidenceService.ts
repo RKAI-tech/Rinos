@@ -62,6 +62,12 @@ export class EvidenceService {
           formData.append('image_files', imageFile);
         }
       }
+      
+      if (files.database_files && files.database_files.length > 0) {
+        for (const databaseFile of files.database_files) {
+          formData.append('database_files', databaseFile);
+        }
+      }
     }
 
     return await requestWithFormDataAndAuth(

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Download } from 'lucide-react';
 import './ViewTestcaseEvidence.css';
 import { TestSuiteService } from '../../../services/testsuites';
 import { TestCaseInSuite } from '../../../types/testsuites';
@@ -22,12 +23,13 @@ interface EvidenceData {
     url: string;
   } | null;
   screenshots?: Screenshot[] | null;
+  database_files?: string[] | null;
 }
 
 const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, testSuiteId, projectId }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [evidenceData, setEvidenceData] = useState<EvidenceData | null>(null);
-  const [activeTab, setActiveTab] = useState<'logs' | 'video' | 'screenshots'>('logs');
+  const [activeTab, setActiveTab] = useState<'logs' | 'video' | 'screenshots' | 'database'>('logs');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -74,10 +76,14 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
             }).filter((item: Screenshot | null): item is Screenshot => item !== null);
           }
           
+          // Extract database files
+          const databaseFiles = tc.database_files || [];
+          
           const evidence: EvidenceData = {
             logs: tc.logs || '',
             video: tc.url_video ? { url: tc.url_video } : null,
             screenshots: screenshots.length > 0 ? screenshots : null,
+            database_files: Array.isArray(databaseFiles) && databaseFiles.length > 0 ? databaseFiles : null,
           };
           
           setEvidenceData(evidence);
@@ -106,6 +112,35 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
     setIsFullscreen(false);
     setShowControls(false);
     onClose();
+  };
+
+  const handleDownloadDatabaseFile = async (fileUrl: string, fileName: string) => {
+    try {
+      // Fetch file as blob
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        toast.error('Failed to download file. Please try again.', {
+          containerId: 'modal-toast-container'
+        });
+        return;
+      }
+      
+      const blob = await response.blob();
+      
+      // Create download link programmatically
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to download file. Please try again.', {
+        containerId: 'modal-toast-container'
+      });
+    }
   };
 
   // Handle ESC key to close modal
@@ -184,6 +219,12 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
                   onClick={() => setActiveTab('screenshots')}
                 >
                   📸 Verification Screenshots
+                </button>
+                <button 
+                  className={`vte-tab-btn ${activeTab === 'database' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('database')}
+                >
+                  📊 Database Execution Files
                 </button>
               </div>
               
@@ -335,6 +376,41 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
                             </button>
                           </div>
                         </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {activeTab === 'database' && (
+                  <div className="vte-database-container">
+                    {evidenceData.database_files && evidenceData.database_files.length > 0 ? (
+                      <div className="vte-database-list">
+                        {evidenceData.database_files.map((fileUrl: string, index: number) => {
+                          // Extract file name from URL
+                          const urlParts = fileUrl.split('/');
+                          const fileName = urlParts[urlParts.length - 1] || `database_file_${index + 1}.xlsx`;
+                          
+                          return (
+                            <div key={index} className="vte-database-item">
+                              <div className="vte-database-info">
+                                <span className="vte-database-name">{fileName}</span>
+                              </div>
+                              <button
+                                onClick={() => handleDownloadDatabaseFile(fileUrl, fileName)}
+                                className="vte-database-download-btn"
+                                title="Download"
+                                type="button"
+                              >
+                                <Download className="vte-download-icon" size={18} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="vte-no-database">
+                        <div className="vte-no-database-icon">📊</div>
+                        <div className="vte-no-database-text">No database execution files available for this testcase.</div>
                       </div>
                     )}
                   </div>

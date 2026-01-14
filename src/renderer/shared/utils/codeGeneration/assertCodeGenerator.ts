@@ -6,6 +6,7 @@ import { convertListSelectorsToLiteral } from './selectorFuncs';
 import { generateConnectDbCode } from './dbConnectionCode';
 import { sanitizeJsString, escape } from './base';
 import { serializeApiRequest } from './apiRequestFuncs';
+import { generateExcelExportCode } from './excelExport';
 
 export function getListAiFunctions(actions: Action[]): string {
   let codeReturn = '\n';
@@ -218,8 +219,10 @@ export function generateAssertCode(action: Action, index: number): string {
     
     if (connections.length > 0) {
       const [connectDbCode, dbVar] = generateConnectDbCode(connections[0]);
+      const queryStr = queries[0] || '';
       codeReturn += `      ${connectDbCode}`;
-      codeReturn += `      var result = await ${dbVar}.query('${sanitizeJsString(queries[0] || '')}');\n`;
+      codeReturn += `      var result = await ${dbVar}.query('${sanitizeJsString(queryStr)}');\n`;
+      codeReturn += generateExcelExportCode('result', index, undefined, queryStr);
       codeReturn += `      var resultText = result.rows[0]?.${values[0] || ''};\n`;
       codeReturn += `      await ${dbVar}.end();\n`;
       codeReturn += `      await expect(locator).toContainText(String(resultText));\n`;
@@ -292,8 +295,10 @@ export function generateAssertCode(action: Action, index: number): string {
     
     if (connections.length > 0) {
       const [connectDbCode, dbVar] = generateConnectDbCode(connections[0]);
+      const queryStr = queries[0] || '';
       codeReturn += `      ${connectDbCode}`;
-      codeReturn += `      var result = await ${dbVar}.query('${sanitizeJsString(queries[0] || '')}');\n`;
+      codeReturn += `      var result = await ${dbVar}.query('${sanitizeJsString(queryStr)}');\n`;
+      codeReturn += generateExcelExportCode('result', index, undefined, queryStr);
       codeReturn += `      var resultText = result.rows[0]?.${values[0] || ''};\n`;
       codeReturn += `      await ${dbVar}.end();\n`;
       codeReturn += `      await expect(locator).toHaveText(String(resultText));\n`;
@@ -317,8 +322,10 @@ export function generateAssertCode(action: Action, index: number): string {
     
     if (connections.length > 0) {
       const [connectDbCode, dbVar] = generateConnectDbCode(connections[0]);
+      const queryStr = queries[0] || '';
       codeReturn += `      ${connectDbCode}`;
-      codeReturn += `      var result = await ${dbVar}.query('${sanitizeJsString(queries[0] || '')}');\n`;
+      codeReturn += `      var result = await ${dbVar}.query('${sanitizeJsString(queryStr)}');\n`;
+      codeReturn += generateExcelExportCode('result', index, undefined, queryStr);
       codeReturn += `      var resultText = result.rows[0]?.${values[0] || ''};\n`;
       codeReturn += `      await ${dbVar}.end();\n`;
       codeReturn += `      await expect(locator).toHaveValue(String(resultText));\n`;
@@ -342,8 +349,10 @@ export function generateAssertCode(action: Action, index: number): string {
     
     if (connections.length > 0) {
       const [connectDbCode, dbVar] = generateConnectDbCode(connections[0]);
+      const queryStr = queries[0] || '';
       codeReturn += `      ${connectDbCode}`;
-      codeReturn += `      var result = await ${dbVar}.query('${sanitizeJsString(queries[0] || '')}');\n`;
+      codeReturn += `      var result = await ${dbVar}.query('${sanitizeJsString(queryStr)}');\n`;
+      codeReturn += generateExcelExportCode('result', index, undefined, queryStr);
       codeReturn += `      var resultText = result.rows[0]?.${values[0] || ''};\n`;
       codeReturn += `      await ${dbVar}.end();\n`;
       codeReturn += `      await expect(locator).toHaveValues(String(resultText));\n`;
@@ -421,8 +430,10 @@ export function generateAssertCode(action: Action, index: number): string {
       codeReturn += `      let databaseResults = [];\n`;
       for (let idx = 0; idx < connections.length; idx++) {
         const [connectDbCode, dbVar] = generateConnectDbCode(connections[idx]);
+        const queryStr = queries[idx] || '';
         codeReturn += `      ${connectDbCode}`;
-        codeReturn += `      var result = await ${dbVar}.query('${sanitizeJsString(queries[idx] || '')}');\n`;
+        codeReturn += `      var result = await ${dbVar}.query('${sanitizeJsString(queryStr)}');\n`;
+        codeReturn += generateExcelExportCode('result', index, idx, queryStr);
         codeReturn += `      var records = result.rows\n`;
         codeReturn += `      await ${dbVar}.end();\n`;
         codeReturn += `      databaseResults.push(records);\n`;

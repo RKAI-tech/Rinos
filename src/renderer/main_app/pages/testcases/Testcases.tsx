@@ -550,7 +550,7 @@ const Testcases: React.FC = () => {
         )
       );
       
-      const resp = await testCaseService.executeTestCase({ testcase_id: id });
+      const resp = await testCaseService.executeTestCase({ testcase_id: id});
       // if (resp.success) {
       //   if (resp.data?.data?.success) {
       //     toast.success('Passed!');
