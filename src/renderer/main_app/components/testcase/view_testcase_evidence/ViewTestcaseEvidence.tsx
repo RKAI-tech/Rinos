@@ -192,6 +192,91 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
       });
     }
   };
+
+  const processImageName = (screenshot: Screenshot, index: number) => {
+    // Extract image name from URL pattern: after code and _ prefix, before .png
+    console.log('[ViewTestcaseEvidence] Screenshot URL', screenshot.url);
+    const urlParts = screenshot.url.split('/');
+    console.log('[ViewTestcaseEvidence] URL Parts', urlParts);
+    const fileName = urlParts[urlParts.length - 1];
+    console.log('[ViewTestcaseEvidence] File Name', fileName);
+    let imageName = fileName;
+    
+    // Try to extract name from pattern: code_name.png
+    if (fileName.includes('_')) {
+      const parts = fileName.split('_');
+      if (parts.length > 1) {
+        // Remove the code part (first part) and .png extension
+        let part1 = parts[1] || '';
+        let part2 = parts[2] || '';
+        if (part2.includes('.png')) {
+          part2 = part2.split('.png')[0];
+        }
+        imageName = [part1, part2].filter(Boolean).join('_');
+      }
+    } else {
+      // Fallback: remove extension
+      imageName = `Verification (${index + 1})`;
+    }
+    return imageName;
+  };
+
+  const processDatabaseFileName = (fileUrl: string, index: number) => {
+    // Extract file name from URL pattern: after code and _ prefix, before .xlsx
+    console.log('[ViewTestcaseEvidence] Database File URL', fileUrl);
+    const urlParts = fileUrl.split('/');
+    const fileName = urlParts[urlParts.length - 1] || `database_file_${index + 1}.xlsx`;
+    let displayName = fileName;
+    
+    // Try to extract name from pattern: code_name.xlsx
+    if (fileName.includes('_')) {
+      const parts = fileName.split('_');
+      if (parts.length > 1) {
+        // Remove the code part (first part) and .xlsx extension
+        let part1 = parts[1] || '';
+        let part2 = parts[2] || '';
+        if (part2.includes('.xlsx')) {
+          part2 = part2.split('.xlsx')[0];
+        }
+        displayName = [part1, part2].filter(Boolean).join('_');
+        // Add extension back if we have a meaningful name
+        if (displayName && displayName !== fileName) {
+          displayName = displayName + '.xlsx';
+        }
+      }
+    }
+    // If no underscore or extraction failed, use original filename
+    return displayName;
+  };
+
+  const processApiFileName = (fileUrl: string, index: number) => {
+    // Extract file name from URL pattern: after code and _ prefix, before .json
+    console.log('[ViewTestcaseEvidence] API File URL', fileUrl);
+    const urlParts = fileUrl.split('/');
+    const fileName = urlParts[urlParts.length - 1] || `api_file_${index + 1}.json`;
+    let displayName = fileName;
+    
+    // Try to extract name from pattern: code_name.json
+    if (fileName.includes('_')) {
+      const parts = fileName.split('_');
+      if (parts.length > 1) {
+        // Remove the code part (first part) and .json extension
+        let part1 = parts[1] || '';
+        let part2 = parts[2] || '';
+        if (part2.includes('.json')) {
+          part2 = part2.split('.json')[0];
+        }
+        displayName = [part1, part2].filter(Boolean).join('_');
+        // Add extension back if we have a meaningful name
+        if (displayName && displayName !== fileName) {
+          displayName = displayName + '.json';
+        }
+      }
+    }
+    // If no underscore or extraction failed, use original filename
+    return displayName;
+  };
+
   // Handle ESC key to close modal
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -350,27 +435,7 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
                     {evidenceData.screenshots && evidenceData.screenshots.length > 0 ? (
                       <div className="vte-screenshots-list">
                         {evidenceData.screenshots.map((screenshot: Screenshot, index: number) => {
-                          // Extract image name from URL pattern: after code and _ prefix, before .png
-                          const urlParts = screenshot.url.split('/');
-                          const fileName = urlParts[urlParts.length - 1];
-                          let imageName = fileName;
-                          
-                          // Try to extract name from pattern: code_name.png
-                          if (fileName.includes('_')) {
-                            const parts = fileName.split('_');
-                            if (parts.length > 1) {
-                              // Remove the code part (first part) and .png extension
-                              let part1 = parts[1] || '';
-                              let part2 = parts[2] || '';
-                              if (part2.includes('.png')) {
-                                part2 = part2.split('.png')[0];
-                              }
-                              imageName = [part1, part2].filter(Boolean).join('_');
-                            }
-                          } else {
-                            // Fallback: remove extension
-                            imageName = `screenshot_${index + 1}`;
-                          }
+                          const imageName = processImageName(screenshot, index);
                           
                           return (
                             <div key={index} className="vte-screenshot-item">
@@ -477,10 +542,7 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
                     {evidenceData.database_files && evidenceData.database_files.length > 0 ? (
                       <div className="vte-database-list">
                         {evidenceData.database_files.map((fileUrl: string, index: number) => {
-                          console.log("fileUrl", fileUrl);
-                          // Extract file name from URL
-                          const urlParts = fileUrl.split('/');
-                          const fileName = urlParts[urlParts.length - 1] || `database_file_${index + 1}.xlsx`;
+                          const fileName = processDatabaseFileName(fileUrl, index);
                           
                           return (
                             <div key={index} className="vte-database-item">
@@ -513,9 +575,7 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
                     {evidenceData.api_files && evidenceData.api_files.length > 0 ? (
                       <div className="vte-api-list">
                         {evidenceData.api_files.map((fileUrl: string, index: number) => {
-                          // Extract file name from URL
-                          const urlParts = fileUrl.split('/');
-                          const fileName = urlParts[urlParts.length - 1] || `api_file_${index + 1}.json`;
+                          const fileName = processApiFileName(fileUrl, index);
                           
                           return (
                             <div key={index} className="vte-api-item">

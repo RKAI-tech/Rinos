@@ -200,21 +200,13 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
   };
 
   const processImageName = (screenshot: Screenshot, index: number) => {
-    // Extract image name from URL pattern: after code and _ prefix, before .png
-    console.log('[RunAndViewTestcase] Screenshot URL', screenshot.url);
     const urlParts = screenshot.url.split('/');
-    console.log('[RunAndViewTestcase] URL Parts', urlParts);
     const fileName = urlParts[urlParts.length - 1];
-    console.log('[RunAndViewTestcase] File Name', fileName);
     let imageName = fileName;
     
-    // Try to extract name from pattern: code_name.png
     if (fileName.includes('_')) {
       const parts = fileName.split('_');
       if (parts.length > 1) {
-        // Remove the code part (first part) and .png extension
-        // Lấy phần tử (1) và (2) trong mảng parts (sau dấu _ đầu tiên và sau đó)
-        // Nếu phần (2) có đoạn sau '.png', xóa nó đi
         let part1 = parts[1] || '';
         let part2 = parts[2] || '';
         if (part2.includes('.png')) {
@@ -223,10 +215,65 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
         imageName = [part1, part2].filter(Boolean).join('_');
       }
     } else {
-      // Fallback: remove extension
       imageName = `Verification (${index + 1})`;
     }
     return imageName;
+  };
+
+  const processDatabaseFileName = (fileUrl: string, index: number) => {
+    // Extract file name from URL pattern: after code and _ prefix, before .xlsx
+    console.log('[RunAndViewTestcase] Database File URL', fileUrl);
+    const urlParts = fileUrl.split('/');
+    const fileName = urlParts[urlParts.length - 1] || `database_file_${index + 1}.xlsx`;
+    let displayName = fileName;
+    
+    // Try to extract name from pattern: code_name.xlsx
+    if (fileName.includes('_')) {
+      const parts = fileName.split('_');
+      if (parts.length > 1) {
+        // Remove the code part (first part) and .xlsx extension
+        let part1 = parts[1] || '';
+        let part2 = parts[2] || '';
+        if (part2.includes('.xlsx')) {
+          part2 = part2.split('.xlsx')[0];
+        }
+        displayName = [part1, part2].filter(Boolean).join('_');
+        // Add extension back if we have a meaningful name
+        if (displayName && displayName !== fileName) {
+          displayName = displayName + '.xlsx';
+        }
+      }
+    }
+    // If no underscore or extraction failed, use original filename
+    return displayName;
+  };
+
+  const processApiFileName = (fileUrl: string, index: number) => {
+    // Extract file name from URL pattern: after code and _ prefix, before .json
+    console.log('[RunAndViewTestcase] API File URL', fileUrl);
+    const urlParts = fileUrl.split('/');
+    const fileName = urlParts[urlParts.length - 1] || `api_file_${index + 1}.json`;
+    let displayName = fileName;
+    
+    // Try to extract name from pattern: code_name.json
+    if (fileName.includes('_')) {
+      const parts = fileName.split('_');
+      if (parts.length > 1) {
+        // Remove the code part (first part) and .json extension
+        let part1 = parts[1] || '';
+        let part2 = parts[2] || '';
+        if (part2.includes('.json')) {
+          part2 = part2.split('.json')[0];
+        }
+        displayName = [part1, part2].filter(Boolean).join('_');
+        // Add extension back if we have a meaningful name
+        if (displayName && displayName !== fileName) {
+          displayName = displayName + '.json';
+        }
+      }
+    }
+    // If no underscore or extraction failed, use original filename
+    return displayName;
   };
 
   // Handle ESC key to close modal
@@ -520,12 +567,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                       return filesArray.length > 0 ? (
                         <div className="ravt-database-list">
                           {filesArray.map((fileUrl: string, index: number) => {
-                            // Ensure fileUrl is a string
-                            
-                            
-                            // Extract file name from URL
-                            const urlParts = fileUrl.split('/');
-                            const fileName = urlParts[urlParts.length - 1] || `database_file_${index + 1}.xlsx`;;
+                            const fileName = processDatabaseFileName(fileUrl, index);
                             
                             return (
                               <div key={index} className="ravt-database-item">
@@ -572,8 +614,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                       return filesArray.length > 0 ? (
                         <div className="ravt-api-list">
                           {filesArray.map((fileUrl: string, index: number) => {
-                            const urlParts = fileUrl.split('/');
-                            const fileName = urlParts[urlParts.length - 1] || `api_file_${index + 1}.json`;
+                            const fileName = processApiFileName(fileUrl, index);
 
                             return (
                               <div key={index} className="ravt-api-item">
