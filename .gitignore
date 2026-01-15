@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+package-lock.json
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -127,4 +128,5 @@ sandbox/uploads/
 sandbox/databases/
 sandbox/apis/
 sandbox/images/
+sandbox/package-lock.json
 downloads/
