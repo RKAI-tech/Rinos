@@ -6,70 +6,34 @@
  */
 export function getExportDatabaseToExcelFunctionString(): string {
   return `async function exportDatabaseToExcel(result, stepIndex, queryString = '', queryIndex = null) {
-  // Dynamic imports for ES modules
   const XLSXModule = await import('xlsx');
   const XLSX = XLSXModule.default || XLSXModule;
   const fsModule = await import('fs');
   const fs = fsModule.default || fsModule;
   const databaseFolder = '<database-execution-folder>';
-  
-  // Ensure database folder exists
-  if (!fs.existsSync(databaseFolder)) {
-    fs.mkdirSync(databaseFolder, { recursive: true });
-  }
-  
-  // Generate file name
+  if (!fs.existsSync(databaseFolder)) { fs.mkdirSync(databaseFolder, { recursive: true }); }
   const fileSuffix = queryIndex !== null && queryIndex !== undefined ? \`_\${queryIndex}\` : '';
-  const excelFileName = \`\${databaseFolder}/Step_\${stepIndex}_database\${fileSuffix}.xlsx\`;
-  
-  // Create workbook and worksheet
+  const excelFileName = \`\${databaseFolder}/Step_\${stepIndex}\${fileSuffix}.xlsx\`;
   const workbook = XLSX.utils.book_new();
   const dataRows = result.rows || [];
-  
-  // Create worksheet manually to have:
-  // Row 1: Query: <<query string>>
-  // Row 2: (empty)
-  // Row 3: Column headers (field names)
-  // Row 4+: Data rows
-  
-  // Initialize worksheet
   const worksheet = XLSX.utils.aoa_to_sheet([]);
-  
-  // Row 1: Query row
-  XLSX.utils.sheet_add_aoa(worksheet, [[\`Query: \${queryString || ''}\`]], { origin: 'A1' });
-  
-  // Row 2: Empty row (skip)
-  
-  // Get column headers from first data row if available
+  XLSX.utils.sheet_add_aoa(worksheet, [[\`Query: \${queryString || ''}\`]], { origin: 'A1' })
   let columnHeaders = [];
-  if (dataRows.length > 0) {
-    columnHeaders = Object.keys(dataRows[0]);
-  }
-  
-  // Row 3: Column headers
+  if (dataRows.length > 0) { columnHeaders = Object.keys(dataRows[0]); }
   if (columnHeaders.length > 0) {
     XLSX.utils.sheet_add_aoa(worksheet, [columnHeaders], { origin: 'A3' });
-    
-    // Row 4+: Data rows
     if (dataRows.length > 0) {
       const dataValues = dataRows.map(row => columnHeaders.map(key => row[key] ?? ''));
       XLSX.utils.sheet_add_aoa(worksheet, dataValues, { origin: 'A4' });
     }
   }
-  
-  // Set column widths: Query column wider, others default
   if (columnHeaders.length > 0) {
-    // First column (Query) is wider, rest are default
     const colWidths = [{ wch: 80 }];
-    for (let i = 1; i <= columnHeaders.length; i++) {
-      colWidths.push({ wch: 15 });
-    }
+    for (let i = 1; i <= columnHeaders.length; i++) { colWidths.push({ wch: 15 }); }
     worksheet['!cols'] = colWidths;
   } else {
-    // Only query row, set Query column width
     worksheet['!cols'] = [{ wch: 80 }];
   }
-  
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
   XLSX.writeFile(workbook, excelFileName);
 }

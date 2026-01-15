@@ -6,6 +6,8 @@
   max-height: 90vh;
   display: flex;
   flex-direction: column;
+  width: 600px;
+  max-width: 90vw;
 }
 
 .css-assert-modal-body {
@@ -16,4 +18,395 @@
 
 .css-assert-modal-footer {
   flex-shrink: 0;
+}
+
+/* Header */
+.css-assert-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.css-assert-modal-header h3 {
+  margin: 0;
+}
+
+.css-assert-modal-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Section containers */
+.assert-section {
+  margin-bottom: 24px;
+}
+
+.assert-section-small {
+  margin-bottom: 16px;
+}
+
+/* Form labels */
+.assert-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.assert-label-required {
+  color: #ef4444;
+}
+
+/* Form inputs, selects, textareas */
+.assert-input,
+.assert-select,
+.assert-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #111827;
+  background-color: #ffffff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.assert-input:focus,
+.assert-select:focus,
+.assert-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.assert-select {
+  cursor: pointer;
+}
+
+.assert-select:disabled {
+  cursor: not-allowed;
+}
+
+.assert-textarea {
+  font-family: monospace;
+  resize: vertical;
+}
+
+/* Selected element/page display */
+.assert-selected-box {
+  padding: 12px;
+  background-color: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.assert-selected-box-small {
+  padding: 8px 12px;
+  background-color: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.assert-selected-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.assert-selected-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.assert-selected-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #111827;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assert-selected-title-small {
+  font-size: 13px;
+  font-weight: 500;
+  color: #111827;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assert-selected-subtitle {
+  font-size: 12px;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Clear button */
+.assert-clear-btn {
+  margin-left: 8px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #6b7280;
+  background-color: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.assert-clear-btn:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+/* Warning box */
+.assert-warning-box {
+  padding: 12px;
+  background-color: #fef3c7;
+  border-radius: 6px;
+  border: 1px solid #fbbf24;
+  font-size: 13px;
+  color: #92400e;
+}
+
+/* Action button */
+.assert-action-btn {
+  margin-top: 8px;
+  padding: 8px 16px;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 1;
+}
+
+.assert-action-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Message boxes */
+.assert-message {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.assert-message-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.assert-message-success {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.assert-message-warning {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.assert-message-info {
+  background-color: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+/* Selected value display */
+.assert-selected-value {
+  margin-top: 8px;
+  padding: 8px;
+  background: #e0f2fe;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+/* API panel container */
+.assert-api-panel {
+  padding: 12px;
+  background-color: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Variables section */
+.assert-variables-header {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.assert-variables-search {
+  outline: none;
+  border: 1px solid #d1d5db;
+  font-size: 11px;
+  width: 100%;
+  min-width: 0;
+  background-color: #ffffff;
+}
+
+.assert-variables-list {
+  max-height: 200px;
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.assert-variables-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.assert-variables-table th {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.assert-variables-table th:last-child {
+  text-align: right;
+  width: 80px;
+}
+
+.assert-variables-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.assert-variables-table td:last-child {
+  text-align: right;
+}
+
+.assert-variables-cell {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assert-variable-select-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #6b7280;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  padding: 0;
+}
+
+.assert-variable-select-btn.selected {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.assert-variables-pagination {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.assert-variables-pagination-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.assert-pagination-btn {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+}
+
+.assert-pagination-btn:disabled {
+  background: #f9fafb;
+  color: #9ca3af;
+  cursor: default;
+}
+
+.assert-selected-variable-input {
+  margin-top: 4px;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: #e0f2fe;
+  cursor: default;
+}
+
+/* Current value display */
+.assert-current-value {
+  margin-bottom: 16px;
+  margin-top: 8px;
+}
+
+.assert-current-value-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: #e0f2fe;
+  box-sizing: border-box;
+  cursor: default;
+}
+
+/* Confirm message */
+.assert-confirm-message {
+  margin-top: 16px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+/* Loading/empty states */
+.assert-loading-text,
+.assert-empty-text {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Label with margin top */
+.assert-label-mt {
+  margin-top: 8px;
 }

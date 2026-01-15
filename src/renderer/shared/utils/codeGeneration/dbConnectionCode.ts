@@ -232,7 +232,7 @@ export function generateConnectDbCode(connection: Connection | null | undefined)
         ${sslConfig}
       }`;
     return [
-      `${sshTunnelCode}      const ${dbVar} = new PgClient(${dbConfig});\n      await ${dbVar}.connect();${cleanupCode}`,
+      `${sshTunnelCode}\n      const ${dbVar} = new PgClient(${dbConfig});\n      await ${dbVar}.connect();\n${cleanupCode}`,
       dbVar
     ];
   } else if (dbType === 'mysql') {
@@ -245,7 +245,7 @@ export function generateConnectDbCode(connection: Connection | null | undefined)
         password: '${password}'${sslConfig ? ',\n        ' + sslConfig : ''}
       }`;
     return [
-      `${sshTunnelCode}      const ${dbVar} = await mysql.createConnection(${dbConfig});\n      ${dbVar}.query = async (q) => { const [rows] = await ${dbVar}.execute(q); return { rows }; };\n      ${dbVar}.end = async () => { await ${dbVar}.close();${cleanupCode} };\n`,
+      `${sshTunnelCode}\n      const ${dbVar} = await mysql.createConnection(${dbConfig});\n      ${dbVar}.query = async (q) => { const [rows] = await ${dbVar}.execute(q); return { rows }; };\n      ${dbVar}.end = async () => { await ${dbVar}.close();\n${cleanupCode} };\n`,
       dbVar
     ];
   } else if (dbType === 'mssql') {
@@ -259,7 +259,7 @@ export function generateConnectDbCode(connection: Connection | null | undefined)
         options: { ${sslConfig} }
       }`;
     return [
-      `${sshTunnelCode}      var ${dbVar} = await sql.connect(${dbConfig});\n      ${dbVar}.query = async (q) => { const result = await ${dbVar}.request().query(q); return { rows: result.recordset }; };\n      ${dbVar}.end = async () => { await ${dbVar}.close();${cleanupCode} };\n`,
+      `${sshTunnelCode}\n      var ${dbVar} = await sql.connect(${dbConfig});\n      ${dbVar}.query = async (q) => { const result = await ${dbVar}.request().query(q); return { rows: result.recordset }; };\n      ${dbVar}.end = async () => { await ${dbVar}.close();\n${cleanupCode} };\n`,
       dbVar
     ];
   } else {

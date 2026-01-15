@@ -17,9 +17,32 @@ import {
 } from "../../../utils/api_request";
 import { VariableService } from "../../../services/variables";
 import { Variable } from "../../../types/variables";
-import { toast } from "react-toastify";
+import { decryptObject } from "../../../services/encryption";
 const statementService = new StatementService();
 const variableService = new VariableService();
+
+/**
+ * Xác định các trường cần mã hóa/giải mã trong DatabaseConnection
+ * Các trường không mã hóa: project_id, db_type, security_type, ssl_mode, ssh_auth_method, connection_id, port
+ */
+function getFieldsToEncryptForDatabaseConnection(): string[] {
+  return [
+    'db_name',
+    'host',
+    'username',
+    'password',
+    'ca_certificate',
+    'client_certificate',
+    'client_private_key',
+    'ssl_key_passphrase',
+    'ssh_host',
+    'ssh_username',
+    'ssh_private_key',
+    'ssh_key_passphrase',
+    'ssh_password',
+    'local_port'
+  ];
+}
 
 export interface SelectedPageInfo {
   page_index: number;
@@ -117,6 +140,12 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
   const [selectedVariableStatementId, setSelectedVariableStatementId] = useState<string>("");
   const [variablesPage, setVariablesPage] = useState<number>(1);
 
+  // Message states for inline display
+  const [queryMessage, setQueryMessage] = useState<{ type: "success" | "error" | "info" | "warning"; text: string } | null>(null);
+  const [apiMessage, setApiMessage] = useState<{ type: "success" | "error" | "info" | "warning"; text: string } | null>(null);
+  const [variableMessage, setVariableMessage] = useState<{ type: "success" | "error" | "info" | "warning"; text: string } | null>(null);
+  const [confirmMessage, setConfirmMessage] = useState<{ type: "success" | "error" | "info" | "warning"; text: string } | null>(null);
+
   // Load connections mỗi lần mở modal
   useEffect(() => {
     const loadConnections = async () => {
@@ -138,7 +167,29 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
           }
         );
         if (resp.success && (resp as any).data?.connections) {
-          const rawConns: Connection[] = (resp as any).data.connections;
+          let rawConns: Connection[] = (resp as any).data.connections;
+          
+          // Decrypt connections if needed
+          const projectIdStr = String(projectId);
+          try {
+            const encryptionKey = await (window as any).encryptionStore?.getKey?.(projectIdStr);
+            if (encryptionKey) {
+              const fieldsToDecrypt = getFieldsToEncryptForDatabaseConnection();
+              rawConns = await Promise.all(
+                rawConns.map(async (connection) => {
+                  try {
+                    return await decryptObject(connection, encryptionKey, fieldsToDecrypt);
+                  } catch (error) {
+                    // Keep original connection if decryption fails (backward compatibility)
+                    return connection;
+                  }
+                })
+              );
+            }
+          } catch (error) {
+            // Keep original response if decryption fails (backward compatibility)
+          }
+          
           const opts: ConnectionOption[] = rawConns.map((c: any) => ({
             id: c.connection_id,
             label: `${String(c.db_type).toUpperCase()} • ${c.db_name}@:${c.port}`,
@@ -307,16 +358,18 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
   const hasSelectedPage = !!selectedPageInfo;
 
   const handleConfirm = async () => {
+    setConfirmMessage(null);
+    
     if (!value.trim()) {
-      toast.warning("Please enter a value");
+      setConfirmMessage({ type: "warning", text: "Please enter a value" });
       return;
     }
     if (!hasSelectedElement) {
-      toast.warning("Please select an element first");
+      setConfirmMessage({ type: "warning", text: "Please select an element first" });
       return;
     }
     if (!hasSelectedPage) {
-      toast.warning("Please select a page first");
+      setConfirmMessage({ type: "warning", text: "Please select a page first" });
       return;
     }
 
@@ -325,12 +378,12 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
 
     if (valueSourceType === "database") {
       if (!selectedConnectionId || !query.trim()) {
-        toast.warning("Please select a connection and enter a query");
+        setConfirmMessage({ type: "warning", text: "Please select a connection and enter a query" });
         return;
       }
       const connection = connectionMap[selectedConnectionId];
       if (!connection) {
-        toast.warning("Please select a valid connection");
+        setConfirmMessage({ type: "warning", text: "Please select a valid connection" });
         return;
       }
       statement = {
@@ -340,21 +393,21 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
       } as Statement;
     } else if (valueSourceType === "api") {
       if (!apiRequest) {
-        toast.warning("Please configure and send API request");
+        setConfirmMessage({ type: "warning", text: "Please configure and send API request" });
         return;
       }
       if (!apiResponse || apiResponse.status === 0) {
-        toast.warning("Please send API request and select a value");
+        setConfirmMessage({ type: "warning", text: "Please send API request and select a value" });
         return;
       }
       if (!selectedApiCellValue) {
-        toast.warning("Please select a value from API response");
+        setConfirmMessage({ type: "warning", text: "Please select a value from API response" });
         return;
       }
       apiRequestData = apiRequest;
     } else if (valueSourceType === "variables") {
       if (!selectedVariableName || !selectedVariable) {
-        toast.warning("Please select a variable");
+        setVariableMessage({ type: "warning", text: "Please select a variable" });
         return;
       }
 
@@ -382,11 +435,11 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
               } as Statement;
             }
           } else {
-          toast.warning("Failed to load statement information for variable");
+          setVariableMessage({ type: "warning", text: "Failed to load statement information for variable" });
         }
       } catch (error: any) {
         /* console.error("Error loading statement:", error); */
-        toast.warning("Failed to load statement information for variable");
+        setVariableMessage({ type: "warning", text: "Failed to load statement information for variable" });
         }
       }
     }
@@ -412,6 +465,10 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
     setSelectedVariable(null);
     setSelectedVariableStatementId("");
     setVariablesSearch("");
+    setQueryMessage(null);
+    setApiMessage(null);
+    setVariableMessage(null);
+    setConfirmMessage(null);
     onClose();
   };
 
@@ -430,6 +487,10 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
     setSelectedVariable(null);
     setSelectedVariableStatementId("");
     setVariablesSearch("");
+    setQueryMessage(null);
+    setApiMessage(null);
+    setVariableMessage(null);
+    setConfirmMessage(null);
     onClose();
   };
 
@@ -454,19 +515,25 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
   };
 
   const handleRunQuery = async () => {
+    setQueryMessage(null);
+    
     if (!selectedConnectionId || !query.trim()) {
-      toast.error("Please select a connection and enter a query");
+      setQueryMessage({ type: "error", text: "Please select a connection and enter a query" });
       return;
     }
     try {
       setIsRunningQuery(true);
-      const resp = await statementService.runWithoutCreate({
+      const connection_payload = {
         connection_id: selectedConnectionId,
         query: query.trim(),
-      });
+      }
+      console.log('connection_payload', connection_payload);
+      const connection = connectionMap[selectedConnectionId];
+      console.log('connection', connection);
+      const resp = await statementService.runWithoutCreate(connection_payload, connection);
 
       if (!resp.success) {
-        toast.error(`Query failed: ${resp.error || "Unknown error"}`);
+        setQueryMessage({ type: "error", text: `Query failed: ${resp.error || "Unknown error"}` });
         setQueryResultData([]);
         setSelectedCellValue("");
         return;
@@ -477,21 +544,19 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
       if (data.length === 0) {
         setQueryResultData([]);
         setSelectedCellValue("");
-        toast.info("Query executed successfully but returned no rows");
+        setQueryMessage({ type: "info", text: "Query executed successfully but returned no rows" });
       } else if (data.length > 1) {
         setQueryResultData([]);
         setSelectedCellValue("");
-        toast.error(
-          "Query must return exactly 1 row. Please refine your WHERE condition."
-        );
+        setQueryMessage({ type: "error", text: "Query must return exactly 1 row. Please refine your WHERE condition." });
       } else {
         // Chính xác 1 row
         setQueryResultData(data);
         setSelectedCellValue(""); // Reset selected value
-        toast.success("Query executed successfully. Returned 1 row.");
+        setQueryMessage({ type: "success", text: "Query executed successfully. Returned 1 row." });
       }
     } catch (error: any) {
-      toast.error(`Query failed: ${error.message || "Unknown error"}`);
+      setQueryMessage({ type: "error", text: `Query failed: ${error.message || "Unknown error"}` });
       setQueryResultData([]);
       setSelectedCellValue("");
     } finally {
@@ -518,6 +583,7 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
   ) => {
     try {
       setIsSendingApi(true);
+      setApiMessage(null);
 
       if (response) {
         setApiResponse(response);
@@ -527,7 +593,7 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
         const options = convertApiRequestDataToOptions(data);
         const validation = validateApiRequest(options);
         if (!validation.valid) {
-          toast.error(validation.error || "Invalid API request configuration");
+          setApiMessage({ type: "error", text: validation.error || "Invalid API request configuration" });
           return;
         }
 
@@ -541,7 +607,7 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
           });
           setApiRequest(data);
           setSelectedApiCellValue(""); // Reset selected value
-          toast.success(`API request successful: ${apiResponse.status}`);
+          setApiMessage({ type: "success", text: `API request successful: ${apiResponse.status}` });
         } else {
           setApiResponse({
             status: apiResponse.status || 0,
@@ -549,13 +615,11 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
             headers: {},
           });
           setApiRequest(data);
-          toast.error(
-            `API request failed: ${apiResponse.error || "Unknown error"}`
-          );
+          setApiMessage({ type: "error", text: `API request failed: ${apiResponse.error || "Unknown error"}` });
         }
       }
     } catch (error: any) {
-      toast.error(`API request failed: ${error.message || "Unknown error"}`);
+      setApiMessage({ type: "error", text: `API request failed: ${error.message || "Unknown error"}` });
       setApiResponse({
         status: 0,
         data: error.message || "Unknown error",
@@ -569,10 +633,11 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
 
   const handleSelectCellFromApi = (cell: { value: string; column: string }) => {
     const raw = (cell.value || "").trim();
+    setApiMessage(null);
 
     // Không cho phép chọn cả object/array; chỉ chấp nhận giá trị primitive
     if (!raw) {
-      toast.warning("Please select a non-empty JSON value");
+      setApiMessage({ type: "warning", text: "Please select a non-empty JSON value" });
       return;
     }
     if (
@@ -580,9 +645,7 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
       raw.startsWith("{") ||
       raw.startsWith("[")
     ) {
-      toast.warning(
-        "Please select a single primitive value in JSON (string/number/boolean), not an object/array"
-      );
+      setApiMessage({ type: "warning", text: "Please select a single primitive value in JSON (string/number/boolean), not an object/array" });
       return;
     }
 
@@ -661,29 +724,12 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
       <div
         className="css-assert-modal"
         onClick={(e) => e.stopPropagation()}
-        style={{ width: "600px", maxWidth: "90vw" }}
       >
-        <div
-          className="css-assert-modal-header"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <h3 style={{ margin: 0 }}>Assert {assertType}</h3>
+        <div className="css-assert-modal-header">
+          <h3>Assert {assertType}</h3>
           <button
             onClick={handleCancel}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "#6b7280",
-              padding: 4,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            className="css-assert-modal-close-btn"
           >
             <svg
               width="16"
@@ -715,57 +761,18 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
         </div>
         <div className="css-assert-modal-body">
           {/* Element Selection */}
-          <div style={{ marginBottom: "24px" }}>
-            <label
-              style={{
-                display: "block",
-                marginBottom: "8px",
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "#374151",
-              }}
-            >
-              Element <span style={{ color: "#ef4444" }}>*</span>
+          <div className="assert-section">
+            <label className="assert-label">
+              Element <span className="assert-label-required">*</span>
             </label>
             {hasSelectedElement ? (
-              <div
-                style={{
-                  padding: "12px",
-                  backgroundColor: "#f9fafb",
-                  borderRadius: "6px",
-                  border: "1px solid #e5e7eb",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: "13px",
-                        fontWeight: "500",
-                        color: "#111827",
-                        marginBottom: "4px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
+              <div className="assert-selected-box">
+                <div className="assert-selected-content">
+                  <div className="assert-selected-text">
+                    <div className="assert-selected-title">
                       {getElementText()}
                     </div>
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        color: "#6b7280",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
+                    <div className="assert-selected-subtitle">
                       {selectedElement.selectors?.[0] || "No selector"}
                     </div>
                   </div>
@@ -775,105 +782,36 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
                       onClearElement && onClearElement();
                       onClearPage && onClearPage();
                     }}
-                    style={{
-                      marginLeft: "8px",
-                      padding: "4px 8px",
-                      fontSize: "12px",
-                      color: "#6b7280",
-                      backgroundColor: "transparent",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                      transition: "all 0.2s",
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = "#f3f4f6";
-                      e.currentTarget.style.color = "#374151";
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                      e.currentTarget.style.color = "#6b7280";
-                    }}
+                    className="assert-clear-btn"
                   >
                     Clear
                   </button>
                 </div>
               </div>
             ) : (
-              <div
-                style={{
-                  padding: "12px",
-                  backgroundColor: "#fef3c7",
-                  borderRadius: "6px",
-                  border: "1px solid #fbbf24",
-                  fontSize: "13px",
-                  color: "#92400e",
-                }}
-              >
+              <div className="assert-warning-box">
                 Please click on an element in the browser to select it
               </div>
             )}
           </div>
 
           {/* Page Selection */}
-          <div style={{ marginBottom: "24px" }}>
-            <label
-              style={{
-                display: "block",
-                marginBottom: "8px",
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "#374151",
-              }}
-            >
-              Page <span style={{ color: "#ef4444" }}>*</span>
+          <div className="assert-section">
+            <label className="assert-label">
+              Page <span className="assert-label-required">*</span>
             </label>
             {hasSelectedPage ? (
-              <div
-                style={{
-                  padding: "8px 12px",
-                  backgroundColor: "#f9fafb",
-                  borderRadius: "6px",
-                  border: "1px solid #e5e7eb",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: "500",
-                    color: "#111827",
-                    marginBottom: "2px",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
+              <div className="assert-selected-box-small">
+                <div className="assert-selected-title-small">
                   {selectedPageInfo.page_title ||
                     `Page ${selectedPageInfo.page_index + 1}`}
                 </div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#6b7280",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
+                <div className="assert-selected-subtitle">
                   {selectedPageInfo.page_url}
                 </div>
               </div>
             ) : (
-              <div
-                style={{
-                  padding: "12px",
-                  backgroundColor: "#fef3c7",
-                  borderRadius: "6px",
-                  border: "1px solid #fbbf24",
-                  fontSize: "13px",
-                  color: "#92400e",
-                }}
-              >
+              <div className="assert-warning-box">
                 Please click on an element in the browser to select it (page
                 will be selected automatically)
               </div>
@@ -881,15 +819,13 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
           </div>
 
           {/* Value Source Type Selection */}
-          <div style={{ marginBottom: "16px" }}>
-            <label
-              htmlFor="value-source-type"
-              style={{ display: "block", marginBottom: 8 }}
-            >
-              Value Source <span style={{ color: "#ef4444" }}>*</span>
+          <div className="assert-section-small">
+            <label htmlFor="value-source-type" className="assert-label">
+              Value Source <span className="assert-label-required">*</span>
             </label>
             <select
               id="value-source-type"
+              className="assert-select"
               value={valueSourceType}
               onChange={(e) => {
                 setValueSourceType(e.target.value as ValueSourceType);
@@ -899,27 +835,11 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
                 setSelectedVariableName("");
                 setSelectedVariable(null);
                 setSelectedVariableStatementId("");
-              }}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                border: "1px solid #d1d5db",
-                borderRadius: "6px",
-                fontSize: "14px",
-                color: "#111827",
-                backgroundColor: "#ffffff",
-                transition: "border-color 0.2s, box-shadow 0.2s",
-                boxSizing: "border-box",
-                cursor: "pointer",
-              }}
-              onFocus={(e) => {
-                e.target.style.outline = "none";
-                e.target.style.borderColor = "#3b82f6";
-                e.target.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.1)";
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = "#d1d5db";
-                e.target.style.boxShadow = "none";
+                // Reset messages when changing source type
+                setQueryMessage(null);
+                setApiMessage(null);
+                setVariableMessage(null);
+                setConfirmMessage(null);
               }}
             >
               <option value="manual">Manual Input</option>
@@ -932,41 +852,18 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
           {/* Manual Input */}
           {valueSourceType === "manual" && (
             <div>
-              <label
-                htmlFor="assert-value"
-                style={{ display: "block", marginBottom: 8 }}
-              >
-                Value <span style={{ color: "#ef4444" }}>*</span>
+              <label htmlFor="assert-value" className="assert-label">
+                Value <span className="assert-label-required">*</span>
               </label>
               <input
                 ref={valueInputRef}
                 id="assert-value"
                 type="text"
+                className="assert-input"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 onKeyDown={handleKeyPress}
                 placeholder="Enter expected value..."
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "6px",
-                  fontSize: "14px",
-                  color: "#111827",
-                  backgroundColor: "#ffffff",
-                  transition: "border-color 0.2s, box-shadow 0.2s",
-                  boxSizing: "border-box",
-                }}
-                onFocus={(e) => {
-                  e.target.style.outline = "none";
-                  e.target.style.borderColor = "#3b82f6";
-                  e.target.style.boxShadow =
-                    "0 0 0 3px rgba(59, 130, 246, 0.1)";
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = "#d1d5db";
-                  e.target.style.boxShadow = "none";
-                }}
               />
             </div>
           )}
@@ -974,142 +871,57 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
           {/* Variables Input */}
           {valueSourceType === "variables" && (
             <div>
-              <div
-                style={{
-                  marginBottom: 8,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 8,
-                }}
-              >
-                <label
-                  style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}
-                >
-                  Variables <span style={{ color: "#ef4444" }}>*</span>
+              <div className="assert-variables-header">
+                <label className="assert-label">
+                  Variables <span className="assert-label-required">*</span>
                 </label>
                 <div>
                   <input
                     type="text"
+                    className="assert-variables-search"
                     placeholder="Search variable by name"
                     value={variablesSearch}
                     onChange={(e) => setVariablesSearch(e.target.value)}
-                    style={{
-                      outline: "none",
-                      border: "1px solid #d1d5db",
-                      fontSize: 11,
-                      width: "100%",
-                      minWidth: 0,
-                      backgroundColor: "#ffffff",
-                    }}
                   />
                 </div>
               </div>
-              <div
-                style={{
-                  maxHeight: 200,
-                  overflow: "auto",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 8,
-                  padding: 8,
-                }}
-              >
+              <div className="assert-variables-list">
                 {isLoadingVariables ? (
-                  <div style={{ fontSize: 12, color: "#6b7280" }}>
+                  <div className="assert-loading-text">
                     Loading variables...
                   </div>
                 ) : !filteredVariables.length ? (
-                  <div style={{ fontSize: 12, color: "#6b7280" }}>
+                  <div className="assert-empty-text">
                     No variables found
                   </div>
                 ) : (
                   <>
-                    <table
-                      style={{
-                        width: "100%",
-                        borderCollapse: "collapse",
-                        fontSize: 12,
-                      }}
-                    >
+                    <table className="assert-variables-table">
                       <thead>
                         <tr>
-                          <th
-                            style={{
-                              textAlign: "left",
-                              padding: "6px 8px",
-                              borderBottom: "1px solid #e5e7eb",
-                              color: "#6b7280",
-                              fontWeight: 500,
-                            }}
-                          >
-                            Name
-                          </th>
-                          <th
-                            style={{
-                              textAlign: "right",
-                              padding: "6px 8px",
-                              borderBottom: "1px solid #e5e7eb",
-                              color: "#6b7280",
-                              fontWeight: 500,
-                              width: 80,
-                            }}
-                          >
-                            Action
-                          </th>
+                          <th>Name</th>
+                          <th>Action</th>
                         </tr>
                       </thead>
                       <tbody>
                         {paginatedVariables.map((v) => (
                           <tr key={v.variable_id}>
                             <td
-                              style={{
-                                padding: "6px 8px",
-                                borderBottom: "1px solid #f3f4f6",
-                                maxWidth: 260,
-                              }}
+                              className="assert-variables-cell"
                               title={v.user_defined_name}
                             >
-                              <div
-                                style={{
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                {v.user_defined_name}
-                              </div>
+                              {v.user_defined_name}
                             </td>
-                            <td
-                              style={{
-                                padding: "6px 8px",
-                                borderBottom: "1px solid #f3f4f6",
-                                textAlign: "right",
-                              }}
-                            >
+                            <td>
                               <button
                                 type="button"
                                 onClick={() => handlePickVariable(v)}
                                 title="Select this variable"
-                                style={{
-                                  width: 20,
-                                  height: 20,
-                                  borderRadius: 4,
-                                  border: "1px solid #d1d5db",
-                                  background:
-                                    selectedVariableName === v.user_defined_name
-                                      ? "#3b82f6"
-                                      : "#ffffff",
-                                  color:
-                                    selectedVariableName === v.user_defined_name
-                                      ? "#ffffff"
-                                      : "#6b7280",
-                                  cursor: "pointer",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  fontSize: 11,
-                                  padding: 0,
-                                }}
+                                className={`assert-variable-select-btn ${
+                                  selectedVariableName === v.user_defined_name
+                                    ? "selected"
+                                    : ""
+                                }`}
                               >
                                 {selectedVariableName === v.user_defined_name
                                   ? "✓"
@@ -1121,65 +933,30 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
                       </tbody>
                     </table>
                     {totalVariablePages > 1 && (
-                      <div
-                        style={{
-                          marginTop: 8,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          fontSize: 11,
-                          color: "#6b7280",
-                        }}
-                      >
+                      <div className="assert-variables-pagination">
                         <span>
                           Page {variablesPage} of {totalVariablePages}
                         </span>
-                        <div style={{ display: "flex", gap: 6 }}>
+                        <div className="assert-variables-pagination-buttons">
                           <button
                             type="button"
+                            className="assert-pagination-btn"
                             disabled={variablesPage === 1}
                             onClick={() =>
                               setVariablesPage((p) => Math.max(1, p - 1))
                             }
-                            style={{
-                              padding: "2px 8px",
-                              borderRadius: 999,
-                              border: "1px solid #d1d5db",
-                              background:
-                                variablesPage === 1 ? "#f9fafb" : "#ffffff",
-                              color:
-                                variablesPage === 1 ? "#9ca3af" : "#374151",
-                              cursor:
-                                variablesPage === 1 ? "default" : "pointer",
-                            }}
                           >
                             Prev
                           </button>
                           <button
                             type="button"
+                            className="assert-pagination-btn"
                             disabled={variablesPage === totalVariablePages}
                             onClick={() =>
                               setVariablesPage((p) =>
                                 Math.min(totalVariablePages, p + 1)
                               )
                             }
-                            style={{
-                              padding: "2px 8px",
-                              borderRadius: 999,
-                              border: "1px solid #d1d5db",
-                              background:
-                                variablesPage === totalVariablePages
-                                  ? "#f9fafb"
-                                  : "#ffffff",
-                              color:
-                                variablesPage === totalVariablePages
-                                  ? "#9ca3af"
-                                  : "#374151",
-                              cursor:
-                                variablesPage === totalVariablePages
-                                  ? "default"
-                                  : "pointer",
-                            }}
                           >
                             Next
                           </button>
@@ -1190,35 +967,23 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
                 )}
               </div>
               {selectedVariableName && (
-                <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: "#374151", // giống label "Variables"
-                  }}
-                >
-                  Selected variable <span style={{ color: "#ef4444" }}>*</span>
-                </div>
+                <label className="assert-label assert-label-mt">
+                  Selected variable <span className="assert-label-required">*</span>
+                </label>
               )}
               {selectedVariableName && (
-                <div>
-                  <input
-                    type="text"
-                    value={selectedVariableName}
-                    readOnly
-                    style={{
-                      marginTop: 4,
-                      width: "100%",
-                      padding: "8px 12px",
-                      fontSize: 12,
-                      color: "#6b7280",
-                      border: "1px solid #d1d5db",
-                      borderRadius: 6,
-                      backgroundColor: "#e0f2fe",
-                      cursor: "default",
-                    }}
-                  />
+                <input
+                  type="text"
+                  className="assert-selected-variable-input"
+                  value={selectedVariableName}
+                  readOnly
+                />
+              )}
+              {variableMessage && (
+                <div
+                  className={`assert-message assert-message-${variableMessage.type}`}
+                >
+                  {variableMessage.text}
                 </div>
               )}
             </div>
@@ -1227,29 +992,19 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
           {/* Database Input */}
           {valueSourceType === "database" && (
             <>
-              <div style={{ marginBottom: "16px" }}>
-                <label
-                  htmlFor="db-connection"
-                  style={{ display: "block", marginBottom: 8 }}
-                >
-                  Connection <span style={{ color: "#ef4444" }}>*</span>
+              <div className="assert-section-small">
+                <label htmlFor="db-connection" className="assert-label">
+                  Connection <span className="assert-label-required">*</span>
                 </label>
                 <select
                   id="db-connection"
+                  className="assert-select"
                   value={selectedConnectionId}
-                  onChange={(e) => setSelectedConnectionId(e.target.value)}
-                  disabled={isLoadingConns}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    color: "#111827",
-                    backgroundColor: "#ffffff",
-                    cursor: isLoadingConns ? "not-allowed" : "pointer",
-                    boxSizing: "border-box",
+                  onChange={(e) => {
+                    setSelectedConnectionId(e.target.value);
+                    setQueryMessage(null); // Reset message when connection changes
                   }}
+                  disabled={isLoadingConns}
                 >
                   <option value="">
                     {isLoadingConns ? "Loading..." : "Select a connection"}
@@ -1261,18 +1016,19 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
                   ))}
                 </select>
               </div>
-              <div style={{ marginBottom: "16px" }}>
-                <label
-                  htmlFor="db-query"
-                  style={{ display: "block", marginBottom: 8 }}
-                >
-                  Query <span style={{ color: "#ef4444" }}>*</span>
+              <div className="assert-section-small">
+                <label htmlFor="db-query" className="assert-label">
+                  Query <span className="assert-label-required">*</span>
                 </label>
                 <textarea
                   id="db-query"
+                  className="assert-textarea"
                   rows={3}
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setQueryMessage(null); // Reset message when query changes
+                  }}
                   onKeyDown={(e) => {
                     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
                       e.preventDefault();
@@ -1281,51 +1037,29 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
                     }
                   }}
                   placeholder="SELECT ..."
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    color: "#111827",
-                    backgroundColor: "#ffffff",
-                    fontFamily: "monospace",
-                    resize: "vertical",
-                    boxSizing: "border-box",
-                  }}
                 />
                 <button
+                  className="assert-action-btn"
                   onClick={handleRunQuery}
                   disabled={
                     !selectedConnectionId || !query.trim() || isRunningQuery
                   }
-                  style={{
-                    marginTop: "8px",
-                    padding: "8px 16px",
-                    backgroundColor: "#10b981",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor:
-                      selectedConnectionId && query.trim() && !isRunningQuery
-                        ? "pointer"
-                        : "not-allowed",
-                    opacity:
-                      selectedConnectionId && query.trim() && !isRunningQuery
-                        ? 1
-                        : 0.6,
-                    fontSize: "14px",
-                    fontWeight: "500",
-                  }}
                 >
                   {isRunningQuery ? "Running..." : "Run Query"}
                 </button>
+                {queryMessage && (
+                  <div
+                    className={`assert-message assert-message-${queryMessage.type}`}
+                  >
+                    {queryMessage.text}
+                  </div>
+                )}
               </div>
               {queryResultData.length > 0 && (
-                <div style={{ marginBottom: "16px" }}>
-                  <label style={{ display: "block", marginBottom: 8 }}>
+                <div className="assert-section-small">
+                  <label className="assert-label">
                     Query Results - Select a cell value{" "}
-                    <span style={{ color: "#ef4444" }}>*</span>
+                    <span className="assert-label-required">*</span>
                   </label>
                   <QueryResultTableSelectable
                     data={queryResultData}
@@ -1334,15 +1068,7 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
                     selectedValue={selectedCellValue}
                   />
                   {selectedCellValue && (
-                    <div
-                      style={{
-                        marginTop: 8,
-                        padding: "8px",
-                        background: "#e0f2fe",
-                        borderRadius: 6,
-                        fontSize: 12,
-                      }}
-                    >
+                    <div className="assert-selected-value">
                       Selected: <strong>{selectedCellValue}</strong>
                     </div>
                   )}
@@ -1354,18 +1080,11 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
           {/* API Input */}
           {valueSourceType === "api" && (
             <>
-              <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", marginBottom: 8 }}>
-                  API Request <span style={{ color: "#ef4444" }}>*</span>
+              <div className="assert-section-small">
+                <label className="assert-label">
+                  API Request <span className="assert-label-required">*</span>
                 </label>
-                <div
-                  style={{
-                    padding: "12px",
-                    backgroundColor: "#f9fafb",
-                    borderRadius: "6px",
-                    border: "1px solid #e5e7eb",
-                  }}
-                >
+                <div className="assert-api-panel">
                   <AssertApiElementPanel
                     apiRequest={apiRequest}
                     apiResponse={apiResponse}
@@ -1375,12 +1094,19 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
                     selectedPageInfo={selectedPageInfo}
                   />
                 </div>
+                {apiMessage && (
+                  <div
+                    className={`assert-message assert-message-${apiMessage.type}`}
+                  >
+                    {apiMessage.text}
+                  </div>
+                )}
               </div>
               {apiResponse && apiResponse.status > 0 && apiResponse.data && (
-                <div style={{ marginBottom: "16px" }}>
-                  <label style={{ display: "block", marginBottom: 8 }}>
+                <div className="assert-section-small">
+                  <label className="assert-label">
                     API Response - Select a cell value{" "}
-                    <span style={{ color: "#ef4444" }}>*</span>
+                    <span className="assert-label-required">*</span>
                   </label>
                   <QueryResultTableSelectable
                     data={
@@ -1393,15 +1119,7 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
                     selectedValue={selectedApiCellValue}
                   />
                   {selectedApiCellValue && (
-                    <div
-                      style={{
-                        marginTop: 8,
-                        padding: "8px",
-                        background: "#e0f2fe",
-                        borderRadius: 6,
-                        fontSize: 12,
-                      }}
-                    >
+                    <div className="assert-selected-value">
                       Selected: <strong>{selectedApiCellValue}</strong>
                     </div>
                   )}
@@ -1415,28 +1133,25 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
             valueSourceType === "api" ||
             valueSourceType === "variables") &&
             value && (
-              <div style={{ marginBottom: "16px", marginTop: 8 }}>
-                <label style={{ display: "block", marginBottom: 8 }}>
-                  Current Value
-                </label>
+              <div className="assert-current-value">
+                <label className="assert-label">Current Value</label>
                 <input
                   type="text"
+                  className="assert-current-value-input"
                   value={value}
                   readOnly
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    fontSize: 14,
-                    color: "#111827",
-                    border: "1px solid #d1d5db",
-                    borderRadius: 6,
-                    backgroundColor: "#e0f2fe",
-                    boxSizing: "border-box",
-                    cursor: "default",
-                  }}
                 />
               </div>
             )}
+          
+          {/* Confirm Message */}
+          {confirmMessage && (
+            <div
+              className={`assert-confirm-message assert-message-${confirmMessage.type}`}
+            >
+              {confirmMessage.text}
+            </div>
+          )}
         </div>
         <div className="css-assert-modal-footer">
           <button className="css-assert-modal-cancel" onClick={handleCancel}>

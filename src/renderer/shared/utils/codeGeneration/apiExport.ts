@@ -6,40 +6,27 @@
  */
 export function getExportApiToJsonFunctionString(): string {
   return `async function exportApiToJson(apiResult, stepIndex, requestIndex = null) {
-  // Dynamic imports for ES modules
   const fsModule = await import('fs');
   const fs = fsModule.default || fsModule;
   const pathModule = await import('path');
   const path = pathModule.default || pathModule;
-  const apiFolder = '<api-execution-folder>';
-  
-  // Ensure API folder exists
-  if (!fs.existsSync(apiFolder)) {
-    fs.mkdirSync(apiFolder, { recursive: true });
-  }
-  
-  // Generate file name
+  const apiFolder = '<api-execution-folder>';  
+  if (!fs.existsSync(apiFolder)) { fs.mkdirSync(apiFolder, { recursive: true }); }
   const fileSuffix = requestIndex !== null && requestIndex !== undefined ? \`_\${requestIndex}\` : '';
-  const jsonFileName = \`\${apiFolder}/Step_\${stepIndex}_api\${fileSuffix}.json\`;
-  
-  // Parse URL to extract base_url and path
+  const jsonFileName = \`\${apiFolder}/Step_\${stepIndex}\${fileSuffix}.json\`;
   let baseUrl = '';
   let apiPath = '';
   let queryParams = {};
   const fullUrl = apiResult.endpoint || '';
-  
   try {
     const urlObj = new URL(fullUrl);
     baseUrl = urlObj.origin;
     apiPath = urlObj.pathname;
     queryParams = Object.fromEntries(urlObj.searchParams);
   } catch (e) {
-    // If URL parsing fails, use endpoint as-is
     baseUrl = fullUrl;
     apiPath = '';
   }
-  
-  // Prepare API data object
   const apiData = {
     step_index: stepIndex,
     request_index: requestIndex,
@@ -51,7 +38,6 @@ export function getExportApiToJsonFunctionString(): string {
       path: apiPath,
       query_params: queryParams,
       headers: apiResult.headers || {},
-      
     },
     response: {
       status: apiResult.status || 0,
@@ -62,10 +48,7 @@ export function getExportApiToJsonFunctionString(): string {
       },
       duration_ms: apiResult.duration_ms || 0
     },
-   
   };
-  
-  // Write JSON file
   fs.writeFileSync(jsonFileName, JSON.stringify(apiData, null, 2), 'utf8');
 }
 `;
