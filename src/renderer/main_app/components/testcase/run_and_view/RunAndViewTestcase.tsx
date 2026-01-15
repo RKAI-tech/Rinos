@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Download, Network, ClipboardList, Video, Image as ImageIcon, Database, Play, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import './RunAndViewTestcase.css';
 import { TestCaseService } from '../../../services/testcases';
 import { Screenshot, TestCase as TestCaseGetResponse } from '../../../types/testcases';
@@ -24,7 +25,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
   const [isLoading, setIsLoading] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<TestCaseGetResponse | null>(null);
-  const [activeTab, setActiveTab] = useState<'logs' | 'video' | 'screenshots'>('logs');
+  const [activeTab, setActiveTab] = useState<'logs' | 'video' | 'screenshots' | 'database' | 'api'>('logs');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -135,7 +136,67 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
 
   const handleClose = () => {
     setResult(null);
+    setSelectedImage(null);
+    setIsFullscreen(false);
+    setShowControls(false);
     onClose();
+  };
+
+  const handleDownloadDatabaseFile = async (fileUrl: string, fileName: string) => {
+    try {
+      // Fetch file as blob
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        toast.error('Failed to download file. Please try again.', {
+          containerId: 'modal-toast-container'
+        });
+        return;
+      }
+      
+      const blob = await response.blob();
+      
+      // Create download link programmatically
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      fileName = fileName.split('.')[0] + '.xlsx';
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to download file. Please try again.', {
+        containerId: 'modal-toast-container'
+      });
+    }
+  };
+
+  const handleDownloadApiFile = async (fileUrl: string, fileName: string) => {
+    try {
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        toast.error('Failed to download file. Please try again.', {
+          containerId: 'modal-toast-container'
+        });
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      fileName = fileName.split('.')[0] + '.json';
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to download file. Please try again.', {
+        containerId: 'modal-toast-container'
+      });
+    }
   };
 
   const processImageName = (screenshot: Screenshot, index: number) => {
@@ -209,12 +270,26 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
         />
         <div className="ravt-header">
           <h2 className="ravt-title">
-            {testcaseStatus === 'Passed' && <span className="ravt-status-icon ravt-status-success">✓</span>}
-            {testcaseStatus === 'Failed' && <span className="ravt-status-icon ravt-status-failed">✗</span>}
-            {testcaseStatus === 'Running' && <span className="ravt-status-icon ravt-status-running">⟳</span>}
+            {testcaseStatus === 'Passed' && (
+              <span className="ravt-status-icon ravt-status-success">
+                <CheckCircle2 size={16} />
+              </span>
+            )}
+            {testcaseStatus === 'Failed' && (
+              <span className="ravt-status-icon ravt-status-failed">
+                <AlertCircle size={16} />
+              </span>
+            )}
+            {testcaseStatus === 'Running' && (
+              <span className="ravt-status-icon ravt-status-running">
+                <Loader2 size={16} />
+              </span>
+            )}
             {testcaseName || 'View Testcase Results'}
           </h2>
-          <button className="ravt-close" onClick={handleClose} aria-label="Close">✕</button>
+          <button className="ravt-close" onClick={handleClose} aria-label="Close">
+            <X size={16} />
+          </button>
         </div>
 
         <div className="ravt-body">
@@ -242,19 +317,36 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                   className={`ravt-tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
                   onClick={() => setActiveTab('logs')}
                 >
-                  📋 Execution Logs
+                  <ClipboardList size={18} />
+                  Execution Logs
                 </button>
                 <button 
                   className={`ravt-tab-btn ${activeTab === 'video' ? 'active' : ''}`}
                   onClick={() => setActiveTab('video')}
                 >
-                  🎥 Recorded video
+                  <Video size={18} />
+                  Recorded video
                 </button>
                 <button 
                   className={`ravt-tab-btn ${activeTab === 'screenshots' ? 'active' : ''}`}
                   onClick={() => setActiveTab('screenshots')}
                 >
-                  📸 Verification Screenshots
+                  <ImageIcon size={18} />
+                  Screenshots
+                </button>
+                <button 
+                  className={`ravt-tab-btn ${activeTab === 'database' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('database')}
+                >
+                  <Database size={18} />
+                  DB Executions
+                </button>
+                <button 
+                  className={`ravt-tab-btn ${activeTab === 'api' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('api')}
+                >
+                  <Network size={18} />
+                  API Executions
                 </button>
               </div>
               
@@ -292,7 +384,9 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                       )
                     ) : (
                       <div className="ravt-no-video">
-                        <div className="ravt-no-video-icon">🎥</div>
+                        <div className="ravt-no-video-icon">
+                          <Video size={40} />
+                        </div>
                         <div className="ravt-no-video-text">No video available for this testcase.</div>
                       </div>
                     )}
@@ -314,7 +408,8 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                                   setCurrentImageIndex(index);
                                 }}
                               >
-                                📸 {imageName}
+                                <ImageIcon size={16} />
+                                {imageName}
                               </button>
                             </div>
                           );
@@ -322,7 +417,9 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                       </div>
                     ) : (
                       <div className="ravt-no-screenshots">
-                        <div className="ravt-no-screenshots-icon">📸</div>
+                        <div className="ravt-no-screenshots-icon">
+                          <ImageIcon size={40} />
+                        </div>
                         <div className="ravt-no-screenshots-text">No verification screenshots available for this testcase.</div>
                       </div>
                     )}
@@ -359,7 +456,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                               disabled={result.evidence?.screenshots?.length <= 1}
                               title="Previous image"
                             >
-                              ◀
+                              ‹
                             </button>
                             
                             <button 
@@ -372,7 +469,7 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                               disabled={result.evidence?.screenshots?.length <= 1}
                               title="Next image"
                             >
-                              ▶
+                              ›
                             </button>
                             
                             <button 
@@ -398,6 +495,110 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+                
+                {activeTab === 'database' && (
+                  <div className="ravt-database-container">
+                    {(() => {
+                      // Get database_files from result
+                      // API getTestCases may return database_files directly on testcase object
+                      const tc = result as any;
+          
+                      const databaseFiles = tc?.evidence?.database_files || [];
+                      console.log("databaseFiles", databaseFiles);
+                      // Ensure it's an array
+                      let filesArray: string[] = [];
+                      for (const file of databaseFiles) {
+                        if (typeof file === 'string') {
+                          filesArray.push(file as string);
+                        }else if (file && typeof file === 'object' && 'url' in file) {
+                          filesArray.push(file.url as string);
+                        }
+                      }
+                      
+                      return filesArray.length > 0 ? (
+                        <div className="ravt-database-list">
+                          {filesArray.map((fileUrl: string, index: number) => {
+                            // Ensure fileUrl is a string
+                            
+                            
+                            // Extract file name from URL
+                            const urlParts = fileUrl.split('/');
+                            const fileName = urlParts[urlParts.length - 1] || `database_file_${index + 1}.xlsx`;;
+                            
+                            return (
+                              <div key={index} className="ravt-database-item">
+                                <div className="ravt-database-info">
+                                  <span className="ravt-database-name">{fileName}</span>
+                                </div>
+                                <button
+                                  onClick={() => handleDownloadDatabaseFile(fileUrl, fileName)}
+                                  className="ravt-database-download-btn"
+                                  title="Download"
+                                  type="button"
+                                >
+                                  <Download className="ravt-download-icon" size={18} />
+                                </button>
+                              </div>
+                            );
+                          }).filter(Boolean)}
+                        </div>
+                      ) : (
+                        <div className="ravt-no-database">
+                          <div className="ravt-no-database-icon">📊</div>
+                          <div className="ravt-no-database-text">No database execution files available for this testcase.</div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {activeTab === 'api' && (
+                  <div className="ravt-api-container">
+                    {(() => {
+                      const tc = result as any;
+                      const apiFiles = tc?.evidence?.api_files || [];
+
+                      let filesArray: string[] = [];
+                      for (const file of apiFiles) {
+                        if (typeof file === 'string') {
+                          filesArray.push(file as string);
+                        } else if (file && typeof file === 'object' && 'url' in file) {
+                          filesArray.push((file as any).url as string);
+                        }
+                      }
+
+                      return filesArray.length > 0 ? (
+                        <div className="ravt-api-list">
+                          {filesArray.map((fileUrl: string, index: number) => {
+                            const urlParts = fileUrl.split('/');
+                            const fileName = urlParts[urlParts.length - 1] || `api_file_${index + 1}.json`;
+
+                            return (
+                              <div key={index} className="ravt-api-item">
+                                <div className="ravt-api-info">
+                                  <span className="ravt-api-name">{fileName}</span>
+                                </div>
+                                <button
+                                  onClick={() => handleDownloadApiFile(fileUrl, fileName)}
+                                  className="ravt-api-download-btn"
+                                  title="Download"
+                                  type="button"
+                                >
+                                  <Download className="ravt-download-icon" size={18} />
+                                </button>
+                              </div>
+                            );
+                          }).filter(Boolean)}
+                        </div>
+                      ) : (
+                        <div className="ravt-no-api">
+                          <div className="ravt-no-api-icon">🔌</div>
+                          <div className="ravt-no-api-text">No API execution files available for this testcase.</div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>

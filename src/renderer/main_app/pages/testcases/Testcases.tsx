@@ -123,6 +123,9 @@ const Testcases: React.FC = () => {
                 log_id: tc.evidence.log.log_id || '',
                 content: tc.evidence.log.content || '',
                } : null,
+
+              database_files: tc.evidence?.database_files ? tc.evidence.database_files : [],
+              api_files: tc.evidence?.api_files ? tc.evidence.api_files : [],
             },
         updatedAt: tc.updated_at || tc.created_at || '',
             basic_authentication: {

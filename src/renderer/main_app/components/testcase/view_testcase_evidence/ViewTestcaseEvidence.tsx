@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Download, Network, Database, ClipboardList, Video, Image as ImageIcon, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import './ViewTestcaseEvidence.css';
 import { TestSuiteService } from '../../../services/testsuites';
 import { TestCaseInSuite } from '../../../types/testsuites';
@@ -22,12 +23,14 @@ interface EvidenceData {
     url: string;
   } | null;
   screenshots?: Screenshot[] | null;
+  database_files?: string[] | null;
+  api_files?: string[] | null;
 }
 
 const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, testSuiteId, projectId }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [evidenceData, setEvidenceData] = useState<EvidenceData | null>(null);
-  const [activeTab, setActiveTab] = useState<'logs' | 'video' | 'screenshots'>('logs');
+  const [activeTab, setActiveTab] = useState<'logs' | 'video' | 'screenshots' | 'database' | 'api'>('logs');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -88,10 +91,18 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
             }).filter((item: Screenshot | null): item is Screenshot => item !== null);
           }
           
+          // Extract database files
+          const databaseFiles = tc.database_files || [];
+          
+          // Extract API files
+          const apiFiles = tc.api_files || [];
+          
           const evidence: EvidenceData = {
             logs: tc.logs || '',
             video: tc.url_video ? { url: tc.url_video } : null,
             screenshots: screenshots.length > 0 ? screenshots : null,
+            database_files: Array.isArray(databaseFiles) && databaseFiles.length > 0 ? databaseFiles : null,
+            api_files: Array.isArray(apiFiles) && apiFiles.length > 0 ? apiFiles : null,
           };
           
           setEvidenceData(evidence);
@@ -123,6 +134,64 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
     onClose();
   };
 
+  const handleDownloadDatabaseFile = async (fileUrl: string, fileName: string) => {
+    try {
+      // Fetch file as blob
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        toast.error('Failed to download file. Please try again.', {
+          containerId: 'modal-toast-container'
+        });
+        return;
+      }
+      
+      const blob = await response.blob();
+      
+      // Create download link programmatically
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      fileName = fileName.split('.')[0] + '.xlsx';
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to download file. Please try again.', {
+        containerId: 'modal-toast-container'
+      });
+    }
+  };
+  const handleDownloadApiFile = async (fileUrl: string, fileName: string) => {
+    try {
+      // Fetch file as blob
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        toast.error('Failed to download file. Please try again.', {
+          containerId: 'modal-toast-container'
+        });
+        return;
+      }
+      
+      const blob = await response.blob();
+      
+      // Create download link programmatically
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      fileName = fileName.split('.')[0] + '.json';
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to download file. Please try again.', {
+        containerId: 'modal-toast-container'
+      });
+    }
+  };
   // Handle ESC key to close modal
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -163,12 +232,26 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
         />
         <div className="vte-header">
           <h2 className="vte-title">
-            {testcaseStatus === 'Passed' && <span className="vte-status-icon vte-status-success">✓</span>}
-            {testcaseStatus === 'Failed' && <span className="vte-status-icon vte-status-failed">✗</span>}
-            {testcaseStatus === 'Running' && <span className="vte-status-icon vte-status-running">⟳</span>}
+            {testcaseStatus === 'Passed' && (
+              <span className="vte-status-icon vte-status-success">
+                <CheckCircle2 size={16} />
+              </span>
+            )}
+            {testcaseStatus === 'Failed' && (
+              <span className="vte-status-icon vte-status-failed">
+                <AlertCircle size={16} />
+              </span>
+            )}
+            {testcaseStatus === 'Running' && (
+              <span className="vte-status-icon vte-status-running">
+                <Loader2 size={16} />
+              </span>
+            )}
             {testcase?.name || 'View Testcase Evidence'}
           </h2>
-          <button className="vte-close" onClick={handleClose} aria-label="Close">✕</button>
+          <button className="vte-close" onClick={handleClose} aria-label="Close">
+            <X size={16} />
+          </button>
         </div>
 
         <div className="vte-body">
@@ -186,19 +269,36 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
                   className={`vte-tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
                   onClick={() => setActiveTab('logs')}
                 >
-                  📋 Execution Logs
+                  <ClipboardList size={18} />
+                  Execution Logs
                 </button>
                 <button 
                   className={`vte-tab-btn ${activeTab === 'video' ? 'active' : ''}`}
                   onClick={() => setActiveTab('video')}
                 >
-                  🎥 Recorded video
+                  <Video size={18} />
+                  Recorded video
                 </button>
                 <button 
                   className={`vte-tab-btn ${activeTab === 'screenshots' ? 'active' : ''}`}
                   onClick={() => setActiveTab('screenshots')}
                 >
-                  📸 Verification Screenshots
+                  <ImageIcon size={18} />
+                  Screenshots
+                </button>
+                <button 
+                  className={`vte-tab-btn vte-tab-btn-database ${activeTab === 'database' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('database')}
+                >
+                  <Database size={18} className="vte-tab-database-icon" />
+                  DB Executions
+                </button>
+                <button 
+                  className={`vte-tab-btn vte-tab-btn-api ${activeTab === 'api' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('api')}
+                >
+                  <Network size={18} className="vte-tab-api-icon" />
+                  API Executions
                 </button>
               </div>
               
@@ -236,7 +336,9 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
                       )
                     ) : (
                       <div className="vte-no-video">
-                        <div className="vte-no-video-icon">🎥</div>
+                        <div className="vte-no-video-icon">
+                          <Video size={40} />
+                        </div>
                         <div className="vte-no-video-text">No video available for this testcase.</div>
                       </div>
                     )}
@@ -279,7 +381,8 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
                                   setCurrentImageIndex(index);
                                 }}
                               >
-                                📸 {imageName}
+                                <ImageIcon size={16} />
+                                {imageName}
                               </button>
                             </div>
                           );
@@ -287,7 +390,9 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
                       </div>
                     ) : (
                       <div className="vte-no-screenshots">
-                        <div className="vte-no-screenshots-icon">📸</div>
+                        <div className="vte-no-screenshots-icon">
+                          <ImageIcon size={40} />
+                        </div>
                         <div className="vte-no-screenshots-text">No verification screenshots available for this testcase.</div>
                       </div>
                     )}
@@ -362,6 +467,77 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
                             </button>
                           </div>
                         </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {activeTab === 'database' && (
+                  <div className="vte-database-container">
+                    {evidenceData.database_files && evidenceData.database_files.length > 0 ? (
+                      <div className="vte-database-list">
+                        {evidenceData.database_files.map((fileUrl: string, index: number) => {
+                          console.log("fileUrl", fileUrl);
+                          // Extract file name from URL
+                          const urlParts = fileUrl.split('/');
+                          const fileName = urlParts[urlParts.length - 1] || `database_file_${index + 1}.xlsx`;
+                          
+                          return (
+                            <div key={index} className="vte-database-item">
+                              <div className="vte-database-info">
+                                <span className="vte-database-name">{fileName}</span>
+                              </div>
+                              <button
+                                onClick={() => handleDownloadDatabaseFile(fileUrl, fileName)}
+                                className="vte-database-download-btn"
+                                title="Download"
+                                type="button"
+                              >
+                                <Download className="vte-download-icon" size={18} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="vte-no-database">
+                        <div className="vte-no-database-icon">📊</div>
+                        <div className="vte-no-database-text">No database execution files available for this testcase.</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {activeTab === 'api' && (
+                  <div className="vte-api-container">
+                    {evidenceData.api_files && evidenceData.api_files.length > 0 ? (
+                      <div className="vte-api-list">
+                        {evidenceData.api_files.map((fileUrl: string, index: number) => {
+                          // Extract file name from URL
+                          const urlParts = fileUrl.split('/');
+                          const fileName = urlParts[urlParts.length - 1] || `api_file_${index + 1}.json`;
+                          
+                          return (
+                            <div key={index} className="vte-api-item">
+                              <div className="vte-api-info">
+                                <span className="vte-api-name">{fileName}</span>
+                              </div>
+                              <button
+                                onClick={() => handleDownloadApiFile(fileUrl, fileName)}
+                                className="vte-api-download-btn"
+                                title="Download"
+                                type="button"
+                              >
+                                <Download className="vte-download-icon" size={18} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="vte-no-api">
+                        <div className="vte-no-api-icon">🔌</div>
+                        <div className="vte-no-api-text">No API execution files available for this testcase.</div>
                       </div>
                     )}
                   </div>

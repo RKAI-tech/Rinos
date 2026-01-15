@@ -57,6 +57,8 @@ export interface Evidence {
     evidence_id: string;
     video: Video | null;
     screenshots: Screenshot[] | null;
+    database_files: string[] | null;
+    api_files: string[] | null;
     log: Log | null;
 }
 

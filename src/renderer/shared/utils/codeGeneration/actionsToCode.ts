@@ -11,6 +11,8 @@ import { getImportBrowserJs } from './browserJsFuncs';
 import { needsApiRequestSupport, getExecuteApiRequestFunctionString } from './apiRequestFuncs';
 import { getListAiFunctions } from './assertCodeGenerator';
 import { getBasicHttpAuthCode } from './basicHttpAuth';
+import { needsExcelExport, getExportDatabaseToExcelFunctionString } from './excelExport';
+import { needsApiExport, getExportApiToJsonFunctionString } from './apiExport';
 
 export function actionsToCode(
   basicAuth: BasicAuthentication | null | undefined, 
@@ -51,6 +53,16 @@ export function actionsToCode(
   if (needsApiRequestSupport(actions)) {
     code += '\n';
     code += getExecuteApiRequestFunctionString();
+  }
+  
+  if (needsExcelExport(actions)) {
+    code += '\n';
+    code += getExportDatabaseToExcelFunctionString();
+  }
+  
+  if (needsApiExport(actions)) {
+    code += '\n';
+    code += getExportApiToJsonFunctionString();
   }
   
   const aiFunctions = getListAiFunctions(actions);

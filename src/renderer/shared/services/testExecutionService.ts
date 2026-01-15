@@ -134,6 +134,7 @@ export class TestExecutionService {
    * Execute a testcase by ID
    */
   async executeTestcase(options: ExecuteTestcaseOptions): Promise<TestExecutionResult> {
+    console.log('[TestExecutionService] Evidence ID', options.evidence_id);
     let tempFiles: string[] = [];
     try {
       /* console.log('[TestExecutionService] Options', options); */
@@ -220,7 +221,11 @@ export class TestExecutionService {
       const fullOutputDir = `${sandboxDir}/${outputDir}`;
 
       // Replace <images-folder> placeholder in code
-      const processedCode = options.code.replace(/<images-folder>/g, `./${outputDir}`);
+      let processedCode = options.code.replace(/<images-folder>/g, `./${outputDir}`);
+      // Replace <database-execution-folder> placeholder in code
+      processedCode = processedCode.replace(/<database-execution-folder>/g, `./${outputDir}/database-execution`);
+      // Replace <api-execution-folder> placeholder in code
+      processedCode = processedCode.replace(/<api-execution-folder>/g, `./${outputDir}/api-execution`);
 
       // Write test script
       const scriptFilename = `script_${generateHexUUID()}.spec.js`;
@@ -252,7 +257,9 @@ export class TestExecutionService {
           results.status,
           results.logs,
           results.video_url,
-          results.images_urls
+          results.images_urls,
+          results.database_files_urls,
+          results.api_files_urls
         );
       }
 
@@ -262,6 +269,8 @@ export class TestExecutionService {
         logs: results.logs,
         video_url: results.video_url,
         images_urls: results.images_urls,
+        database_files_urls: results.database_files_urls,
+        api_files_urls: results.api_files_urls,
         execution_time: 0, // Could calculate from runResult if needed
       };
     } catch (error) {
@@ -325,6 +334,8 @@ export class TestExecutionService {
     logs: string;
     video_url?: string;
     images_urls?: string[];
+    database_files_urls?: string[];
+    api_files_urls?: string[];
   }> {
     const status: EvidenceStatus = runResult.exitCode === 0 ? 'Passed' : 'Failed';
     const logs = [ runResult.stdout, runResult.stderr ].filter(Boolean).join('') || 
@@ -355,12 +366,34 @@ export class TestExecutionService {
       /* console.error('Error finding image files:', error); */
     }
 
+    // Find database execution Excel files
+    let databaseFilesUrls: string[] = [];
+    try {
+      const databaseExecutionDir = `${outputDir}/database-execution`;
+      const excelFiles = await this.findFiles(databaseExecutionDir, ['.xlsx', '.xls']);
+      databaseFilesUrls = excelFiles;
+    } catch (error) {
+      /* console.error('Error finding database execution files:', error); */
+    }
+
+    // Find API execution JSON files
+    let apiFilesUrls: string[] = [];
+    try {
+      const apiExecutionDir = `${outputDir}/api-execution`;
+      const jsonFiles = await this.findFiles(apiExecutionDir, ['.json']);
+      apiFilesUrls = jsonFiles;
+    } catch (error) {
+      /* console.error('Error finding API execution files:', error); */
+    }
+
     return {
       success: true,
       status,
       logs,
       video_url: videoUrl,
       images_urls: imagesUrls.length > 0 ? imagesUrls : undefined,
+      database_files_urls: databaseFilesUrls.length > 0 ? databaseFilesUrls : undefined,
+      api_files_urls: apiFilesUrls.length > 0 ? apiFilesUrls : undefined,
     };
   }
 
@@ -372,12 +405,16 @@ export class TestExecutionService {
     status: EvidenceStatus,
     logs: string,
     videoUrl?: string,
-    imagesUrls?: string[]
+    imagesUrls?: string[],
+    databaseFilesUrls?: string[],
+    apiFilesUrls?: string[]
   ): Promise<void> {
     const files: {
       video_file?: File;
       log_file?: File;
       image_files?: File[];
+      database_files?: File[];
+      api_files?: File[];
     } = {};
 
     // Create log file
@@ -415,6 +452,42 @@ export class TestExecutionService {
           }
         } catch (error) {
           /* console.error('Error loading image file:', error); */
+        }
+      }
+    }
+
+    // Load database execution Excel files if exist
+    if (databaseFilesUrls && databaseFilesUrls.length > 0) {
+      files.database_files = [];
+      for (const databaseFileUrl of databaseFilesUrls) {
+        try {
+          const databaseFile = await this.loadFileAsBlob(databaseFileUrl);
+          if (databaseFile) {
+            const fileName = databaseFileUrl.split('/').pop() || 'database.xlsx';
+            files.database_files.push(new File([databaseFile], fileName, { 
+              type: databaseFile.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+            }));
+          }
+        } catch (error) {
+          /* console.error('Error loading database file:', error); */
+        }
+      }
+    }
+
+    // Load API execution JSON files if exist
+    if (apiFilesUrls && apiFilesUrls.length > 0) {
+      files.api_files = [];
+      for (const apiFileUrl of apiFilesUrls) {
+        try {
+          const apiFile = await this.loadFileAsBlob(apiFileUrl);
+          if (apiFile) {
+            const fileName = apiFileUrl.split('/').pop() || 'api.json';
+            files.api_files.push(new File([apiFile], fileName, { 
+              type: apiFile.type || 'application/json' 
+            }));
+          }
+        } catch (error) {
+          /* console.error('Error loading API file:', error); */
         }
       }
     }

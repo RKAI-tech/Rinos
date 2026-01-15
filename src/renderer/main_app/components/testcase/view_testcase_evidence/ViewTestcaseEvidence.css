@@ -179,6 +179,50 @@
   border-bottom-color: #5549f5;
 }
 
+/* API tab - make it more visually distinctive */
+.vte-tab-btn-api {
+  position: relative;
+  border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
+}
+
+.vte-tab-btn-api .vte-tab-api-icon {
+  stroke-width: 2.2;
+}
+
+.vte-tab-btn-api:hover {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.vte-tab-btn-api.active {
+  background: #eef2ff;
+  border-bottom-color: #4338ca;
+  color: #312e81;
+}
+
+/* Database tab - visually consistent with API but with teal accent */
+.vte-tab-btn-database {
+  position: relative;
+  border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
+}
+
+.vte-tab-btn-database .vte-tab-database-icon {
+  stroke-width: 2.2;
+}
+
+.vte-tab-btn-database:hover {
+  background: #ecfeff;
+  color: #0f766e;
+}
+
+.vte-tab-btn-database.active {
+  background: #ecfeff;
+  border-bottom-color: #0f766e;
+  color: #115e59;
+}
+
 .vte-tab-content {
   flex: 1;
   overflow: hidden;
@@ -366,6 +410,205 @@
 }
 
 .vte-no-screenshots-text {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Database files container */
+.vte-database-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.vte-database-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  flex: 1;
+  padding: 4px;
+}
+
+.vte-database-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.vte-database-item:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.vte-database-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.vte-database-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  word-break: break-all;
+}
+
+.vte-database-download-btn {
+  padding: 8px;
+  background: transparent;
+  color: #6b7280;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.vte-database-download-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.vte-database-download-btn:active {
+  background: #e5e7eb;
+}
+
+.vte-download-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  stroke-width: 2;
+  color: inherit;
+}
+
+.vte-database-download-btn:hover .vte-download-icon {
+  transform: scale(1.1);
+}
+
+.vte-no-database {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px;
+  color: #6b7280;
+  text-align: center;
+  flex: 1;
+}
+
+.vte-no-database-icon {
+  font-size: 48px;
+  opacity: 0.5;
+}
+
+.vte-no-database-text {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* API executions list - visually match database executions list */
+.vte-api-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.vte-api-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  flex: 1;
+  padding: 4px;
+}
+
+.vte-api-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.vte-api-item:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.vte-api-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.vte-api-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  word-break: break-all;
+}
+
+.vte-api-download-btn {
+  padding: 8px;
+  background: transparent;
+  color: #6b7280;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.vte-api-download-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.vte-api-download-btn:active {
+  background: #e5e7eb;
+}
+
+.vte-no-api {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px;
+  color: #6b7280;
+  text-align: center;
+  flex: 1;
+}
+
+.vte-no-api-icon {
+  font-size: 48px;
+  opacity: 0.5;
+}
+
+.vte-no-api-text {
   font-size: 16px;
   font-weight: 500;
 }
