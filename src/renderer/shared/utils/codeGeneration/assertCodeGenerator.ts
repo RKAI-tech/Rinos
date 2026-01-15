@@ -231,7 +231,8 @@ export function generateAssertCode(action: Action, index: number): string {
       const apiInfo = serializeApiRequest(apiRequests[0]);
       const endpoint = apiInfo.url || '';
       const method = apiInfo.method || '';
-      codeReturn += `      var apiData = ${JSON.stringify(apiInfo, null, 4)};\n`;
+      const jsonString = JSON.stringify(apiInfo, null, 10);
+      codeReturn += `      var apiData = ${jsonString};\n`;
       codeReturn += `      var response = await executeApiRequest(page${currentPage}, apiData);\n`;
       codeReturn += `      var responseJson = await response.json();\n`;
       codeReturn += `      var apiResult = {endpoint: '${sanitizeJsString(endpoint)}', method: '${method}', status: await response.status(), status_text: response.statusText(), headers: response.headers(), payload: responseJson};\n`;
@@ -312,7 +313,8 @@ export function generateAssertCode(action: Action, index: number): string {
       const apiInfo = serializeApiRequest(apiRequests[0]);
       const endpoint = apiInfo.url || '';
       const method = apiInfo.method || '';
-      codeReturn += `      var apiData = ${JSON.stringify(apiInfo, null, 4)};\n`;
+      const jsonString = JSON.stringify(apiInfo, null, 10);
+      codeReturn += `      var apiData = ${jsonString};\n`;
       codeReturn += `      var response = await executeApiRequest(page${currentPage}, apiData);\n`;
       codeReturn += `      var responseJson = await response.json();\n`;
       codeReturn += `      var apiResult = {endpoint: '${sanitizeJsString(endpoint)}', method: '${method}', status: await response.status(), status_text: response.statusText(), headers: response.headers(), payload: responseJson};\n`;
@@ -344,7 +346,8 @@ export function generateAssertCode(action: Action, index: number): string {
       const apiInfo = serializeApiRequest(apiRequests[0]);
       const endpoint = apiInfo.url || '';
       const method = apiInfo.method || '';
-      codeReturn += `      var apiData = ${JSON.stringify(apiInfo, null, 4)};\n`;
+      const jsonString = JSON.stringify(apiInfo, null, 10);
+      codeReturn += `      var apiData = ${jsonString};\n`;
       codeReturn += `      var response = await executeApiRequest(page${currentPage}, apiData);\n`;
       codeReturn += `      var responseJson = await response.json();\n`;
       codeReturn += `      var apiResult = {endpoint: '${sanitizeJsString(endpoint)}', method: '${method}', status: await response.status(), status_text: response.statusText(), headers: response.headers(), payload: responseJson};\n`;
@@ -376,7 +379,8 @@ export function generateAssertCode(action: Action, index: number): string {
       const apiInfo = serializeApiRequest(apiRequests[0]);
       const endpoint = apiInfo.url || '';
       const method = apiInfo.method || '';
-      codeReturn += `      var apiData = ${JSON.stringify(apiInfo, null, 4)};\n`;
+      const jsonString = JSON.stringify(apiInfo, null, 10);
+      codeReturn += `      var apiData = ${jsonString};\n`;
       codeReturn += `      var response = await executeApiRequest(page${currentPage}, apiData);\n`;
       codeReturn += `      var responseJson = await response.json();\n`;
       codeReturn += `      var apiResult = {endpoint: '${sanitizeJsString(endpoint)}', method: '${method}', status: await response.status(), status_text: response.statusText(), headers: response.headers(), payload: responseJson};\n`;
@@ -471,7 +475,8 @@ export function generateAssertCode(action: Action, index: number): string {
         const apiInfo = serializeApiRequest(apiRequests[idx]);
         const endpoint = apiInfo.url || '';
         const method = apiInfo.method || '';
-        codeReturn += `      var apiData = ${JSON.stringify(apiInfo, null, 4)};\n`;
+        const jsonString = JSON.stringify(apiInfo, null, 10);
+        codeReturn += `      var apiData = ${jsonString};\n`;
         codeReturn += `      var response = await executeApiRequest(page${currentPageAi}, apiData);\n`;
         codeReturn += `      var responseJson = await response.json();\n`;
         codeReturn += `      var apiResult = {endpoint: '${sanitizeJsString(endpoint)}', method: '${method}', status: await response.status(), status_text: response.statusText(), headers: response.headers(),payload: responseJson};\n`;
