@@ -9,10 +9,12 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   userEmail: string | null;
+  userUsername: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   microsoftLogin: () => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
+  updateIdentity: (next: { email?: string | null; username?: string | null }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -89,10 +91,38 @@ const emailStorage = {
   }
 };
 
+// Helper functions for username storage
+const usernameStorage = {
+  get: async (): Promise<string | null> => {
+    try {
+      return await (window as any).tokenStore.getUsername();
+    } catch (error) {
+      return null;
+    }
+  },
+
+  set: async (username: string): Promise<void> => {
+    try {
+      await (window as any).tokenStore.setUsername(username);
+    } catch (error) {
+      // ignore
+    }
+  },
+
+  remove: async (): Promise<void> => {
+    try {
+      await (window as any).tokenStore.removeUsername();
+    } catch (error) {
+      // ignore
+    }
+  },
+};
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userUsername, setUserUsername] = useState<string | null>(null);
   const log = (...args: unknown[]) => { /* console.log('[AuthContext]', ...args); */ };
   
   // Kiểm tra token có sẵn khi component mount
@@ -101,6 +131,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const token = await tokenStorage.get(config.ACCESS_TOKEN_KEY);
         const email = await emailStorage.get();
+        const username = await usernameStorage.get();
         if (token) {
           const response = await authService.validateToken(token);
           if (response.success && response.data?.access_token) {
@@ -117,6 +148,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 }
               } catch (error) {
                 // console.error('[AuthContext] Error getting user email:', error);
+              }
+            }
+
+            if (username) {
+              setUserUsername(username);
+            } else {
+              try {
+                const userResponse = await authService.getCurrentUser();
+                if (userResponse.success && (userResponse as any).data?.username) {
+                  const apiUsername = (userResponse as any).data.username;
+                  setUserUsername(apiUsername);
+                  await usernameStorage.set(apiUsername);
+                }
+              } catch (error) {
+                // ignore
               }
             }
           } else {
@@ -142,9 +188,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // log('clearAuthData');
     await tokenStorage.remove(config.ACCESS_TOKEN_KEY);
     await emailStorage.remove();
+    await usernameStorage.remove();
     authService.clearAuth();
     setIsAuthenticated(false);
     setUserEmail(null);
+    setUserUsername(null);
   };
   
   const handleSessionExpired = async () => {
@@ -176,6 +224,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await emailStorage.set(email);
         setIsAuthenticated(true);
         setUserEmail(email);
+
+        const apiUsername = response.data.username?.trim();
+        console.log('[AuthContext] Login response username', apiUsername);
+        if (apiUsername) {
+          await usernameStorage.set(apiUsername);
+          setUserUsername(apiUsername);
+        } else {
+          await usernameStorage.remove();
+          setUserUsername(null);
+        }
         // log('login: authenticated');
       } else {
         throw new Error(response.error || 'Login failed');
@@ -246,6 +304,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.success && response.data) {
         // Chỉ lưu token
         await tokenStorage.set(config.ACCESS_TOKEN_KEY, response.data.access_token);
+
+        const apiUsername = response.data.username?.trim();
+        if (apiUsername) {
+          await usernameStorage.set(apiUsername);
+          setUserUsername(apiUsername);
+        }
+
         // Lấy email từ Microsoft token hoặc API
         try {
           const userResponse = await authService.getCurrentUser();
@@ -253,6 +318,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const apiEmail = (userResponse as any).data.email;
             await emailStorage.set(apiEmail);
             setUserEmail(apiEmail);
+          }
+          if (userResponse.success && (userResponse as any).data?.username) {
+            const meUsername = (userResponse as any).data.username;
+            if (meUsername) {
+              await usernameStorage.set(meUsername);
+              setUserUsername(meUsername);
+            }
           }
         } catch (error) {
           // console.error('[AuthContext] Error getting user email after Microsoft login:', error);
@@ -272,14 +344,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const updateIdentity = async (next: { email?: string | null; username?: string | null }) => {
+    if (typeof next.email !== 'undefined') {
+      const normalizedEmail = next.email?.trim() || null;
+      if (normalizedEmail) await emailStorage.set(normalizedEmail);
+      else await emailStorage.remove();
+      setUserEmail(normalizedEmail);
+    }
+
+    if (typeof next.username !== 'undefined') {
+      const normalizedUsername = next.username?.trim() || null;
+      if (normalizedUsername) await usernameStorage.set(normalizedUsername);
+      else await usernameStorage.remove();
+      setUserUsername(normalizedUsername);
+    }
+  };
+
   const value: AuthContextType = {
     isAuthenticated,
     isLoading,
     userEmail,
+    userUsername,
     login,
     logout,
     microsoftLogin,
-    register
+    register,
+    updateIdentity,
   };
 
   useSessionHeartbeat({

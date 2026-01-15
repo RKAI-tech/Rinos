@@ -15,7 +15,7 @@ export interface AuthMeResponse {
     "data": {
         "id": string;
         "email": string;
-        "role": string;
+        "username"?: string;
     };
 }
 
@@ -32,6 +32,7 @@ export interface LoginRequest {
 export interface LoginResponse {
     access_token: string;
     token_type: string;
+    username?: string;
 }
 
 export interface RegisterRequest {

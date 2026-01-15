@@ -13,3 +13,14 @@ export interface UserRequest {
 export interface UserResponse {
     users: User[];
 }
+
+export interface UserMeResponse {
+    email: string;
+    username: string;
+}
+
+export interface UpdateProfilePayload {
+    email?: string;
+    username?: string;
+    password?: string;
+}

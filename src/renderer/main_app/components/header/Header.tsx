@@ -1,47 +1,31 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import authService from '../../services/auth';
 import { useVersion } from '../../contexts/VersionContext';
 import BrowserManagerModal from '../browser/install_browser/BrowserManagerModal';
+import ProfileModal from './ProfileModal';
 import './Header.css';
 import image from '../../assets/logo_user.png';
 import rikkeiLogo from '../../assets/logoRikkeisoft.png';
 const Header: React.FC = () => {
-  const { logout, isLoading, userEmail } = useAuth();
+  const { logout, isLoading, userEmail, userUsername } = useAuth();
   const { currentVersion, hasUpdate, openVersionModal } = useVersion();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [localUserEmail, setLocalUserEmail] = useState<string>('');
   const [isBrowserManagerOpen, setIsBrowserManagerOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      // Ưu tiên sử dụng email từ AuthContext
-      if (userEmail) {
-        setLocalUserEmail(userEmail);
-        return;
-      }
-
-      // Chỉ gọi API nếu không có email từ AuthContext
-      try {
-        const resp = await authService.getCurrentUser();
-        if (mounted && resp.success && (resp as any).data) {
-          const email = (resp as any).data.email || '';
-          setLocalUserEmail(email);
-        }
-      } catch (e) {
-        // silent fail; keep placeholder
-      }
-    })();
-    return () => { mounted = false; };
-  }, [userEmail]);
-
-  const userEmailShort = useMemo(() => {
-    let email = localUserEmail || userEmail || '';
-    email = email.split('@')[0];
+  // Keep a conservative fallback: if username isn't available, derive from email prefix.
+  const displayName = useMemo(() => {
+    const trimmedUsername = (userUsername || '').trim();
+    if (trimmedUsername) return trimmedUsername;
+    const email = (userEmail || '').trim();
     if (!email) return '';
-    return email.length > 16 ? `${email.slice(0, 14)}...` : email;
-  }, [localUserEmail, userEmail]);
+    return email.split('@')[0] || '';
+  }, [userEmail, userUsername]);
+
+  const displayNameShort = useMemo(() => {
+    if (!displayName) return '';
+    return displayName.length > 16 ? `${displayName.slice(0, 14)}...` : displayName;
+  }, [displayName]);
 
   const handleLogout = async () => {
     try {
@@ -97,8 +81,8 @@ const Header: React.FC = () => {
               />
             </div>
             <div className="user-info">
-              <div className="user-email-short">{userEmailShort || '...'}</div>
-              <div className="user-email-full">{localUserEmail || userEmail || '...'}</div>
+              <div className="user-email-short">{displayNameShort || '...'}</div>
+              <div className="user-email-full">{userEmail || '...'}</div>
             </div>
             <div className="dropdown-chevron">
               <svg 
@@ -123,6 +107,16 @@ const Header: React.FC = () => {
           {/* User Dropdown Menu */}
           {showUserDropdown && (
             <div className="user-dropdown">
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  setIsProfileOpen(true);
+                  setShowUserDropdown(false);
+                }}
+              >
+                <span>Profile</span>
+              </div>
+              <div className="dropdown-separator" />
               <div 
                 className="dropdown-item" 
                 onClick={() => {
@@ -149,6 +143,10 @@ const Header: React.FC = () => {
       <BrowserManagerModal
         isOpen={isBrowserManagerOpen}
         onClose={() => setIsBrowserManagerOpen(false)}
+      />
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
       />
     </header>
   );

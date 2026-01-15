@@ -6,7 +6,8 @@ import { TestCaseService } from '../../../services/testcases';
 import { Screenshot, TestCase as TestCaseGetResponse } from '../../../types/testcases';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { canEdit } from '../../../hooks/useProjectPermissions';
+import { hasPermissionOrHigher } from '../../../hooks/useProjectPermissions';
+import { Project } from '../../../types/projects';
 
 interface Props {
   isOpen: boolean;
@@ -14,11 +15,12 @@ interface Props {
   testcaseId?: string | null;
   testcaseName?: string;
   projectId?: string;
+  projectData?: Project | null;
   testcaseData?: TestCaseGetResponse | null;
   onReloadTestcases?: () => Promise<void>;
 }
 
-const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, testcaseName, projectId, testcaseData, onReloadTestcases }) => {
+const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, testcaseName, projectId, projectData, testcaseData, onReloadTestcases }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<TestCaseGetResponse | null>(null);
@@ -29,22 +31,32 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
   const [showControls, setShowControls] = useState<boolean>(false);
   const [videoError, setVideoError] = useState<boolean>(false);
   const svc = useMemo(() => new TestCaseService(), []);
-  const canEditPermission = canEdit(projectId);
+  
+  // Calculate canEditPermission from projectData
+  const canEditPermission = useMemo(() => {
+    if (!projectData?.user_permissions) return false;
+    const permissions = String(projectData.user_permissions)
+      .split(/[,;\s]+/)
+      .map(s => s.trim())
+      .filter(Boolean);
+    return hasPermissionOrHigher('CAN_EDIT', permissions);
+  }, [projectData]);
 
-  // Load testcase data when modal opens (always try to fetch the latest)
+  // Load testcase data when modal opens (use existing data, only fetch if missing)
   useEffect(() => {
     if (!isOpen) {
       setVideoError(false);
       return;
     }
+    
+    // Sử dụng dữ liệu đã có sẵn - KHÔNG cần fetch
     if (testcaseData) {
-      // Show existing data immediately while fetching the freshest logs
       setResult(testcaseData);
-    }
-    if (testcaseId) {
+    } else if (testcaseId) {
+      // Chỉ fetch khi không có testcaseData (edge case)
       void loadTestcaseData();
     }
-  }, [isOpen, testcaseId, projectId, testcaseData]);
+  }, [isOpen, testcaseId]);
 
   // Reset video error when URL changes
   useEffect(() => {

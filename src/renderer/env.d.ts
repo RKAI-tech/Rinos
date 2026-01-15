@@ -48,6 +48,9 @@ interface TokenStore {
   getEmail: () => Promise<string | null>;
   setEmail: (email: string | null) => Promise<boolean>;
   removeEmail: () => Promise<boolean>;
+  getUsername: () => Promise<string | null>;
+  setUsername: (username: string | null) => Promise<boolean>;
+  removeUsername: () => Promise<boolean>;
 }
 
 interface EncryptionStore {

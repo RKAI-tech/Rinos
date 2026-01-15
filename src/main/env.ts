@@ -32,6 +32,7 @@ export const MainEnv = {
   // Token store config
   ACCESS_TOKEN_KEY: process.env.VITE_ACCESS_TOKEN_KEY || 'access_token',
   USER_EMAIL_KEY: process.env.VITE_USER_EMAIL_KEY || 'user_email',
+  USER_USERNAME_KEY: process.env.VITE_USER_USERNAME_KEY || 'user_username',
 };
 
 export const MainEnvArrays = {

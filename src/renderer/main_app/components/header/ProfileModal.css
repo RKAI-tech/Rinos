@@ -1,0 +1,351 @@
+.profile-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 24px;
+}
+
+.profile-modal {
+  width: 520px;
+  max-width: calc(100vw - 48px);
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  /* Allow tooltips to overflow outside modal (avoid clipping) */
+  overflow: visible;
+}
+
+.profile-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.profile-modal-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.profile-modal-close-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 16px;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+
+.profile-modal-close-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.profile-modal-content {
+  padding: 16px;
+}
+
+.profile-modal-loading {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.profile-label {
+  font-size: 12px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.profile-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Tooltip Styles (same pattern used across main_app) */
+.tooltip-container {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: #6b7280;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+  user-select: none;
+}
+
+.tooltip-icon:hover {
+  background: #4b5563;
+  transform: scale(1.1);
+}
+
+.tooltip-icon:focus {
+  outline: 2px solid rgba(37, 99, 235, 0.35);
+  outline-offset: 2px;
+}
+
+.tooltip-content {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  width: 260px;
+  max-width: 80vw;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  margin-bottom: 8px;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-align: left;
+  pointer-events: none;
+}
+
+.tooltip-content::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #1f2937 transparent transparent transparent;
+}
+
+.tooltip-container:hover .tooltip-content,
+.tooltip-container:focus-within .tooltip-content {
+  opacity: 1;
+  visibility: visible;
+}
+
+.profile-input {
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  padding: 0 10px;
+  font-size: 13px;
+  outline: none;
+  color: #111827;
+  background: #ffffff;
+}
+
+.profile-password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.profile-input-with-toggle {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.profile-password-toggle {
+  position: absolute;
+  right: 10px;
+  color: #9ca3af;
+  background: none;
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.profile-password-toggle:hover:not(:disabled) {
+  color: #6b7280;
+}
+
+.profile-password-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.profile-input:disabled {
+  background: #f9fafb;
+  color: #6b7280;
+}
+
+.profile-input.invalid {
+  border-color: #ef4444;
+}
+
+.profile-error {
+  font-size: 12px;
+  color: #ef4444;
+}
+
+.profile-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.profile-btn {
+  height: 36px;
+  border-radius: 8px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.profile-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.profile-btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.profile-btn-danger {
+  background: #ffffff;
+  color: #ef4444;
+  border-color: #fecaca;
+}
+
+.profile-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 24px;
+}
+
+.profile-confirm-dialog {
+  width: 420px;
+  max-width: calc(100vw - 48px);
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.profile-confirm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.profile-confirm-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.profile-confirm-close-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 16px;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+
+.profile-confirm-close-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.profile-confirm-content {
+  padding: 16px;
+}
+
+.profile-confirm-message {
+  margin: 0;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.profile-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.profile-confirm-btn-cancel,
+.profile-confirm-btn-danger {
+  height: 34px;
+  border-radius: 8px;
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.profile-confirm-btn-cancel {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #374151;
+}
+
+.profile-confirm-btn-danger {
+  border: 1px solid #fecaca;
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.profile-confirm-btn-cancel:disabled,
+.profile-confirm-btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+

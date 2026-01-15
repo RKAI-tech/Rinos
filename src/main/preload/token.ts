@@ -8,6 +8,9 @@ export function exposeTokenAPI() {
     getEmail: async (): Promise<string | null> => ipcRenderer.invoke("email:get"),
     setEmail: async (email: string | null): Promise<boolean> => ipcRenderer.invoke("email:set", email),
     removeEmail: async (): Promise<boolean> => ipcRenderer.invoke("email:remove"),
+    getUsername: async (): Promise<string | null> => ipcRenderer.invoke("username:get"),
+    setUsername: async (username: string | null): Promise<boolean> => ipcRenderer.invoke("username:set", username),
+    removeUsername: async (): Promise<boolean> => ipcRenderer.invoke("username:remove"),
   });
 }
 

@@ -16,8 +16,9 @@ import { toast } from 'react-toastify';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { ActionService } from '../../services/actions';
 import { Action, TestCaseDataVersion } from '../../types/actions';
-import { canEdit } from '../../hooks/useProjectPermissions';
+import { hasPermissionOrHigher } from '../../hooks/useProjectPermissions';
 import { Evidence, BrowserType } from '../../types/testcases';
+import { Project } from '../../types/projects';
 
 
 interface Testcase {
@@ -38,10 +39,19 @@ const Testcases: React.FC = () => {
   const navigate = useNavigate();
   const { projectId } = useParams();
 
-  const canEditPermission = canEdit(projectId);
+  const projectDataFromLocation = { projectId, projectName: (location.state as { projectName?: string } | null)?.projectName };
+  const [resolvedProjectName, setResolvedProjectName] = useState<string>(projectDataFromLocation.projectName || 'Project');
+  const [project, setProject] = useState<Project | null>(null);
   
-  const projectData = { projectId, projectName: (location.state as { projectName?: string } | null)?.projectName };
-  const [resolvedProjectName, setResolvedProjectName] = useState<string>(projectData.projectName || 'Project');
+  // Calculate canEditPermission from project data
+  const canEditPermission = useMemo(() => {
+    if (!project?.user_permissions) return false;
+    const permissions = String(project.user_permissions)
+      .split(/[,;\s]+/)
+      .map(s => s.trim())
+      .filter(Boolean);
+    return hasPermissionOrHigher('CAN_EDIT', permissions);
+  }, [project]);
   // console.log('projectData', projectData);
   // Data from API
   const [testcases, setTestcases] = useState<Testcase[]>([]);
@@ -126,7 +136,7 @@ const Testcases: React.FC = () => {
 
   // Load testcases with search/pagination/sort
   useEffect(() => {
-    if (!projectData?.projectId) return;
+    if (!projectId) return;
 
     const loadTestcases = async () => {
       try {
@@ -146,7 +156,7 @@ const Testcases: React.FC = () => {
         }
 
         const request = {
-          project_id: projectData.projectId!,
+          project_id: projectId!,
           page: page,
           page_size: pageSize,
           q: search || null,
@@ -202,11 +212,11 @@ const Testcases: React.FC = () => {
 
     loadTestcases();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, search, statusFilter, sortBy, order, projectData?.projectId, testCaseService, mapApiResponseToTestcase]);
+  }, [page, pageSize, search, statusFilter, sortBy, order, projectId, testCaseService, mapApiResponseToTestcase]);
 
   // Helper: reload testcases (for manual refresh and after operations)
   const reloadTestcases = useCallback(async () => {
-    if (!projectData?.projectId) return;
+    if (!projectId) return;
     try {
       setIsLoading(true);
       setError(null);
@@ -224,7 +234,7 @@ const Testcases: React.FC = () => {
       }
 
       const request = {
-        project_id: projectData.projectId,
+        project_id: projectId,
         page: page,
         page_size: pageSize,
         q: search || null,
@@ -264,7 +274,7 @@ const Testcases: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [projectData?.projectId, page, pageSize, search, statusFilter, sortBy, order, testCaseService, mapApiResponseToTestcase]);
+  }, [projectId, page, pageSize, search, statusFilter, sortBy, order, testCaseService, mapApiResponseToTestcase]);
 
   // Auto reload every 60 seconds (only when no modals are open and there are running testcases)
   useEffect(() => {
@@ -296,20 +306,21 @@ const Testcases: React.FC = () => {
       if (typeof unsubscribe === 'function') unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectData?.projectId]);
+  }, [projectId]);
 
-  // Load project name from API
+  // Load project data from API (only once)
   useEffect(() => {
     const loadProjectData = async () => {
       if (!projectId) return;
-      if (projectData.projectName) {
-        setResolvedProjectName(projectData.projectName);
-        return;
+      // If we have project name from location state, use it temporarily but still fetch full project data
+      if (projectDataFromLocation.projectName) {
+        setResolvedProjectName(projectDataFromLocation.projectName);
       }
       const resp = await projectService.getProjectById(projectId);
       if (resp.success && resp.data) {
-        const project = resp.data as any;
-        setResolvedProjectName(project.name || 'Project');
+        const projectData = resp.data;
+        setProject(projectData);
+        setResolvedProjectName(projectData.name || 'Project');
       }
     };
     loadProjectData();
@@ -478,9 +489,9 @@ const Testcases: React.FC = () => {
     reloadTestcases();
   };
 
-  const handleSaveTestcase = async ({ projectId, name, tag, browser_type }: { projectId: string; name: string; tag: string; browser_type?: string }) => {
+  const handleSaveTestcase = async ({ projectId: paramProjectId, name, tag, browser_type }: { projectId: string; name: string; tag: string; browser_type?: string }) => {
     try {
-      const effectiveProjectId = projectId || projectData?.projectId;
+      const effectiveProjectId = paramProjectId || projectId;
       if (!effectiveProjectId) {
         toast.error('Missing project ID');
         return;
@@ -604,7 +615,7 @@ const Testcases: React.FC = () => {
 
   // Create a testcase and try to return newly created testcase_id (if API provides it)
   const createTestcaseAndReturnId = async (name: string, tag?: string) => {
-    const effectiveProjectId = projectData?.projectId;
+    const effectiveProjectId = projectId;
     if (!effectiveProjectId) {
       toast.error('Missing project ID');
       return undefined;
@@ -622,7 +633,7 @@ const Testcases: React.FC = () => {
 
   // Create testcase with actions in one call
   const createTestcaseWithActions = async (name: string, tag?: string, actions?: any[], basic_authentication?: { username: string; password: string }, browser_type?: string) => {
-    const effectiveProjectId = projectData?.projectId;
+    const effectiveProjectId = projectId;
     if (!effectiveProjectId) {
       toast.error('Missing project ID');
       return false;
@@ -721,7 +732,7 @@ const Testcases: React.FC = () => {
       
       const result = await (window as any).screenHandleAPI?.openRecorder?.(
         id, 
-        projectData?.projectId, 
+        projectId, 
         testcaseName, 
         browserType,
         undefined,
@@ -951,7 +962,7 @@ const Testcases: React.FC = () => {
         <SidebarNavigator 
           items={sidebarItems} 
           onNavigate={handleSidebarNavigate}
-          projectId={projectData?.projectId}
+          projectId={projectId}
         />
         
         <main className="testcases-main">
@@ -1306,7 +1317,7 @@ const Testcases: React.FC = () => {
         isOpen={isCreateModalOpen}
         onClose={handleCloseCreateModal}
         onSave={handleSaveTestcase}
-        projectId={projectData?.projectId}
+        projectId={projectId}
       />
 
       {/* Edit Testcase Modal */}
@@ -1321,7 +1332,7 @@ const Testcases: React.FC = () => {
           basic_authentication: selectedTestcase.basic_authentication,
           browser_type: selectedTestcase.browser_type 
         } : null}
-        projectId={projectData?.projectId}
+        projectId={projectId}
       />
 
       {/* Delete Testcase Modal */}
@@ -1339,7 +1350,7 @@ const Testcases: React.FC = () => {
         onSave={handleSaveDuplicateTestcase}
         createTestcaseWithActions={createTestcaseWithActions}
         testcase={selectedTestcase ? { testcase_id: selectedTestcase.testcase_id, name: selectedTestcase.name, description: selectedTestcase.description, basic_authentication: selectedTestcase.basic_authentication } : null}
-        projectId={projectData?.projectId}
+        projectId={projectId}
       />
 
       {/* Run And View Testcase Modal */}
@@ -1348,7 +1359,8 @@ const Testcases: React.FC = () => {
         onClose={handleCloseRunAndViewModal}
         testcaseId={selectedTestcase?.testcase_id}
         testcaseName={selectedTestcase?.name}
-        projectId={projectData?.projectId}
+        projectId={projectId}
+        projectData={project}
         testcaseData={selectedTestcaseData}
         onReloadTestcases={reloadTestcases}
       />

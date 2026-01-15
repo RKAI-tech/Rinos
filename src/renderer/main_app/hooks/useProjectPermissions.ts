@@ -44,7 +44,7 @@ export function useProjectPermissions(projectId?: string) {
 // Permission priority from lowest to highest
 const PERMISSION_PRIORITY = ['CAN_VIEW', 'CAN_EDIT', 'CAN_MANAGE'] as const;
 
-function hasPermissionOrHigher(target: Permission, permissions: Permission[]): boolean {
+export function hasPermissionOrHigher(target: Permission, permissions: Permission[]): boolean {
   if (!target) return false;
   const targetUpper = String(target).toUpperCase();
   const normalized = new Set(permissions.map(p => String(p).toUpperCase()));

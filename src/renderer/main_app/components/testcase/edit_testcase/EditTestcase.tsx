@@ -49,69 +49,70 @@ const EditTestcase: React.FC<EditTestcaseProps> = ({ isOpen, onClose, onSave, te
   // });
 
   useEffect(() => {
-    if (testcase) {
-      setTestcaseName(testcase.name || '');
-      setTestcaseTag(testcase.description || '');
-      setBrowserType(testcase.browser_type || BrowserType.chrome);
-      const initialBasicAuth = testcase.basic_authentication || null;
-      setBasicAuth(initialBasicAuth);
-      setHasInitialBasicAuth(!!initialBasicAuth);
-      // Prefer data from parent (already loaded with testcases), fallback to API fetch
-      // Load actions and testcase_data_versions by testcase
-      const loadData = async () => {
-        try {
-          setIsLoadingActions(true);
-          const [actionsResp, versionsResp] = await Promise.all([
-            actionService.getActionsByTestCase(testcase.testcase_id, 1000, 0, projectId),
-            testCaseService.getTestCaseDataVersions(testcase.testcase_id, projectId),
-          ]);
-          
-          // Check if testcase was deleted (both API calls return empty data)
-          const isTestcaseDeleted = 
-            (!actionsResp.success && actionsResp.error && (
-              actionsResp.error.toLowerCase().includes('404') || 
-              actionsResp.error.toLowerCase().includes('not found') ||
-              actionsResp.error.toLowerCase().includes('does not exist')
-            )) ||
-            (!versionsResp.success && versionsResp.error && (
-              versionsResp.error.toLowerCase().includes('404') || 
-              versionsResp.error.toLowerCase().includes('not found') ||
-              versionsResp.error.toLowerCase().includes('does not exist')
-            ));
+    // ✅ Chỉ load khi modal mở VÀ có testcase
+    if (!isOpen || !testcase) return;
+    
+    setTestcaseName(testcase.name || '');
+    setTestcaseTag(testcase.description || '');
+    setBrowserType(testcase.browser_type || BrowserType.chrome);
+    const initialBasicAuth = testcase.basic_authentication || null;
+    setBasicAuth(initialBasicAuth);
+    setHasInitialBasicAuth(!!initialBasicAuth);
+    // Prefer data from parent (already loaded with testcases), fallback to API fetch
+    // Load actions and testcase_data_versions by testcase
+    const loadData = async () => {
+      try {
+        setIsLoadingActions(true);
+        const [actionsResp, versionsResp] = await Promise.all([
+          actionService.getActionsByTestCase(testcase.testcase_id, 1000, 0, projectId),
+          testCaseService.getTestCaseDataVersions(testcase.testcase_id, projectId),
+        ]);
+        
+        // Check if testcase was deleted (both API calls return empty data)
+        const isTestcaseDeleted = 
+          (!actionsResp.success && actionsResp.error && (
+            actionsResp.error.toLowerCase().includes('404') || 
+            actionsResp.error.toLowerCase().includes('not found') ||
+            actionsResp.error.toLowerCase().includes('does not exist')
+          )) ||
+          (!versionsResp.success && versionsResp.error && (
+            versionsResp.error.toLowerCase().includes('404') || 
+            versionsResp.error.toLowerCase().includes('not found') ||
+            versionsResp.error.toLowerCase().includes('does not exist')
+          ));
 
-          if (isTestcaseDeleted) {
-            /* console.info(`[EditTestcase] Testcase ${testcase.testcase_id} not found (likely deleted), closing modal`); */
-            onClose();
-            return;
-          }
-          
-          if (actionsResp.success && actionsResp.data) {
-            const mapped = (actionsResp.data.actions || []) as Action[];
-            setActions(mapped);
-          } else {
-            setActions([]);
-          }
-
-          if (versionsResp.success && versionsResp.data) {
-            // Convert from API format (with action_data_generations) to save format (with action_data_generation_ids)
-            const versions: TestCaseDataVersion[] = (versionsResp.data.testcase_data_versions || []).map(v => ({
-              testcase_data_version_id: v.testcase_data_version_id,
-              version: v.version,
-              action_data_generation_ids: v.action_data_generations
-                ?.map(gen => gen.action_data_generation_id)
-                .filter((id): id is string => !!id) || [],
-            }));
-            setTestcaseDataVersions(versions);
-          } else {
-            setTestcaseDataVersions([]);
-          }
-        } finally {
-          setIsLoadingActions(false);
+        if (isTestcaseDeleted) {
+          /* console.info(`[EditTestcase] Testcase ${testcase.testcase_id} not found (likely deleted), closing modal`); */
+          onClose();
+          return;
         }
-      };
-      loadData();
-    }
-  }, [testcase]);
+        
+        if (actionsResp.success && actionsResp.data) {
+          const mapped = (actionsResp.data.actions || []) as Action[];
+          setActions(mapped);
+        } else {
+          setActions([]);
+        }
+
+        if (versionsResp.success && versionsResp.data) {
+          // Convert from API format (with action_data_generations) to save format (with action_data_generation_ids)
+          const versions: TestCaseDataVersion[] = (versionsResp.data.testcase_data_versions || []).map(v => ({
+            testcase_data_version_id: v.testcase_data_version_id,
+            version: v.version,
+            action_data_generation_ids: v.action_data_generations
+              ?.map(gen => gen.action_data_generation_id)
+              .filter((id): id is string => !!id) || [],
+          }));
+          setTestcaseDataVersions(versions);
+        } else {
+          setTestcaseDataVersions([]);
+        }
+      } finally {
+        setIsLoadingActions(false);
+      }
+    };
+    loadData();
+  }, [isOpen, testcase]);
 
   // Đồng bộ element theo element_id cho tất cả actions khi một action được chỉnh sửa
   const syncActionsWithUpdatedElement = (currentActions: Action[], updatedAction: Action): Action[] => {

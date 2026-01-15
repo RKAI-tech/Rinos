@@ -48,41 +48,42 @@ const DuplicateTestcase: React.FC<DuplicateTestcaseProps> = ({ isOpen, onClose, 
   // });
 
   useEffect(() => {
-    if (testcase) {
-      setTestcaseName(`${testcase.name || ''} (1)`);
-      setTestcaseTag(testcase.description || '');
-      setBrowserType(testcase.browser_type || BrowserType.chrome);
-      const initialBasicAuth = testcase.basic_authentication || null;
-      setBasicAuth(initialBasicAuth);
-      setHasInitialBasicAuth(!!initialBasicAuth);
-      const loadActions = async () => {
-        try {
-          setIsLoadingActions(true);
-          const resp = await actionService.getActionsByTestCase(testcase.testcase_id, 1000, 0, projectId);
-          
-          // Check if testcase was deleted (404 or Not Found error)
-          if (!resp.success && resp.error) {
-            const errorLower = resp.error.toLowerCase();
-            if (errorLower.includes('404') || errorLower.includes('not found') || errorLower.includes('does not exist')) {
-              /* console.info(`[DuplicateTestcase] Testcase ${testcase.testcase_id} not found (likely deleted), closing modal`); */
-              onClose();
-              return;
-            }
+    // ✅ Chỉ load khi modal mở VÀ có testcase
+    if (!isOpen || !testcase) return;
+    
+    setTestcaseName(`${testcase.name || ''} (1)`);
+    setTestcaseTag(testcase.description || '');
+    setBrowserType(testcase.browser_type || BrowserType.chrome);
+    const initialBasicAuth = testcase.basic_authentication || null;
+    setBasicAuth(initialBasicAuth);
+    setHasInitialBasicAuth(!!initialBasicAuth);
+    const loadActions = async () => {
+      try {
+        setIsLoadingActions(true);
+        const resp = await actionService.getActionsByTestCase(testcase.testcase_id, 1000, 0, projectId);
+        
+        // Check if testcase was deleted (404 or Not Found error)
+        if (!resp.success && resp.error) {
+          const errorLower = resp.error.toLowerCase();
+          if (errorLower.includes('404') || errorLower.includes('not found') || errorLower.includes('does not exist')) {
+            /* console.info(`[DuplicateTestcase] Testcase ${testcase.testcase_id} not found (likely deleted), closing modal`); */
+            onClose();
+            return;
           }
-          
-          if (resp.success && resp.data) {
-            const mapped = (resp.data.actions || []) as Action[];
-            setActions(mapped);
-          } else {
-            setActions([]);
-          }
-        } finally {
-          setIsLoadingActions(false);
         }
-      };
-      loadActions();
-    }
-  }, [testcase]);
+        
+        if (resp.success && resp.data) {
+          const mapped = (resp.data.actions || []) as Action[];
+          setActions(mapped);
+        } else {
+          setActions([]);
+        }
+      } finally {
+        setIsLoadingActions(false);
+      }
+    };
+    loadActions();
+  }, [isOpen, testcase]);
 
   // Đồng bộ element theo element_id cho tất cả actions khi một action được chỉnh sửa
   const syncActionsWithUpdatedElement = (currentActions: Action[], updatedAction: Action): Action[] => {
