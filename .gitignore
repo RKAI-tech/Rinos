@@ -123,4 +123,8 @@ _gpgorigin
 sandbox/test-results/
 sandbox/test.spec.js
 sandbox/node_modules/
+sandbox/uploads/
+sandbox/databases/
+sandbox/apis/
+sandbox/images/
 downloads/
