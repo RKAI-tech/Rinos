@@ -29,7 +29,7 @@ type IpcConnectionParams = {
   db_type: 'postgres' | 'mysql' | 'mssql';
   host: string;
   port: number;
-  db_name: string;
+  db_name?: string;
   username: string;
   password: string;
   security_type?: 'none' | 'ssl' | 'ssh';
@@ -107,7 +107,7 @@ export async function connectionToIpcParams(connection: DatabaseConnection): Pro
     db_type: connection.db_type as 'postgres' | 'mysql' | 'mssql',
     host: connection.host,
     port: connection.port,
-    db_name: connection.db_name,
+    db_name: connection.db_name || '',
     username: connection.username,
     password: connection.password,
   };
@@ -245,13 +245,6 @@ export async function testDatabaseConnection(
     return {
       success: false,
       error: 'Port must be a number between 1 and 65535',
-    };
-  }
-
-  if (!connectionParams.db_name || !connectionParams.db_name.trim()) {
-    return {
-      success: false,
-      error: 'Database name is required',
     };
   }
 

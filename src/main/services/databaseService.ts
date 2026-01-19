@@ -37,7 +37,7 @@ export interface ConnectionParams extends ConnectionSecurityOptions {
   db_type: 'postgres' | 'mysql' | 'mssql';
   host: string;
   port: number;
-  db_name: string;
+  db_name?: string;
   username: string;
   password: string;
 }
@@ -185,7 +185,7 @@ export async function testConnection(params: ConnectionParams): Promise<TestConn
       const pool = new PgPool({
         host,
         port,
-        database: db_name,
+        database: db_name || '',
         user: username,
         password,
         connectionTimeoutMillis: CONNECTION_TIMEOUT,
@@ -210,7 +210,7 @@ export async function testConnection(params: ConnectionParams): Promise<TestConn
       const connection = await mysql.createConnection({
         host,
         port,
-        database: db_name,
+        database: db_name || '',
         user: username,
         password,
         connectTimeout: CONNECTION_TIMEOUT,
@@ -231,7 +231,7 @@ export async function testConnection(params: ConnectionParams): Promise<TestConn
       const config: sql.config = {
         server: host,
         port,
-        database: db_name,
+        database: db_name || '',
         user: username,
         password,
         options: {
@@ -386,7 +386,7 @@ async function executePostgresQuery(params: ConnectionParams, query: string): Pr
     const clientConfig: any = {
       host: connectHost,
       port: connectPort,
-      database: params.db_name,
+      database: params.db_name || '',
       user: params.username,
       password: params.password,
         connectionTimeoutMillis: CONNECTION_TIMEOUT,
@@ -523,7 +523,7 @@ async function executeMysqlQuery(params: ConnectionParams, query: string): Promi
     const connectionConfig: mysql.ConnectionOptions = {
       host: connectHost,
       port: connectPort,
-      database: params.db_name,
+      database: params.db_name || '',
       user: params.username,
       password: params.password,
         connectTimeout: CONNECTION_TIMEOUT,
@@ -614,7 +614,7 @@ async function executeMssqlQuery(params: ConnectionParams, query: string): Promi
     const options: sql.config = {
       server: connectHost,
       port: connectPort,
-      database: params.db_name,
+      database: params.db_name || '',
       user: params.username,
       password: params.password,
       connectionTimeout: CONNECTION_TIMEOUT,

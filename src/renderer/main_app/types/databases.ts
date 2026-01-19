@@ -25,16 +25,18 @@ export interface DatabaseConnectionSecurityOptions {
 
 export interface DatabaseConnectionCreateRequest extends DatabaseConnectionSecurityOptions {
     project_id: string | number;
+    connection_name: string;
     username: string;
     password: string;
     host: string;
     port: number;
-    db_name: string;
+    db_name?: string;
     db_type: SupportedDbType;
 }
 
 export interface DatabaseConnectionUpdateRequest extends DatabaseConnectionSecurityOptions {
     connection_id: string;
+    connection_name?: string;
     username?: string;
     password?: string;
     host?: string;
@@ -51,11 +53,12 @@ export interface DatabaseConnectionListRequest {
 export interface DatabaseConnection extends DatabaseConnectionSecurityOptions {
     connection_id: string;
     project_id: string;
+    connection_name: string;
     username: string;
     password: string;
     host: string;
     port: number;
-    db_name: string;
+    db_name?: string;
     db_type: SupportedDbType;
 }
 

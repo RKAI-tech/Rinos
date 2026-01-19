@@ -40,7 +40,7 @@ const AddQuery: React.FC<AddQueryProps> = ({ isOpen, projectId, onClose, onSave 
         const svc = new DatabaseService();
         const resp = await svc.getDatabaseConnections({ project_id: projectId });
         if (resp.success && resp.data) {
-          const opts = resp.data.connections.map(c => ({ id: c.connection_id, label: `${c.db_type.toUpperCase()} • ${c.db_name}@${c.host}:${c.port}` }));
+          const opts = resp.data.connections.map(c => ({ id: c.connection_id, label: `${c.connection_name} (${c.db_type.toUpperCase()} • ${c.host}:${c.port})` }));
           setConnections(opts);
           if (opts.length > 0) setConnectionId(prev => prev || opts[0].id);
           

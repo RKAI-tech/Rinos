@@ -76,11 +76,12 @@ export enum ConnectionType {
 
 export interface Connection {
   connection_id?: string;
+  connection_name: string;
   username: string;
   password: string;
   host: string;
   port: string;
-  db_name: string;
+  db_name?: string;
   db_type: ConnectionType;
 }
 

@@ -96,11 +96,12 @@ export interface ConnectionSecurityOptions {
 
 export interface Connection extends ConnectionSecurityOptions {
   connection_id?: string;
+  connection_name: string;
   username: string;
   password: string;
   host: string;
   port: number; // Changed from string to number for consistency
-  db_name: string;
+  db_name?: string;
   db_type: ConnectionType;
 }
 
@@ -274,11 +275,12 @@ export interface GenerateRandomDataFunctionResponse {
 // AI Assert Request types
 export interface AiAssertDatabaseConnection extends ConnectionSecurityOptions {
   connection_id: string;
+  connection_name: string;
   username: string;
   password: string;
   host: string;
   port: number; // Changed from string to number for consistency
-  db_name: string;
+  db_name?: string;
   db_type: string; // e.g., 'postgres'
 }
 

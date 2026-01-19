@@ -18,6 +18,7 @@ import { encryptObject, decryptObject } from './encryption';
  */
 function getFieldsToEncryptForDatabaseConnection(): string[] {
     return [
+        'connection_name',
         'db_name',
         'host',
         'username',
@@ -38,10 +39,10 @@ function getFieldsToEncryptForDatabaseConnection(): string[] {
 export class DatabaseService {
     // Database connections
     async createDatabaseConnection(payload: DatabaseConnectionCreateRequest): Promise<ApiResponse<DefaultResponse>> {
-        if (!payload || !payload.project_id || !payload.username || !payload.password || !payload.host || !payload.port || !payload.db_name || !payload.db_type) {
+        if (!payload || !payload.project_id || !payload.connection_name || !payload.username || !payload.password || !payload.host || !payload.port || !payload.db_type) {
             return {
                 success: false,
-                error: 'project_id, username, password, host, port, db_name, db_type are required'
+                error: 'project_id, connection_name, username, password, host, port, db_type are required'
             };
         }
 

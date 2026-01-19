@@ -19,7 +19,7 @@ export interface DatabaseConnectionTestParams {
   db_type: 'postgres' | 'mysql' | 'mariadb' | 'mssql' | 'sqlite';
   host: string;
   port: number;
-  db_name: string;
+  db_name?: string;
   username: string;
   password: string;
   project_id: string | number;
@@ -261,7 +261,7 @@ async function testPostgresConnection(params: DatabaseConnectionTestParams): Pro
     const clientConfig: any = {
       host: actualHost,
       port: actualPort,
-      database: params.db_name,
+      database: params.db_name || '',
       user: params.username,
       password: params.password,
     };
@@ -368,7 +368,7 @@ async function testMysqlConnection(params: DatabaseConnectionTestParams): Promis
     const connectionConfig: mysql.ConnectionOptions = {
       host: actualHost,
       port: actualPort,
-      database: params.db_name,
+      database: params.db_name || '',
       user: params.username,
       password: params.password,
     };
@@ -472,7 +472,7 @@ async function testMssqlConnection(params: DatabaseConnectionTestParams): Promis
     const config: sql.config = {
       server: actualHost,
       port: actualPort,
-      database: params.db_name,
+      database: params.db_name || '',
       user: params.username,
       password: params.password,
       options: {
@@ -570,14 +570,6 @@ async function testDatabaseConnection(params: DatabaseConnectionTestParams): Pro
     return {
       success: false,
       error: 'Port must be a number between 1 and 65535',
-    };
-  }
-
-  if (!params.db_name || !params.db_name.trim()) {
-    /* console.error('[Database Test] Validation failed: Database name is required'); */
-    return {
-      success: false,
-      error: 'Database name is required',
     };
   }
 

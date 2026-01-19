@@ -15,7 +15,8 @@ import { canEdit } from '../../hooks/useProjectPermissions';
 
 interface DatabaseItem {
   id: string;
-  name: string;
+  connectionName: string;
+  dbName?: string;
   type: string;
   host: string;
   port: number;
@@ -36,7 +37,7 @@ const Databases: React.FC = () => {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const [dbTypeFilter, setDbTypeFilter] = useState<string>('All Types');
-  const [sortBy, setSortBy] = useState<string | null>('db_name');
+  const [sortBy, setSortBy] = useState<string | null>('connection_name');
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   
   // Pagination info from API
@@ -84,7 +85,8 @@ const Databases: React.FC = () => {
         if (response.success && response.data) {
           const items: DatabaseItem[] = response.data.database_connections.map((c) => ({
             id: c.connection_id,
-            name: c.db_name,
+            connectionName: c.connection_name,
+            dbName: c.db_name,
             type: c.db_type,
             host: c.host,
             port: c.port,
@@ -146,7 +148,8 @@ const Databases: React.FC = () => {
       if (response.success && response.data) {
         const items: DatabaseItem[] = response.data.database_connections.map((c) => ({
           id: c.connection_id,
-          name: c.db_name,
+          connectionName: c.connection_name,
+          dbName: c.db_name,
           type: c.db_type,
           host: c.host,
           port: c.port,
@@ -228,7 +231,7 @@ const Databases: React.FC = () => {
   const currentItems = databases;
 
   // Handle sort - reset page to 1 when sort changes
-  const handleSort = (col: 'db_name' | 'db_type' | 'host' | 'created_at' | 'updated_at') => {
+  const handleSort = (col: 'connection_name' | 'db_name' | 'db_type' | 'host' | 'created_at' | 'updated_at') => {
     if (sortBy === col) {
       // Toggle order if same column
       setOrder(order === 'asc' ? 'desc' : 'asc');
@@ -319,7 +322,7 @@ const Databases: React.FC = () => {
   };
   const handleOpenDelete = (item: DatabaseItem) => {
     if (!canEditPermission) return;
-    setSelectedConnection({ id: item.id, name: item.name });
+    setSelectedConnection({ id: item.id, name: item.connectionName });
     setIsDeleteOpen(true);
     setOpenDropdownId(null);
   };
@@ -413,6 +416,15 @@ const Databases: React.FC = () => {
               <table className="databases-table">
                 <thead>
                   <tr>
+                    <th className={`sortable ${sortBy === 'connection_name' ? 'sorted' : ''}`} onClick={() => handleSort('connection_name')}>
+                      <span className="th-content">
+                        <span className="th-text">Connection Name</span>
+                        <span className="sort-arrows">
+                          <span className={`arrow up ${sortBy === 'connection_name' && order === 'asc' ? 'active' : ''}`}></span>
+                          <span className={`arrow down ${sortBy === 'connection_name' && order === 'desc' ? 'active' : ''}`}></span>
+                        </span>
+                      </span>
+                    </th>
                     <th className={`sortable ${sortBy === 'db_name' ? 'sorted' : ''}`} onClick={() => handleSort('db_name')}>
                       <span className="th-content">
                         <span className="th-text">Database Name</span>
@@ -454,7 +466,8 @@ const Databases: React.FC = () => {
                       key={db.id}
                       className={`${openDropdownId === db.id ? 'dropdown-open' : ''} ${openDropdownId ? 'has-open-dropdown' : ''}`}
                     >
-                      <td className="database-name">{db.name}</td>
+                      <td className="connection-name">{db.connectionName}</td>
+                      <td className="database-name">{db.dbName || 'All DB'}</td>
                       <td className="database-type">{db.type}</td>
                       <td className="database-host">{db.host}</td>
                       <td className="database-port">{db.port}</td>

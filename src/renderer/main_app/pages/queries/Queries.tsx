@@ -194,7 +194,7 @@ const Queries: React.FC = () => {
       if (resp.success && resp.data) {
         const conns = resp.data.connections.map(db => ({ 
           id: db.connection_id, 
-          name: `${db.db_type.toUpperCase()} • ${db.db_name}@${db.host}:${db.port}` 
+          name: `${db.connection_name} (${db.db_type.toUpperCase()} • ${db.host}:${db.port})` 
         }));
         setConnections(conns);
         if (conns.length > 0) {

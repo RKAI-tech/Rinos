@@ -94,7 +94,7 @@ export async function connectionToIpcParams(connection: Connection): Promise<Ipc
     db_type: connectionTypeToString(connection.db_type),
     host: connection.host,
     port: connection.port,
-    db_name: connection.db_name,
+    db_name: connection.db_name || '',
     username: connection.username,
     password: connection.password,
   };
@@ -231,13 +231,6 @@ export async function testDatabaseConnection(
     return {
       success: false,
       error: 'Port must be a number between 1 and 65535',
-    };
-  }
-
-  if (!connectionParams.db_name || !connectionParams.db_name.trim()) {
-    return {
-      success: false,
-      error: 'Database name is required',
     };
   }
 

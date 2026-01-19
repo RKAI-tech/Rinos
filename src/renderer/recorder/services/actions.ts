@@ -78,6 +78,9 @@ function getFieldsToDecryptForActionData(actionData: ActionData): string[] {
     
     // Database connection
     if (actionData.statement?.connection) {
+        if (actionData.statement.connection.connection_name) {
+            fields.push('statement.connection.connection_name');
+        }
         if (actionData.statement.connection.host) {
             fields.push('statement.connection.host');
         }

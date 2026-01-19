@@ -268,7 +268,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
           const opts: ConnectionOption[] = rawConns.map((c: any) => ({
             id: c.connection_id,
             // label: `${String(c.db_type).toUpperCase()} • ${c.db_name}@:${c.port}`,
-            label: `${String(c.db_type).toUpperCase()} • ${c.db_name}@:${c.port}`
+            label: `${c.connection_name} (${String(c.db_type).toUpperCase()} • ${c.host}:${c.port})`
           }));
           setConnections(opts);
           const map: Record<string, Connection> = {};
@@ -600,7 +600,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
                 {/* Collapsed one-liner: only show "Database: query..., ✕" on a single row */}
                 {collapsedMap[el.id] && el.type === 'Database' && (
                   <div className="aiam-mono aiam-mono-inline">
-                    <span className="aiam-text">{(el.connection && (el.connection as any).db_name ? (el.connection as any).db_name : 'Database')}: {el.query ? String(el.query) : '(No query)'}</span>
+                    <span className="aiam-text">{(el.connection && (el.connection as any).connection_name ? (el.connection as any).connection_name : 'Database')}: {el.query ? String(el.query) : '(No query)'}</span>
                     <button className="aiam-close" title="Remove" onClick={() => onRemoveElement(idx)} style={{ width: 24, height: 24 }}>✕</button>
                   </div>
                 )}

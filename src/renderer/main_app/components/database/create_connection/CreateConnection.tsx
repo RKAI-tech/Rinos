@@ -19,8 +19,9 @@ interface CreateConnectionProps {
   onClose: () => void;
   onSave: (payload: {
     project_id: string;
+    connection_name: string;
     db_type: DbTypeOption;
-    db_name: string;
+    db_name?: string;
     host: string;
     port: number;
     username: string;
@@ -63,17 +64,18 @@ const EyeIcon: React.FC<{ visible: boolean }> = ({ visible }) => (
 
 const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, onClose, onSave }) => {
   const [dbType, setDbType] = useState<DbTypeOption>('postgres');
+  const [connectionName, setConnectionName] = useState('');
   const [dbName, setDbName] = useState('');
   const [host, setHost] = useState('');
   const [port, setPort] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<'db_name' | 'host' | 'port' | 'username' | 'password', string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<'connection_name' | 'db_name' | 'host' | 'port' | 'username' | 'password', string>>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message?: string; error?: string } | null>(null);
-  const dbNameInputRef = useRef<HTMLInputElement>(null);
+  const connectionNameInputRef = useRef<HTMLInputElement>(null);
 
   // Security options
   const [securityType, setSecurityType] = useState<'none' | 'ssl' | 'ssh'>('none');
@@ -102,7 +104,7 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
     const parsedPort = Number(port);
     return Boolean(
       projectId &&
-      dbName.trim() &&
+      connectionName.trim() &&
       host.trim() &&
       port.trim() &&
       !Number.isNaN(parsedPort) &&
@@ -110,12 +112,13 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
       username.trim() &&
       password
     );
-  }, [projectId, dbName, host, port, username, password]);
+  }, [projectId, connectionName, host, port, username, password]);
 
   // Reset form when modal is closed
   useEffect(() => {
     if (!isOpen) {
       setDbType('postgres');
+      setConnectionName('');
       setDbName('');
       setHost('');
       setPort('');
@@ -163,9 +166,9 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
 
   // Auto-focus on first input when modal opens
   useEffect(() => {
-    if (isOpen && dbNameInputRef.current) {
+    if (isOpen && connectionNameInputRef.current) {
       setTimeout(() => {
-        dbNameInputRef.current?.focus();
+        connectionNameInputRef.current?.focus();
       }, 100);
     }
   }, [isOpen]);
@@ -179,6 +182,7 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     dbType,
+    connectionName,
     dbName,
     host,
     port,
@@ -206,7 +210,7 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
     // Validate basic fields
     const newErrors: typeof errors = {};
     const parsedPort = Number(port);
-    if (!dbName.trim()) newErrors.db_name = 'Database name is required';
+    if (!connectionName.trim()) newErrors.connection_name = 'Connection name is required';
     if (!host.trim()) newErrors.host = 'Host is required';
     if (!port.trim() || Number.isNaN(parsedPort) || parsedPort <= 0 || !Number.isInteger(parsedPort)) newErrors.port = 'Port must be a positive integer';
     if (!username.trim()) newErrors.username = 'Username is required';
@@ -256,8 +260,9 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
 
       const testParams: DatabaseConnectionTestParams = {
         project_id: projectId as string,
+        connection_name: connectionName.trim(),
         db_type: dbType,
-        db_name: dbName.trim(),
+        db_name: dbName.trim() || '',
         host: host.trim(),
         port: parsedPort,
         username: username.trim(),
@@ -344,7 +349,7 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
     e.preventDefault();
     const newErrors: typeof errors = {};
     const parsedPort = Number(port);
-    if (!dbName.trim()) newErrors.db_name = 'Database name is required';
+    if (!connectionName.trim()) newErrors.connection_name = 'Connection name is required';
     if (!host.trim()) newErrors.host = 'Host is required';
     if (!port.trim() || Number.isNaN(parsedPort) || parsedPort <= 0 || !Number.isInteger(parsedPort)) newErrors.port = 'Port must be a positive integer';
     if (!username.trim()) newErrors.username = 'Username is required';
@@ -358,8 +363,9 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
       // Build payload with security options
       const payload: any = {
       project_id: projectId as string,
+      connection_name: connectionName.trim(),
       db_type: dbType,
-      db_name: dbName.trim(),
+      db_name: dbName.trim() || undefined,
       host: host.trim(),
       port: parsedPort,
       username: username.trim(),
@@ -581,11 +587,22 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
               </select>
             </div>
             <div className="cc-form-group">
-              <label htmlFor="dbName" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                Database Name <span className="cc-required">*</span>
-                <Tooltip text="The name of the database you want to connect to. This field is required." />
+              <label htmlFor="connectionName" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                Connection Name <span className="cc-required">*</span>
+                <Tooltip text="A friendly name to identify this database connection (e.g., Production DB, Test DB)." />
               </label>
-              <input ref={dbNameInputRef} id="dbName" type="text" className={`cc-form-input ${errors.db_name ? 'cc-error' : ''}`} value={dbName} onChange={(e) => setDbName(e.target.value)} placeholder="e.g. app_db" />
+              <input ref={connectionNameInputRef} id="connectionName" type="text" className={`cc-form-input ${errors.connection_name ? 'cc-error' : ''}`} value={connectionName} onChange={(e) => setConnectionName(e.target.value)} placeholder="e.g. Production Database" />
+              {errors.connection_name && <span className="cc-error-message">{errors.connection_name}</span>}
+            </div>
+          </div>
+
+          <div className="cc-form-row">
+            <div className="cc-form-group">
+              <label htmlFor="dbName" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                Database Name
+                <Tooltip text="The name of the database you want to connect to. This field is optional - leave empty if you don't need to specify a database." />
+              </label>
+              <input id="dbName" type="text" className={`cc-form-input ${errors.db_name ? 'cc-error' : ''}`} value={dbName} onChange={(e) => setDbName(e.target.value)} placeholder="e.g. app_db (optional)" />
               {errors.db_name && <span className="cc-error-message">{errors.db_name}</span>}
             </div>
           </div>

@@ -192,7 +192,7 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
           
           const opts: ConnectionOption[] = rawConns.map((c: any) => ({
             id: c.connection_id,
-            label: `${String(c.db_type).toUpperCase()} • ${c.db_name}@:${c.port}`,
+            label: `${c.connection_name} (${String(c.db_type).toUpperCase()} • ${c.host}:${c.port})`,
           }));
           setConnections(opts);
           const map: Record<string, Connection> = {};

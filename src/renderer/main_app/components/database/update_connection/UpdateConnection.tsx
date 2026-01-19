@@ -59,17 +59,18 @@ const EyeIcon: React.FC<{ visible: boolean }> = ({ visible }) => (
 const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, connection, onClose, onSave }) => {
   const databaseService = useMemo(() => new DatabaseService(), []);
   const [dbType, setDbType] = useState<DbTypeOption>('postgres');
+  const [connectionName, setConnectionName] = useState('');
   const [dbName, setDbName] = useState('');
   const [host, setHost] = useState('');
   const [port, setPort] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<'db_name' | 'host' | 'port' | 'username' | 'password', string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<'connection_name' | 'db_name' | 'host' | 'port' | 'username' | 'password', string>>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message?: string; error?: string } | null>(null);
-  const dbNameInputRef = useRef<HTMLInputElement>(null);
+  const connectionNameInputRef = useRef<HTMLInputElement>(null);
 
   // Security options
   const [securityType, setSecurityType] = useState<'none' | 'ssl' | 'ssh'>('none');
@@ -105,7 +106,7 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
     return Boolean(
       projectId &&
       connection?.connection_id &&
-      dbName.trim() &&
+      connectionName.trim() &&
       host.trim() &&
       port.trim() &&
       !Number.isNaN(parsedPort) &&
@@ -113,12 +114,13 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
       username.trim()
       // Password is optional for update (only required if user wants to change it)
     );
-  }, [projectId, connection, dbName, host, port, username]);
+  }, [projectId, connection, connectionName, host, port, username]);
 
   // Pre-fill form when connection changes
   useEffect(() => {
     if (isOpen && connection) {
       setDbType(connection.db_type as DbTypeOption);
+      setConnectionName(connection.connection_name || '');
       setDbName(connection.db_name || '');
       setHost(connection.host || '');
       setPort(String(connection.port || ''));
@@ -155,6 +157,7 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
   useEffect(() => {
     if (!isOpen) {
       setDbType('postgres');
+      setConnectionName('');
       setDbName('');
       setHost('');
       setPort('');
@@ -206,9 +209,9 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
 
   // Auto-focus on first input when modal opens
   useEffect(() => {
-    if (isOpen && dbNameInputRef.current) {
+    if (isOpen && connectionNameInputRef.current) {
       setTimeout(() => {
-        dbNameInputRef.current?.focus();
+        connectionNameInputRef.current?.focus();
       }, 100);
     }
   }, [isOpen]);
@@ -222,6 +225,7 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     dbType,
+    connectionName,
     dbName,
     host,
     port,
@@ -249,7 +253,7 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
     // Validate basic fields
     const newErrors: typeof errors = {};
     const parsedPort = Number(port);
-    if (!dbName.trim()) newErrors.db_name = 'Database name is required';
+    if (!connectionName.trim()) newErrors.connection_name = 'Connection name is required';
     if (!host.trim()) newErrors.host = 'Host is required';
     if (!port.trim() || Number.isNaN(parsedPort) || parsedPort <= 0 || !Number.isInteger(parsedPort)) newErrors.port = 'Port must be a positive integer';
     if (!username.trim()) newErrors.username = 'Username is required';
@@ -320,8 +324,9 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
 
       const testParams: DatabaseConnectionTestParams = {
         project_id: projectId as string,
+        connection_name: connectionName.trim(),
         db_type: dbType,
-        db_name: dbName.trim(),
+        db_name: dbName.trim() || '',
         host: host.trim(),
         port: parsedPort,
         username: username.trim(),
@@ -421,7 +426,7 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
 
     const newErrors: typeof errors = {};
     const parsedPort = Number(port);
-    if (!dbName.trim()) newErrors.db_name = 'Database name is required';
+    if (!connectionName.trim()) newErrors.connection_name = 'Connection name is required';
     if (!host.trim()) newErrors.host = 'Host is required';
     if (!port.trim() || Number.isNaN(parsedPort) || parsedPort <= 0 || !Number.isInteger(parsedPort)) newErrors.port = 'Port must be a positive integer';
     if (!username.trim()) newErrors.username = 'Username is required';
@@ -438,8 +443,11 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
       };
 
       // Only include fields that have changed or are being set
+      if (connectionName.trim() !== (connection.connection_name || '')) payload.connection_name = connectionName.trim();
       if (dbType !== connection.db_type) payload.db_type = dbType;
-      if (dbName.trim() !== connection.db_name) payload.db_name = dbName.trim();
+      const newDbName = dbName.trim() || null;
+      const currentDbName = connection.db_name ?? null;
+      if (newDbName !== currentDbName) payload.db_name = newDbName;
       if (host.trim() !== connection.host) payload.host = host.trim();
       if (parsedPort !== connection.port) payload.port = parsedPort;
       if (username.trim() !== connection.username) payload.username = username.trim();
@@ -701,11 +709,22 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
               </select>
             </div>
             <div className="cc-form-group">
-              <label htmlFor="dbName" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                Database Name <span className="cc-required">*</span>
-                <Tooltip text="The name of the database you want to connect to. This field is required." />
+              <label htmlFor="connectionName" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                Connection Name <span className="cc-required">*</span>
+                <Tooltip text="A friendly name to identify this database connection (e.g., Production DB, Test DB)." />
               </label>
-              <input ref={dbNameInputRef} id="dbName" type="text" className={`cc-form-input ${errors.db_name ? 'cc-error' : ''}`} value={dbName} onChange={(e) => setDbName(e.target.value)} placeholder="e.g. app_db" />
+              <input ref={connectionNameInputRef} id="connectionName" type="text" className={`cc-form-input ${errors.connection_name ? 'cc-error' : ''}`} value={connectionName} onChange={(e) => setConnectionName(e.target.value)} placeholder="e.g. Production Database" />
+              {errors.connection_name && <span className="cc-error-message">{errors.connection_name}</span>}
+            </div>
+          </div>
+
+          <div className="cc-form-row">
+            <div className="cc-form-group">
+              <label htmlFor="dbName" className="cc-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                Database Name
+                <Tooltip text="The name of the database you want to connect to. This field is optional - leave empty if you don't need to specify a database." />
+              </label>
+              <input id="dbName" type="text" className={`cc-form-input ${errors.db_name ? 'cc-error' : ''}`} value={dbName} onChange={(e) => setDbName(e.target.value)} placeholder="e.g. app_db (optional)" />
               {errors.db_name && <span className="cc-error-message">{errors.db_name}</span>}
             </div>
           </div>
