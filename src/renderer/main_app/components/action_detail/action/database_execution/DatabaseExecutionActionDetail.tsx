@@ -3,6 +3,7 @@ import { Action, Connection, Statement } from '../../../../types/actions';
 import { StatementService } from '../../../../services/statements';
 import { apiRouter } from '../../../../services/baseAPIRequest';
 import QueryResultTable from '../../query_result/QueryResultTable';
+import { decryptObject } from '../../../../services/encryption';
 import '../../ActionDetailModal.css';
 
 const statementService = new StatementService();
@@ -10,6 +11,30 @@ const statementService = new StatementService();
 interface ConnectionOption {
   id: string;
   label: string;
+}
+
+/**
+ * Xác định các trường cần mã hóa/giải mã trong DatabaseConnection
+ * Các trường không mã hóa: project_id, db_type, security_type, ssl_mode, ssh_auth_method, connection_id, port
+ */
+function getFieldsToEncryptForDatabaseConnection(): string[] {
+  return [
+    'connection_name',
+    'db_name',
+    'host',
+    'username',
+    'password',
+    'ca_certificate',
+    'client_certificate',
+    'client_private_key',
+    'ssl_key_passphrase',
+    'ssh_host',
+    'ssh_username',
+    'ssh_private_key',
+    'ssh_key_passphrase',
+    'ssh_password',
+    'local_port'
+  ];
 }
 
 interface DatabaseExecutionActionDetailProps {
@@ -73,7 +98,29 @@ const DatabaseExecutionActionDetail: React.FC<DatabaseExecutionActionDetailProps
           body: JSON.stringify({ project_id: projectId }),
         });
         if (resp.success && (resp as any).data?.connections) {
-          const rawConns: Connection[] = (resp as any).data.connections;
+          let rawConns: Connection[] = (resp as any).data.connections;
+
+          // Decrypt connections if needed
+          const projectIdStr = String(projectId);
+          try {
+            const encryptionKey = await (window as any).encryptionStore?.getKey?.(projectIdStr);
+            if (encryptionKey) {
+              const fieldsToDecrypt = getFieldsToEncryptForDatabaseConnection();
+              rawConns = await Promise.all(
+                rawConns.map(async (connection) => {
+                  try {
+                    return await decryptObject(connection, encryptionKey, fieldsToDecrypt);
+                  } catch (error) {
+                    // Keep original connection if decryption fails (backward compatibility)
+                    return connection;
+                  }
+                })
+              );
+            }
+          } catch (error) {
+            // Keep original response if decryption fails (backward compatibility)
+          }
+
           const opts: ConnectionOption[] = rawConns.map((c: any) => ({
             id: c.connection_id,
             label: `${c.connection_name} (${String(c.db_type).toUpperCase()} • ${c.host}:${c.port})`

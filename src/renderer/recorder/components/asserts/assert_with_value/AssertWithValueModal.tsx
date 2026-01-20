@@ -27,6 +27,7 @@ const variableService = new VariableService();
  */
 function getFieldsToEncryptForDatabaseConnection(): string[] {
   return [
+    'connection_name',
     'db_name',
     'host',
     'username',

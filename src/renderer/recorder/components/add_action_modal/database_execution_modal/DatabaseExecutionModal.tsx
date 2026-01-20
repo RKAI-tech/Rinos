@@ -3,12 +3,37 @@ import { StatementService } from '../../../services/statements';
 import { apiRouter } from '../../../services/baseAPIRequest';
 import QueryResultTable from '../../asserts/ai_assert/QueryResultTable';
 import { Connection } from '../../../types/actions';
+import { decryptObject } from '../../../services/encryption';
 
 const statementService = new StatementService();
 
 interface ConnectionOption { 
   id: string; 
   label: string; 
+}
+
+/**
+ * Xác định các trường cần mã hóa/giải mã trong DatabaseConnection
+ * Các trường không mã hóa: project_id, db_type, security_type, ssl_mode, ssh_auth_method, connection_id, port
+ */
+function getFieldsToEncryptForDatabaseConnection(): string[] {
+  return [
+    'connection_name',
+    'db_name',
+    'host',
+    'username',
+    'password',
+    'ca_certificate',
+    'client_certificate',
+    'client_private_key',
+    'ssl_key_passphrase',
+    'ssh_host',
+    'ssh_username',
+    'ssh_private_key',
+    'ssh_key_passphrase',
+    'ssh_password',
+    'local_port'
+  ];
 }
 
 interface DatabaseExecutionModalProps {
@@ -48,7 +73,29 @@ const DatabaseExecutionModal: React.FC<DatabaseExecutionModalProps> = ({
           body: JSON.stringify({ project_id: projectId }),
         });
         if (resp.success && (resp as any).data?.connections) {
-          const rawConns: Connection[] = (resp as any).data.connections;
+          let rawConns: Connection[] = (resp as any).data.connections;
+
+          // Decrypt connections if needed
+          const projectIdStr = String(projectId);
+          try {
+            const encryptionKey = await (window as any).encryptionStore?.getKey?.(projectIdStr);
+            if (encryptionKey) {
+              const fieldsToDecrypt = getFieldsToEncryptForDatabaseConnection();
+              rawConns = await Promise.all(
+                rawConns.map(async (connection) => {
+                  try {
+                    return await decryptObject(connection, encryptionKey, fieldsToDecrypt);
+                  } catch (error) {
+                    // Keep original connection if decryption fails (backward compatibility)
+                    return connection;
+                  }
+                })
+              );
+            }
+          } catch (error) {
+            // Keep original response if decryption fails (backward compatibility)
+          }
+
           const opts: ConnectionOption[] = rawConns.map((c: any) => ({
             id: c.connection_id,
             label: `${c.connection_name} (${String(c.db_type).toUpperCase()} • ${c.host}:${c.port})`
@@ -77,10 +124,14 @@ const DatabaseExecutionModal: React.FC<DatabaseExecutionModalProps> = ({
       setIsRunningQuery(true);
       setQueryError('');
       setQueryStatus('Executing query...');
-      const resp = await statementService.runWithoutCreate({ 
-        connection_id: selectedConnectionId, 
-        query: query.trim() 
-      });
+      const connection = connectionMap[selectedConnectionId];
+      const resp = await statementService.runWithoutCreate(
+        { 
+          connection_id: selectedConnectionId, 
+          query: query.trim() 
+        },
+        connection
+      );
       
       const data = (resp as any)?.data?.data || [];
       const preview = data.length > 0 ? JSON.stringify(data) : 'No rows returned';

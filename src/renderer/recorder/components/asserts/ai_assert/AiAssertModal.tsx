@@ -7,6 +7,7 @@ import ApiElementPanel from './api_model/ApiElementPanel';
 import { Connection, ApiRequestData } from '../../../types/actions';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { executeApiRequest, validateApiRequest, convertApiRequestDataToOptions } from '../../../utils/api_request';
+import { decryptObject } from '../../../services/encryption';
 import { toast } from 'react-toastify';
 const statementService = new StatementService();
 
@@ -35,6 +36,30 @@ interface AiElementItem {
 }
 
 interface ConnectionOption { id: string; label: string }
+
+/**
+ * Xác định các trường cần mã hóa/giải mã trong DatabaseConnection
+ * Các trường không mã hóa: project_id, db_type, security_type, ssl_mode, ssh_auth_method, connection_id, port
+ */
+function getFieldsToEncryptForDatabaseConnection(): string[] {
+  return [
+    'connection_name',
+    'db_name',
+    'host',
+    'username',
+    'password',
+    'ca_certificate',
+    'client_certificate',
+    'client_private_key',
+    'ssl_key_passphrase',
+    'ssh_host',
+    'ssh_username',
+    'ssh_private_key',
+    'ssh_key_passphrase',
+    'ssh_password',
+    'local_port'
+  ];
+}
 
 import { SelectedPageInfo } from './api_model/ApiElementPanel';
 
@@ -264,7 +289,29 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
           body: JSON.stringify({ project_id: projectId }),
         });
         if (resp.success && (resp as any).data?.connections) {
-          const rawConns: Connection[] = (resp as any).data.connections;
+          let rawConns: Connection[] = (resp as any).data.connections;
+
+          // Decrypt connections if needed
+          const projectIdStr = String(projectId);
+          try {
+            const encryptionKey = await (window as any).encryptionStore?.getKey?.(projectIdStr);
+            if (encryptionKey) {
+              const fieldsToDecrypt = getFieldsToEncryptForDatabaseConnection();
+              rawConns = await Promise.all(
+                rawConns.map(async (connection) => {
+                  try {
+                    return await decryptObject(connection, encryptionKey, fieldsToDecrypt);
+                  } catch (error) {
+                    // Keep original connection if decryption fails (backward compatibility)
+                    return connection;
+                  }
+                })
+              );
+            }
+          } catch (error) {
+            // Keep original response if decryption fails (backward compatibility)
+          }
+
           const opts: ConnectionOption[] = rawConns.map((c: any) => ({
             id: c.connection_id,
             // label: `${String(c.db_type).toUpperCase()} • ${c.db_name}@:${c.port}`,
@@ -351,7 +398,11 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
       const el = elements[idx];
     if (!el?.connectionId || !el?.query || !el.query.trim()) return;
 
-      const resp = await statementService.runWithoutCreate({ connection_id: el.connectionId, query: el.query });
+      const connection = connectionMap[el.connectionId];
+      const resp = await statementService.runWithoutCreate(
+        { connection_id: el.connectionId, query: el.query },
+        connection
+      );
       
       const data = (resp as any)?.data?.data || [];
       const preview = data.length > 0 ? JSON.stringify(data) : 'No rows';
