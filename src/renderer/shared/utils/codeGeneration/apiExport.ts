@@ -10,7 +10,7 @@ export function getExportApiToJsonFunctionString(): string {
   const fs = fsModule.default || fsModule;
   const pathModule = await import('path');
   const path = pathModule.default || pathModule;
-  const apiFolder = '<api-execution-folder>';  
+  const apiFolder = 'apis';  
   if (!fs.existsSync(apiFolder)) { fs.mkdirSync(apiFolder, { recursive: true }); }
   const fileSuffix = requestIndex !== null && requestIndex !== undefined ? \`_\${requestIndex}\` : '';
   const jsonFileName = \`\${apiFolder}/Step_\${stepIndex}\${fileSuffix}.json\`;

@@ -10,7 +10,7 @@ export function getExportDatabaseToExcelFunctionString(): string {
   const XLSX = XLSXModule.default || XLSXModule;
   const fsModule = await import('fs');
   const fs = fsModule.default || fsModule;
-  const databaseFolder = '<database-execution-folder>';
+  const databaseFolder = 'databases';
   if (!fs.existsSync(databaseFolder)) { fs.mkdirSync(databaseFolder, { recursive: true }); }
   const fileSuffix = queryIndex !== null && queryIndex !== undefined ? \`_\${queryIndex}\` : '';
   const excelFileName = \`\${databaseFolder}/Step_\${stepIndex}\${fileSuffix}.xlsx\`;

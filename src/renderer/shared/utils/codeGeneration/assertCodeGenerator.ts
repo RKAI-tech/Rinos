@@ -111,10 +111,11 @@ export function generateAssertCode(action: Action, index: number): string {
   }
 
   const currentPage = pageIndex === null || pageIndex === 0 ? '' : String(pageIndex);
+  const captureScript = `await page${currentPage}.screenshot({ path: 'images/Step_${index}.png' });\n`;
 
   if (assertType === AssertType.toBeChecked) {
     return (
-      `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n` +
+      captureScript +
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n` +
       `      await locator.scrollIntoViewIfNeeded();\n` +
@@ -124,7 +125,7 @@ export function generateAssertCode(action: Action, index: number): string {
     );
   } else if (assertType === AssertType.toBeUnchecked) {
     return (
-      `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n` +
+      captureScript +
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n` +
       `      await locator.scrollIntoViewIfNeeded();\n` +
@@ -134,7 +135,7 @@ export function generateAssertCode(action: Action, index: number): string {
     );
   } else if (assertType === AssertType.toBeDisabled) {
     return (
-      `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n` +
+      captureScript +
       `    await test.step('${index}.${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n` +
       `      await locator.scrollIntoViewIfNeeded();\n` +
@@ -144,7 +145,7 @@ export function generateAssertCode(action: Action, index: number): string {
     );
   } else if (assertType === AssertType.toBeEditable) {
     return (
-      `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n` +
+      captureScript +
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n` +
       `      await locator.scrollIntoViewIfNeeded();\n` +
@@ -154,7 +155,7 @@ export function generateAssertCode(action: Action, index: number): string {
     );
   } else if (assertType === AssertType.toBeReadOnly) {
     return (
-      `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n` +
+      captureScript +
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n` +
       `      await locator.scrollIntoViewIfNeeded();\n` +
@@ -164,7 +165,7 @@ export function generateAssertCode(action: Action, index: number): string {
     );
   } else if (assertType === AssertType.toBeEmpty) {
     return (
-      `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n` +
+      captureScript +
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n` +
       `      await locator.scrollIntoViewIfNeeded();\n` +
@@ -174,7 +175,7 @@ export function generateAssertCode(action: Action, index: number): string {
     );
   } else if (assertType === AssertType.toBeEnabled) {
     return (
-      `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n` +
+      captureScript +
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n` +
       `      await locator.scrollIntoViewIfNeeded();\n` +
@@ -184,7 +185,7 @@ export function generateAssertCode(action: Action, index: number): string {
     );
   } else if (assertType === AssertType.toBeFocused) {
     return (
-      `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n` +
+      captureScript +
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n` +
       `      await locator.scrollIntoViewIfNeeded();\n` +
@@ -194,7 +195,7 @@ export function generateAssertCode(action: Action, index: number): string {
     );
   } else if (assertType === AssertType.toBeHidden) {
     return (
-      `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n` +
+      captureScript +
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n` +
       `      await locator.scrollIntoViewIfNeeded();\n` +
@@ -204,7 +205,7 @@ export function generateAssertCode(action: Action, index: number): string {
     );
   } else if (assertType === AssertType.toBeVisible) {
     return (
-      `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n` +
+      captureScript +
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n` +
       `      await locator.scrollIntoViewIfNeeded();\n` +
@@ -213,7 +214,7 @@ export function generateAssertCode(action: Action, index: number): string {
       `    await bm.waitForAppIdle();\n`
     );
   } else if (assertType === AssertType.toContainText) {
-    let codeReturn = `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n`;
+    let codeReturn = captureScript;
     codeReturn += `    await test.step('${index}. ${action.description || ''}', async () => {\n`;
     codeReturn += `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n`;
     codeReturn += `      await locator.scrollIntoViewIfNeeded();\n`;
@@ -247,7 +248,7 @@ export function generateAssertCode(action: Action, index: number): string {
     return codeReturn;
   } else if (assertType === AssertType.toHaveCount) {
     return (
-      `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n` +
+      captureScript +
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n` +
       `      await locator.scrollIntoViewIfNeeded();\n` +
@@ -257,7 +258,7 @@ export function generateAssertCode(action: Action, index: number): string {
     );
   } else if (assertType === AssertType.toHaveRole) {
     return (
-      `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n` +
+      captureScript +
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n` +
       `      await locator.scrollIntoViewIfNeeded();\n` +
@@ -286,7 +287,7 @@ export function generateAssertCode(action: Action, index: number): string {
     const cssPropertyEscaped = cssProperty ? escape(cssProperty) : "''";
     const cssValueEscaped = cssValue ? escape(cssValue) : "''";
     return (
-      `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n` +
+      captureScript +
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n` +
       `      await locator.scrollIntoViewIfNeeded();\n` +
@@ -295,7 +296,7 @@ export function generateAssertCode(action: Action, index: number): string {
       `    await bm.waitForAppIdle();\n`
     );
   } else if (assertType === AssertType.toHaveText) {
-    let codeReturn = `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n`;
+    let codeReturn = captureScript;
     codeReturn += `    await test.step('${index}. ${action.description || ''}', async () => {\n`;
     codeReturn += `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n`;
     codeReturn += `      await locator.scrollIntoViewIfNeeded();\n`;
@@ -328,7 +329,7 @@ export function generateAssertCode(action: Action, index: number): string {
     codeReturn += `    await bm.waitForAppIdle();\n`;
     return codeReturn;
   } else if (assertType === AssertType.toHaveValue) {
-    let codeReturn = `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n`;
+    let codeReturn = captureScript;
     codeReturn += `    await test.step('${index}. ${action.description || ''}', async () => {\n`;
     codeReturn += `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n`;
     codeReturn += `      await locator.scrollIntoViewIfNeeded();\n`;
@@ -361,7 +362,7 @@ export function generateAssertCode(action: Action, index: number): string {
     codeReturn += `    await bm.waitForAppIdle();\n`;
     return codeReturn;
   } else if (assertType === AssertType.toHaveValues) {
-    let codeReturn = `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n`;
+    let codeReturn = captureScript;
     codeReturn += `    await test.step('${index}. ${action.description || ''}', async () => {\n`;
     codeReturn += `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n`;
     codeReturn += `      await locator.scrollIntoViewIfNeeded();\n`;
@@ -395,7 +396,7 @@ export function generateAssertCode(action: Action, index: number): string {
     return codeReturn;
   } else if (assertType === AssertType.pageHasATitle) {
     return (
-      `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n` +
+      captureScript +
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      await expect(page${currentPage}).toHaveTitle('${values[0] || ''}');\n` +
       `    })\n` +
@@ -403,7 +404,7 @@ export function generateAssertCode(action: Action, index: number): string {
     );
   } else if (assertType === AssertType.pageHasAURL) {
     return (
-      `    await page${currentPage}.screenshot({ path: '<images-folder>/Step_${index}.png' });\n` +
+      captureScript +
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      await expect(page${currentPage}).toHaveURL('${values[0] || ''}');\n` +
       `    })\n` +
