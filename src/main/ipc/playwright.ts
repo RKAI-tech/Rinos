@@ -863,6 +863,7 @@ export async function initializeSandbox(): Promise<void> {
         ...process.env,
         ELECTRON_RUN_AS_NODE: '1',
       },
+      shell: true, // Required on Windows to find npm.cmd in PATH
     });
 
     let stdout = '';
@@ -1020,15 +1021,14 @@ export function registerPlaywrightHandlersIpc() {
 
       
       
-      // Use npx playwright test command
+      // Use playwright test command
       // Get script filename relative to sandbox directory
       const scriptFilename = path.basename(fullScriptPath);
       
-      // Build command: npx playwright test <script> --project <browser> --output <dir>
-      // Use Electron's node executable to run npx
-      const nodeExecutable = process.execPath;
+      // Build command: playwright test <script> --project <browser> --output <dir>
+      // Use Electron's node (process.execPath) to run playwright script directly
+      // This avoids .cmd file issues on Windows (Node.js 18.20.2+ requires shell: true for .cmd)
       const spawnArgs = [
-        'playwright',
         'test',
         scriptFilename,
         '--project', browserName,
@@ -1040,15 +1040,44 @@ export function registerPlaywrightHandlersIpc() {
         let stderr = '';
         let timeoutId: NodeJS.Timeout | null = null;
         
-        // Use Electron's node to run npx via child_process
-        // This ensures we use the correct node environment
-        const npxCommand = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-        const child = spawn(npxCommand, spawnArgs, {
+        // Best approach: Use Electron's node (process.execPath) to run playwright script directly
+        // This avoids .cmd file issues on Windows and is more reliable
+        // Use @playwright/test/cli.js (not playwright-core/cli.js) for running tests
+        let playwrightScriptPath: string;
+        
+        try {
+          // Try to resolve @playwright/test/cli.js from sandbox node_modules
+          // @playwright/test is the correct package for running tests
+          playwrightScriptPath = require.resolve('@playwright/test/cli.js', {
+            paths: [path.join(sandboxDir, 'node_modules')]
+          });
+        } catch {
+          // Fallback to direct path if require.resolve fails
+          playwrightScriptPath = path.join(
+            sandboxDir,
+            "node_modules",
+            "@playwright",
+            "test",
+            "cli.js"
+          );
+        }
+        
+        // Verify playwright test CLI exists
+        if (!fs.existsSync(playwrightScriptPath)) {
+          throw new Error(`Playwright test CLI not found: ${playwrightScriptPath}. Please ensure @playwright/test is installed in sandbox.`);
+        }
+        
+        // Use process.execPath (Electron's node) to run the playwright script directly
+        // No need for shell: true when using process.execPath with .js file
+        const spawnOptions = {
           env: env,
           cwd: sandboxDir,
-          stdio: ['ignore', 'pipe', 'pipe'],
-          // shell: true, // Use shell to find npx
-        });
+          stdio: ['ignore', 'pipe', 'pipe'] as ('ignore' | 'pipe')[],
+        };
+        
+        // Spawn using Electron's node to run playwright script
+        // This is the most reliable method and avoids .cmd file issues on Windows
+        const child = spawn(process.execPath, [playwrightScriptPath, ...spawnArgs], spawnOptions);
         
         // Set timeout
         timeoutId = setTimeout(() => {

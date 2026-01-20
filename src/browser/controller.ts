@@ -761,11 +761,11 @@ export class Controller {
                                             ? await locator.waitForSelector({ state: 'attached', timeout: 10000 })
                                             : undefined;
 
-                                        await activePage.waitForFunction(
-                                            el => !el || (el.files && el.files.length > 0),
-                                            await locator.elementHandle(),
-                                            { timeout: 10000 }
-                                        );
+                                        // await activePage.waitForFunction(
+                                        //     el => !el || (el.files && el.files.length > 0),
+                                        //     await locator.elementHandle(),
+                                        //     { timeout: 10000 }
+                                        // );
                                     }
 
                                     // TODO: Delete temp file

@@ -50,20 +50,6 @@ function createWindow(options: Electron.BrowserWindowConstructorOptions, page: s
   });
 
   if (isDev) {
-    
-    
-    tryLoadDevPaths(win, page).catch((err) => {
-      /* console.error('[windowManager] Error loading dev paths:', err); */
-    });
-  } else {
-    /* console.log('[windowManager] in prod mode'); */
-    win.loadFile(path.join(__dirnameResolved, `renderer/${page}/index.html`));
-  }
-  win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    /* console.error('[windowManager] did-fail-load', errorCode, errorDescription); */
-  });
-
-  /* console.log('[windowManager] in dev mode'); */
     // Open dev tools after window is ready
     win.webContents.once('did-finish-load', () => {
       /* console.log('[windowManager] openDevTools - after did-finish-load'); */
@@ -92,6 +78,19 @@ function createWindow(options: Electron.BrowserWindowConstructorOptions, page: s
         }
       }, 200);
     });
+    
+    tryLoadDevPaths(win, page).catch((err) => {
+      /* console.error('[windowManager] Error loading dev paths:', err); */
+    });
+  } else {
+    /* console.log('[windowManager] in prod mode'); */
+    win.loadFile(path.join(__dirnameResolved, `renderer/${page}/index.html`));
+  }
+  win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    /* console.error('[windowManager] did-fail-load', errorCode, errorDescription); */
+  });
+
+  /* console.log('[windowManager] in dev mode'); */
 
   // win.webContents.openDevTools();
   return win;
