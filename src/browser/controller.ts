@@ -268,9 +268,14 @@ export class Controller {
             throw new Error('Page or selectors is invalid.');
         }
         const toLocator = (s: string) => {
-            return eval(`page.${s}`);
+            try {
+                return eval(`page.${s}`);
+            } catch (e) {
+                // ignore error
+                return null;
+            }
         };
-        const locators = selectors.map(toLocator);
+        const locators = selectors.map(toLocator).filter((l): l is Locator => !!l);;
         await Promise.allSettled(
             locators.map(l => l.first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => { }))
         );

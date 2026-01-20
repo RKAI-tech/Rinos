@@ -70,8 +70,12 @@ export function getResolveUniqueSelectorFunctionString(): string {
   if (!page || !selectors || !Array.isArray(selectors) || selectors.length === 0) {
     throw new Error('Page or selectors is invalid.');
   }
-  const toLocator = (s) => { return eval(\`page.\${s}\`); };
-  const locators = selectors.map(toLocator);
+  const toLocator = (s) => { 
+    try {
+      return eval(\`page.\${s}\`);
+    } catch (e) { return null; }
+  };
+  const locators = selectors.map(toLocator).filter((l): l is Locator => !!l);
   await Promise.allSettled(
     locators.map(l => l.first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => {}))
   );
