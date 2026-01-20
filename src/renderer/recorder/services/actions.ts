@@ -32,11 +32,51 @@ function getFieldsToEncryptForActionData(actionData: ActionData): string[] {
     
     // Database connection
     if (actionData.statement?.connection) {
-        if (actionData.statement.connection.username) {
+        const connection = actionData.statement.connection as any;
+        if (connection.connection_name) {
+            fields.push('statement.connection.connection_name');
+        }
+        if (connection.host) {
+            fields.push('statement.connection.host');
+        }
+        if (connection.db_name) {
+            fields.push('statement.connection.db_name');
+        }
+        if (connection.username) {
             fields.push('statement.connection.username');
         }
-        if (actionData.statement.connection.password) {
+        if (connection.password) {
             fields.push('statement.connection.password');
+        }
+        if (connection.ca_certificate) {
+            fields.push('statement.connection.ca_certificate');
+        }
+        if (connection.client_certificate) {
+            fields.push('statement.connection.client_certificate');
+        }
+        if (connection.client_private_key) {
+            fields.push('statement.connection.client_private_key');
+        }
+        if (connection.ssl_key_passphrase) {
+            fields.push('statement.connection.ssl_key_passphrase');
+        }
+        if (connection.ssh_host) {
+            fields.push('statement.connection.ssh_host');
+        }
+        if (connection.ssh_username) {
+            fields.push('statement.connection.ssh_username');
+        }
+        if (connection.ssh_private_key) {
+            fields.push('statement.connection.ssh_private_key');
+        }
+        if (connection.ssh_key_passphrase) {
+            fields.push('statement.connection.ssh_key_passphrase');
+        }
+        if (connection.ssh_password) {
+            fields.push('statement.connection.ssh_password');
+        }
+        if (connection.local_port) {
+            fields.push('statement.connection.local_port');
         }
     }
     
@@ -78,20 +118,51 @@ function getFieldsToDecryptForActionData(actionData: ActionData): string[] {
     
     // Database connection
     if (actionData.statement?.connection) {
-        if (actionData.statement.connection.connection_name) {
+        const connection = actionData.statement.connection as any;
+        if (connection.connection_name) {
             fields.push('statement.connection.connection_name');
         }
-        if (actionData.statement.connection.host) {
+        if (connection.host) {
             fields.push('statement.connection.host');
         }
-        if (actionData.statement.connection.db_name) {
+        if (connection.db_name) {
             fields.push('statement.connection.db_name');
         }
-        if (actionData.statement.connection.username) {
+        if (connection.username) {
             fields.push('statement.connection.username');
         }
-        if (actionData.statement.connection.password) {
+        if (connection.password) {
             fields.push('statement.connection.password');
+        }
+        if (connection.ca_certificate) {
+            fields.push('statement.connection.ca_certificate');
+        }
+        if (connection.client_certificate) {
+            fields.push('statement.connection.client_certificate');
+        }
+        if (connection.client_private_key) {
+            fields.push('statement.connection.client_private_key');
+        }
+        if (connection.ssl_key_passphrase) {
+            fields.push('statement.connection.ssl_key_passphrase');
+        }
+        if (connection.ssh_host) {
+            fields.push('statement.connection.ssh_host');
+        }
+        if (connection.ssh_username) {
+            fields.push('statement.connection.ssh_username');
+        }
+        if (connection.ssh_private_key) {
+            fields.push('statement.connection.ssh_private_key');
+        }
+        if (connection.ssh_key_passphrase) {
+            fields.push('statement.connection.ssh_key_passphrase');
+        }
+        if (connection.ssh_password) {
+            fields.push('statement.connection.ssh_password');
+        }
+        if (connection.local_port) {
+            fields.push('statement.connection.local_port');
         }
     }
     

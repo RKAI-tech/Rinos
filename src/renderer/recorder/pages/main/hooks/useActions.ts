@@ -299,7 +299,7 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
     setIsLoading(true);
     try {
       const response = await actionService.getActionsByTestCase(effectiveId, 0, 0, projectId || undefined);
-      /* console.log('[useActions] Response', response); */
+      console.log('response', response);
       // Check if testcase was deleted (404 or Not Found error)
       if (!response.success && response.error) {
         const errorLower = response.error.toLowerCase();
