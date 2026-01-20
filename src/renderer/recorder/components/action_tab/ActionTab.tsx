@@ -824,26 +824,26 @@ const ActionTab: React.FC<ActionTabProps> = ({
   }, [recordingFromActionIndex]);
 
   // Ensure the selected insert position is visible (the action before the insertion point)
-  useEffect(() => {
-    if (selectedInsertPosition == null) return;
-    const targetIndex = Math.max(0, Math.min(selectedInsertPosition - 1, actions.length - 1));
-    const node = itemRefs.current[targetIndex];
-    if (!node) return;
-    try {
-      node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } catch { }
-  }, [selectedInsertPosition, actions.length]);
+  // useEffect(() => {
+  //   if (selectedInsertPosition == null) return;
+  //   const targetIndex = Math.max(0, Math.min(selectedInsertPosition - 1, actions.length - 1));
+  //   const node = itemRefs.current[targetIndex];
+  //   if (!node) return;
+  //   try {
+  //     node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  //   } catch { }
+  // }, [selectedInsertPosition, actions.length]);
 
   // Auto-scroll to the currently executing or failed action
-  useEffect(() => {
-    const targetIndex = (failedActionIndex != null) ? failedActionIndex : executingActionIndex;
-    if (targetIndex == null) return;
-    const node = itemRefs.current[targetIndex];
-    if (!node) return;
-    try {
-      node.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } catch { }
-  }, [executingActionIndex, failedActionIndex]);
+  // useEffect(() => {
+  //   const targetIndex = (failedActionIndex != null) ? failedActionIndex : executingActionIndex;
+  //   if (targetIndex == null) return;
+  //   const node = itemRefs.current[targetIndex];
+  //   if (!node) return;
+  //   try {
+  //     node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  //   } catch { }
+  // }, [executingActionIndex, failedActionIndex]);
 
   return (
     <div className="rcd-actions-section">
