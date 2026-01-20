@@ -3,7 +3,7 @@
 
 import { Action, ActionType } from '../../types/actions';
 import { BasicAuthentication } from '../../types/actions';
-import { getResolveUniqueSelectorFunctionString, checkNeedResolveUniqueSelector } from './selectorFuncs';
+import { getResolveUniqueSelectorFunctionString, checkNeedResolveUniqueSelector, checkNeedForceAction, getForceActionFunctionString } from './selectorFuncs';
 import { getImportDb } from './base';
 import { checkNeedConnectDb } from './dbConnectionCode';
 import { generateActionCode } from './actionCodeGenerator';
@@ -48,6 +48,11 @@ export function actionsToCode(
   
   if (checkNeedResolveUniqueSelector(actions)) {
     code += getResolveUniqueSelectorFunctionString();
+  }
+
+  if (checkNeedForceAction(actions)) {
+    code += '\n';
+    code += getForceActionFunctionString();
   }
   
   if (needsApiRequestSupport(actions)) {

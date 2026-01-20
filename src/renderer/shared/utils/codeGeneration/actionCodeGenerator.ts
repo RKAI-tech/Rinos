@@ -105,24 +105,36 @@ export function generateActionCode(
     if (followUpPageIndex) {
       code += `      page${followUpPageIndex}Promise = page${currentPage}.waitForEvent('popup');\n`;
     }
-    code += `      locator = await resolveUniqueSelector(page${currentPage}, ${selector1st || '[]'});\n`;
-    code += `      await locator.click();\n`;
+    code += `      try {\n`;
+    code += `        locator = await resolveUniqueSelector(page${currentPage}, ${selector1st || '[]'});\n`;
+    code += `        await locator.click();\n`;
+    code += `      } catch (err) {\n`;
+    code += `        await forceAction(page${currentPage}, ${selector1st || '[]'}, 'click');\n`;
+    code += `      }\n`;
     code += `    })\n`;
     code += `    await bm.waitForAppIdle();\n`;
     return code;
   } else if (actionType === ActionType.input) {
     return (
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
-      `      locator = await resolveUniqueSelector(page${currentPage}, ${selector1st || '[]'});\n` +
-      `      await locator.fill('${value || ''}');\n` +
+      `      try {\n` +
+      `        locator = await resolveUniqueSelector(page${currentPage}, ${selector1st || '[]'});\n` +
+      `        await locator.fill('${value || ''}');\n` +
+      `      } catch (err) {\n` +
+      `        await forceAction(page${currentPage}, ${selector1st || '[]'}, 'input', '${value || ''}');\n` +
+      `      }\n` +
       `    })\n` +
       `    await bm.waitForAppIdle();\n`
     );
   } else if (actionType === ActionType.select) {
     return (
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
-      `      locator = await resolveUniqueSelector(page${currentPage}, ${selector1st || '[]'});\n` +
-      `      await locator.selectOption('${value || ''}');\n` +
+      `      try {\n` +
+      `        locator = await resolveUniqueSelector(page${currentPage}, ${selector1st || '[]'});\n` +
+      `        await locator.selectOption('${value || ''}');\n` +
+      `      } catch (err) {\n` +
+      `        await forceAction(page${currentPage}, ${selector1st || '[]'}, 'select', '${value || ''}');\n` +
+      `      }\n` +
       `    })\n` +
       `    await bm.waitForAppIdle();\n`
     );
@@ -137,8 +149,12 @@ export function generateActionCode(
   } else if (actionType === ActionType.double_click) {
     return (
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
-      `      locator = await resolveUniqueSelector(page${currentPage}, ${selector1st || '[]'});\n` +
-      `      await locator.dblclick();\n` +
+      `      try {\n` +
+      `        locator = await resolveUniqueSelector(page${currentPage}, ${selector1st || '[]'});\n` +
+      `        await locator.dblclick();\n` +
+      `      } catch (err) {\n` +
+      `        await forceAction(page${currentPage}, ${selector1st || '[]'}, 'dblclick');\n` +
+      `      }\n` +
       `    })\n` +
       `    await bm.waitForAppIdle();\n`
     );
