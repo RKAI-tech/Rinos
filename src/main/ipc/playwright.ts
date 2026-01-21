@@ -1014,7 +1014,7 @@ export function registerPlaywrightHandlersIpc() {
       const { PLAYWRIGHT_BROWSERS_PATH, ...restEnv } = process.env;
       const env = {
         ...restEnv,
-        // PLAYWRIGHT_BROWSERS_PATH: browsersPath,
+        PLAYWRIGHT_BROWSERS_PATH: getBrowsersPath(),
         PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS: '0',
         ELECTRON_RUN_AS_NODE: '1',
       };

@@ -600,25 +600,22 @@ export class Controller {
                             await this.navigate(activePage, url_navigated);
                         }
                         break;
-                    case ActionType.reload: {
+                    case ActionType.reload:
                         if (activePage) {
                             await this.reload(activePage);
                         }
                         break;
-                    }
-                    case ActionType.back: {
+                    case ActionType.back:
                         if (activePage) {
                             await activePage.goBack();
                         }
                         break;
-                    }
-                    case ActionType.forward: {
+                    case ActionType.forward:
                         if (activePage) {
                             await activePage.goForward();
                         }
                         break;
-                    }
-                    case ActionType.add_browser_storage: {
+                    case ActionType.add_browser_storage:
                         if (activePage && action.action_datas?.[0]?.browser_storage) {
                             const browser_storage = action.action_datas?.[0]?.browser_storage;
                             if (browser_storage.storage_type === BrowserStorageType.COOKIE) {
@@ -630,7 +627,6 @@ export class Controller {
                             }
                         }
                         break;
-                    }
                     case ActionType.click:
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
