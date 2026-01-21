@@ -810,36 +810,19 @@ export async function initializeSandbox(): Promise<void> {
     fs.mkdirSync(sandboxDir, { recursive: true });
   }
 
-  // Get source sandbox path from app.asar
-  // In packaged app, sandbox is in app.asar
-  const sourceSandboxPath = path.join(process.resourcesPath, "app.asar", "sandbox");
-  
-  // Files to copy from app.asar
-  const filesToCopy = [
-    "package.json",
-    "playwright.config.ts",
-    "reporter.ts"
-  ];
+  // In packaged app, sandbox is shipped via electron-builder extraResources to:
+  // <resources>/sandbox (outside app.asar), which is safe for node_modules/native deps.
+  const sourceSandboxPath = path.join(process.resourcesPath, "sandbox");
 
-  // Copy files from app.asar
-  // Note: We need to read from asar using fs.readFileSync (asar is transparent to fs)
-  for (const file of filesToCopy) {
-    const sourcePath = path.join(sourceSandboxPath, file);
-    const destPath = path.join(sandboxDir, file);
-    
-    try {
-      // Check if file exists in asar
-      if (fs.existsSync(sourcePath)) {
-        const content = fs.readFileSync(sourcePath, 'utf-8');
-        fs.writeFileSync(destPath, content, 'utf-8');
-        /* console.log(`[Playwright IPC] Copied ${file} to sandbox`); */
-      } else {
-        /* console.warn(`[Playwright IPC] File not found in asar: ${sourcePath}`); */
-      }
-    } catch (error) {
-      /* console.error(`[Playwright IPC] Error copying ${file}:`, error); */
-      throw new Error(`Failed to copy ${file} to sandbox: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+  if (!fs.existsSync(sourceSandboxPath)) {
+    throw new Error(`Sandbox resource not found: ${sourceSandboxPath}. Ensure electron-builder extraResources includes sandbox/**`);
+  }
+
+  try {
+    // Copy everything (including node_modules) to userData/sandbox
+    fs.cpSync(sourceSandboxPath, sandboxDir, { recursive: true, force: true });
+  } catch (error) {
+    throw new Error(`Failed to copy sandbox to userData: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 
   // Create necessary directories
@@ -850,48 +833,6 @@ export async function initializeSandbox(): Promise<void> {
       fs.mkdirSync(dirPath, { recursive: true });
     }
   }
-
-  // Install npm dependencies
-  /* console.log('[Playwright IPC] Installing npm dependencies...'); */
-  const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-  
-  return new Promise<void>((resolve, reject) => {
-    const child = spawn(npmCommand, ['install', '--production'], {
-      cwd: sandboxDir,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        ELECTRON_RUN_AS_NODE: '1',
-      },
-      shell: true, // Required on Windows to find npm.cmd in PATH
-    });
-
-    let stdout = '';
-    let stderr = '';
-
-    child.stdout?.on('data', (data) => {
-      stdout += data.toString();
-    });
-
-    child.stderr?.on('data', (data) => {
-      stderr += data.toString();
-    });
-
-    child.on('close', (code) => {
-      if (code === 0) {
-        /* console.log('[Playwright IPC] npm install completed successfully'); */
-        resolve();
-      } else {
-        /* console.error('[Playwright IPC] npm install failed:', stderr); */
-        reject(new Error(`npm install failed with code ${code}: ${stderr}`));
-      }
-    });
-
-    child.on('error', (error) => {
-      /* console.error('[Playwright IPC] Failed to start npm install:', error); */
-      reject(new Error(`Failed to start npm install: ${error.message}`));
-    });
-  });
 }
 
 // Register IPC handlers
@@ -1018,8 +959,7 @@ export function registerPlaywrightHandlersIpc() {
         PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS: '0',
         ELECTRON_RUN_AS_NODE: '1',
       };
-
-      
+      console.log('[Playwright IPC] Playwright browsers path:', env.PLAYWRIGHT_BROWSERS_PATH);     
       
       // Use playwright test command
       // Get script filename relative to sandbox directory
