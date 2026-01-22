@@ -22,9 +22,9 @@ export function sanitizeStr(text: any): string | null {
 export function preProcessCookies(cookies: string): string {
   let processed = cookies.replace(/True/g, 'true').replace(/False/g, 'false');
   processed = processed.replace(/lax/g, 'Lax').replace(/strict/g, 'Strict');
-  processed = processed.replace(/None/g, "'None'");
-  processed = processed.replace(/no_restriction/g, "'None'");
-  processed = processed.replace(/unspecified/g, "'None'");
+  processed = processed.replace(/None/g, "None");
+  processed = processed.replace(/no_restriction/g, "None");
+  processed = processed.replace(/unspecified/g, "None");
   return processed;
 }
 
