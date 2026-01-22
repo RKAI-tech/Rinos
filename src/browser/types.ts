@@ -1,4 +1,5 @@
 import { BrowserStorageResponse } from "../renderer/main_app/types/browser_storage";
+import { DatabaseConnectionSecurityOptions } from "./types/databases";
 
 export enum BrowserType {
   chrome = "chrome",
@@ -78,20 +79,22 @@ export enum ConnectionType {
   mssql = "mssql",
 }
 
-export interface Connection {
+export interface Connection extends DatabaseConnectionSecurityOptions {
   connection_id?: string;
+  connection_name?: string;
   username: string;
   password: string;
   host: string;
-  port: string;
-  db_name: string;
+  port: number;
+  db_name?: string;
   db_type: ConnectionType;
 }
 
 export interface Statement {
   statement_id?: string;
-  query: string;
-  create_type: CreateType;
+  query?: string;
+  statement_text?: string;
+  create_type?: CreateType;
   connection?: Connection;
 }
 

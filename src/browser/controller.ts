@@ -890,8 +890,9 @@ export class Controller {
                             throw new Error('Query is required for database execution action');
                         }
 
-                        const connectionId = statementData.connection?.connection_id;
-                        if (!connectionId) {
+                        const connection = statementData.connection;
+                        const connectionId = connection?.connection_id;
+                        if (!connectionId || !connection) {
                             throw new Error('The connection is not available. Please check if the connection is opened or contact support.');
                         }
 
@@ -903,7 +904,7 @@ export class Controller {
                         const response = await this.statementService.runWithoutCreate({
                             connection_id: connectionId,
                             query: query
-                        });
+                        }, connection);
 
                         if (!response.success) {
                             throw new Error(response.error || 'Database execution failed');
