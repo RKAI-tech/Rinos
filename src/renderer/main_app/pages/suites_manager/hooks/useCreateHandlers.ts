@@ -12,11 +12,13 @@ interface UseCreateHandlersProps {
   setNewMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setIsNewTestcaseMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setExpanded: React.Dispatch<React.SetStateAction<Set<string>>>;
-  fetchData: () => Promise<void>;
   fetchTestcasesBySuite: (suiteId: string, suiteName: string) => Promise<void>;
   setAddingSuite: React.Dispatch<React.SetStateAction<any>>;
   setIsAddCasesModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   selectedSuite: any;
+  addSuiteToTree: (suite: any, groupId?: string | null) => void;
+  refreshRootGroups: () => Promise<void>;
+  refreshGroupChildren: (groupId: string) => Promise<void>;
 }
 
 export const useCreateHandlers = ({
@@ -28,11 +30,13 @@ export const useCreateHandlers = ({
   setNewMenuOpen,
   setIsNewTestcaseMenuOpen,
   setExpanded,
-  fetchData,
   fetchTestcasesBySuite,
   setAddingSuite,
   setIsAddCasesModalOpen,
   selectedSuite,
+  addSuiteToTree,
+  refreshRootGroups,
+  refreshGroupChildren,
 }: UseCreateHandlersProps) => {
   // Services
   const suiteService = useMemo(() => new TestSuiteService(), []);
@@ -90,8 +94,29 @@ export const useCreateHandlers = ({
             return next;
           });
         }
-        // Reload tree to show the new suite
-        await fetchData();
+        const rawData = (resp.data as any)?.data || (resp.data as any);
+        const createdSuiteId = rawData?.test_suite_id || rawData?.id;
+        if (createdSuiteId) {
+          addSuiteToTree({
+            test_suite_id: createdSuiteId,
+            name: data.name,
+            description: data.description,
+            browser_type: data.browser_type,
+            group_id: creatingSuiteGroupId || null,
+            project_id: projectId || '',
+            test_passed: 0,
+            test_failed: 0,
+            passed_rate: '0',
+            number_testcase: 0,
+            histories: null,
+            progress: null,
+            created_at: new Date().toISOString(),
+          }, creatingSuiteGroupId || null);
+        } else if (creatingSuiteGroupId) {
+          await refreshGroupChildren(creatingSuiteGroupId);
+        } else {
+          await refreshRootGroups();
+        }
         // Clear saved group_id after successful creation
         setCreatingSuiteGroupId(null);
       } else {
@@ -102,7 +127,16 @@ export const useCreateHandlers = ({
     } finally {
       setIsCreatingSuite(false);
     }
-  }, [projectId, isCreatingSuite, creatingSuiteGroupId, suiteService, setExpanded, fetchData]);
+  }, [
+    projectId,
+    isCreatingSuite,
+    creatingSuiteGroupId,
+    suiteService,
+    setExpanded,
+    addSuiteToTree,
+    refreshRootGroups,
+    refreshGroupChildren,
+  ]);
 
   // Open create testcase in suite handler
   const handleOpenCreateTestcaseInSuite = useCallback(() => {
@@ -187,8 +221,6 @@ export const useCreateHandlers = ({
         setCreatingTestcaseDefaultLevel(1);
         // Reload testcases in suite
         await fetchTestcasesBySuite(selectedSuiteId, selectedSuiteName);
-        // Reload tree to reflect changes
-        await fetchData();
       } else {
         toast.error(addResp.error || 'Failed to add testcase to suite. Please try again.');
       }
@@ -197,7 +229,7 @@ export const useCreateHandlers = ({
     } finally {
       setIsCreatingTestcaseInSuite(false);
     }
-  }, [projectId, selectedSuiteId, selectedSuiteName, isCreatingTestcaseInSuite, testCaseService, suiteService, fetchTestcasesBySuite, fetchData]);
+  }, [projectId, selectedSuiteId, selectedSuiteName, isCreatingTestcaseInSuite, testCaseService, suiteService, fetchTestcasesBySuite]);
 
   return {
     // Create suite state

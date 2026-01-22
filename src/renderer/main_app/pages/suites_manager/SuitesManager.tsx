@@ -33,6 +33,7 @@ import {
 } from './utils/suitesManagerUtils';
 import {
   filterNode,
+  findGroupById,
 } from './utils/treeOperations';
 import { useBrowserHandlers } from './hooks/useBrowserHandlers';
 import { useDragAndDrop } from './hooks/useDragAndDrop';
@@ -471,6 +472,258 @@ const SuitesManager: React.FC = () => {
     setSortDirection,
   } = useColumnSort('updated', 'desc');
 
+  const updateSuiteInTree = useCallback((
+    suiteId: string,
+    updates: Partial<GroupSuiteItem> | ((suite: GroupSuiteItem) => GroupSuiteItem)
+  ) => {
+    const applyUpdate = (suite: GroupSuiteItem) =>
+      typeof updates === 'function' ? updates(suite) : { ...suite, ...updates };
+
+    setSelectedSuite((prev) => (
+      prev && prev.test_suite_id === suiteId ? applyUpdate(prev) : prev
+    ));
+
+    const updateSuites = (suites: GroupSuiteItem[]) =>
+      suites.map((s) => (s.test_suite_id === suiteId ? applyUpdate(s) : s));
+
+    const updateGroups = (nodes: TreeGroup[]): TreeGroup[] =>
+      nodes.map((g) => ({
+        ...g,
+        suites: updateSuites(g.suites || []),
+        children: updateGroups(g.children || []),
+      }));
+
+    setRootSuites((prev) => updateSuites(prev));
+    setGroups((prev) => updateGroups(prev));
+  }, []);
+
+  const addSuiteToTree = useCallback((suite: GroupSuiteItem, groupId?: string | null) => {
+    if (!groupId) {
+      setRootSuites((prev) => {
+        const exists = prev.some((s) => s.test_suite_id === suite.test_suite_id);
+        return exists ? prev : [...prev, suite];
+      });
+      return;
+    }
+
+    setGroups((prev) => {
+      const insert = (nodes: TreeGroup[]): TreeGroup[] =>
+        nodes.map((g) => {
+          if (g.group_id === groupId) {
+            const suites = g.suites || [];
+            const exists = suites.some((s) => s.test_suite_id === suite.test_suite_id);
+            return {
+              ...g,
+              suites: exists ? suites : [...suites, suite],
+            };
+          }
+          return { ...g, children: insert(g.children || []) };
+        });
+      return insert(prev);
+    });
+  }, []);
+
+  const removeSuiteFromTree = useCallback((suiteId: string) => {
+    setRootSuites((prev) => prev.filter((s) => s.test_suite_id !== suiteId));
+    setGroups((prev) => {
+      const remove = (nodes: TreeGroup[]): TreeGroup[] =>
+        nodes.map((g) => ({
+          ...g,
+          suites: (g.suites || []).filter((s) => s.test_suite_id !== suiteId),
+          children: remove(g.children || []),
+        }));
+      return remove(prev);
+    });
+  }, []);
+
+  const moveSuiteInTree = useCallback((suite: GroupSuiteItem, targetGroupId?: string | null) => {
+    const normalizedTargetGroupId = targetGroupId || null;
+    const updatedSuite: GroupSuiteItem = { ...suite, group_id: normalizedTargetGroupId };
+    removeSuiteFromTree(suite.test_suite_id);
+    addSuiteToTree(updatedSuite, normalizedTargetGroupId);
+    if (selectedSuiteId === suite.test_suite_id) {
+      setSelectedSuite(updatedSuite);
+    }
+  }, [addSuiteToTree, removeSuiteFromTree, selectedSuiteId, setSelectedSuite]);
+
+  const adjustSuiteCountInTree = useCallback((suiteId: string, delta: number) => {
+    updateSuiteInTree(suiteId, (suite) => ({
+      ...suite,
+      number_testcase: Math.max(0, Number(suite.number_testcase || 0) + delta),
+    }));
+  }, [updateSuiteInTree]);
+
+  const updateSuiteCountInTree = useCallback((suiteId: string, count: number) => {
+    setSelectedSuite((prev) => (
+      prev && prev.test_suite_id === suiteId ? { ...prev, number_testcase: count } : prev
+    ));
+
+    const updateSuites = (suites: GroupSuiteItem[]) =>
+      suites.map((s) => (s.test_suite_id === suiteId ? { ...s, number_testcase: count } : s));
+
+    const updateGroups = (nodes: TreeGroup[]): TreeGroup[] =>
+      nodes.map((g) => ({
+        ...g,
+        suites: updateSuites(g.suites || []),
+        children: updateGroups(g.children || []),
+      }));
+
+    setRootSuites((prev) => updateSuites(prev));
+    setGroups((prev) => updateGroups(prev));
+  }, []);
+
+  const addGroupToTree = useCallback((group: TreeGroup, parentId?: string | null) => {
+    const normalized = normalizeGroup(group);
+    if (!parentId) {
+      setGroups((prev) => {
+        const exists = prev.some((g) => g.group_id === normalized.group_id);
+        return exists ? prev : [...prev, normalized];
+      });
+      return;
+    }
+
+    setGroups((prev) => {
+      const insert = (nodes: TreeGroup[]): TreeGroup[] =>
+        nodes.map((g) => {
+          if (g.group_id === parentId) {
+            const children = g.children || [];
+            const exists = children.some((c) => c.group_id === normalized.group_id);
+            return {
+              ...g,
+              children: exists ? children : [...children, normalized],
+            };
+          }
+          return { ...g, children: insert(g.children || []) };
+        });
+      return insert(prev);
+    });
+  }, []);
+
+  const updateGroupNameInTree = useCallback((groupId: string, name: string) => {
+    setGroups((prev) => {
+      const update = (nodes: TreeGroup[]): TreeGroup[] =>
+        nodes.map((g) => {
+          if (g.group_id === groupId) {
+            return { ...g, name };
+          }
+          return { ...g, children: update(g.children || []) };
+        });
+      return update(prev);
+    });
+  }, []);
+
+  const removeGroupFromTree = useCallback((groupId: string) => {
+    const collectGroupIds = (group: TreeGroup): string[] => [
+      group.group_id,
+      ...((group.children || []).flatMap(collectGroupIds)),
+    ];
+    const collectSuiteIds = (group: TreeGroup): string[] => [
+      ...((group.suites || []).map((s) => s.test_suite_id)),
+      ...((group.children || []).flatMap(collectSuiteIds)),
+    ];
+    const removeGroup = (nodes: TreeGroup[]): TreeGroup[] =>
+      nodes
+        .filter((g) => g.group_id !== groupId)
+        .map((g) => ({ ...g, children: removeGroup(g.children || []) }));
+
+    setGroups((prev) => {
+      const target = findGroupById(groupId, prev);
+      const removedGroupIds = target ? collectGroupIds(target) : [groupId];
+      const removedSuiteIds = target ? collectSuiteIds(target) : [];
+
+      setExpanded((prevExpanded) => {
+        const next = new Set(prevExpanded);
+        removedGroupIds.forEach((id) => next.delete(id));
+        return next;
+      });
+
+      if (selectedSuiteId && removedSuiteIds.includes(selectedSuiteId)) {
+        setSelectedSuiteId(null);
+        setSelectedSuiteName('');
+        setSelectedSuite(null);
+        setTestcases([]);
+        setTestcasesError(null);
+        setExpandedTestcaseLevels(new Set());
+        setSelectedLevel(null);
+      }
+
+      return removeGroup(prev);
+    });
+  }, [
+    selectedSuiteId,
+    setExpanded,
+    setSelectedSuiteId,
+    setSelectedSuiteName,
+    setSelectedSuite,
+    setTestcases,
+    setTestcasesError,
+    setExpandedTestcaseLevels,
+    setSelectedLevel,
+  ]);
+
+  const moveGroupInTree = useCallback((group: TreeGroup, targetParentId?: string | null) => {
+    const normalizedParentId = targetParentId || null;
+    const updatedGroup: TreeGroup = {
+      ...group,
+      parent_group_id: normalizedParentId,
+    };
+
+    setGroups((prev) => {
+      const remove = (nodes: TreeGroup[]): TreeGroup[] =>
+        nodes
+          .filter((g) => g.group_id !== updatedGroup.group_id)
+          .map((g) => ({ ...g, children: remove(g.children || []) }));
+
+      const insert = (nodes: TreeGroup[]): TreeGroup[] =>
+        nodes.map((g) => {
+          if (g.group_id === normalizedParentId) {
+            return {
+              ...g,
+              children: [...(g.children || []), updatedGroup],
+            };
+          }
+          return { ...g, children: insert(g.children || []) };
+        });
+
+      const withoutGroup = remove(prev);
+      if (!normalizedParentId) {
+        return [...withoutGroup, updatedGroup];
+      }
+      return insert(withoutGroup);
+    });
+  }, []);
+
+  const refreshRootGroups = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const resp = await groupService.getGroupTree({
+        project_id: projectId,
+        group_id: null,
+        include_suites: true,
+      });
+
+      if (resp.success && resp.data) {
+        const incomingGroups = resp.data.children_groups.map((group) =>
+          convertGroupBasicToTreeGroup(group, [])
+        );
+        setGroups((prev) => {
+          const prevById = new Map(prev.map((g) => [g.group_id, g]));
+          return incomingGroups.map((g) => {
+            const existing = prevById.get(g.group_id);
+            return existing ? { ...existing, name: g.name, parent_group_id: g.parent_group_id } : g;
+          });
+        });
+        setRootSuites(resp.data.ungrouped_suites.map(convertSuiteItemToGroupSuiteItem));
+      }
+    } catch (e) {
+      /* console.error('[SuitesManager] Failed to refresh root groups:', e); */
+    }
+  }, [groupService, projectId, convertGroupBasicToTreeGroup, convertSuiteItemToGroupSuiteItem]);
+
+  const refreshGroupChildren = useCallback(async (groupId: string) => {
+    await loadGroupChildren(groupId);
+  }, [loadGroupChildren]);
+
   // Fetch testcases by suite using the new search API
   const fetchTestcasesBySuite = useCallback(async (suiteId: string, suiteName: string) => {
     if (!suiteId) return;
@@ -514,6 +767,7 @@ const SuitesManager: React.FC = () => {
         setTestcases(resp.data.testcases || []);
         setTotalPages(resp.data.total_pages || 1);
         setTotalItems(resp.data.number_testcase || 0);
+        updateSuiteCountInTree(suiteId, resp.data.number_testcase || 0);
         // Sync current page if API returns different page
         if (resp.data.current_page !== currentPage) {
           setCurrentPage(resp.data.current_page);
@@ -544,7 +798,20 @@ const SuitesManager: React.FC = () => {
     } finally {
       setIsLoadingTestcases(false);
     }
-  }, [suiteService, projectId, selectedLevel, currentPage, itemsPerPage, testcasesSearchText, sortColumn, sortDirection, selectedOrderFilter, selectedStatusFilter, selectedBrowserFilter]);
+  }, [
+    suiteService,
+    projectId,
+    selectedLevel,
+    currentPage,
+    itemsPerPage,
+    testcasesSearchText,
+    sortColumn,
+    sortDirection,
+    selectedOrderFilter,
+    selectedStatusFilter,
+    selectedBrowserFilter,
+    updateSuiteCountInTree,
+  ]);
 
   // Reload testcases when filter/search/pagination/sort changes
   useEffect(() => {
@@ -589,10 +856,11 @@ const SuitesManager: React.FC = () => {
     setExpanded,
     suiteService,
     groupService,
-    fetchData,
     selectedSuiteId,
     selectedSuiteName,
     fetchTestcasesBySuite,
+    moveSuiteInTree,
+    moveGroupInTree,
   });
 
   // Resize handlers hooks
@@ -666,8 +934,12 @@ const SuitesManager: React.FC = () => {
     setExpanded,
     selectedGroupId,
     setSelectedGroupId,
-    fetchData,
     loadGroupChildren,
+    addGroupToTree,
+    updateGroupNameInTree,
+    removeGroupFromTree,
+    refreshRootGroups,
+    refreshGroupChildren,
   });
 
   const {
@@ -697,7 +969,6 @@ const SuitesManager: React.FC = () => {
     selectedSuiteId,
     selectedSuiteName,
     fetchTestcasesBySuite,
-    fetchData,
   });
 
   const {
@@ -749,7 +1020,9 @@ const SuitesManager: React.FC = () => {
     setIsLoadingTestcases,
     setSelectedGroupId,
     fetchTestcasesBySuite,
-    fetchData,
+    updateSuiteInTree,
+    removeSuiteFromTree,
+    adjustSuiteCountInTree,
   });
 
   const {
@@ -777,11 +1050,13 @@ const SuitesManager: React.FC = () => {
     setNewMenuOpen,
     setIsNewTestcaseMenuOpen,
     setExpanded,
-    fetchData,
     fetchTestcasesBySuite,
     setAddingSuite: setAddingSuiteFromHook,
     setIsAddCasesModalOpen: setIsAddCasesModalOpenFromHook,
     selectedSuite,
+    addSuiteToTree,
+    refreshRootGroups,
+    refreshGroupChildren,
   });
 
   // Focus input when creating/renaming group (must be after useGroupHandlers hook)

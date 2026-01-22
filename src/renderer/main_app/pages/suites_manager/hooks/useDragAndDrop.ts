@@ -13,10 +13,11 @@ interface UseDragAndDropProps {
   setExpanded: React.Dispatch<React.SetStateAction<Set<string>>>;
   suiteService: TestSuiteService;
   groupService: GroupService;
-  fetchData: () => Promise<void>;
   selectedSuiteId: string | null;
   selectedSuiteName: string;
   fetchTestcasesBySuite: (suiteId: string, suiteName: string) => Promise<void>;
+  moveSuiteInTree: (suite: GroupSuiteItem, targetGroupId?: string | null) => void;
+  moveGroupInTree: (group: TreeGroup, targetParentId?: string | null) => void;
 }
 
 export const useDragAndDrop = ({
@@ -25,10 +26,11 @@ export const useDragAndDrop = ({
   setExpanded,
   suiteService,
   groupService,
-  fetchData,
   selectedSuiteId,
   selectedSuiteName,
   fetchTestcasesBySuite,
+  moveSuiteInTree,
+  moveGroupInTree,
 }: UseDragAndDropProps) => {
   // Suite drag state
   const [draggedSuite, setDraggedSuite] = useState<GroupSuiteItem | null>(null);
@@ -146,7 +148,7 @@ export const useDragAndDrop = ({
         });
 
         if (resp.success) {
-          await fetchData();
+          moveSuiteInTree(draggedSuite, targetGroupId);
         } else {
           toast.error(resp.error || 'Failed to move suite. Please try again.');
         }
@@ -191,7 +193,7 @@ export const useDragAndDrop = ({
         });
 
         if (resp.success) {
-          await fetchData();
+          moveGroupInTree(draggedGroup, targetGroupId);
         } else {
           toast.error(resp.error || 'Failed to move group. Please try again.');
         }
@@ -204,7 +206,17 @@ export const useDragAndDrop = ({
       }
       return;
     }
-  }, [draggedSuite, draggedGroup, isUpdatingSuiteGroup, isUpdatingGroupParent, suiteService, groupService, fetchData, groups]);
+  }, [
+    draggedSuite,
+    draggedGroup,
+    isUpdatingSuiteGroup,
+    isUpdatingGroupParent,
+    suiteService,
+    groupService,
+    groups,
+    moveSuiteInTree,
+    moveGroupInTree,
+  ]);
 
   // Root drag handlers
   const handleRootDragOver = useCallback((e: React.DragEvent) => {
@@ -250,7 +262,7 @@ export const useDragAndDrop = ({
         });
 
         if (resp.success) {
-          await fetchData();
+          moveSuiteInTree(draggedSuite, null);
         } else {
           toast.error(resp.error || 'Failed to move suite. Please try again.');
         }
@@ -281,7 +293,7 @@ export const useDragAndDrop = ({
         });
 
         if (resp.success) {
-          await fetchData();
+          moveGroupInTree(draggedGroup, null);
         } else {
           toast.error(resp.error || 'Failed to move group. Please try again.');
         }
@@ -294,7 +306,16 @@ export const useDragAndDrop = ({
       }
       return;
     }
-  }, [draggedSuite, draggedGroup, isUpdatingSuiteGroup, isUpdatingGroupParent, suiteService, groupService, fetchData]);
+  }, [
+    draggedSuite,
+    draggedGroup,
+    isUpdatingSuiteGroup,
+    isUpdatingGroupParent,
+    suiteService,
+    groupService,
+    moveSuiteInTree,
+    moveGroupInTree,
+  ]);
 
   // Helper function to update testcase level (used by context menu)
   const updateTestcaseLevel = useCallback(async (testcaseId: string, level: number) => {

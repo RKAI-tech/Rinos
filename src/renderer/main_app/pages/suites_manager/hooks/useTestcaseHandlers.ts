@@ -19,7 +19,6 @@ interface UseTestcaseHandlersProps {
   selectedSuiteId: string | null;
   selectedSuiteName: string | null;
   fetchTestcasesBySuite: (suiteId: string, suiteName: string) => Promise<void>;
-  fetchData: () => Promise<void>;
 }
 
 export const useTestcaseHandlers = ({
@@ -27,7 +26,6 @@ export const useTestcaseHandlers = ({
   selectedSuiteId,
   selectedSuiteName,
   fetchTestcasesBySuite,
-  fetchData,
 }: UseTestcaseHandlersProps) => {
   // Services
   const testCaseService = useMemo(() => new TestCaseService(), []);
@@ -112,8 +110,6 @@ export const useTestcaseHandlers = ({
         if (selectedSuiteId) {
           await fetchTestcasesBySuite(selectedSuiteId, selectedSuiteName || '');
         }
-        // Reload tree to reflect any changes
-        await fetchData();
       } else {
         toast.error(resp.error || 'Failed to update testcase. Please try again.');
       }
@@ -122,7 +118,7 @@ export const useTestcaseHandlers = ({
     } finally {
       setIsSavingTestcase(false);
     }
-  }, [isSavingTestcase, selectedSuiteId, selectedSuiteName, fetchTestcasesBySuite, fetchData, projectId, actionService, testCaseService]);
+  }, [isSavingTestcase, selectedSuiteId, selectedSuiteName, fetchTestcasesBySuite, projectId, actionService, testCaseService]);
 
   const handleCloseEditTestcaseModal = useCallback(() => {
     if (!isSavingTestcase) {
@@ -220,8 +216,6 @@ export const useTestcaseHandlers = ({
         if (selectedSuiteId) {
           await fetchTestcasesBySuite(selectedSuiteId, selectedSuiteName || '');
         }
-        // Reload tree to reflect changes
-        await fetchData();
       } else {
         toast.error(addResp.error || 'Failed to add duplicated testcase to suite. Please try again.');
       }
@@ -230,7 +224,7 @@ export const useTestcaseHandlers = ({
     } finally {
       setIsDuplicatingTestcase(false);
     }
-  }, [selectedSuiteId, isDuplicatingTestcase, projectId, duplicatingTestcaseLevel, selectedSuiteName, fetchTestcasesBySuite, fetchData]);
+  }, [selectedSuiteId, isDuplicatingTestcase, projectId, duplicatingTestcaseLevel, selectedSuiteName, fetchTestcasesBySuite]);
 
   const handleCloseDuplicateTestcaseModal = useCallback(() => {
     if (!isDuplicatingTestcase) {
@@ -281,8 +275,6 @@ export const useTestcaseHandlers = ({
         if (selectedSuiteId) {
           await fetchTestcasesBySuite(selectedSuiteId, selectedSuiteName || '');
         }
-        // Reload tree to reflect changes
-        await fetchData();
       } else {
         toast.error(resp.error || 'Failed to remove testcase from suite. Please try again.');
       }
@@ -291,7 +283,7 @@ export const useTestcaseHandlers = ({
     } finally {
       setIsDeletingTestcase(false);
     }
-  }, [selectedSuiteId, isDeletingTestcase, selectedSuiteName, fetchTestcasesBySuite, fetchData, editingTestcase, duplicatingTestcase]);
+  }, [selectedSuiteId, isDeletingTestcase, selectedSuiteName, fetchTestcasesBySuite, editingTestcase, duplicatingTestcase]);
 
   const handleCloseDeleteTestcaseModal = useCallback(() => {
     if (!isDeletingTestcase) {

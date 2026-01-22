@@ -20,7 +20,12 @@ interface UseSuiteHandlersProps {
   setIsLoadingTestcases: React.Dispatch<React.SetStateAction<boolean>>;
   setSelectedGroupId: React.Dispatch<React.SetStateAction<string | null>>;
   fetchTestcasesBySuite: (suiteId: string, suiteName: string) => Promise<void>;
-  fetchData: () => Promise<void>;
+  updateSuiteInTree: (
+    suiteId: string,
+    updates: Partial<GroupSuiteItem> | ((suite: GroupSuiteItem) => GroupSuiteItem)
+  ) => void;
+  removeSuiteFromTree: (suiteId: string) => void;
+  adjustSuiteCountInTree: (suiteId: string, delta: number) => void;
 }
 
 export const useSuiteHandlers = ({
@@ -39,7 +44,9 @@ export const useSuiteHandlers = ({
   setIsLoadingTestcases,
   setSelectedGroupId,
   fetchTestcasesBySuite,
-  fetchData,
+  updateSuiteInTree,
+  removeSuiteFromTree,
+  adjustSuiteCountInTree,
 }: UseSuiteHandlersProps) => {
   // Services
   const suiteService = useMemo(() => new TestSuiteService(), []);
@@ -191,8 +198,7 @@ export const useSuiteHandlers = ({
         if (selectedSuiteId === suiteId) {
           handleClearSuite();
         }
-        // Reload tree
-        await fetchData();
+        removeSuiteFromTree(suiteId);
         setIsDeleteSuiteModalOpen(false);
         setDeletingSuite(null);
       } else {
@@ -203,7 +209,7 @@ export const useSuiteHandlers = ({
     } finally {
       setIsDeletingSuite(false);
     }
-  }, [selectedSuiteId, suiteService, handleClearSuite, fetchData]);
+  }, [selectedSuiteId, suiteService, handleClearSuite, removeSuiteFromTree]);
 
   // Close delete suite modal handler
   const handleCloseDeleteSuiteModal = useCallback(() => {
@@ -226,8 +232,11 @@ export const useSuiteHandlers = ({
       });
       if (resp.success) {
         // toast.success('Suite updated successfully');
-        // Reload tree to reflect changes
-        await fetchData();
+        updateSuiteInTree(data.test_suite_id, {
+          name: data.name,
+          description: data.description,
+          browser_type: data.browser_type,
+        });
         // If edited suite was selected, update selected suite info
         if (selectedSuiteId === data.test_suite_id) {
           setSelectedSuiteName(data.name);
@@ -244,7 +253,7 @@ export const useSuiteHandlers = ({
     } finally {
       setIsSavingSuite(false);
     }
-  }, [selectedSuiteId, suiteService, setSelectedSuiteName, fetchData, fetchTestcasesBySuite]);
+  }, [selectedSuiteId, suiteService, setSelectedSuiteName, fetchTestcasesBySuite, updateSuiteInTree]);
 
   // Close edit suite modal handler
   const handleCloseEditSuiteModal = useCallback(() => {
@@ -270,9 +279,9 @@ export const useSuiteHandlers = ({
         // If the suite is currently selected, reload testcases
         if (selectedSuiteId === addingSuite.test_suite_id) {
           fetchTestcasesBySuite(addingSuite.test_suite_id, addingSuite.name);
+        } else {
+          adjustSuiteCountInTree(addingSuite.test_suite_id, testcaseIds.length);
         }
-        // Reload tree to reflect changes
-        await fetchData();
       } else {
         toast.error(resp.error || 'Failed to add testcases. Please try again.');
       }
@@ -281,7 +290,7 @@ export const useSuiteHandlers = ({
     } finally {
       setIsAddingCases(false);
     }
-  }, [addingSuite, isAddingCases, selectedSuiteId, suiteService, fetchTestcasesBySuite, fetchData]);
+  }, [addingSuite, isAddingCases, selectedSuiteId, suiteService, fetchTestcasesBySuite, adjustSuiteCountInTree]);
 
   // Close add cases modal handler
   const handleCloseAddCasesModal = useCallback(() => {

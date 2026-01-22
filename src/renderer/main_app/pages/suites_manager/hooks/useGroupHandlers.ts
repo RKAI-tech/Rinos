@@ -1,8 +1,8 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { GroupSuiteItem } from '../../../types/group';
-import { TreeGroup, normalizeGroup, extractUngroupSuites } from '../utils/suitesManagerUtils';
-import { updateGroupInTree, findGroupById, getSiblingsByParent } from '../utils/treeOperations';
+import { TreeGroup, normalizeGroup } from '../utils/suitesManagerUtils';
+import { findGroupById, getSiblingsByParent } from '../utils/treeOperations';
 import { GroupService } from '../../../services/group';
 
 interface UseGroupHandlersProps {
@@ -15,8 +15,12 @@ interface UseGroupHandlersProps {
   setExpanded: React.Dispatch<React.SetStateAction<Set<string>>>;
   selectedGroupId: string | null;
   setSelectedGroupId: React.Dispatch<React.SetStateAction<string | null>>;
-  fetchData: () => Promise<void>;
   loadGroupChildren?: (groupId: string) => Promise<void>;
+  addGroupToTree: (group: TreeGroup, parentId?: string | null) => void;
+  updateGroupNameInTree: (groupId: string, name: string) => void;
+  removeGroupFromTree: (groupId: string) => void;
+  refreshRootGroups: () => Promise<void>;
+  refreshGroupChildren: (groupId: string) => Promise<void>;
 }
 
 export const useGroupHandlers = ({
@@ -29,8 +33,12 @@ export const useGroupHandlers = ({
   setExpanded,
   selectedGroupId,
   setSelectedGroupId,
-  fetchData,
   loadGroupChildren,
+  addGroupToTree,
+  updateGroupNameInTree,
+  removeGroupFromTree,
+  refreshRootGroups,
+  refreshGroupChildren,
 }: UseGroupHandlersProps) => {
   // Services
   const groupService = useMemo(() => new GroupService(), []);
@@ -143,14 +151,39 @@ export const useGroupHandlers = ({
       setCreatingGroupName('');
       setCreatingGroupError(null);
       setCreatingParentId(null);
-      await fetchData();
+      const rawData = (resp.data as any)?.data || (resp.data as any);
+      const createdGroupId = rawData?.group_id || rawData?.id;
+      if (createdGroupId) {
+        addGroupToTree(normalizeGroup({
+          group_id: createdGroupId,
+          project_id: projectId || '',
+          name: validName,
+          parent_group_id: creatingParentId || null,
+          suites: [],
+          children: [],
+        }), creatingParentId || null);
+      } else if (creatingParentId) {
+        await refreshGroupChildren(creatingParentId);
+      } else {
+        await refreshRootGroups();
+      }
     } catch (e) {
       setCreatingGroupError(e instanceof Error ? e.message : 'Failed to create group.');
       setTimeout(() => createInputRef.current?.focus(), 0);
     } finally {
       setIsSavingGroup(false);
     }
-  }, [projectId, isSavingGroup, creatingGroupName, creatingParentId, validateGroupName, groupService, fetchData]);
+  }, [
+    projectId,
+    isSavingGroup,
+    creatingGroupName,
+    creatingParentId,
+    validateGroupName,
+    groupService,
+    addGroupToTree,
+    refreshGroupChildren,
+    refreshRootGroups,
+  ]);
 
   // Cancel create group handler
   const cancelCreateGroup = useCallback(() => {
@@ -217,14 +250,22 @@ export const useGroupHandlers = ({
       setRenamingGroupId(null);
       setRenamingGroupName('');
       setRenamingGroupError(null);
-      await fetchData();
+      updateGroupNameInTree(renamingGroupId, validName);
     } catch (e) {
       setRenamingGroupError(e instanceof Error ? e.message : 'Failed to rename group.');
       setTimeout(() => renameInputRef.current?.focus(), 0);
     } finally {
       setIsRenamingGroup(false);
     }
-  }, [renamingGroupId, projectId, isRenamingGroup, renamingGroupName, validateRenameGroupName, groupService, fetchData]);
+  }, [
+    renamingGroupId,
+    projectId,
+    isRenamingGroup,
+    renamingGroupName,
+    validateRenameGroupName,
+    groupService,
+    updateGroupNameInTree,
+  ]);
 
   // Cancel rename group handler
   const cancelRenameGroup = useCallback(() => {
@@ -255,8 +296,7 @@ export const useGroupHandlers = ({
         if (selectedGroupId === groupId) {
           setSelectedGroupId(null);
         }
-        // Reload tree
-        await fetchData();
+        removeGroupFromTree(groupId);
         setDeletingGroup(null);
       } else {
         toast.error(resp.error || 'Failed to delete group. Please try again.');
@@ -266,7 +306,7 @@ export const useGroupHandlers = ({
     } finally {
       setIsDeletingGroup(false);
     }
-  }, [selectedGroupId, groupService, setSelectedGroupId, fetchData]);
+  }, [selectedGroupId, groupService, setSelectedGroupId, removeGroupFromTree]);
 
   return {
     // Create group state
