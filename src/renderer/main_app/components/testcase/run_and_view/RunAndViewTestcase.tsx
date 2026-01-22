@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Download, Network, ClipboardList, Video, Image as ImageIcon, Database, Play, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Download, Network, ClipboardList, Video, Image as ImageIcon, Database, Play, X, CheckCircle2, AlertCircle, Loader2, List, Code, Copy } from 'lucide-react';
 import './RunAndViewTestcase.css';
 import { TestCaseService } from '../../../services/testcases';
 import { Screenshot, TestCase as TestCaseGetResponse } from '../../../types/testcases';
@@ -9,6 +9,11 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { hasPermissionOrHigher } from '../../../hooks/useProjectPermissions';
 import { Project } from '../../../types/projects';
+import { ActionService } from '../../../services/actions';
+import { Action as MainAction } from '../../../types/actions';
+import { CodeGenerator } from '../../../../shared/services/codeGenerator';
+import { Action as SharedAction, BasicAuthentication } from '../../../../shared/types/actions';
+import Editor from '@monaco-editor/react';
 
 interface Props {
   isOpen: boolean;
@@ -25,13 +30,18 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
   const [isLoading, setIsLoading] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<TestCaseGetResponse | null>(null);
-  const [activeTab, setActiveTab] = useState<'logs' | 'video' | 'screenshots' | 'database' | 'api'>('logs');
+  const [activeTab, setActiveTab] = useState<'logs' | 'video' | 'screenshots' | 'database' | 'api' | 'actions' | 'code'>('logs');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [showControls, setShowControls] = useState<boolean>(false);
   const [videoError, setVideoError] = useState<boolean>(false);
+  const [actions, setActions] = useState<MainAction[]>([]);
+  const [isActionsLoading, setIsActionsLoading] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState('');
   const svc = useMemo(() => new TestCaseService(), []);
+  const actionSvc = useMemo(() => new ActionService(), []);
+  const codeGen = useMemo(() => new CodeGenerator(), []);
   
   // Calculate canEditPermission from projectData
   const canEditPermission = useMemo(() => {
@@ -70,6 +80,27 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
       setVideoError(false);
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!isOpen || !testcaseId) {
+      setActions([]);
+      setGeneratedCode('');
+      return;
+    }
+    void loadActions();
+  }, [isOpen, testcaseId]);
+
+  useEffect(() => {
+    if (!actions.length) {
+      setGeneratedCode('');
+      return;
+    }
+    const code = codeGen.generateCode(
+      (result?.basic_authentication || null) as BasicAuthentication | null,
+      actions as unknown as SharedAction[]
+    );
+    setGeneratedCode(code || '');
+  }, [actions, result?.basic_authentication, codeGen]);
   
   const loadTestcaseData = async () => {
     if (!testcaseId) return;
@@ -99,6 +130,29 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadActions = async () => {
+    if (!testcaseId) return;
+    try {
+      setIsActionsLoading(true);
+      const resp = await actionSvc.getActionsByTestCase(testcaseId, undefined, undefined, projectId);
+      if (resp.success) {
+        setActions(resp.data?.actions || []);
+      } else {
+        toast.error(resp.error || 'Failed to load actions. Please try again.', {
+          containerId: 'modal-toast-container'
+        });
+        setActions([]);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to load actions. Please try again.', {
+        containerId: 'modal-toast-container'
+      });
+      setActions([]);
+    } finally {
+      setIsActionsLoading(false);
     }
   };
 
@@ -139,6 +193,8 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
     setSelectedImage(null);
     setIsFullscreen(false);
     setShowControls(false);
+    setActions([]);
+    setGeneratedCode('');
     onClose();
   };
 
@@ -197,6 +253,68 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
         containerId: 'modal-toast-container'
       });
     }
+  };
+
+  const handleCopyText = async (text: string, successMessage: string) => {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(successMessage, { containerId: 'modal-toast-container' });
+    } catch {
+      toast.error('Failed to copy. Please try again.', { containerId: 'modal-toast-container' });
+    }
+  };
+
+  const handleDownloadText = (text: string, filename: string) => {
+    if (!text) return;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadScreenshot = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        toast.error('Failed to download screenshot. Please try again.', {
+          containerId: 'modal-toast-container'
+        });
+        return;
+      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to download screenshot. Please try again.', {
+        containerId: 'modal-toast-container'
+      });
+    }
+  };
+
+  const getActionValue = (action: MainAction): string => {
+    for (const actionData of action.action_datas || []) {
+      if (actionData?.value && typeof actionData.value === 'object' && 'value' in actionData.value) {
+        const raw = (actionData.value as { value?: any }).value;
+        if (raw === undefined || raw === null) continue;
+        return typeof raw === 'string' ? raw : JSON.stringify(raw);
+      }
+      if (typeof actionData?.value === 'string' || typeof actionData?.value === 'number') {
+        return String(actionData.value);
+      }
+    }
+    return '';
   };
 
   const processImageName = (screenshot: Screenshot, index: number) => {
@@ -361,6 +479,20 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
             <div className="ravt-tabbed">
               <div className="ravt-tab-nav">
                 <button 
+                  className={`ravt-tab-btn ${activeTab === 'code' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('code')}
+                >
+                  <Code size={18} />
+                  Code
+                </button>
+                <button 
+                  className={`ravt-tab-btn ${activeTab === 'actions' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('actions')}
+                >
+                  <List size={18} />
+                  Actions
+                </button>
+                <button 
                   className={`ravt-tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
                   onClick={() => setActiveTab('logs')}
                 >
@@ -401,9 +533,29 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                 {activeTab === 'logs' && (
                   <div className="ravt-terminal">
                     <div className="ravt-term-bar">
-                      <span className="dot red" />
-                      <span className="dot yellow" />
-                      <span className="dot green" />
+                      <div className="ravt-term-dots">
+                        <span className="dot red" />
+                        <span className="dot yellow" />
+                        <span className="dot green" />
+                      </div>
+                      <div className="ravt-term-actions">
+                        <button
+                          className="ravt-icon-btn"
+                          type="button"
+                          title="Copy logs"
+                          onClick={() => handleCopyText(result.evidence?.log?.content || '', 'Logs copied')}
+                        >
+                          <Copy size={16} />
+                        </button>
+                        <button
+                          className="ravt-icon-btn"
+                          type="button"
+                          title="Download logs"
+                          onClick={() => handleDownloadText(result.evidence?.log?.content || '', 'testcase-logs.txt')}
+                        >
+                          <Download size={16} />
+                        </button>
+                      </div>
                     </div>
                     <div className="ravt-term-content">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -457,6 +609,14 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                               >
                                 <ImageIcon size={16} />
                                 {imageName}
+                              </button>
+                              <button
+                                className="ravt-screenshot-download-btn"
+                                title="Download screenshot"
+                                type="button"
+                                onClick={() => handleDownloadScreenshot(screenshot.url, `${imageName || `screenshot_${index + 1}`}.png`)}
+                              >
+                                <Download size={16} />
                               </button>
                             </div>
                           );
@@ -640,6 +800,82 @@ const RunAndViewTestcase: React.FC<Props> = ({ isOpen, onClose, testcaseId, test
                         </div>
                       );
                     })()}
+                  </div>
+                )}
+
+                {activeTab === 'actions' && (
+                  <div className="ravt-actions-container">
+                    {isActionsLoading ? (
+                      <div className="ravt-loading">
+                        <div className="ravt-spinner"></div>
+                        <span>Loading actions...</span>
+                      </div>
+                    ) : actions.length > 0 ? (
+                      <ol className="ravt-actions-list">
+                        {actions.map((action, index) => {
+                          const value = getActionValue(action);
+                          return (
+                            <li key={action.action_id || `${action.action_type}-${index}`} className="ravt-actions-item">
+                              <span className="ravt-action-index">{index + 1}</span>
+                              <div className="ravt-action-body">
+                                <div className="ravt-action-desc">{action.description || 'No description'}</div>
+                                {value ? <div className="ravt-action-value" title={value}>{value}</div> : null}
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    ) : (
+                      <div className="ravt-empty">No actions available for this testcase.</div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'code' && (
+                  <div className="ravt-code-container">
+                    {isActionsLoading ? (
+                      <div className="ravt-loading">
+                        <div className="ravt-spinner"></div>
+                        <span>Generating code...</span>
+                      </div>
+                    ) : (
+                      <div className="ravt-code-content">
+                        <div className="ravt-code-actions">
+                          <button
+                            className="ravt-icon-btn"
+                            type="button"
+                            title="Copy code"
+                            onClick={() => handleCopyText(generatedCode || '', 'Code copied')}
+                          >
+                            <Copy size={16} />
+                          </button>
+                          <button
+                            className="ravt-icon-btn"
+                            type="button"
+                            title="Download code"
+                            onClick={() => handleDownloadText(generatedCode || '', 'testcase-code.js')}
+                          >
+                            <Download size={16} />
+                          </button>
+                        </div>
+                        <div className="ravt-code-editor">
+                          <Editor
+                            value={generatedCode || '// No code available for this testcase.'}
+                            language="javascript"
+                            theme="vs"
+                            options={{
+                              minimap: { enabled: false },
+                              fontSize: 13,
+                              lineHeight: 21,
+                              wordWrap: 'off',
+                              scrollBeyondLastLine: false,
+                              automaticLayout: true,
+                              readOnly: true,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
