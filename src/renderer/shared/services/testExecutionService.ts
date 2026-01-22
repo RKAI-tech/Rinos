@@ -378,8 +378,14 @@ export class TestExecutionService {
     api_files_urls?: string[];
   }> {
     const status: EvidenceStatus = runResult.exitCode === 0 ? 'Passed' : 'Failed';
-    const logs = [ runResult.stdout, runResult.stderr ].filter(Boolean).join('') || 
-                 'The application is currently unable to execute code or encountered an internal error. Please check your configuration, try again later, or contact support for assistance.';
+    const stripAnsi = (input: string) =>
+      input.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, '');
+    const logs =
+      [runResult.stdout, runResult.stderr]
+        .filter(Boolean)
+        .map(stripAnsi)
+        .join('') ||
+      'The application is currently unable to execute code or encountered an internal error. Please check your configuration, try again later, or contact support for assistance.';
 
     // Find video file
     let videoUrl: string | undefined;
