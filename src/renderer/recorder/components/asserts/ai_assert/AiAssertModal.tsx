@@ -8,6 +8,7 @@ import { Connection, ApiRequestData } from '../../../types/actions';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { executeApiRequest, validateApiRequest, convertApiRequestDataToOptions } from '../../../utils/api_request';
 import { decryptObject } from '../../../services/encryption';
+import { setConnectionCache } from '../../../utils/databaseConnectionCache';
 import { toast } from 'react-toastify';
 const statementService = new StatementService();
 
@@ -312,6 +313,7 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
             // Keep original response if decryption fails (backward compatibility)
           }
 
+          setConnectionCache(rawConns);
           const opts: ConnectionOption[] = rawConns.map((c: any) => ({
             id: c.connection_id,
             // label: `${String(c.db_type).toUpperCase()} • ${c.db_name}@:${c.port}`,

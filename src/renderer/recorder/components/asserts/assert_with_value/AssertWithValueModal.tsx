@@ -18,6 +18,7 @@ import {
 import { VariableService } from "../../../services/variables";
 import { Variable } from "../../../types/variables";
 import { decryptObject } from "../../../services/encryption";
+import { setConnectionCache } from "../../../utils/databaseConnectionCache";
 const statementService = new StatementService();
 const variableService = new VariableService();
 
@@ -191,6 +192,7 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
             // Keep original response if decryption fails (backward compatibility)
           }
           
+          setConnectionCache(rawConns);
           const opts: ConnectionOption[] = rawConns.map((c: any) => ({
             id: c.connection_id,
             label: `${c.connection_name} (${String(c.db_type).toUpperCase()} • ${c.host}:${c.port})`,

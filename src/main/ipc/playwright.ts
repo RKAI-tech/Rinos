@@ -957,7 +957,7 @@ export function registerPlaywrightHandlersIpc() {
         ...restEnv,
         PLAYWRIGHT_BROWSERS_PATH: getBrowsersPath(),
         PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS: '0',
-        ELECTRON_RUN_AS_NODE: '1',
+        ELECTRON_RUN_AS_NODE: '1'
       };
       console.log('[Playwright IPC] Playwright browsers path:', env.PLAYWRIGHT_BROWSERS_PATH);     
       

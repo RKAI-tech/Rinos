@@ -1,5 +1,6 @@
 import { Action, ActionData, Element, Selector, ActionType, AssertType, Statement, FileUpload, ActionDataGeneration } from "../types/actions";
 import { BrowserStorageResponse } from "../types/browser_storage";
+import { hydrateConnectionFromCache } from "./databaseConnectionCache";
 
 export function createDescription(action_received: any): string {
     const type = action_received.action_type;
@@ -228,6 +229,20 @@ export function receiveAction(
     // Tạo action_data_generation nếu có value
     const actionDataGeneration = createActionDataGeneration(action_received);
     
+    const actionDatas = action_received.action_datas ? action_received.action_datas as ActionData[] : [];
+    const hydratedActionDatas = actionDatas.map((actionData) => {
+        if (!actionData.statement?.connection) return actionData;
+        const hydrated = hydrateConnectionFromCache(actionData.statement.connection);
+        if (!hydrated) return actionData;
+        return {
+            ...actionData,
+            statement: {
+                ...actionData.statement,
+                connection: hydrated,
+            },
+        };
+    });
+
     const receivedAction = {
         action_id: Math.random().toString(36),
         testcase_id: testcaseId,
@@ -235,7 +250,7 @@ export function receiveAction(
         description: action_received.description || createDescription(action_received),
         elements: action_received.elements ? action_received.elements as Element[] : [],
         assert_type: action_received.assert_type? action_received.assert_type as AssertType : undefined,
-        action_datas: action_received.action_datas ? action_received.action_datas as ActionData[] : [],
+        action_datas: hydratedActionDatas,
         action_data_generation: actionDataGeneration,
     } as Action;
 

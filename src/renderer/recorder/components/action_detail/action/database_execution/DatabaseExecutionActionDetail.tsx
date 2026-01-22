@@ -4,6 +4,7 @@ import { StatementService } from '../../../../services/statements';
 import { apiRouter } from '../../../../services/baseAPIRequest';
 import QueryResultTable from '../../../asserts/ai_assert/QueryResultTable';
 import { decryptObject } from '../../../../services/encryption';
+import { setConnectionCache } from '../../../../utils/databaseConnectionCache';
 import '../../ActionDetailModal.css';
 
 const statementService = new StatementService();
@@ -121,6 +122,7 @@ const DatabaseExecutionActionDetail: React.FC<DatabaseExecutionActionDetailProps
             // Keep original response if decryption fails (backward compatibility)
           }
 
+          setConnectionCache(rawConns);
           const opts: ConnectionOption[] = rawConns.map((c: any) => ({
             id: c.connection_id,
             label: `${c.connection_name} (${String(c.db_type).toUpperCase()} • ${c.host}:${c.port})`
