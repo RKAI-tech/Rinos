@@ -91,21 +91,15 @@ export const useAssert = ({
           {
             value: {
               value: url,
+              ...(pageInfo ? {
+                page_index: pageInfo.page_index,
+                page_url: pageInfo.page_url,
+                page_title: pageInfo.page_title,
+              } : {}),
             },
           },
         ],
       };
-
-      // Thêm page_index vào action_datas nếu có pageInfo
-      if (pageInfo) {
-        actionData.action_datas.push({
-          value: {
-            page_index: pageInfo.page_index,
-            page_url: pageInfo.page_url,
-            page_title: pageInfo.page_title,
-          },
-        });
-      }
 
       const next = receiveAction(testcaseId || '', prev, actionData);
       setIsDirty(true);
@@ -129,20 +123,15 @@ export const useAssert = ({
           {
             value: {
               value: title,
+              ...(pageInfo ? {
+                page_index: pageInfo.page_index,
+                page_url: pageInfo.page_url,
+                page_title: pageInfo.page_title,
+              } : {}),
             },
           },
         ],
       };
-
-      if (pageInfo) {
-        actionData.action_datas.push({
-          value: {
-            page_index: pageInfo.page_index,
-            page_url: pageInfo.page_url,
-            page_title: pageInfo.page_title,
-          },
-        });
-      }
 
       const next = receiveAction(testcaseId || '', prev, actionData);
       setIsDirty(true);
@@ -196,21 +185,15 @@ export const useAssert = ({
             value: {
               css_property: cssProperty,
               css_value: cssValue,
+              ...(pageInfo ? {
+                page_index: pageInfo.page_index,
+                page_url: pageInfo.page_url,
+                page_title: pageInfo.page_title,
+              } : {}),
             },
           },
         ],
       };
-
-      // Thêm page_index vào action_datas nếu có pageInfo
-      if (pageInfo) {
-        actionData.action_datas.push({
-          value: {
-            page_index: pageInfo.page_index,
-            page_url: pageInfo.page_url,
-            page_title: pageInfo.page_title,
-          },
-        });
-      }
 
       const next = receiveAction(testcaseId || '', prev, actionData);
       setIsDirty(true);

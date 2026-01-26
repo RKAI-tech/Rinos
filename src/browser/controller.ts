@@ -567,11 +567,9 @@ export class Controller {
 
             const action = actions[i];
             let pageIndex = 0;
-            for (const action_data of action.action_datas || []) {
-                if (action_data.value?.page_index) {
-                    pageIndex = action_data.value?.page_index;
-                    break;
-                }
+            const actionData = action.action_datas?.[0];
+            if (actionData?.value?.page_index) {
+                pageIndex = actionData.value.page_index;
             }
 
             this.onActionExecuting?.(i);
@@ -581,18 +579,9 @@ export class Controller {
                     activePage = await this.getPage(pageIndex);
                     activePage.bringToFront();
                 }
-                // if (activePage) {
-                //     await this.waitForPageLoaded(activePage);
-                // }
                 switch (action.action_type) {
                     case ActionType.navigate:
-                        let url_navigated = ""
-                        for (const action_data of action.action_datas || []) {
-                            if (action_data.value?.value) {
-                                url_navigated = action_data.value?.value;
-                                break;
-                            }
-                        }
+                        let url_navigated = actionData?.value?.value || "";
                         if (!url_navigated) {
                             throw new Error('URL is required for navigate action');
                         }
@@ -656,13 +645,7 @@ export class Controller {
                         }
                         break;
                     case ActionType.input:
-                        let value_input = ""
-                        for (const action_data of action.action_datas || []) {
-                            if (action_data.value?.value) {
-                                value_input = action_data.value?.value;
-                                break;
-                            }
-                        }
+                        let value_input = actionData?.value?.value || "";
                         if (!value_input) {
                             throw new Error('Value is required for input action');
                         }
@@ -679,13 +662,7 @@ export class Controller {
                         }
                         break;
                     case ActionType.select:
-                        let value_select = ""
-                        for (const action_data of action.action_datas || []) {
-                            if (action_data.value?.value) {
-                                value_select = action_data.value?.value;
-                                break;
-                            }
-                        }
+                        let value_select = actionData?.value?.value || "";
                         if (!value_select) {
                             throw new Error('Value is required for select action');
                         }
@@ -711,13 +688,7 @@ export class Controller {
                         }
                         break;
                     case ActionType.keydown:
-                        let value_keydown = ""
-                        for (const action_data of action.action_datas || []) {
-                            if (action_data.value?.value) {
-                                value_keydown = action_data.value?.value;
-                                break;
-                            }
-                        }
+                        let value_keydown = actionData?.value?.value || "";
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
                             if (selectors) {
@@ -728,9 +699,8 @@ export class Controller {
                         break;
                     case ActionType.upload:
                         if (activePage && action.elements && action.elements.length === 1) {
-                            for (const action_data of action.action_datas || []) {
-                                if (action_data.file_upload) {
-                                    const file = action_data.file_upload;
+                            if (actionData?.file_upload) {
+                                const file = actionData.file_upload;
                                     let content: string | undefined;
                                     if (file.file_content) {
                                         content = file.file_content;
@@ -772,7 +742,6 @@ export class Controller {
                                     // TODO: Delete temp file
                                     // fs.unlinkSync(tempFilePath);
                                 }
-                            }
                         }
                         break;
                     case ActionType.change:
@@ -789,13 +758,7 @@ export class Controller {
                         }
                         break;
                     case ActionType.wait:
-                        let value_wait = ""
-                        for (const action_data of action.action_datas || []) {
-                            if (action_data.value?.value) {
-                                value_wait = action_data.value?.value;
-                                break;
-                            }
-                        }
+                        let value_wait = actionData?.value?.value || "";
                         await new Promise(resolve => setTimeout(resolve, Number(value_wait) || 0));
                         break;
                     case ActionType.drag_and_drop:
@@ -815,13 +778,7 @@ export class Controller {
                         //Format y X:,y:
                         let x = 0;
                         let y = 0;
-                        let value_scroll = ""
-                        for (const action_data of action.action_datas || []) {
-                            if (action_data.value?.value) {
-                                value_scroll = action_data.value?.value;
-                                break;
-                            }
-                        }
+                        let value_scroll = actionData?.value?.value || "";
                         const match = value_scroll?.match(/X\s*:\s*(\d+)\s*,\s*Y\s*:\s*(\d+)/i);
                         if (match) {
                             x = Number(match[1]);
@@ -848,13 +805,7 @@ export class Controller {
                     case ActionType.window_resize:
                         let width = 0;
                         let height = 0;
-                        let value_window_resize = ""
-                        for (const action_data of action.action_datas || []) {
-                            if (action_data.value?.value) {
-                                value_window_resize = action_data.value?.value;
-                                break;
-                            }
-                        }
+                        let value_window_resize = actionData?.value?.value || "";
                         const match_window_resize = value_window_resize?.match(/Width\s*:\s*(\d+)\s*,\s*Height\s*:\s*(\d+)/i);
                         if (match_window_resize) {
                             width = Number(match_window_resize[1]);
@@ -875,7 +826,7 @@ export class Controller {
                         break;
                     case ActionType.api_request:
                         {
-                            const apiData = (action.action_datas || []).find(d => (d as any).api_request)?.api_request as ApiRequestData | undefined;
+                            const apiData = actionData?.api_request as ApiRequestData | undefined;
                             if (apiData) {
                                 /* console.log('[Controller] Executing API request:', apiData); */
                                 if (activePage) {
@@ -885,7 +836,7 @@ export class Controller {
                         }
                         break;
                     case ActionType.database_execution:
-                        const statementData = (action.action_datas || []).find(d => d.statement)?.statement;
+                        const statementData = actionData?.statement;
                         if (!statementData) {
                             throw new Error('Query is required for database execution action');
                         }
@@ -916,29 +867,19 @@ export class Controller {
                         break;
                     case ActionType.page_create:
                         let pageIndex: number | undefined;
-                        for (const action_data of action.action_datas || []) {
-                            if (action_data.value?.page_index) {
-                                pageIndex = action_data.value?.page_index;
-                                break;
-                            }
+                        if (actionData?.value?.page_index) {
+                            pageIndex = actionData.value.page_index;
                         }
                         if (!pageIndex) {
                             throw new Error('The browser page is not available. Please check the page or contact support.');
                         }
                         let url: string | undefined;
-                        for (const action_data of action.action_datas || []) {
-                            if (action_data.value?.value) {
-                                url = action_data.value?.value;
-                                break;
-                            }
+                        if (actionData?.value?.value) {
+                            url = actionData.value.value;
                         }
                         let openerPageIndex: number | undefined;
-                        for (const action_data of action.action_datas || []) {
-
-                            if (action_data.value?.opener_index !== undefined) {
-                                openerPageIndex = action_data.value?.opener_index;
-                                break;
-                            }
+                        if (actionData?.value?.opener_index !== undefined) {
+                            openerPageIndex = actionData.value.opener_index;
                         }
                         /* console.log('[Controller] Opener Page Index:', openerPageIndex); */
                         if (openerPageIndex === undefined) {

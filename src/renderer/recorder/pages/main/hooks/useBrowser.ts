@@ -147,7 +147,7 @@ export const useBrowser = ({
             prev, 
             { 
               action_type: ActionType.navigate, 
-              action_datas: [{ value: { value: url } },{ value: { page_index: 0 } }] 
+              action_datas: [{ value: { value: url, page_index: 0 } }] 
             }
           );
           setIsDirty(true);

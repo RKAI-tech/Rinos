@@ -309,15 +309,15 @@ const ActionTab: React.FC<ActionTabProps> = ({
     var actionDatas: any[] = [
       {
         api_request: apiData,
+        ...(pageInfo ? {
+          value: {
+            page_index: pageInfo.page_index,
+            page_url: pageInfo.page_url,
+            page_title: pageInfo.page_title,
+          },
+        } : {}),
       }
     ];
-    if (pageInfo) {
-      actionDatas.push({
-        value: {
-          page_index: pageInfo.page_index,
-        },
-      });
-    }
 
     const newAction = {
       testcase_id: testcaseId,
@@ -430,17 +430,14 @@ const ActionTab: React.FC<ActionTabProps> = ({
       {
         value: {
           value: url,
+          ...(pageInfo ? {
+            page_index: pageInfo.page_index,
+            page_url: pageInfo.page_url,
+            page_title: pageInfo.page_title,
+          } : {}),
         },
       }
     ];
-
-    if (pageInfo) {
-      actionDatas.push({
-        value: {
-          page_index: pageInfo.page_index,
-        },
-      });
-    }
 
     const newAction = {
       testcase_id: testcaseId,

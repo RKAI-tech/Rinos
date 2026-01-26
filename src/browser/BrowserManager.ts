@@ -348,10 +348,13 @@ export class BrowserManager extends EventEmitter {
                 const pageUrl = this.pages.get(pageId)?.url() || '';
                 const shouldIncludeUrl = !this.isDefaultNewTabPage(pageUrl);
                 if(opener){
-                    const actionData: any[] = [{ value: { page_index: newIndex,  opener_index: openerIndex } }];
-                    if (shouldIncludeUrl) {
-                        actionData.push({ value: { value: pageUrl } });
-                    }
+                    const actionData: any[] = [{
+                        value: {
+                            page_index: newIndex,
+                            opener_index: openerIndex,
+                            ...(shouldIncludeUrl ? { value: pageUrl } : {}),
+                        },
+                    }];
                     this.emit("action", {
                         action_type: 'page_create',
                         elements: [],
@@ -359,10 +362,12 @@ export class BrowserManager extends EventEmitter {
                     });
                 }
                 else{
-                    const actionData: any[] = [{ value: { page_index: newIndex } }];
-                    if (shouldIncludeUrl) {
-                        actionData.push({ value: { value: pageUrl } });
-                    }
+                    const actionData: any[] = [{
+                        value: {
+                            page_index: newIndex,
+                            ...(shouldIncludeUrl ? { value: pageUrl } : {}),
+                        },
+                    }];
                     this.emit("action", {
                         action_type: 'page_create',
                         elements: [],
@@ -796,8 +801,7 @@ export class BrowserManager extends EventEmitter {
                     action_type: 'page_close',
                     elements: [],
                     action_datas: [
-                        { value: { page_index: pageIndex } },
-                        { value: { value: page.url() || '' } }
+                        { value: { page_index: pageIndex, value: page.url() || '' } },
                     ]
                 });
             }

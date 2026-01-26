@@ -47,7 +47,7 @@ const PageActionDetail: React.FC<PageActionDetailProps> = ({
       let urlFound = false;
       for (const ad of draft.action_datas || []) {
         // Find URL: value.value is string and not page_index
-        if (ad.value?.value !== undefined && typeof ad.value.value === 'string' && ad.value.page_index === undefined) {
+        if (ad.value?.value !== undefined && typeof ad.value.value === 'string') {
           const urlValue = ad.value.value;
           setUrl(urlValue);
           prevUrlRef.current = urlValue; // Lưu giá trị ban đầu
@@ -97,8 +97,7 @@ const PageActionDetail: React.FC<PageActionDetailProps> = ({
       let foundIndex = actionDatas.findIndex(ad => 
         ad.value !== undefined && 
         ad.value?.["value"] !== undefined && 
-        typeof ad.value["value"] === 'string' &&
-        ad.value.page_index === undefined
+        typeof ad.value["value"] === 'string'
       );
       if (foundIndex === -1) {
         // Tạo action_data mới nếu chưa có

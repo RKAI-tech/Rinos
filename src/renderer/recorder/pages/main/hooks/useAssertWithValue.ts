@@ -53,52 +53,41 @@ export const useAssertWithValue = ({
       return false;
     }
 
-    const actionDatas: any[] = [];
-    
-    // Add value
-    actionDatas.push({
+    const actionData: any = {
       value: {
         value: value.trim(),
         htmlDOM: element.domHtml,
         elementText: element.value,
-      }
-    });
-
-    // Add page info if available
-    if (pageInfo) {
-      actionDatas.push({
-        value: {
+        ...(pageInfo ? {
           page_index: pageInfo.page_index,
           page_url: pageInfo.page_url,
           page_title: pageInfo.page_title,
-        }
-      });
-    }
+        } : {}),
+      },
+    };
 
     // Add database statement if provided
     if (statement) {
-      actionDatas.push({
-        statement: {
-          statement_id: statement.statement_id || '',
-          statement_text: statement.query || '',
-          connection_id: (statement.connection as any)?.connection_id || '',
-          connection: statement.connection,
-        }
-      });
+      actionData.statement = {
+        statement_id: statement.statement_id || '',
+        statement_text: statement.query || '',
+        connection_id: (statement.connection as any)?.connection_id || '',
+        connection: statement.connection,
+      };
     }
 
     // Add API request if provided
     if (apiRequest) {
-      const actionData: any = {
-        api_request: apiRequest
-      };
+      actionData.api_request = apiRequest;
       if (selectedPageInfo && apiRequest.auth?.storage_enabled === true) {
         actionData.value = {
+          ...(actionData.value || {}),
           page_index: selectedPageInfo.page_index,
         };
       }
-      actionDatas.push(actionData);
     }
+
+    const actionDatas: any[] = [actionData];
 
     // Build element
     const html_element_action = [{
