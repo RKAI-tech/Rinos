@@ -271,7 +271,21 @@ export function generateActionCode(
   } else if (actionType === ActionType.scroll) {
     let x = 0;
     let y = 0;
-    if (value) {
+
+    // Prefer structured value from recorder (scrollX/scrollY)
+    if (action.action_datas && Array.isArray(action.action_datas)) {
+      for (const actionData of action.action_datas) {
+        const dataValue: any = actionData.value;
+        if (dataValue && typeof dataValue === 'object' && (dataValue.scrollX != null || dataValue.scrollY != null)) {
+          x = Number(dataValue.scrollX) || 0;
+          y = Number(dataValue.scrollY) || 0;
+          break;
+        }
+      }
+    }
+
+    // Fallback to legacy string "X:..., Y:..."
+    if (x === 0 && y === 0 && value) {
       const match = String(value).match(/X\s*:\s*(\d+)\s*,\s*Y\s*:\s*(\d+)/i);
       if (match) {
         x = parseInt(match[1], 10);
@@ -288,7 +302,21 @@ export function generateActionCode(
   } else if (actionType === ActionType.window_resize) {
     let width = 0;
     let height = 0;
-    if (value) {
+
+    // Prefer structured value from recorder (width/height)
+    if (action.action_datas && Array.isArray(action.action_datas)) {
+      for (const actionData of action.action_datas) {
+        const dataValue: any = actionData.value;
+        if (dataValue && typeof dataValue === 'object' && (dataValue.width != null || dataValue.height != null)) {
+          width = Number(dataValue.width) || 0;
+          height = Number(dataValue.height) || 0;
+          break;
+        }
+      }
+    }
+
+    // Fallback to legacy string "Width:..., Height:..."
+    if (width === 0 && height === 0 && value) {
       const match = String(value).match(/Width\s*:\s*(\d+)\s*,\s*Height\s*:\s*(\d+)/i);
       if (match) {
         width = parseInt(match[1], 10);

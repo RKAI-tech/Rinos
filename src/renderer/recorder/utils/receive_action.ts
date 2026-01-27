@@ -190,19 +190,38 @@ export function createDescription(action_received: any): string {
 function createActionDataGeneration(action_received: any): ActionDataGeneration[] | undefined {
     // Tìm value từ action_datas
     let value: any = undefined;
-    for (const action_data of action_received.action_datas || []) {
-        if (action_data.value?.value !== undefined && action_data.value?.value !== null && action_data.value?.value !== '') {
-            value = action_data.value.value;
-            break;
+    const actionDatas = action_received.action_datas || [];
+    const firstActionData = actionDatas[0];
+    const dataValue = firstActionData?.value;
+
+    if (action_received.action_type === ActionType.scroll) {
+        const scrollValue = actionDatas.find((ad: any) => ad?.value && (ad.value.scrollX != null || ad.value.scrollY != null))?.value || dataValue;
+        if (scrollValue && (scrollValue.scrollX != null || scrollValue.scrollY != null)) {
+            const x = scrollValue.scrollX != null ? scrollValue.scrollX : 0;
+            const y = scrollValue.scrollY != null ? scrollValue.scrollY : 0;
+            value = `X:${x}, Y:${y}`;
+        } else if (scrollValue?.value != null) {
+            value = scrollValue.value;
         }
+    } else if (action_received.action_type === ActionType.window_resize) {
+        const resizeValue = actionDatas.find((ad: any) => ad?.value && (ad.value.width != null || ad.value.height != null))?.value || dataValue;
+        if (resizeValue && (resizeValue.width != null || resizeValue.height != null)) {
+            const width = resizeValue.width != null ? resizeValue.width : 0;
+            const height = resizeValue.height != null ? resizeValue.height : 0;
+            value = `Width:${width}, Height:${height}`;
+        } else if (resizeValue?.value != null) {
+            value = resizeValue.value;
+        }
+    } else if (dataValue && dataValue.value !== undefined && dataValue.value !== null) {
+        value = dataValue.value;
     }
 
     // Chỉ tạo version nếu có value
-    if (value !== undefined && value !== null && value !== '') {
+    if (value !== undefined && value !== null) {
         // Tạo temp ID cho generation để có thể được reference trong version
-        const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const dataId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
         return [{
-            action_data_generation_id: tempId,
+            action_data_generation_id: dataId,
             version_number: 1,
             value: {
                 value: String(value)

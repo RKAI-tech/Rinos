@@ -143,14 +143,27 @@ export default function RenderedAction({ action, onDelete, onClick, onStartRecor
     return '';
   };
   const renderValue = () => {
-    let value = '';
     for (const action_data of action.action_datas || []) {
-      if (action_data.value?.["value"]) {
-        value = action_data.value?.["value"];
-        break;
+      const dataValue: any = action_data.value;
+      if (action.action_type === 'scroll') {
+        if (dataValue && (dataValue.scrollX != null || dataValue.scrollY != null)) {
+          const x = dataValue.scrollX != null ? String(dataValue.scrollX) : '0';
+          const y = dataValue.scrollY != null ? String(dataValue.scrollY) : '0';
+          return `X:${x}, Y:${y}`;
+        }
+      }
+      if (action.action_type === 'window_resize') {
+        if (dataValue && (dataValue.width != null || dataValue.height != null)) {
+          const width = dataValue.width != null ? String(dataValue.width) : '0';
+          const height = dataValue.height != null ? String(dataValue.height) : '0';
+          return `Width:${width}, Height:${height}`;
+        }
+      }
+      if (dataValue?.["value"]) {
+        return String(dataValue["value"]);
       }
     }
-    return value;
+    return '';
   };
   const fullValue = renderValue();
   const displayValue = fullValue ? (fullValue.length > 50 ? fullValue.substring(0, 50) + '...' : fullValue) : '';

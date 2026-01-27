@@ -775,14 +775,20 @@ export class Controller {
                         }
                         break;
                     case ActionType.scroll:
-                        //Format y X:,y:
+                        // Prefer structured metadata (scrollX/scrollY), fallback to legacy string format.
                         let x = 0;
                         let y = 0;
-                        let value_scroll = actionData?.value?.value || "";
-                        const match = value_scroll?.match(/X\s*:\s*(\d+)\s*,\s*Y\s*:\s*(\d+)/i);
-                        if (match) {
-                            x = Number(match[1]);
-                            y = Number(match[2]);
+                        const scrollValue: any = actionData?.value;
+                        if (scrollValue && typeof scrollValue === 'object' && (scrollValue.scrollX != null || scrollValue.scrollY != null)) {
+                            x = Number(scrollValue.scrollX) || 0;
+                            y = Number(scrollValue.scrollY) || 0;
+                        } else {
+                            const value_scroll = scrollValue?.value || "";
+                            const match = value_scroll?.match(/X\s*:\s*(\d+)\s*,\s*Y\s*:\s*(\d+)/i);
+                            if (match) {
+                                x = Number(match[1]);
+                                y = Number(match[2]);
+                            }
                         }
                         const selectors = action.elements?.[0]?.selectors?.map((selector: Selector) => selector.value);
                         if (selectors) {
@@ -803,13 +809,20 @@ export class Controller {
                         }
                         break;
                     case ActionType.window_resize:
+                        // Prefer structured metadata (width/height), fallback to legacy string format.
                         let width = 0;
                         let height = 0;
-                        let value_window_resize = actionData?.value?.value || "";
-                        const match_window_resize = value_window_resize?.match(/Width\s*:\s*(\d+)\s*,\s*Height\s*:\s*(\d+)/i);
-                        if (match_window_resize) {
-                            width = Number(match_window_resize[1]);
-                            height = Number(match_window_resize[2]);
+                        const resizeValue: any = actionData?.value;
+                        if (resizeValue && typeof resizeValue === 'object' && (resizeValue.width != null || resizeValue.height != null)) {
+                            width = Number(resizeValue.width) || 0;
+                            height = Number(resizeValue.height) || 0;
+                        } else {
+                            const value_window_resize = resizeValue?.value || "";
+                            const match_window_resize = value_window_resize?.match(/Width\s*:\s*(\d+)\s*,\s*Height\s*:\s*(\d+)/i);
+                            if (match_window_resize) {
+                                width = Number(match_window_resize[1]);
+                                height = Number(match_window_resize[2]);
+                            }
                         }
                         // Apply sensible defaults and bounds
                         const targetWidth = Math.max(width || 1366, 800);
@@ -825,13 +838,11 @@ export class Controller {
                         }
                         break;
                     case ActionType.api_request:
-                        {
-                            const apiData = actionData?.api_request as ApiRequestData | undefined;
-                            if (apiData) {
-                                /* console.log('[Controller] Executing API request:', apiData); */
-                                if (activePage) {
-                                    await this.executeApiRequest(activePage, apiData as ApiRequestData);
-                                }
+                        const apiData = actionData?.api_request as ApiRequestData | undefined;
+                        if (apiData) {
+                            /* console.log('[Controller] Executing API request:', apiData); */
+                            if (activePage) {
+                                await this.executeApiRequest(activePage, apiData as ApiRequestData);
                             }
                         }
                         break;

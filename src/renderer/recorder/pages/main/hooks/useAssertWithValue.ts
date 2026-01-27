@@ -4,6 +4,8 @@ import { Action, ActionType, AssertType, ApiRequestData, Statement } from '../..
 import { receiveActionWithInsert } from '../../../utils/receive_action';
 import { PageInfo } from './usePageSelection';
 
+type ValueSourceType = 'manual' | 'database' | 'api' | 'variables';
+
 interface UseAssertWithValueProps {
   testcaseId: string | null;
   assertType: AssertType;
@@ -42,7 +44,8 @@ export const useAssertWithValue = ({
     },
     pageInfo?: PageInfo,
     statement?: Statement,
-    apiRequest?: ApiRequestData
+    apiRequest?: ApiRequestData,
+    valueSourceType?: ValueSourceType
   ): Promise<boolean> => {
     if (!value || !value.trim()) {
       toast.error('Value is required');
@@ -53,17 +56,27 @@ export const useAssertWithValue = ({
       return false;
     }
 
+    const sourceType = valueSourceType || 'manual';
+    const valuePayload: any = {
+      htmlDOM: element.domHtml,
+      elementText: element.value,
+      ...(pageInfo ? {
+        page_index: pageInfo.page_index,
+        page_url: pageInfo.page_url,
+        page_title: pageInfo.page_title,
+      } : {}),
+    };
+
+    if (sourceType === 'api') {
+      valuePayload.key = value.trim();
+    } else if (sourceType === 'database' || sourceType === 'variables') {
+      valuePayload.column = value.trim();
+    } else {
+      valuePayload.value = value.trim();
+    }
+
     const actionData: any = {
-      value: {
-        value: value.trim(),
-        htmlDOM: element.domHtml,
-        elementText: element.value,
-        ...(pageInfo ? {
-          page_index: pageInfo.page_index,
-          page_url: pageInfo.page_url,
-          page_title: pageInfo.page_title,
-        } : {}),
-      },
+      value: valuePayload,
     };
 
     // Add database statement if provided

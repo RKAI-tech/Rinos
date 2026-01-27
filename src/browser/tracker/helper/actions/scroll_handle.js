@@ -32,7 +32,6 @@ function dispatchScroll(e) {
   const isWindow = (target === window || target === document.scrollingElement || target === document.documentElement || target === document.body);
   const scrollX = isWindow ? Math.max(window.scrollX || window.pageXOffset || 0, 0) : Math.max(target.scrollLeft || 0, 0);
   const scrollY = isWindow ? Math.max(window.scrollY || window.pageYOffset || 0, 0) : Math.max(target.scrollTop || 0, 0);
-  const value = `X:${scrollX}, Y:${scrollY}`;
   const elementText = extractElementText(target);
   const element = buildElement(target, selectors, 1);
   
@@ -41,7 +40,8 @@ function dispatchScroll(e) {
     elements: [element],
     action_datas: [{
       value: {
-        value: value,
+        scrollX: scrollX,
+        scrollY: scrollY,
         elementText: elementText,
         page_index: window.__PAGE_INDEX__ || 0
       },

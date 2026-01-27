@@ -29,13 +29,22 @@ export const normalizeScrollAction = (source: Action): Action => {
   // For scroll action, normalize all action_datas that have value
   // Preserve all existing properties in action_datas
   cloned.action_datas = (source.action_datas ?? []).map(ad => {
-    if(!ad.value) return ad;
-    if (!("value" in ad.value)) return ad;
+    if (!ad.value || typeof ad.value !== 'object') return ad;
+    const dataValue: any = ad.value;
+    let scrollX = dataValue.scrollX;
+    let scrollY = dataValue.scrollY;
+    if ((scrollX == null || scrollY == null) && dataValue.value != null) {
+      const parsed = parseScrollValue(String(dataValue.value));
+      if (scrollX == null && parsed.x !== '') scrollX = parsed.x;
+      if (scrollY == null && parsed.y !== '') scrollY = parsed.y;
+    }
+    if (scrollX == null && scrollY == null) return ad;
     return {
       ...ad,
       value: {
-        ...(ad.value || {}),
-        value: String(ad.value.value),
+        ...(dataValue || {}),
+        scrollX,
+        scrollY,
       }
     }
   });
@@ -78,8 +87,14 @@ const ScrollActionDetail: React.FC<ScrollActionDetailProps> = ({
   useEffect(() => {
     // Find value from any action_data in the array, not just [0]
     for (const ad of draft.action_datas || []) {
-      if (ad.value?.["value"]) {
-        const parsed = parseScrollValue(ad.value["value"]);
+      const dataValue: any = ad.value;
+      if (dataValue && typeof dataValue === 'object' && (dataValue.scrollX != null || dataValue.scrollY != null)) {
+        setScrollX(dataValue.scrollX != null ? String(dataValue.scrollX) : '');
+        setScrollY(dataValue.scrollY != null ? String(dataValue.scrollY) : '');
+        break;
+      }
+      if (dataValue?.["value"]) {
+        const parsed = parseScrollValue(String(dataValue["value"]));
         setScrollX(parsed.x);
         setScrollY(parsed.y);
         break;
@@ -89,7 +104,10 @@ const ScrollActionDetail: React.FC<ScrollActionDetailProps> = ({
 
   // Hàm update action data value - giữ nguyên các action_data khác
   const updateActionDataValue = (x: string, y: string) => {
-    const combinedValue = combineScrollValue(x, y);
+    const xVal = x.trim() || '0';
+    const yVal = y.trim() || '0';
+    const scrollX = Number(xVal) || 0;
+    const scrollY = Number(yVal) || 0;
     updateDraft(prev => {
       const next = { ...prev } as Action;
       const actionDatas = [...(next.action_datas || [])];
@@ -107,7 +125,8 @@ const ScrollActionDetail: React.FC<ScrollActionDetailProps> = ({
         ...actionDatas[foundIndex],
         value: {
           ...(actionDatas[foundIndex].value || {}),
-          value: combinedValue
+          scrollX,
+          scrollY,
         }
       };
       

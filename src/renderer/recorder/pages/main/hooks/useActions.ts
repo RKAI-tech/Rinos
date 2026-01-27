@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Action, Element as ActionElement, TestCaseDataVersion } from '../../../types/actions';
+import { Action, ActionType, Element as ActionElement, TestCaseDataVersion } from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
 import { ActionOperationResult } from '../../../components/action_tab/ActionTab';
 import { receiveActionWithInsert } from '../../../utils/receive_action';
@@ -68,27 +68,60 @@ const applyCurrentVersionToActions = (
     
     if (selectedGeneration && selectedGeneration.value) {
       const generationValue = selectedGeneration.value.value || 
-        (typeof selectedGeneration.value === 'string' ? selectedGeneration.value : '');
+        (typeof selectedGeneration.value === 'string' ? selectedGeneration.value : selectedGeneration.value);
       
-      // Cập nhật action_datas[0].value.value
+      // Cập nhật action_datas[0].value (structured for scroll/resize)
       const actionDatas = [...(action.action_datas || [])];
       let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined);
+
+      const buildValuePayload = () => {
+        const payload: any = {
+          ...(foundIndex >= 0 ? (actionDatas[foundIndex].value || {}) : {}),
+          ...(currentVersionName ? { currentVersion: currentVersionName } : {})
+        };
+
+        if (action.action_type === ActionType.scroll) {
+          if (generationValue && typeof generationValue === 'object' && (generationValue as any).scrollX != null) {
+            payload.scrollX = (generationValue as any).scrollX;
+            payload.scrollY = (generationValue as any).scrollY ?? payload.scrollY;
+            return payload;
+          }
+          const match = String(generationValue ?? '').match(/X\s*:\s*(\d+)\s*,\s*Y\s*:\s*(\d+)/i);
+          if (match) {
+            payload.scrollX = match[1];
+            payload.scrollY = match[2];
+          } else if (generationValue != null) {
+            payload.value = String(generationValue);
+          }
+          return payload;
+        }
+
+        if (action.action_type === ActionType.window_resize) {
+          if (generationValue && typeof generationValue === 'object' && (generationValue as any).width != null) {
+            payload.width = (generationValue as any).width;
+            payload.height = (generationValue as any).height ?? payload.height;
+            return payload;
+          }
+          const match = String(generationValue ?? '').match(/Width\s*:\s*(\d+)\s*,\s*Height\s*:\s*(\d+)/i);
+          if (match) {
+            payload.width = match[1];
+            payload.height = match[2];
+          } else if (generationValue != null) {
+            payload.value = String(generationValue);
+          }
+          return payload;
+        }
+
+        payload.value = String(generationValue ?? '');
+        return payload;
+      };
       
       if (foundIndex === -1) {
-        actionDatas.push({ 
-          value: { 
-            value: String(generationValue),
-            ...(currentVersionName ? { currentVersion: currentVersionName } : {})
-          } 
-        });
+        actionDatas.push({ value: buildValuePayload() });
       } else {
         actionDatas[foundIndex] = {
           ...actionDatas[foundIndex],
-          value: {
-            ...(actionDatas[foundIndex].value || {}),
-            value: String(generationValue),
-            ...(currentVersionName ? { currentVersion: currentVersionName } : {})
-          }
+          value: buildValuePayload()
         };
       }
       

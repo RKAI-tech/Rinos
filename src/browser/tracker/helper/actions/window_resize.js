@@ -21,7 +21,6 @@ function dispatchResize(e) {
   const selectors = buildSelectors(target);
   const width = Math.max(window.innerWidth || 0, 0);
   const height = Math.max(window.innerHeight || 0, 0);
-  const value = `Width:${width}, Height:${height}`;
   const elementText = extractElementText(target);
   const element = buildElement(target, selectors, 1);
   
@@ -30,7 +29,8 @@ function dispatchResize(e) {
     elements: [element],
     action_datas: [{
       value: { 
-        value: value, 
+        width: width, 
+        height: height, 
         elementText: elementText,
         page_index: window.__PAGE_INDEX__ || 0,
       },

@@ -29,13 +29,22 @@ export const normalizeWindowResizeAction = (source: Action): Action => {
   // For window_resize action, normalize all action_datas that have value
   // Preserve all existing properties in action_datas (like page_index, elementText)
   cloned.action_datas = (source.action_datas ?? []).map(ad => {
-    if(!ad.value) return ad;
-    if (!("value" in ad.value)) return ad;
+    if (!ad.value || typeof ad.value !== 'object') return ad;
+    const dataValue: any = ad.value;
+    let width = dataValue.width;
+    let height = dataValue.height;
+    if ((width == null || height == null) && dataValue.value != null) {
+      const parsed = parseWindowResizeValue(String(dataValue.value));
+      if (width == null && parsed.width !== '') width = parsed.width;
+      if (height == null && parsed.height !== '') height = parsed.height;
+    }
+    if (width == null && height == null) return ad;
     return {
       ...ad,
       value: {
-        ...(ad.value || {}),
-        value: String(ad.value.value),
+        ...(dataValue || {}),
+        width,
+        height,
       }
     }
   });
@@ -78,8 +87,14 @@ const WindowResizeActionDetail: React.FC<WindowResizeActionDetailProps> = ({
   useEffect(() => {
     // Find value from any action_data in the array, not just [0]
     for (const ad of draft.action_datas || []) {
-      if (ad.value?.["value"]) {
-        const parsed = parseWindowResizeValue(ad.value["value"]);
+      const dataValue: any = ad.value;
+      if (dataValue && typeof dataValue === 'object' && (dataValue.width != null || dataValue.height != null)) {
+        setWindowWidth(dataValue.width != null ? String(dataValue.width) : '');
+        setWindowHeight(dataValue.height != null ? String(dataValue.height) : '');
+        break;
+      }
+      if (dataValue?.["value"]) {
+        const parsed = parseWindowResizeValue(String(dataValue["value"]));
         setWindowWidth(parsed.width);
         setWindowHeight(parsed.height);
         break;
@@ -89,13 +104,16 @@ const WindowResizeActionDetail: React.FC<WindowResizeActionDetailProps> = ({
 
   // Hàm update action data value - giữ nguyên các action_data khác (như page_index, elementText)
   const updateActionDataValue = (width: string, height: string) => {
-    const combinedValue = combineWindowResizeValue(width, height);
+    const widthVal = width.trim() || '0';
+    const heightVal = height.trim() || '0';
+    const normalizedWidth = Number(widthVal) || 0;
+    const normalizedHeight = Number(heightVal) || 0;
     updateDraft(prev => {
       const next = { ...prev } as Action;
       const actionDatas = [...(next.action_datas || [])];
       
       // Tìm action_data có value property với value field, nếu không có thì tạo mới
-      let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined && ad.value?.["value"] !== undefined);
+      let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined);
       if (foundIndex === -1) {
         // Tạo action_data mới nếu chưa có
         actionDatas.push({ value: {} });
@@ -107,7 +125,8 @@ const WindowResizeActionDetail: React.FC<WindowResizeActionDetailProps> = ({
         ...actionDatas[foundIndex],
         value: {
           ...(actionDatas[foundIndex].value || {}),
-          value: combinedValue
+          width: normalizedWidth,
+          height: normalizedHeight,
         }
       };
       

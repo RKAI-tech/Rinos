@@ -66,8 +66,19 @@ const AssertWithValueActionDetail: React.FC<AssertWithValueActionDetailProps> = 
 
   useEffect(() => {
     for (const ad of draft.action_datas || []) {
-      if (ad.value?.['value'] !== undefined && typeof ad.value['value'] === 'string') {
-        setAssertValue(ad.value['value']);
+      if (ad.value && typeof ad.value === 'object') {
+        if (typeof ad.value['key'] === 'string') {
+          setAssertValue(ad.value['key']);
+          return;
+        }
+        if (typeof ad.value['column'] === 'string') {
+          setAssertValue(ad.value['column']);
+          return;
+        }
+        if (typeof ad.value['value'] === 'string') {
+          setAssertValue(ad.value['value']);
+          return;
+        }
         return;
       }
     }
@@ -80,8 +91,19 @@ const AssertWithValueActionDetail: React.FC<AssertWithValueActionDetailProps> = 
       const next = { ...prev } as Action;
       const actionDatas = [...(next.action_datas || [])];
 
+      const targetField = (() => {
+        for (const ad of actionDatas) {
+          if (ad.value && typeof ad.value === 'object') {
+            if (ad.value['key'] !== undefined) return 'key';
+            if (ad.value['column'] !== undefined) return 'column';
+            if (ad.value['value'] !== undefined) return 'value';
+          }
+        }
+        return 'value';
+      })();
+
       let valueIndex = actionDatas.findIndex(
-        ad => ad.value !== undefined && ad.value?.['value'] !== undefined && typeof ad.value['value'] === 'string',
+        ad => ad.value !== undefined && ad.value?.[targetField] !== undefined && typeof ad.value?.[targetField] === 'string',
       );
 
       if (valueIndex === -1) {
@@ -93,7 +115,7 @@ const AssertWithValueActionDetail: React.FC<AssertWithValueActionDetailProps> = 
         ...actionDatas[valueIndex],
         value: {
           ...(actionDatas[valueIndex].value || {}),
-          value,
+          [targetField]: value,
         },
       };
 

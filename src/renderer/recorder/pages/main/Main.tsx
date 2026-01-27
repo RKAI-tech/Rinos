@@ -935,8 +935,15 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
           pageSelection.setAssertWithValueSelectedElement(null);
           await (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
         }}
-        onConfirm={async (value, element, pageInfo, statement, apiRequest) => {
-          const result = await assertWithValueHook.handleConfirm(value, element, pageInfo, statement, apiRequest);
+        onConfirm={async (value, element, pageInfo, statement, apiRequest, valueSourceType) => {
+          const result = await assertWithValueHook.handleConfirm(
+            value,
+            element,
+            pageInfo,
+            statement,
+            apiRequest,
+            valueSourceType
+          );
           if (result) {
             modals.setIsAssertWithValueModalOpen(false);
             pageSelection.setAssertWithValueSelectedPageInfo(null);

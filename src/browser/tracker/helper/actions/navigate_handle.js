@@ -65,7 +65,7 @@ function handleNavigateFunc(event) {
         action_datas: [
           {
             value: {
-              url: clickedLinkHref,
+              value: clickedLinkHref,
               page_index: window.__PAGE_INDEX__ || 0
             }
           },

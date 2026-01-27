@@ -42,10 +42,14 @@ export function generateAssertCode(action: Action, index: number): string {
 
   if (action.action_datas && Array.isArray(action.action_datas)) {
     for (const actionData of action.action_datas) {
-      if (actionData.value && typeof actionData.value === 'object' && 'value' in actionData.value) {
-        const value = actionData.value.value;
-        if (value) {
-          values.push(value);
+      if (actionData.value && typeof actionData.value === 'object') {
+        const valueObj: any = actionData.value;
+        const picked =
+          valueObj.key !== undefined ? valueObj.key :
+          valueObj.column !== undefined ? valueObj.column :
+          valueObj.value;
+        if (picked) {
+          values.push(picked);
         }
       }
     }

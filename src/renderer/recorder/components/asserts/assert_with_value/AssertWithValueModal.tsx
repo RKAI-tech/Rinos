@@ -77,7 +77,8 @@ interface AssertWithValueModalProps {
     },
     pageInfo?: SelectedPageInfo,
     statement?: Statement,
-    apiRequest?: ApiRequestData
+    apiRequest?: ApiRequestData,
+    valueSourceType?: ValueSourceType
   ) => void;
   selectedPageInfo?: SelectedPageInfo | null;
   onClearPage?: () => void;
@@ -452,7 +453,8 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
       selectedElement!,
       selectedPageInfo || undefined,
       statement,
-      apiRequestData
+      apiRequestData,
+      valueSourceType
     );
     setValue("");
     setValueSourceType("manual");
