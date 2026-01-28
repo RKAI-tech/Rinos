@@ -357,17 +357,12 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
         
         const actionDatas = [...(action.action_datas || [])];
         let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined);
-        const existingSelectedId = actionDatas.find(
-          ad => ad.value && typeof ad.value === 'object' && ad.value.selected_value_id !== undefined
-        )?.value?.selected_value_id;
 
-        let selectedGenerationId: string | null = existingSelectedId ? String(existingSelectedId) : null;
-        
         if (foundIndex === -1) {
-          actionDatas.push({ 
-            value: { 
-              currentVersion: versionName
-            } 
+          actionDatas.push({
+            value: {
+              currentVersion: versionName,
+            },
           });
           foundIndex = actionDatas.length - 1;
         } else {
@@ -375,12 +370,15 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
             ...actionDatas[foundIndex],
             value: {
               ...(actionDatas[foundIndex].value || {}),
-              currentVersion: versionName
-            }
+              currentVersion: versionName,
+            },
           };
         }
 
-        if (!selectedGenerationId && versionObj.action_data_generations) {
+        // Prefer generation from the selected version; fallback to existing selection.
+        let selectedGenerationId: string | null = null;
+
+        if (versionObj.action_data_generations) {
           for (const gen of versionObj.action_data_generations) {
             if (gen.action_data_generation_id) {
               const genInAction = action.action_data_generation?.find(
@@ -394,6 +392,14 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
           }
         }
 
+        if (!selectedGenerationId) {
+          const existingSelectedId = actionDatas.find(
+            ad => ad.value && typeof ad.value === 'object' && ad.value.selected_value_id !== undefined
+          )?.value?.selected_value_id;
+
+          selectedGenerationId = existingSelectedId ? String(existingSelectedId) : null;
+        }
+
         if (!selectedGenerationId && action.action_data_generation.length > 0) {
           selectedGenerationId = action.action_data_generation[0].action_data_generation_id || null;
         }
@@ -403,8 +409,8 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
             ...actionDatas[foundIndex],
             value: {
               ...(actionDatas[foundIndex].value || {}),
-              selected_value_id: selectedGenerationId
-            }
+              selected_value_id: selectedGenerationId,
+            },
           };
         }
         
