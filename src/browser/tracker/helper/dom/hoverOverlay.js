@@ -64,28 +64,7 @@ export function showHoverEffect(element) {
     pointer-events: none;
     z-index: 10000;
     box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
-    animation: rikkei-hover-pulse 1.5s ease-in-out infinite;
   `;
-  
-  // Add pulse animation
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes rikkei-hover-pulse {
-      0%, 100% { 
-        box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
-        transform: scale(1);
-      }
-      50% { 
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.6);
-        transform: scale(1.02);
-      }
-    }
-  `;
-  
-  if (!document.querySelector('#rikkei-hover-animations')) {
-    style.id = 'rikkei-hover-animations';
-    document.head.appendChild(style);
-  }
   
   // Clear previous highlights
   hoverOverlay.innerHTML = '';
