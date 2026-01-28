@@ -12,7 +12,7 @@ import ConfirmCloseModal from '../../components/confirm_close/ConfirmCloseModal'
 import URLInputModal from '../../components/asserts/url_input_modal/URLInputModal';
 import TitleInputModal from '../../components/asserts/title_input_modal/TitleInputModal';
 import CSSAssertModal from '../../components/asserts/css_input_modal/CSSAssertModal';
-import { Action, AssertType, TestCaseDataVersion } from '../../types/actions';
+import { Action, ActionBatch, AssertType, TestCaseDataVersion } from '../../types/actions';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
 import { GenerationCodeRequest } from '../../types/executeScripts';
@@ -87,11 +87,6 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
     }
   }, [testcaseId, testCaseService]);
   
-  // Load testcase data versions when testcaseId changes
-  useEffect(() => {
-    reloadTestCaseDataVersions();
-  }, [reloadTestCaseDataVersions]);
-  
   // Hooks
   const modals = useModals();
   const pageSelection = usePageSelection();
@@ -104,11 +99,30 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
     // Will be set after hook initialization
   }, []);
 
+  // Ổn định callback để tránh reload liên tục
+  const handleBasicAuthDirtyChange = useCallback((isDirty: boolean) => {
+    setIsDirtyRef.current?.(isDirty);
+  }, []);
+
+  const basicAuthHook = useBasicAuth({
+    testcaseId: testcaseId || null,
+    projectId: projectId || null,
+    onDirtyChange: handleBasicAuthDirtyChange,
+    enableInitialLoad: false,
+  });
+
+  const handleBatchLoaded = useCallback((batch: ActionBatch) => {
+    const versions = (batch.testcase_data_versions || []) as unknown as TestCaseDataVersionFromAPI[];
+    setTestCaseDataVersions(versions);
+    basicAuthHook.applyBasicAuthFromBatch(batch.basic_authentication);
+  }, [basicAuthHook.applyBasicAuthFromBatch]);
+
   const actionsHook = useActions({
     projectId: projectId || null,
     testcaseId: testcaseId || null,
     onDirtyChange: handleActionsDirtyChange,
     testcaseDataVersions: testcaseDataVersions,
+    onBatchLoaded: handleBatchLoaded,
   });
 
   // Cập nhật ref khi actionsHook thay đổi
@@ -138,16 +152,12 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
     }
   }, [actionsHook.actions, testcaseDataVersions]);
 
-  // Ổn định callback để tránh reload liên tục
-  const handleBasicAuthDirtyChange = useCallback((isDirty: boolean) => {
-    setIsDirtyRef.current?.(isDirty);
-  }, []);
-
-  const basicAuthHook = useBasicAuth({
-    testcaseId: testcaseId || null,
-    projectId: projectId || null,
-    onDirtyChange: handleBasicAuthDirtyChange,
-  });
+  useEffect(() => {
+    if (!testcaseId) {
+      setTestCaseDataVersions([]);
+      basicAuthHook.applyBasicAuthFromBatch(undefined);
+    }
+  }, [testcaseId, basicAuthHook.applyBasicAuthFromBatch]);
 
   // Browser state - managed by hook but we need local refs for UI
   const [browserIsPaused, setBrowserIsPaused] = useState(true);
@@ -438,10 +448,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
   }, [modals]);
 
   const reloadAll = async (): Promise<ActionOperationResult> => {
-    const result = await actionsHook.reloadActions();
-    await basicAuthHook.reloadBasicAuth();
-    await reloadTestCaseDataVersions();
-    return result;
+    return actionsHook.reloadActions();
   };
 
   const saveAll = async (testcaseDataVersions?: TestCaseDataVersionFromAPI[]): Promise<ActionOperationResult> => {

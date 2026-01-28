@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Action, ActionType, Element as ActionElement, TestCaseDataVersion } from '../../../types/actions';
+import { Action, ActionBatch, ActionType, Element as ActionElement, TestCaseDataVersion } from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
 import { ActionOperationResult } from '../../../components/action_tab/ActionTab';
 import { receiveActionWithInsert } from '../../../utils/receive_action';
@@ -10,6 +10,7 @@ interface UseActionsProps {
   projectId?: string | null;
   onDirtyChange?: (isDirty: boolean) => void;
   testcaseDataVersions?: TestCaseDataVersionFromAPI[];
+  onBatchLoaded?: (batch: ActionBatch) => void;
 }
 
 // Utility function to apply currentVersion to actions
@@ -88,7 +89,13 @@ const applyCurrentVersionToActions = (
   });
 };
 
-export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataVersions = [] }: UseActionsProps) => {
+export const useActions = ({
+  testcaseId,
+  projectId,
+  onDirtyChange,
+  testcaseDataVersions = [],
+  onBatchLoaded,
+}: UseActionsProps) => {
   const [actions, setActions] = useState<Action[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -132,6 +139,7 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
             setSavedActionsSnapshot(JSON.parse(JSON.stringify(loaded)));
             setIsDirty(false);
             onDirtyChange?.(false);
+            onBatchLoaded?.(response.data);
             // Reset ref để force apply version sau khi load
             previousVersionsRef.current = '';
             lastAppliedActionsRef.current = '';
@@ -141,6 +149,7 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
             setSavedActionsSnapshot([]);
             setIsDirty(false);
             onDirtyChange?.(false);
+            onBatchLoaded?.({ actions: [] });
             previousVersionsRef.current = '';
             lastAppliedActionsRef.current = '';
           }
@@ -150,6 +159,7 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
           setSavedActionsSnapshot([]);
           setIsDirty(false);
           onDirtyChange?.(false);
+          onBatchLoaded?.({ actions: [] });
           previousVersionsRef.current = '';
           lastAppliedActionsRef.current = '';
         } finally {
@@ -161,13 +171,14 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
         setSavedActionsSnapshot([]);
         setIsDirty(false);
         onDirtyChange?.(false);
+        onBatchLoaded?.({ actions: [] });
         previousVersionsRef.current = '';
         lastAppliedActionsRef.current = '';
       }
     };
 
     loadActions();
-  }, [testcaseId, actionService, onDirtyChange, projectId]);
+  }, [testcaseId, actionService, onDirtyChange, projectId, onBatchLoaded]);
 
   // Áp dụng currentVersion khi testcaseDataVersions thay đổi hoặc sau khi actions được load
   useEffect(() => {
@@ -297,6 +308,7 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
           setSavedActionsSnapshot([]);
           setIsDirty(false);
           onDirtyChange?.(false);
+          onBatchLoaded?.({ actions: [] });
           return {
             success: false,
             message: 'Testcase not found (likely deleted)',
@@ -318,6 +330,7 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
         const len = appliedActions.length;
         setSelectedInsertPosition(len);
         setDisplayInsertPosition(len);
+        onBatchLoaded?.(response.data);
         return {
           success: true,
           message: 'Actions reloaded successfully',
@@ -329,6 +342,7 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
         setSavedActionsSnapshot([]);
         setIsDirty(false);
         onDirtyChange?.(false);
+        onBatchLoaded?.({ actions: [] });
         return {
           success: false,
           message: response.error || 'Failed to reload actions',
@@ -342,6 +356,7 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
       setSavedActionsSnapshot([]);
       setIsDirty(false);
       onDirtyChange?.(false);
+      onBatchLoaded?.({ actions: [] });
       const message = error instanceof Error ? error.message : 'Failed to reload actions';
       return {
         success: false,
@@ -351,7 +366,7 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
     } finally {
       setIsLoading(false);
     }
-  }, [testcaseId, actions, actionService, onDirtyChange, testcaseDataVersions]);
+  }, [testcaseId, actions, actionService, onDirtyChange, testcaseDataVersions, onBatchLoaded, projectId]);
 
   // Normalize actions before saving to ensure elements have correct order_index
   const normalizeActionsForSave = useCallback((actionsToNormalize: Action[]): Action[] => {

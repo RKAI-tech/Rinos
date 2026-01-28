@@ -1,4 +1,5 @@
 import { BrowserStorageResponse } from "./browser_storage";
+import { BasicAuthentication } from "./basic_auth";
 
 export enum ActionType {
   input = "input",
@@ -255,6 +256,7 @@ export interface TestCaseDataVersion {
 export interface ActionBatch {
   actions: Action[];
   testcase_data_versions?: TestCaseDataVersion[];
+  basic_authentication?: BasicAuthentication;
 }
 
 // ====== AI / random data generation types (match backend schemas) ======

@@ -6,15 +6,24 @@ interface UseBasicAuthProps {
   testcaseId: string | null;
   projectId?: string | null;
   onDirtyChange?: (isDirty: boolean) => void;
+  enableInitialLoad?: boolean;
 }
 
-export const useBasicAuth = ({ testcaseId, projectId, onDirtyChange }: UseBasicAuthProps) => {
+export const useBasicAuth = ({
+  testcaseId,
+  projectId,
+  onDirtyChange,
+  enableInitialLoad = true,
+}: UseBasicAuthProps) => {
   const [basicAuth, setBasicAuth] = useState<BasicAuthentication>();
   const [basicAuthStatus, setBasicAuthStatus] = useState<'idle' | 'success'>('idle');
   const [savedBasicAuthSnapshot, setSavedBasicAuthSnapshot] = useState<BasicAuthentication | undefined>(undefined);
 
   // Load basic authentication khi có testcase ID
   useEffect(() => {
+    if (!enableInitialLoad) {
+      return;
+    }
     const loadBasicAuth = async () => {
       if (testcaseId) {
         try {
@@ -40,7 +49,7 @@ export const useBasicAuth = ({ testcaseId, projectId, onDirtyChange }: UseBasicA
     };
 
     loadBasicAuth();
-  }, [testcaseId, projectId]);
+  }, [testcaseId, projectId, enableInitialLoad]);
 
   const handleOpenBasicAuth = useCallback(() => {
     setBasicAuthStatus('idle');
@@ -85,6 +94,16 @@ export const useBasicAuth = ({ testcaseId, projectId, onDirtyChange }: UseBasicA
     onDirtyChange?.(true);
   }, [onDirtyChange]);
 
+  const applyBasicAuthFromBatch = useCallback((auth?: BasicAuthentication) => {
+    if (auth) {
+      setBasicAuth(auth);
+      setSavedBasicAuthSnapshot(JSON.parse(JSON.stringify(auth)));
+    } else {
+      setBasicAuth(undefined);
+      setSavedBasicAuthSnapshot(undefined);
+    }
+  }, []);
+
   return {
     basicAuth,
     setBasicAuth,
@@ -96,6 +115,7 @@ export const useBasicAuth = ({ testcaseId, projectId, onDirtyChange }: UseBasicA
     handleSaveBasicAuth,
     reloadBasicAuth,
     handleBasicAuthSaved,
+    applyBasicAuthFromBatch,
   };
 };
 
