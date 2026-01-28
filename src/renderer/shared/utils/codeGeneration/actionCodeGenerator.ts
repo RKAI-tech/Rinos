@@ -6,6 +6,7 @@ import { convertListSelectorsToLiteral } from './selectorFuncs';
 import { generateConnectDbCode } from './dbConnectionCode';
 import { generateAssertCode } from './assertCodeGenerator';
 import { sanitizeJsString } from './base';
+import { getSelectedGenerationValue } from '../actionDataGeneration';
 import { serializeApiRequest } from './apiRequestFuncs';
 import { preProcessCookies } from './base';
 
@@ -27,8 +28,16 @@ export function generateActionCode(
   const actionType = action.action_type;
   let value: any = null;
 
-  // Extract value from action_datas
-  if (action.action_datas && Array.isArray(action.action_datas)) {
+  const generationValue = action.action_data_generation?.length
+    ? getSelectedGenerationValue(action)
+    : null;
+
+  if (action.action_data_generation?.length) {
+    if (generationValue != null) {
+      value = generationValue;
+    }
+  } else if (action.action_datas && Array.isArray(action.action_datas)) {
+    // Extract value from action_datas
     for (const actionData of action.action_datas) {
       if (actionData.value && typeof actionData.value === 'object' && 'value' in actionData.value) {
         if (actionData.value.value != null) {
@@ -37,8 +46,10 @@ export function generateActionCode(
         }
       }
     }
+  }
 
-    // Extract page_index
+  // Extract page_index
+  if (action.action_datas && Array.isArray(action.action_datas)) {
     for (const actionData of action.action_datas) {
       if (actionData.value && typeof actionData.value === 'object' && 'page_index' in actionData.value) {
         if (actionData.value.page_index != null) {

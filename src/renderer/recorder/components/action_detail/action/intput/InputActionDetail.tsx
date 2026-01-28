@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Action, Element, ActionDataGeneration } from '../../../../types/actions';
 import { TestCaseDataVersion } from '../../../../types/testcase';
+import { getSelectedGenerationValue, getSelectedValueId } from '../../../../../shared/utils/actionDataGeneration';
 import EditActionValuesModal from '../../../data_versions/EditActionValuesModal';
 import GenerateActionValueModal from '../../../data_versions/GenerateActionValueModal';
 import '../../ActionDetailModal.css';
@@ -32,24 +33,7 @@ export const normalizeInputAction = (source: Action): Action => {
     })),
   };
 
-  // For input action, normalize all action_datas that have value
-  // Preserve all existing properties in action_datas
-  cloned.action_datas = (source.action_datas ?? []).map(ad => {
-    if(!ad.value) return ad;
-    if (!("value" in ad.value)) return ad;
-    // If this action_data has a value property, normalize it
-    if (ad.value !== undefined) {
-      return {
-        ...ad,
-        value: {
-          ...(ad.value || {}),
-          value: String(ad.value.value),
-        },
-      };
-    }
-    // Otherwise, keep it as is
-    return ad;
-  });
+  cloned.action_datas = source.action_datas;
 
   return cloned;
 };
@@ -72,6 +56,15 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
   const prevInputValueRef = useRef<string>('');
   
   useEffect(() => {
+    if (draft.action_data_generation && draft.action_data_generation.length > 0) {
+      const selectedValueId = getSelectedValueId(draft);
+      const generationValue = selectedValueId ? getSelectedGenerationValue(draft) : null;
+      const valueStr = generationValue != null ? String(generationValue) : '';
+      setInputValue(valueStr);
+      prevInputValueRef.current = valueStr;
+      return;
+    }
+
     // Find value from any action_data in the array, not just [0]
     for (const ad of draft.action_datas || []) {
       if (ad.value?.["value"]) {
@@ -81,11 +74,11 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
         break;
       }
     }
-  }, [draft.action_datas]);
+  }, [draft.action_datas, draft.action_data_generation]);
 
 
   // Hàm update action data value - giữ nguyên các action_data khác
-  const updateActionDataValue = (value: string) => {
+  const updateActionDataSelectedValueId = (selectedValueId: string) => {
     updateDraft(prev => {
       const next = { ...prev } as Action;
       const actionDatas = [...(next.action_datas || [])];
@@ -103,7 +96,7 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
         ...actionDatas[foundIndex],
         value: {
           ...(actionDatas[foundIndex].value || {}),
-          value
+          selected_value_id: selectedValueId
         }
       };
       
@@ -140,7 +133,9 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
     }
 
     const maxVersion = getMaxVersionNumber();
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newVersion: ActionDataGeneration = {
+      action_data_generation_id: tempId,
       version_number: maxVersion + 1,
       value: { value: value }
     };
@@ -152,20 +147,20 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
 
     // Auto-select version mới vừa tạo
     setInputValue(valueToSave.trim());
-    updateActionDataValue(valueToSave.trim());
+    updateActionDataSelectedValueId(tempId);
   };
 
   // Handler khi chọn version từ dropdown
   const handleVersionSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedValue = e.target.value;
+    const selectedValueId = e.target.value;
     
-    if (!selectedValue) {
+    if (!selectedValueId) {
       return;
     }
 
     // Tìm generation được chọn
     const selectedGeneration = draft.action_data_generation?.find(
-      gen => gen.version_number?.toString() === selectedValue
+      gen => gen.action_data_generation_id === selectedValueId
     );
 
     if (!selectedGeneration) {
@@ -178,7 +173,7 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
     if (versionValue) {
       const valueStr = String(versionValue);
       setInputValue(valueStr);
-      updateActionDataValue(valueStr);
+      updateActionDataSelectedValueId(selectedValueId);
       prevInputValueRef.current = valueStr;
     }
     
@@ -309,16 +304,7 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <select
                 className="rcd-action-detail-input"
-                value={(() => {
-                  if (versions.length === 0) return '';
-                  // Tìm version có giá trị khớp với inputValue hiện tại
-                  const matchingVersion = versions.find(v => {
-                    const val = v.value?.value || (typeof v.value === 'string' ? v.value : '');
-                    return String(val) === inputValue;
-                  });
-                  // Nếu có match thì dùng version đó, nếu không thì dùng version đầu tiên
-                  return matchingVersion?.version_number?.toString() || versions[0]?.version_number?.toString() || '';
-                })()}
+                value={getSelectedValueId(draft) || ''}
                 onChange={handleVersionSelect}
                 style={{ 
                   cursor: 'pointer', 
@@ -333,13 +319,16 @@ const InputActionDetail: React.FC<InputActionDetailProps> = ({
                   <option value="">No versions available</option>
                 ) : (
                   versions.map((version) => {
+                    if (!version.action_data_generation_id) {
+                      return null;
+                    }
                     const versionValue = version.value?.value || 
                       (typeof version.value === 'string' ? version.value : '');
                     const displayValue = truncate(String(versionValue || ''), 50);
                     return (
                       <option 
                         key={version.version_number || `version-${version.action_data_generation_id}`} 
-                        value={version.version_number?.toString() || ''}
+                        value={version.action_data_generation_id}
                       >
                         {displayValue}
                       </option>

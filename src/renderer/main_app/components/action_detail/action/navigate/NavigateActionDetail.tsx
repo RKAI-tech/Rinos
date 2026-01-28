@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Action, ActionDataGeneration } from '../../../../types/actions';
 import { truncateText } from '../../../../utils/textUtils';
+import { getSelectedGenerationValue, getSelectedValueId } from '../../../../../shared/utils/actionDataGeneration';
 import { TestCaseDataVersion } from '../../../../types/testcases';
 import EditActionValuesModal from '../../../../pages/suites_manager/components/EditActionValuesModal';
 import GenerateActionValueModal from '../../../../pages/suites_manager/components/GenerateActionValueModal';
@@ -21,19 +22,7 @@ export const normalizeNavigateAction = (source: Action): Action => {
     ...source,
   };
 
-  // For navigate action, normalize all action_datas that have value
-  // Preserve all existing properties in action_datas
-  cloned.action_datas = (source.action_datas ?? []).map(ad => {
-    if(!ad.value) return ad;
-    if (!("value" in ad.value)) return ad;
-    return {
-      ...ad,
-      value: {
-        ...(ad.value || {}),
-        value:String(ad.value.value),
-      }
-    };
-  });
+  cloned.action_datas = source.action_datas;
 
   return cloned;
 };
@@ -52,6 +41,15 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
   const prevUrlRef = useRef<string>('');
   
   useEffect(() => {
+    if (draft.action_data_generation && draft.action_data_generation.length > 0) {
+      const selectedValueId = getSelectedValueId(draft);
+      const generationValue = selectedValueId ? getSelectedGenerationValue(draft) : null;
+      const valueStr = generationValue != null ? String(generationValue) : '';
+      setUrl(valueStr);
+      prevUrlRef.current = valueStr;
+      return;
+    }
+
     for (const ad of draft.action_datas || []) {
       if (ad.value?.["value"]) {
         const urlValue = ad.value?.["value"];
@@ -60,10 +58,10 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
         break;
       }
     }
-  }, [draft.action_datas]);
+  }, [draft.action_datas, draft.action_data_generation]);
 
   // Hàm update action data value - giữ nguyên các action_data khác
-  const updateActionDataValue = (value: string) => {
+  const updateActionDataSelectedValueId = (selectedValueId: string) => {
     updateDraft(prev => {
       const next = { ...prev } as Action;
       const actionDatas = [...(next.action_datas || [])];
@@ -81,7 +79,7 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
         ...actionDatas[foundIndex],
         value: {
           ...(actionDatas[foundIndex].value || {}),
-          value
+          selected_value_id: selectedValueId
         }
       };
       next.action_datas = actionDatas;
@@ -115,7 +113,9 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
     }
 
     const maxVersion = getMaxVersionNumber();
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newVersion: ActionDataGeneration = {
+      action_data_generation_id: tempId,
       version_number: maxVersion + 1,
       value: { value: value }
     };
@@ -127,21 +127,21 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
 
     // Auto-select version mới vừa tạo
     setUrl(valueToSave.trim());
-    updateActionDataValue(valueToSave.trim());
+    updateActionDataSelectedValueId(tempId);
     prevUrlRef.current = valueToSave.trim();
   };
 
   // Handler khi chọn version từ dropdown
   const handleVersionSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedValue = e.target.value;
+    const selectedValueId = e.target.value;
     
-    if (!selectedValue) {
+    if (!selectedValueId) {
       return;
     }
 
     // Tìm generation được chọn
     const selectedGeneration = draft.action_data_generation?.find(
-      gen => gen.version_number?.toString() === selectedValue
+      gen => gen.action_data_generation_id === selectedValueId
     );
 
     if (!selectedGeneration) {
@@ -154,7 +154,7 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
     if (versionValue) {
       const valueStr = String(versionValue);
       setUrl(valueStr);
-      updateActionDataValue(valueStr);
+      updateActionDataSelectedValueId(selectedValueId);
       prevUrlRef.current = valueStr;
     }
     
@@ -215,16 +215,7 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
           <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
             <select
               className="rcd-action-detail-input"
-              value={(() => {
-                if (versions.length === 0) return '';
-                // Tìm version có giá trị khớp với url hiện tại
-                const matchingVersion = versions.find(v => {
-                  const val = v.value?.value || (typeof v.value === 'string' ? v.value : '');
-                  return String(val) === url;
-                });
-                // Nếu có match thì dùng version đó, nếu không thì dùng version đầu tiên
-                return matchingVersion?.version_number?.toString() || versions[0]?.version_number?.toString() || '';
-              })()}
+              value={getSelectedValueId(draft) || ''}
               onChange={handleVersionSelect}
               style={{ 
                 cursor: 'pointer', 
@@ -239,13 +230,16 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
                 <option value="">No versions available</option>
               ) : (
                 versions.map((version) => {
+                  if (!version.action_data_generation_id) {
+                    return null;
+                  }
                   const versionValue = version.value?.value || 
                     (typeof version.value === 'string' ? version.value : '');
                   const displayValue = truncate(String(versionValue || ''), 50);
                   return (
                     <option 
                       key={version.version_number || `version-${version.action_data_generation_id}`} 
-                      value={version.version_number?.toString() || ''}
+                      value={version.action_data_generation_id}
                     >
                       {displayValue}
                     </option>

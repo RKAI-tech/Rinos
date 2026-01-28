@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Action, ActionType, ActionDataGeneration } from '../../../../types/actions';
 import { truncateText } from '../../../../utils/textUtils';
+import { getSelectedGenerationValue, getSelectedValueId } from '../../../../../shared/utils/actionDataGeneration';
 import { TestCaseDataVersion } from '../../../../types/testcases';
 import EditActionValuesModal from '../../../../pages/suites_manager/components/EditActionValuesModal';
 import GenerateActionValueModal from '../../../../pages/suites_manager/components/GenerateActionValueModal';
@@ -40,30 +41,21 @@ const PageActionDetail: React.FC<PageActionDetailProps> = ({
   const prevUrlRef = useRef<string>('');
 
   useEffect(() => {
-    // Load current values from draft
     if (draft.action_type === ActionType.page_create) {
-      // For page_create: 
-      // - URL is in action_data where value.value is a string (not page_index)
-      let urlFound = false;
-      for (const ad of draft.action_datas || []) {
-        // Find URL: value.value is string and not page_index
-        if (ad.value?.value !== undefined && typeof ad.value.value === 'string') {
-          const urlValue = ad.value.value;
-          setUrl(urlValue);
-          prevUrlRef.current = urlValue; // Lưu giá trị ban đầu
-          urlFound = true;
-        }
-      }
-      if (!urlFound) {
+      const generationValue = getSelectedGenerationValue(draft);
+      if (generationValue != null) {
+        const urlValue = String(generationValue);
+        setUrl(urlValue);
+        prevUrlRef.current = urlValue;
+      } else {
         setUrl('');
         prevUrlRef.current = '';
       }
     } else {
-      // For page_close and page_focus, reset URL
       setUrl('');
       prevUrlRef.current = '';
     }
-  }, [draft.action_datas, draft.action_type]);
+  }, [draft.action_data_generation, draft.action_type, draft.action_datas]);
 
   // Hàm tự động sinh description dựa trên URL (logic riêng cho page action)
   const generatePageDescription = (url: string, oldUrl: string, currentDescription: string): string => {
@@ -89,34 +81,6 @@ const PageActionDetail: React.FC<PageActionDetailProps> = ({
     
     const oldUrl = prevUrlRef.current;
     setUrl(newUrl);
-    updateDraft(prev => {
-      const next = { ...prev } as Action;
-      const actionDatas = [...(next.action_datas || [])];
-      
-      // Tìm action_data có value.value là string (URL), không phải action_data có page_index
-      let foundIndex = actionDatas.findIndex(ad => 
-        ad.value !== undefined && 
-        ad.value?.["value"] !== undefined && 
-        typeof ad.value["value"] === 'string'
-      );
-      if (foundIndex === -1) {
-        // Tạo action_data mới nếu chưa có
-        actionDatas.push({ value: {} });
-        foundIndex = actionDatas.length - 1;
-      }
-      
-      // Cập nhật URL, giữ nguyên các action_data khác (như page_index, opener_index)
-      actionDatas[foundIndex] = {
-        ...actionDatas[foundIndex],
-        value: {
-          ...(actionDatas[foundIndex].value || {}),
-          value: newUrl
-        }
-      };
-      
-      next.action_datas = actionDatas;
-      return next;
-    });
 
     // Tự động cập nhật description khi URL thay đổi (sử dụng logic riêng)
     const currentDescription = draft.description || '';
@@ -153,7 +117,9 @@ const PageActionDetail: React.FC<PageActionDetailProps> = ({
     }
 
     const maxVersion = getMaxVersionNumber();
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newVersion: ActionDataGeneration = {
+      action_data_generation_id: tempId,
       version_number: maxVersion + 1,
       value: { value: value }
     };
@@ -165,20 +131,38 @@ const PageActionDetail: React.FC<PageActionDetailProps> = ({
 
     // Auto-select version mới vừa tạo
     setUrl(valueToSave.trim());
-    updateUrl(valueToSave.trim());
+    updateDraft(prev => {
+      const next = { ...prev } as Action;
+      const actionDatas = [...(next.action_datas || [])];
+      let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined);
+      if (foundIndex === -1) {
+        actionDatas.push({ value: {} });
+        foundIndex = actionDatas.length - 1;
+      }
+      actionDatas[foundIndex] = {
+        ...actionDatas[foundIndex],
+        value: {
+          ...(actionDatas[foundIndex].value || {}),
+          selected_value_id: tempId
+        }
+      };
+      next.action_datas = actionDatas;
+      return next;
+    });
+    prevUrlRef.current = valueToSave.trim();
   };
 
   // Handler khi chọn version từ dropdown
   const handleVersionSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedValue = e.target.value;
+    const selectedValueId = e.target.value;
     
-    if (!selectedValue) {
+    if (!selectedValueId) {
       return;
     }
 
     // Tìm generation được chọn
     const selectedGeneration = draft.action_data_generation?.find(
-      gen => gen.version_number?.toString() === selectedValue
+      gen => gen.action_data_generation_id === selectedValueId
     );
 
     if (!selectedGeneration) {
@@ -190,7 +174,26 @@ const PageActionDetail: React.FC<PageActionDetailProps> = ({
     
     if (versionValue) {
       const valueStr = String(versionValue);
-      updateUrl(valueStr);
+      setUrl(valueStr);
+      updateDraft(prev => {
+        const next = { ...prev } as Action;
+        const actionDatas = [...(next.action_datas || [])];
+        let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined);
+        if (foundIndex === -1) {
+          actionDatas.push({ value: {} });
+          foundIndex = actionDatas.length - 1;
+        }
+        actionDatas[foundIndex] = {
+          ...actionDatas[foundIndex],
+          value: {
+            ...(actionDatas[foundIndex].value || {}),
+            selected_value_id: selectedValueId
+          }
+        };
+        next.action_datas = actionDatas;
+        return next;
+      });
+      prevUrlRef.current = valueStr;
     }
     
     // Sync sẽ được thực hiện khi Save trong ActionDetailModal
@@ -252,16 +255,7 @@ const PageActionDetail: React.FC<PageActionDetailProps> = ({
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 <select
                   className="rcd-action-detail-input"
-                  value={(() => {
-                    if (versions.length === 0) return '';
-                    // Tìm version có giá trị khớp với url hiện tại
-                    const matchingVersion = versions.find(v => {
-                      const val = v.value?.value || (typeof v.value === 'string' ? v.value : '');
-                      return String(val) === url;
-                    });
-                    // Nếu có match thì dùng version đó, nếu không thì dùng version đầu tiên
-                    return matchingVersion?.version_number?.toString() || versions[0]?.version_number?.toString() || '';
-                  })()}
+                  value={getSelectedValueId(draft) || ''}
                   onChange={handleVersionSelect}
                   style={{ 
                     cursor: 'pointer', 
@@ -276,13 +270,16 @@ const PageActionDetail: React.FC<PageActionDetailProps> = ({
                     <option value="">No versions available</option>
                   ) : (
                     versions.map((version) => {
+                      if (!version.action_data_generation_id) {
+                        return null;
+                      }
                       const versionValue = version.value?.value || 
                         (typeof version.value === 'string' ? version.value : '');
                       const displayValue = truncate(String(versionValue || ''), 50);
                       return (
                         <option 
                           key={version.version_number || `version-${version.action_data_generation_id}`} 
-                          value={version.version_number?.toString() || ''}
+                          value={version.action_data_generation_id}
                         >
                           {displayValue}
                         </option>

@@ -187,12 +187,17 @@ export function createDescription(action_received: any): string {
 }
 
 // Helper function để tạo action_data_generation từ value nếu có
-function createActionDataGeneration(action_received: any): ActionDataGeneration[] | undefined {
+function createActionDataGeneration(action_received: any): { generation?: ActionDataGeneration[]; selectedValueId?: string } {
     // Tìm value từ action_datas
     let value: any = undefined;
     const actionDatas = action_received.action_datas || [];
     const firstActionData = actionDatas[0];
     const dataValue = firstActionData?.value;
+
+    const hasValueValue = actionDatas.some((ad: any) => ad?.value?.value !== undefined && ad?.value?.value !== null);
+    if (!hasValueValue) {
+        return {};
+    }
 
     if (action_received.action_type === ActionType.scroll) {
         const scrollValue = actionDatas.find((ad: any) => ad?.value && (ad.value.scrollX != null || ad.value.scrollY != null))?.value || dataValue;
@@ -220,16 +225,19 @@ function createActionDataGeneration(action_received: any): ActionDataGeneration[
     if (value !== undefined && value !== null) {
         // Tạo temp ID cho generation để có thể được reference trong version
         const dataId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-        return [{
-            action_data_generation_id: dataId,
-            version_number: 1,
-            value: {
-                value: String(value)
-            }
-        }];
+        return {
+            selectedValueId: dataId,
+            generation: [{
+                action_data_generation_id: dataId,
+                version_number: 1,
+                value: {
+                    value: String(value)
+                }
+            }]
+        };
     }
 
-    return undefined;
+    return {};
 }
 
 export function receiveAction(
@@ -246,10 +254,23 @@ export function receiveAction(
     // console.log('[receiveAction] Skipping action - modal is open', skipIfModalOpen);
     
     // Tạo action_data_generation nếu có value
-    const actionDataGeneration = createActionDataGeneration(action_received);
+    const { generation: actionDataGeneration, selectedValueId } = createActionDataGeneration(action_received);
     
     const actionDatas = action_received.action_datas ? action_received.action_datas as ActionData[] : [];
-    const hydratedActionDatas = actionDatas.map((actionData) => {
+    const sanitizedActionDatas = actionDatas.map((actionData) => {
+        const hasValue = actionData?.value?.value !== undefined && actionData?.value?.value !== null;
+        if (!selectedValueId || !hasValue) return actionData;
+
+        const { value, ...restValue } = actionData.value || {};
+        return {
+            ...actionData,
+            value: {
+                ...restValue,
+                selected_value_id: selectedValueId,
+            },
+        };
+    });
+    const hydratedActionDatas = sanitizedActionDatas.map((actionData) => {
         if (!actionData.statement?.connection) return actionData;
         const hydrated = hydrateConnectionFromCache(actionData.statement.connection);
         if (!hydrated) return actionData;
@@ -273,7 +294,7 @@ export function receiveAction(
         action_data_generation: actionDataGeneration,
     } as Action;
 
-    // console.log('[Action sent from browser]', action_received);
+    console.log('[Action sent from browser]', action_received);
     console.log('[Received action]', receivedAction);
 
     const last_action = action_recorded[action_recorded.length - 1];

@@ -86,51 +86,55 @@ export const syncActionsOnVersionUpdate = (
       return action;
     }
     
-    // Tìm generation ID từ version cho action này
-    let selectedGenerationId: string | null = null;
-    for (const gen of versionGenerations) {
-      if (gen.action_data_generation_id) {
-        const genInAction = action.action_data_generation.find(
-          g => g.action_data_generation_id === gen.action_data_generation_id
-        );
-        if (genInAction) {
-          selectedGenerationId = gen.action_data_generation_id;
-          break;
-        }
-      }
-    }
-    
-    if (!selectedGenerationId) {
-      return action;
-    }
-    
-    // Lấy value từ generation
-    const selectedGeneration = action.action_data_generation.find(
-      g => g.action_data_generation_id === selectedGenerationId
-    );
-    
-    const generationValue = selectedGeneration?.value?.value || 
-      (selectedGeneration?.value && typeof selectedGeneration.value === 'string' 
-        ? selectedGeneration.value : '');
-    
-    // Cập nhật action_datas
     const actionDatas = [...(action.action_datas || [])];
     let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined);
+    const existingSelectedId = actionDatas.find(
+      ad => ad.value && typeof ad.value === 'object' && ad.value.selected_value_id !== undefined
+    )?.value?.selected_value_id;
+
+    let selectedGenerationId: string | null = existingSelectedId ? String(existingSelectedId) : null;
     
     if (foundIndex === -1) {
       actionDatas.push({ 
         value: { 
-          value: String(generationValue),
           currentVersion: versionName
         } 
       });
+      foundIndex = actionDatas.length - 1;
     } else {
       actionDatas[foundIndex] = {
         ...actionDatas[foundIndex],
         value: {
           ...(actionDatas[foundIndex].value || {}),
-          value: String(generationValue),
           currentVersion: versionName
+        }
+      };
+    }
+
+    if (!selectedGenerationId) {
+      for (const gen of versionGenerations) {
+        if (gen.action_data_generation_id) {
+          const genInAction = action.action_data_generation.find(
+            g => g.action_data_generation_id === gen.action_data_generation_id
+          );
+          if (genInAction) {
+            selectedGenerationId = gen.action_data_generation_id;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!selectedGenerationId && action.action_data_generation.length > 0) {
+      selectedGenerationId = action.action_data_generation[0].action_data_generation_id || null;
+    }
+
+    if (selectedGenerationId) {
+      actionDatas[foundIndex] = {
+        ...actionDatas[foundIndex],
+        value: {
+          ...(actionDatas[foundIndex].value || {}),
+          selected_value_id: selectedGenerationId
         }
       };
     }
@@ -255,22 +259,15 @@ export const syncVersionOnActionSave = (
     ad => ad.value && typeof ad.value === 'object' && ad.value.currentVersion
   )?.value?.currentVersion;
 
-  // Tìm generation ID mới từ updatedAction dựa trên value trong action_datas
+  // Tìm generation ID mới từ updatedAction dựa trên selected_value_id trong action_datas
   let newGenerationId: string | null = null;
   if (updatedCurrentVersion && updatedAction.action_data_generation) {
-    const updatedValue = updatedAction.action_datas?.find(
-      ad => ad.value && typeof ad.value === 'object' && ad.value.value !== undefined
-    )?.value?.value;
+    const selectedValueId = updatedAction.action_datas?.find(
+      ad => ad.value && typeof ad.value === 'object' && ad.value.selected_value_id !== undefined
+    )?.value?.selected_value_id;
 
-    if (updatedValue !== undefined && updatedAction.action_data_generation) {
-      for (const gen of updatedAction.action_data_generation) {
-        const genValue = gen.value?.value || 
-          (typeof gen.value === 'string' ? gen.value : '');
-        if (String(genValue) === String(updatedValue)) {
-          newGenerationId = gen.action_data_generation_id || null;
-          break;
-        }
-      }
+    if (selectedValueId) {
+      newGenerationId = String(selectedValueId);
     }
   }
 
@@ -348,16 +345,13 @@ export const syncVersionOnActionSave = (
         const activeVersionName = findActiveVersionInActions(allActions);
         
         if (activeVersionName) {
-          // Kiểm tra xem generation này có đang được chọn không
-          const currentValue = updatedAction.action_datas?.find(
-            ad => ad.value && typeof ad.value === 'object' && ad.value.value !== undefined
-          )?.value?.value;
-          
-          const genValue = updatedGen.value?.value || 
-            (typeof updatedGen.value === 'string' ? updatedGen.value : '');
-          
-          const isSelected = currentValue !== undefined && 
-            String(currentValue) === String(genValue);
+        // Kiểm tra xem generation này có đang được chọn không
+        const currentSelectedId = updatedAction.action_datas?.find(
+          ad => ad.value && typeof ad.value === 'object' && ad.value.selected_value_id !== undefined
+        )?.value?.selected_value_id;
+        
+        const isSelected = currentSelectedId !== undefined &&
+          String(currentSelectedId) === String(updatedGen.action_data_generation_id || '');
           
           if (isSelected) {
             // Thêm generation mới vào version đang active
@@ -485,18 +479,15 @@ export const syncGenerationsBetweenActionsAndVersions = (
         if (!action.action_id || !action.action_data_generation) return;
 
         // Tìm generation đang được chọn trong action này
-        const currentValue = action.action_datas?.find(
-          ad => ad.value && typeof ad.value === 'object' && ad.value.value !== undefined
-        )?.value?.value;
+        const selectedValueId = action.action_datas?.find(
+          ad => ad.value && typeof ad.value === 'object' && ad.value.selected_value_id !== undefined
+        )?.value?.selected_value_id;
 
-        if (currentValue === undefined) return;
+        if (!selectedValueId) return;
 
-        // Tìm generation có value khớp
-        const selectedGeneration = action.action_data_generation.find(gen => {
-          const genValue = gen.value?.value || 
-            (typeof gen.value === 'string' ? gen.value : '');
-          return String(genValue) === String(currentValue);
-        });
+        const selectedGeneration = action.action_data_generation.find(
+          gen => gen.action_data_generation_id === String(selectedValueId)
+        );
 
         if (!selectedGeneration || !selectedGeneration.action_data_generation_id) return;
 

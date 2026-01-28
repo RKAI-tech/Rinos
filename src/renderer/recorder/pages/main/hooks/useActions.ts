@@ -36,12 +36,22 @@ const applyCurrentVersionToActions = (
       }
     }
     
-    // Tìm version tương ứng
-    let selectedGenerationId: string | null = null;
-    if (currentVersionName) {
+    const actionDatas = [...(action.action_datas || [])];
+    let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined);
+    const existingSelectedId = actionDatas.find(
+      ad => ad.value && typeof ad.value === 'object' && ad.value.selected_value_id !== undefined
+    )?.value?.selected_value_id;
+
+    let selectedGenerationId: string | null = existingSelectedId ? String(existingSelectedId) : null;
+
+    if (foundIndex === -1) {
+      actionDatas.push({ value: {} });
+      foundIndex = actionDatas.length - 1;
+    }
+
+    if (!selectedGenerationId && currentVersionName) {
       const version = testcaseDataVersions.find(v => v.version === currentVersionName);
       if (version && version.action_data_generations) {
-        // Tìm generation ID đầu tiên thuộc về action này
         for (const gen of version.action_data_generations) {
           if (gen.action_data_generation_id) {
             const genInAction = action.action_data_generation?.find(
@@ -55,81 +65,24 @@ const applyCurrentVersionToActions = (
         }
       }
     }
-    
-    // Nếu không tìm thấy, dùng generation đầu tiên
+
     if (!selectedGenerationId && action.action_data_generation.length > 0) {
       selectedGenerationId = action.action_data_generation[0].action_data_generation_id || null;
     }
-    
-    // Tìm generation và lấy value
-    const selectedGeneration = action.action_data_generation.find(
-      g => g.action_data_generation_id === selectedGenerationId
-    );
-    
-    if (selectedGeneration && selectedGeneration.value) {
-      const generationValue = selectedGeneration.value.value || 
-        (typeof selectedGeneration.value === 'string' ? selectedGeneration.value : selectedGeneration.value);
-      
-      // Cập nhật action_datas[0].value (structured for scroll/resize)
-      const actionDatas = [...(action.action_datas || [])];
-      let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined);
 
-      const buildValuePayload = () => {
-        const payload: any = {
-          ...(foundIndex >= 0 ? (actionDatas[foundIndex].value || {}) : {}),
-          ...(currentVersionName ? { currentVersion: currentVersionName } : {})
-        };
-
-        if (action.action_type === ActionType.scroll) {
-          if (generationValue && typeof generationValue === 'object' && (generationValue as any).scrollX != null) {
-            payload.scrollX = (generationValue as any).scrollX;
-            payload.scrollY = (generationValue as any).scrollY ?? payload.scrollY;
-            return payload;
-          }
-          const match = String(generationValue ?? '').match(/X\s*:\s*(\d+)\s*,\s*Y\s*:\s*(\d+)/i);
-          if (match) {
-            payload.scrollX = match[1];
-            payload.scrollY = match[2];
-          } else if (generationValue != null) {
-            payload.value = String(generationValue);
-          }
-          return payload;
-        }
-
-        if (action.action_type === ActionType.window_resize) {
-          if (generationValue && typeof generationValue === 'object' && (generationValue as any).width != null) {
-            payload.width = (generationValue as any).width;
-            payload.height = (generationValue as any).height ?? payload.height;
-            return payload;
-          }
-          const match = String(generationValue ?? '').match(/Width\s*:\s*(\d+)\s*,\s*Height\s*:\s*(\d+)/i);
-          if (match) {
-            payload.width = match[1];
-            payload.height = match[2];
-          } else if (generationValue != null) {
-            payload.value = String(generationValue);
-          }
-          return payload;
-        }
-
-        payload.value = String(generationValue ?? '');
-        return payload;
-      };
-      
-      if (foundIndex === -1) {
-        actionDatas.push({ value: buildValuePayload() });
-      } else {
-        actionDatas[foundIndex] = {
-          ...actionDatas[foundIndex],
-          value: buildValuePayload()
-        };
+    actionDatas[foundIndex] = {
+      ...actionDatas[foundIndex],
+      value: {
+        ...(actionDatas[foundIndex].value || {}),
+        ...(currentVersionName ? { currentVersion: currentVersionName } : {}),
+        ...(selectedGenerationId ? { selected_value_id: selectedGenerationId } : {})
       }
-      
-      return {
-        ...action,
-        action_datas: actionDatas
-      };
-    }
+    };
+
+    return {
+      ...action,
+      action_datas: actionDatas
+    };
     
     return action;
   });
@@ -533,11 +486,21 @@ export const useActions = ({ testcaseId, projectId, onDirtyChange, testcaseDataV
       
       // Convert versions to save format
       const versionsToSaveFormatted = versionsToSave.length > 0
-        ? versionsToSave.map((v) => ({
-            testcase_data_version_id: v.testcase_data_version_id,
-            version: v.version,
-            action_data_generation_ids: (v as any).action_data_generation_ids,
-          }))
+        ? versionsToSave.map((v) => {
+            const idsFromGenerations = v.action_data_generations
+              ?.map(gen => gen.action_data_generation_id)
+              .filter((id): id is string => !!id);
+
+            const ids = (idsFromGenerations && idsFromGenerations.length > 0)
+              ? idsFromGenerations
+              : ((v as any).action_data_generation_ids || []);
+
+            return {
+              testcase_data_version_id: v.testcase_data_version_id,
+              version: v.version,
+              action_data_generation_ids: ids,
+            };
+          })
         : undefined;
 
       /* console.log('Actions to save', actionsToSave); */

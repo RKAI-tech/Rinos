@@ -121,17 +121,6 @@ const EditActionValuesModal: React.FC<EditActionValuesModalProps> = ({
       }
 
       // Lấy giá trị cũ của generation đang được edit
-      const oldValue = generationToUpdate.value?.value || 
-        (typeof generationToUpdate.value === 'string' ? generationToUpdate.value : '');
-      const oldValueStr = String(oldValue);
-
-      // Kiểm tra xem generation này có đang được chọn không (so sánh với action_datas)
-      const currentActionDataValue = currentAction.action_datas?.find(
-        ad => ad.value && typeof ad.value === 'object' && ad.value.value !== undefined
-      )?.value?.value;
-      const isCurrentlySelected = currentActionDataValue !== undefined && 
-        String(currentActionDataValue) === oldValueStr;
-
       const updatedGeneration = {
         ...generationToUpdate,
         value: {
@@ -148,26 +137,8 @@ const EditActionValuesModal: React.FC<EditActionValuesModalProps> = ({
               updatedGenerations[editingIndex] = updatedGeneration;
             }
             
-            // Nếu generation này đang được chọn, cập nhật action_datas để giữ selection
-            let updatedActionDatas = [...(a.action_datas || [])];
-            if (isCurrentlySelected) {
-              // Tìm action_data có value property
-              let foundIndex = updatedActionDatas.findIndex(ad => ad.value !== undefined);
-              if (foundIndex === -1) {
-                // Tạo action_data mới nếu chưa có
-                updatedActionDatas.push({ value: {} });
-                foundIndex = updatedActionDatas.length - 1;
-              }
-              
-              // Cập nhật action_data với giá trị mới
-              updatedActionDatas[foundIndex] = {
-                ...updatedActionDatas[foundIndex],
-                value: {
-                  ...(updatedActionDatas[foundIndex].value || {}),
-                  value: String(value)
-                }
-              };
-            }
+            // Giữ nguyên action_datas (selection dựa trên selected_value_id)
+            const updatedActionDatas = [...(a.action_datas || [])];
             
             const updatedAction = {
               ...a,

@@ -30,6 +30,7 @@ import { useUnsavedChanges } from './hooks/useUnsavedChanges';
 import { useActionListener } from './hooks/useActionListener';
 import { useDuplicateElementCheck } from './hooks/useDuplicateElementCheck';
 import CheckDuplicateElementModal from '../../components/check_duplicate_element/CheckDuplicateElementModal';
+import { findActiveVersionInActions, syncGenerationsBetweenActionsAndVersions } from '../../components/data_versions/versionSyncUtils';
 import { TestCaseService } from '../../services/testcase';
 import { TestCaseDataVersion as TestCaseDataVersionFromAPI } from '../../types/testcase';
 
@@ -114,6 +115,28 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
   useEffect(() => {
     setIsDirtyRef.current = actionsHook.setIsDirty;
   }, [actionsHook.setIsDirty]);
+
+  useEffect(() => {
+    if (!testcaseDataVersions || testcaseDataVersions.length === 0) {
+      return;
+    }
+    if (!actionsHook.actions || actionsHook.actions.length === 0) {
+      return;
+    }
+
+    const activeVersionName = findActiveVersionInActions(actionsHook.actions);
+    const { updatedVersions } = syncGenerationsBetweenActionsAndVersions(
+      actionsHook.actions,
+      testcaseDataVersions,
+      activeVersionName
+    );
+
+    const currentVersionsString = JSON.stringify(testcaseDataVersions);
+    const updatedVersionsString = JSON.stringify(updatedVersions);
+    if (currentVersionsString !== updatedVersionsString) {
+      setTestCaseDataVersions(updatedVersions as TestCaseDataVersionFromAPI[]);
+    }
+  }, [actionsHook.actions, testcaseDataVersions]);
 
   // Ổn định callback để tránh reload liên tục
   const handleBasicAuthDirtyChange = useCallback((isDirty: boolean) => {

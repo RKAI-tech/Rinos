@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Action, Element } from '../../../../types/actions';
+import { getSelectedGenerationValue, getSelectedValueId } from '../../../../../shared/utils/actionDataGeneration';
 import '../../ActionDetailModal.css';
 
 interface WindowResizeActionDetailProps {
@@ -31,6 +32,7 @@ export const normalizeWindowResizeAction = (source: Action): Action => {
   cloned.action_datas = (source.action_datas ?? []).map(ad => {
     if (!ad.value || typeof ad.value !== 'object') return ad;
     const dataValue: any = ad.value;
+    if (dataValue.selected_value_id !== undefined) return ad;
     let width = dataValue.width;
     let height = dataValue.height;
     if ((width == null || height == null) && dataValue.value != null) {
@@ -85,6 +87,22 @@ const WindowResizeActionDetail: React.FC<WindowResizeActionDetailProps> = ({
   const [windowHeight, setWindowHeight] = useState("");
   
   useEffect(() => {
+    if (draft.action_data_generation && draft.action_data_generation.length > 0) {
+      const selectedValueId = getSelectedValueId(draft);
+      const generationValue: any = selectedValueId ? getSelectedGenerationValue(draft) : null;
+      if (generationValue && typeof generationValue === 'object' && (generationValue.width != null || generationValue.height != null)) {
+        setWindowWidth(generationValue.width != null ? String(generationValue.width) : '');
+        setWindowHeight(generationValue.height != null ? String(generationValue.height) : '');
+        return;
+      }
+      if (generationValue != null) {
+        const parsed = parseWindowResizeValue(String(generationValue));
+        setWindowWidth(parsed.width);
+        setWindowHeight(parsed.height);
+        return;
+      }
+    }
+
     // Find value from any action_data in the array, not just [0]
     for (const ad of draft.action_datas || []) {
       const dataValue: any = ad.value;
@@ -100,7 +118,7 @@ const WindowResizeActionDetail: React.FC<WindowResizeActionDetailProps> = ({
         break;
       }
     }
-  }, [draft.action_datas]);
+  }, [draft.action_datas, draft.action_data_generation]);
 
   // Hàm update action data value - giữ nguyên các action_data khác (như page_index, elementText)
   const updateActionDataValue = (width: string, height: string) => {

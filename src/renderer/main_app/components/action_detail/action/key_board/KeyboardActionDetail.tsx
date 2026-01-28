@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Action, Element, ActionDataGeneration } from '../../../../types/actions';
 import { TestCaseDataVersion } from '../../../../types/testcases';
+import { getSelectedGenerationValue, getSelectedValueId } from '../../../../../shared/utils/actionDataGeneration';
 import EditActionValuesModal from '../../../../pages/suites_manager/components/EditActionValuesModal';
 import GenerateActionValueModal from '../../../../pages/suites_manager/components/GenerateActionValueModal';
 import '../../ActionDetailModal.css';
@@ -32,19 +33,7 @@ export const normalizeKeyboardAction = (source: Action): Action => {
     })),
   };
 
-  // For keyboard action, normalize all action_datas that have value
-  // Preserve all existing properties in action_datas
-  cloned.action_datas = (source.action_datas ?? []).map(ad => {
-    if(!ad.value) return ad;
-    if (!("value" in ad.value)) return ad;
-    return {
-      ...ad,
-      value: {
-        ...(ad.value || {}),
-        value: String(ad.value.value),
-      }
-    }
-  });
+  cloned.action_datas = source.action_datas;
 
   return cloned;
 };
@@ -66,6 +55,14 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   
   useEffect(() => {
+    if (draft.action_data_generation && draft.action_data_generation.length > 0) {
+      const selectedValueId = getSelectedValueId(draft);
+      const generationValue = selectedValueId ? getSelectedGenerationValue(draft) : null;
+      const valueStr = generationValue != null ? String(generationValue) : '';
+      setKeyValue(valueStr);
+      return;
+    }
+
     // Find value from any action_data in the array, not just [0]
     for (const ad of draft.action_datas || []) {
       if (ad.value?.["value"]) {
@@ -73,10 +70,10 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
         break;
       }
     }
-  }, [draft.action_datas]);
+  }, [draft.action_datas, draft.action_data_generation]);
 
   // Hàm update action data value - giữ nguyên các action_data khác
-  const updateActionDataValue = (value: string) => {
+  const updateActionDataSelectedValueId = (selectedValueId: string) => {
     updateDraft(prev => {
       const next = { ...prev } as Action;
       const actionDatas = [...(next.action_datas || [])];
@@ -94,7 +91,7 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
         ...actionDatas[foundIndex],
         value: {
           ...(actionDatas[foundIndex].value || {}),
-          value
+          selected_value_id: selectedValueId
         }
       };
       
@@ -129,7 +126,9 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
     }
 
     const maxVersion = getMaxVersionNumber();
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newVersion: ActionDataGeneration = {
+      action_data_generation_id: tempId,
       version_number: maxVersion + 1,
       value: { value: value }
     };
@@ -141,20 +140,20 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
 
     // Auto-select version mới vừa tạo
     setKeyValue(valueToSave.trim());
-    updateActionDataValue(valueToSave.trim());
+    updateActionDataSelectedValueId(tempId);
   };
 
   // Handler khi chọn version từ dropdown
   const handleVersionSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedValue = e.target.value;
+    const selectedValueId = e.target.value;
     
-    if (!selectedValue) {
+    if (!selectedValueId) {
       return;
     }
 
     // Tìm generation được chọn
     const selectedGeneration = draft.action_data_generation?.find(
-      gen => gen.version_number?.toString() === selectedValue
+      gen => gen.action_data_generation_id === selectedValueId
     );
 
     if (!selectedGeneration) {
@@ -167,7 +166,7 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
     if (versionValue) {
       const valueStr = String(versionValue);
       setKeyValue(valueStr);
-      updateActionDataValue(valueStr);
+      updateActionDataSelectedValueId(selectedValueId);
     }
     
     // Sync sẽ được thực hiện khi Save trong ActionDetailModal
@@ -292,16 +291,7 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <select
                 className="rcd-action-detail-input"
-                value={(() => {
-                  if (versions.length === 0) return '';
-                  // Tìm version có giá trị khớp với keyValue hiện tại
-                  const matchingVersion = versions.find(v => {
-                    const val = v.value?.value || (typeof v.value === 'string' ? v.value : '');
-                    return String(val) === keyValue;
-                  });
-                  // Nếu có match thì dùng version đó, nếu không thì dùng version đầu tiên
-                  return matchingVersion?.version_number?.toString() || versions[0]?.version_number?.toString() || '';
-                })()}
+                value={getSelectedValueId(draft) || ''}
                 onChange={handleVersionSelect}
                 style={{ 
                   cursor: 'pointer', 
@@ -316,13 +306,16 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
                   <option value="">No versions available</option>
                 ) : (
                   versions.map((version) => {
+                    if (!version.action_data_generation_id) {
+                      return null;
+                    }
                     const versionValue = version.value?.value || 
                       (typeof version.value === 'string' ? version.value : '');
                     const displayValue = truncate(String(versionValue || ''), 50);
                     return (
                       <option 
                         key={version.version_number || `version-${version.action_data_generation_id}`} 
-                        value={version.version_number?.toString() || ''}
+                        value={version.action_data_generation_id}
                       >
                         {displayValue}
                       </option>

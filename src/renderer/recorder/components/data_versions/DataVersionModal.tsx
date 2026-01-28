@@ -247,15 +247,46 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
     const isOldVersionActive = oldVersionName && findActiveVersionInActions(actions) === oldVersionName;
     
     if (isOldVersionActive && onActionsChange) {
-      // Cập nhật actions với version mới
       onActionsChange(prev => {
-        return syncActionsOnVersionUpdate(
-          prev,
-          updatedVersion.version, // version name mới
-          updatedVersionAPI.action_data_generations || []
-        );
+        const genIdByAction = new Map<string, string>();
+
+        updatedVersion.action_data_generation_ids.forEach(genId => {
+          for (const action of prev) {
+            const hasGen = action.action_data_generation?.some(
+              g => g.action_data_generation_id === genId
+            );
+            if (hasGen && action.action_id) {
+              genIdByAction.set(action.action_id, genId);
+              break;
+            }
+          }
+        });
+
+        return prev.map(action => {
+          if (!action.action_id) return action;
+          const genId = genIdByAction.get(action.action_id);
+          if (!genId) return action;
+
+          const actionDatas = [...(action.action_datas || [])];
+          let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined);
+          if (foundIndex === -1) {
+            actionDatas.push({ value: {} });
+            foundIndex = actionDatas.length - 1;
+          }
+
+          actionDatas[foundIndex] = {
+            ...actionDatas[foundIndex],
+            value: {
+              ...(actionDatas[foundIndex].value || {}),
+              currentVersion: updatedVersion.version,
+              selected_value_id: genId,
+            },
+          };
+
+          return { ...action, action_datas: actionDatas };
+        });
       });
-      
+
       toast.info(`Version "${oldVersionName}" has been updated. Actions using this version have been automatically updated.`);
     }
     
@@ -324,9 +355,32 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
           return action;
         }
         
-        // Tìm generation ID từ version cho action này
-        let selectedGenerationId: string | null = null;
-        if (versionObj.action_data_generations) {
+        const actionDatas = [...(action.action_datas || [])];
+        let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined);
+        const existingSelectedId = actionDatas.find(
+          ad => ad.value && typeof ad.value === 'object' && ad.value.selected_value_id !== undefined
+        )?.value?.selected_value_id;
+
+        let selectedGenerationId: string | null = existingSelectedId ? String(existingSelectedId) : null;
+        
+        if (foundIndex === -1) {
+          actionDatas.push({ 
+            value: { 
+              currentVersion: versionName
+            } 
+          });
+          foundIndex = actionDatas.length - 1;
+        } else {
+          actionDatas[foundIndex] = {
+            ...actionDatas[foundIndex],
+            value: {
+              ...(actionDatas[foundIndex].value || {}),
+              currentVersion: versionName
+            }
+          };
+        }
+
+        if (!selectedGenerationId && versionObj.action_data_generations) {
           for (const gen of versionObj.action_data_generations) {
             if (gen.action_data_generation_id) {
               const genInAction = action.action_data_generation?.find(
@@ -339,37 +393,17 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
             }
           }
         }
-        
-        // Nếu không tìm thấy, dùng generation đầu tiên
+
         if (!selectedGenerationId && action.action_data_generation.length > 0) {
           selectedGenerationId = action.action_data_generation[0].action_data_generation_id || null;
         }
-        
-        // Lấy value từ generation
-        const selectedGeneration = action.action_data_generation.find(
-          g => g.action_data_generation_id === selectedGenerationId
-        );
-        
-        const generationValue = selectedGeneration?.value?.value || 
-          (selectedGeneration?.value && typeof selectedGeneration.value === 'string' ? selectedGeneration.value : '');
-        
-        const actionDatas = [...(action.action_datas || [])];
-        let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined);
-        
-        if (foundIndex === -1) {
-          actionDatas.push({ 
-            value: { 
-              value: String(generationValue),
-              currentVersion: versionName
-            } 
-          });
-        } else {
+
+        if (selectedGenerationId) {
           actionDatas[foundIndex] = {
             ...actionDatas[foundIndex],
             value: {
               ...(actionDatas[foundIndex].value || {}),
-              value: String(generationValue),
-              currentVersion: versionName
+              selected_value_id: selectedGenerationId
             }
           };
         }

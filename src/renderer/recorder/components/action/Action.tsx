@@ -1,6 +1,7 @@
 import React from 'react';
 import './Action.css';
 import { Action as ActionType } from '../../types/actions';
+import { getSelectedGenerationValue } from '../../../shared/utils/actionDataGeneration';
 
 interface ActionProps {
   action: ActionType;
@@ -143,6 +144,28 @@ export default function RenderedAction({ action, onDelete, onClick, onStartRecor
     return '';
   };
   const renderValue = () => {
+    if (action.action_data_generation && action.action_data_generation.length > 0) {
+      const dataValue: any = getSelectedGenerationValue(action);
+      if (action.action_type === 'scroll') {
+        if (dataValue && typeof dataValue === 'object' && (dataValue.scrollX != null || dataValue.scrollY != null)) {
+          const x = dataValue.scrollX != null ? String(dataValue.scrollX) : '0';
+          const y = dataValue.scrollY != null ? String(dataValue.scrollY) : '0';
+          return `X:${x}, Y:${y}`;
+        }
+      }
+      if (action.action_type === 'window_resize') {
+        if (dataValue && typeof dataValue === 'object' && (dataValue.width != null || dataValue.height != null)) {
+          const width = dataValue.width != null ? String(dataValue.width) : '0';
+          const height = dataValue.height != null ? String(dataValue.height) : '0';
+          return `Width:${width}, Height:${height}`;
+        }
+      }
+      if (dataValue != null) {
+        return String(dataValue);
+      }
+      return '';
+    }
+
     for (const action_data of action.action_datas || []) {
       const dataValue: any = action_data.value;
       if (action.action_type === 'scroll') {

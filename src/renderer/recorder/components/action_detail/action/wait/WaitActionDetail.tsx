@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Action, ActionDataGeneration } from '../../../../types/actions';
 import { TestCaseDataVersion } from '../../../../types/testcase';
+import { getSelectedGenerationValue, getSelectedValueId } from '../../../../../shared/utils/actionDataGeneration';
 import EditActionValuesModal from '../../../data_versions/EditActionValuesModal';
 import GenerateActionValueModal from '../../../data_versions/GenerateActionValueModal';
 import '../../ActionDetailModal.css';
@@ -19,19 +20,7 @@ export const normalizeWaitAction = (source: Action): Action => {
     ...source,
   };
 
-  // Normalize wait time value, preserve other action_datas (like page_info)
-  cloned.action_datas = (source.action_datas ?? []).map(ad => {
-    // If this action_data has a value property with value field, normalize it
-    if (!ad.value) return ad;
-    if (!("value" in ad.value)) return ad;
-      return {
-        ...ad,
-        value: {
-          ...(ad.value || {}),
-          value: String(ad.value.value),
-        }
-      };
-  });
+  cloned.action_datas = source.action_datas;
 
   return cloned;
 };
@@ -49,6 +38,15 @@ const WaitActionDetail: React.FC<WaitActionDetailProps> = ({
   const prevWaitTimeRef = useRef<string>('1000');
   
   useEffect(() => {
+    if (draft.action_data_generation && draft.action_data_generation.length > 0) {
+      const selectedValueId = getSelectedValueId(draft);
+      const generationValue = selectedValueId ? getSelectedGenerationValue(draft) : null;
+      const valueStr = generationValue != null ? String(generationValue) : '';
+      setWaitTime(valueStr);
+      prevWaitTimeRef.current = valueStr;
+      return;
+    }
+
     // Find value from action_data that has value.value (wait time)
     for (const ad of draft.action_datas || []) {
       if (ad.value?.["value"]) {
@@ -58,7 +56,7 @@ const WaitActionDetail: React.FC<WaitActionDetailProps> = ({
         break;
       }
     }
-  }, [draft.action_datas]);
+  }, [draft.action_datas, draft.action_data_generation]);
 
   // Helper function để truncate text
   const truncate = (text: string, maxLength: number): string => {
@@ -86,7 +84,9 @@ const WaitActionDetail: React.FC<WaitActionDetailProps> = ({
     }
 
     const maxVersion = getMaxVersionNumber();
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newVersion: ActionDataGeneration = {
+      action_data_generation_id: tempId,
       version_number: maxVersion + 1,
       value: { value: value }
     };
@@ -98,20 +98,20 @@ const WaitActionDetail: React.FC<WaitActionDetailProps> = ({
 
     // Auto-select version mới vừa tạo
     setWaitTime(valueToSave.trim());
-    updateActionDataValue(valueToSave.trim());
+    updateActionDataSelectedValueId(tempId, valueToSave.trim());
   };
 
   // Handler khi chọn version từ dropdown
   const handleVersionSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedValue = e.target.value;
+    const selectedValueId = e.target.value;
     
-    if (!selectedValue) {
+    if (!selectedValueId) {
       return;
     }
 
     // Tìm generation được chọn
     const selectedGeneration = draft.action_data_generation?.find(
-      gen => gen.version_number?.toString() === selectedValue
+      gen => gen.action_data_generation_id === selectedValueId
     );
 
     if (!selectedGeneration) {
@@ -124,7 +124,7 @@ const WaitActionDetail: React.FC<WaitActionDetailProps> = ({
     if (versionValue) {
       const valueStr = String(versionValue);
       setWaitTime(valueStr);
-      updateActionDataValue(valueStr);
+      updateActionDataSelectedValueId(selectedValueId, valueStr);
       prevWaitTimeRef.current = valueStr;
     }
     
@@ -183,42 +183,36 @@ const WaitActionDetail: React.FC<WaitActionDetailProps> = ({
     }
   };
 
-  // Hàm update action data value - giữ nguyên các action_data khác (như page_info)
-  const updateActionDataValue = (value: string) => {
+  const updateActionDataSelectedValueId = (selectedValueId: string, value: string) => {
     const oldTime = prevWaitTimeRef.current;
-    
+
     updateDraft(prev => {
       const next = { ...prev } as Action;
       const actionDatas = [...(next.action_datas || [])];
-      
-      // Tìm action_data có value.value property (wait time), nếu không có thì tạo mới
-      let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined && ad.value?.["value"] !== undefined);
+
+      let foundIndex = actionDatas.findIndex(ad => ad.value !== undefined);
       if (foundIndex === -1) {
-        // Tạo action_data mới nếu chưa có
         actionDatas.push({ value: {} });
         foundIndex = actionDatas.length - 1;
       }
-      
-      // Cập nhật action_data tại foundIndex, giữ nguyên các action_data khác
+
       actionDatas[foundIndex] = {
         ...actionDatas[foundIndex],
         value: {
           ...(actionDatas[foundIndex].value || {}),
-          value: value
+          selected_value_id: selectedValueId
         }
       };
-      
+
       next.action_datas = actionDatas;
-      
-      // Tự động cập nhật description khi wait time thay đổi (sử dụng logic riêng)
+
       const currentDescription = prev.description || '';
       const newDescription = generateWaitDescription(value, oldTime, currentDescription);
       next.description = newDescription;
-      
+
       return next;
     });
-    
-    // Cập nhật giá trị cũ cho lần sau
+
     prevWaitTimeRef.current = value;
   };
 
@@ -251,15 +245,7 @@ const WaitActionDetail: React.FC<WaitActionDetailProps> = ({
                 <>
                   <select
                     className="rcd-action-detail-input"
-                    value={(() => {
-                      // Tìm version có giá trị khớp với waitTime hiện tại
-                      const matchingVersion = versions.find(v => {
-                        const val = v.value?.value || (typeof v.value === 'string' ? v.value : '');
-                        return String(val) === waitTime;
-                      });
-                      // Nếu có match thì dùng version đó, nếu không thì dùng version đầu tiên
-                      return matchingVersion?.version_number?.toString() || versions[0]?.version_number?.toString() || '';
-                    })()}
+                    value={getSelectedValueId(draft) || ''}
                     onChange={handleVersionSelect}
                     style={{ 
                       cursor: 'pointer', 
@@ -270,13 +256,16 @@ const WaitActionDetail: React.FC<WaitActionDetailProps> = ({
                     }}
                   >
                     {versions.map((version) => {
+                      if (!version.action_data_generation_id) {
+                        return null;
+                      }
                       const versionValue = version.value?.value || 
                         (typeof version.value === 'string' ? version.value : '');
                       const displayValue = truncate(String(versionValue || ''), 50);
                       return (
                         <option 
                           key={version.version_number || `version-${version.action_data_generation_id}`} 
-                          value={version.version_number?.toString() || ''}
+                          value={version.action_data_generation_id}
                         >
                           {displayValue}
                         </option>
@@ -342,7 +331,10 @@ const WaitActionDetail: React.FC<WaitActionDetailProps> = ({
                   onChange={(e) => {
                     const newValue = e.target.value;
                     setWaitTime(newValue);
-                    updateActionDataValue(newValue);
+                    const currentDescription = draft.description || '';
+                    const newDescription = generateWaitDescription(newValue, prevWaitTimeRef.current, currentDescription);
+                    updateField('description', newDescription);
+                    prevWaitTimeRef.current = newValue;
                   }}
                   placeholder="e.g. 1000"
                   min="0"

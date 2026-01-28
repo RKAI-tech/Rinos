@@ -236,16 +236,7 @@ const ActionDetailModal: React.FC<ActionDetailModalProps> = ({
     };
 
     // For all action types, the main input is kept in `value`
-    cloned.action_datas = (source.action_datas ?? []).map(ad => {
-      if(!ad.value) return ad;
-      if (!("value" in ad.value)) return ad;
-      return {
-      ...ad,
-      value: {
-        value: String(ad.value.value),
-      },
-    };
-    });
+    cloned.action_datas = source.action_datas;
 
     return cloned;
   };

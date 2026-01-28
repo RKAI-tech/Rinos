@@ -26,26 +26,7 @@ export const normalizeChangeAction = (source: Action): Action => {
     })),
   };
 
-  // For change action, normalize all action_datas that have value and checked
-  // Preserve all existing properties in action_datas
-  cloned.action_datas = (source.action_datas ?? []).map(ad => {
-    if(!ad.value) return ad;
-    if (!("value" in ad.value)) return ad;
-    // If this action_data has a value property, normalize value and checked
-    if (ad.value !== undefined) {
-      return {
-        ...ad,
-        value: {
-          ...(ad.value || {}),
-          value: (ad.value?.["value"] ?? '').toString(),
-          checked: Boolean(ad.value?.["checked"]),
-          elementText: (ad.value?.["elementText"] ?? '').toString(),
-        },
-      };
-    }
-    // Otherwise, keep it as is
-    return ad;
-  });
+  cloned.action_datas = source.action_datas;
 
   return cloned;
 };
@@ -101,8 +82,7 @@ const ChangeActionDetail: React.FC<ChangeActionDetailProps> = ({
         ...actionDatas[foundIndex],
         value: {
           ...(actionDatas[foundIndex].value || {}),
-          checked,
-          value: checked ? "on" : "off"
+          checked
         }
       };
       

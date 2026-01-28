@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Action, AssertType, Element } from '../../../../types/actions';
+import { getSelectedGenerationValue, getSelectedValueId } from '../../../../../shared/utils/actionDataGeneration';
 import '../../ActionDetailModal.css';
 
 interface AssertWithValueActionDetailProps {
@@ -28,17 +29,7 @@ export const normalizeAssertWithValueAction = (source: Action): Action => {
     ...source,
   };
 
-  cloned.action_datas = (source.action_datas || []).map(ad => {
-    if(!ad.value) return ad;
-    if (!("value" in ad.value)) return ad;
-    return {
-      ...ad,
-      value: {
-        ...(ad.value || {}),
-        value: String(ad.value.value),
-      }
-    };
-  });
+  cloned.action_datas = source.action_datas;
 
   return cloned;
 };
@@ -64,6 +55,14 @@ const AssertWithValueActionDetail: React.FC<AssertWithValueActionDetailProps> = 
   );
 
   useEffect(() => {
+    if (draft.action_data_generation && draft.action_data_generation.length > 0) {
+      const selectedValueId = getSelectedValueId(draft);
+      const generationValue = selectedValueId ? getSelectedGenerationValue(draft) : null;
+      if (generationValue != null) {
+        setAssertValue(String(generationValue));
+        return;
+      }
+    }
     for (const ad of draft.action_datas || []) {
       if (ad.value && typeof ad.value === 'object') {
         if (typeof ad.value['key'] === 'string') {
@@ -100,6 +99,11 @@ const AssertWithValueActionDetail: React.FC<AssertWithValueActionDetailProps> = 
         }
         return 'value';
       })();
+
+      if (targetField === 'value') {
+        next.action_datas = actionDatas;
+        return next;
+      }
 
       let valueIndex = actionDatas.findIndex(
         ad => ad.value !== undefined && ad.value?.[targetField] !== undefined && typeof ad.value?.[targetField] === 'string',

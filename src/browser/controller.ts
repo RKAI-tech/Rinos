@@ -549,6 +549,31 @@ export class Controller {
         }
         return false;
     }
+    
+    private resolveActionValue(action: any, actionData?: any): any {
+        const rawValue =
+          actionData?.value && typeof actionData.value === 'object'
+            ? actionData.value.value
+            : actionData?.value;
+      
+        const selectedValueId = actionData?.value?.selected_value_id;
+        const generations = (action as any)?.action_data_generation;
+      
+        if (selectedValueId && Array.isArray(generations)) {
+          const selected = generations.find(
+            (gen: any) => gen.action_data_generation_id === selectedValueId
+          );
+          if (selected) {
+            const genValue = selected.value;
+            if (genValue && typeof genValue === 'object' && 'value' in genValue) {
+              return (genValue as any).value;
+            }
+            return genValue ?? rawValue;
+          }
+        }
+      
+        return rawValue;
+      }
 
     async executeMultipleActions(context: BrowserContext, actions: Action[]): Promise<void> {
         if (!context) {
@@ -581,7 +606,7 @@ export class Controller {
                 }
                 switch (action.action_type) {
                     case ActionType.navigate:
-                        let url_navigated = actionData?.value?.value || "";
+                        let url_navigated = this.resolveActionValue(action, actionData);
                         if (!url_navigated) {
                             throw new Error('URL is required for navigate action');
                         }
@@ -645,7 +670,7 @@ export class Controller {
                         }
                         break;
                     case ActionType.input:
-                        let value_input = actionData?.value?.value || "";
+                        let value_input = this.resolveActionValue(action, actionData);
                         if (!value_input) {
                             throw new Error('Value is required for input action');
                         }
@@ -662,7 +687,7 @@ export class Controller {
                         }
                         break;
                     case ActionType.select:
-                        let value_select = actionData?.value?.value || "";
+                        let value_select = this.resolveActionValue(action, actionData);
                         if (!value_select) {
                             throw new Error('Value is required for select action');
                         }
@@ -688,7 +713,7 @@ export class Controller {
                         }
                         break;
                     case ActionType.keydown:
-                        let value_keydown = actionData?.value?.value || "";
+                        let value_keydown = this.resolveActionValue(action, actionData);
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
                             if (selectors) {
@@ -758,7 +783,7 @@ export class Controller {
                         }
                         break;
                     case ActionType.wait:
-                        let value_wait = actionData?.value?.value || "";
+                        let value_wait = this.resolveActionValue(action, actionData);
                         await new Promise(resolve => setTimeout(resolve, Number(value_wait) || 0));
                         break;
                     case ActionType.drag_and_drop:

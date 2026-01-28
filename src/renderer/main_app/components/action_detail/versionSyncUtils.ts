@@ -162,22 +162,15 @@ export const syncVersionOnActionSave = (
     ad => ad.value && typeof ad.value === 'object' && ad.value.currentVersion
   )?.value?.currentVersion;
 
-  // Tìm generation ID mới từ updatedAction dựa trên value trong action_datas
+  // Tìm generation ID mới từ updatedAction dựa trên selected_value_id trong action_datas
   let newGenerationId: string | null = null;
   if (updatedCurrentVersion && updatedAction.action_data_generation) {
-    const updatedValue = updatedAction.action_datas?.find(
-      ad => ad.value && typeof ad.value === 'object' && ad.value.value !== undefined
-    )?.value?.value;
+    const selectedValueId = updatedAction.action_datas?.find(
+      ad => ad.value && typeof ad.value === 'object' && ad.value.selected_value_id !== undefined
+    )?.value?.selected_value_id;
 
-    if (updatedValue !== undefined && updatedAction.action_data_generation) {
-      for (const gen of updatedAction.action_data_generation) {
-        const genValue = gen.value?.value || 
-          (typeof gen.value === 'string' ? gen.value : '');
-        if (String(genValue) === String(updatedValue)) {
-          newGenerationId = gen.action_data_generation_id || null;
-          break;
-        }
-      }
+    if (selectedValueId) {
+      newGenerationId = String(selectedValueId);
     }
   }
 
