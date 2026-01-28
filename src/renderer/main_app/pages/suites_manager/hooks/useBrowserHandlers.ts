@@ -62,7 +62,7 @@ export const useBrowserHandlers = ({
       const testcaseName = testcase?.name || id;
       const browserType = testcase?.browser_type || BrowserType.chrome;
 
-      console.log('[SuitesManager] testcase evidence_id', testcase?.evidence_id);
+      // console.log('[SuitesManager] testcase evidence_id', testcase?.evidence_id);
       
       const result = await (window as any).screenHandleAPI?.openRecorder?.(id, projectId, testcaseName, browserType, testSuiteId, testcase?.evidence_id);
       if (result?.alreadyOpen) {

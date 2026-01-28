@@ -762,7 +762,7 @@ const SuitesManager: React.FC = () => {
       
       const resp = await suiteService.searchTestCasesBySuite(suiteId, request, projectId);
 
-      console.log('[SuitesManager] searchTestCasesBySuite resp', resp);
+      // console.log('[SuitesManager] searchTestCasesBySuite resp', resp);
       if (resp.success && resp.data) {
         setTestcases(resp.data.testcases || []);
         setTotalPages(resp.data.total_pages || 1);
