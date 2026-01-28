@@ -10,7 +10,8 @@ import {
     ExecuteTestCaseRequest,
     TestCaseSearchRequest,
     TestCaseSearchResponse,
-    TestCaseDataVersionBatch
+    TestCaseDataVersionBatch,
+    TestCaseCreateAndAddToSuiteRequest
 } from '../types/testcases';
 import { DefaultResponse } from '../types/api_responses';
 import { Action, ActionData, ActionDataGeneration } from '../types/actions';
@@ -200,6 +201,28 @@ export class TestCaseService {
         // Script can be empty on creation; backend supports recording later
 
         return await apiRouter.request<DefaultResponse>('/testcases/create', {
+            method: 'POST',
+            body: JSON.stringify(testCase),
+        });
+    }
+
+    async createTestCaseAndAddToSuite(testCase: TestCaseCreateAndAddToSuiteRequest): Promise<ApiResponse<DefaultResponse>> {
+        // Input validation
+        if (!testCase.name || testCase.name.trim().length === 0) {
+            return {
+                success: false,
+                error: 'Test case name is required'
+            };
+        }
+    
+        if (!testCase.project_id) {
+            return {
+                success: false,
+                error: 'Valid project ID is required'
+            };
+        }
+
+        return await apiRouter.request<DefaultResponse>('/testcases/create_and_add_to_suite', {
             method: 'POST',
             body: JSON.stringify(testCase),
         });

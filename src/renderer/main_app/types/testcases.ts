@@ -22,6 +22,11 @@ export interface TestCaseCreateRequest {
     basic_authentication?: BasicAuthentication;
 }
 
+export interface TestCaseCreateAndAddToSuiteRequest extends TestCaseCreateRequest {
+    test_suite_id: string;
+    level: number;
+}
+
 export interface TestCaseUpdateRequest {
     testcase_id?: string;
     name?: string;

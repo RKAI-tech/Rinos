@@ -167,69 +167,34 @@ export const useCreateHandlers = ({
   // Save create testcase in suite handler
   const handleSaveCreateTestcaseInSuite = useCallback(async (data: { projectId: string; name: string; tag: string; browser_type?: string; level: number }) => {
     if (!projectId || !selectedSuiteId || isCreatingTestcaseInSuite) return;
-    
+
     try {
       setIsCreatingTestcaseInSuite(true);
-      
-      // 1. Create the testcase
-      const createPayload = {
+
+      const payload = {
         project_id: projectId,
+        test_suite_id: selectedSuiteId,
         name: data.name,
         tag: data.tag || undefined,
-        browser_type: data.browser_type || undefined
+        browser_type: data.browser_type || undefined,
+        level: data.level,
       };
-      
-      const createResp = await testCaseService.createTestCase(createPayload);
-      
-      if (!createResp.success) {
-        toast.error(createResp.error || 'Failed to create testcase. Please try again.');
-        return;
-      }
-      
-      // 2. Wait a bit to ensure the testcase is created in the database
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // 3. Fetch testcases to find the newly created one
-      const response = await testCaseService.getTestCases(projectId, 1000, 0);
-      if (!response.success || !response.data) {
-        toast.error('Failed to find created testcase. Please try again.');
-        return;
-      }
-      
-      // 4. Find the newly created testcase by name (most recent one with matching name)
-      const newTestcase = response.data.testcases
-        .filter(tc => tc.name === data.name)
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-      
-      if (!newTestcase) {
-        toast.error('Failed to find created testcase. Please try again.');
-        return;
-      }
-      
-      // 5. Add the testcase to the suite with the specified level
-      const addResp = await suiteService.addTestCasesToSuite({
-        test_suite_id: selectedSuiteId,
-        testcase_ids: [{
-          testcase_id: newTestcase.testcase_id,
-          level: data.level
-        }]
-      });
-      
-      if (addResp.success) {
-        // toast.success('Testcase created and added to suite successfully!');
+
+      const resp = await testCaseService.createTestCaseAndAddToSuite(payload);
+
+      if (resp.success) {
         setIsCreateTestcaseInSuiteModalOpen(false);
         setCreatingTestcaseDefaultLevel(1);
-        // Reload testcases in suite
         await fetchTestcasesBySuite(selectedSuiteId, selectedSuiteName);
       } else {
-        toast.error(addResp.error || 'Failed to add testcase to suite. Please try again.');
+        toast.error(resp.error || 'Failed to create testcase. Please try again.');
       }
     } catch (e) {
       toast.error('Failed to create testcase. Please try again.');
     } finally {
       setIsCreatingTestcaseInSuite(false);
     }
-  }, [projectId, selectedSuiteId, selectedSuiteName, isCreatingTestcaseInSuite, testCaseService, suiteService, fetchTestcasesBySuite]);
+  }, [projectId, selectedSuiteId, selectedSuiteName, isCreatingTestcaseInSuite, testCaseService, fetchTestcasesBySuite]);
 
   return {
     // Create suite state
