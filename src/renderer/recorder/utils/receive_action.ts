@@ -294,8 +294,8 @@ export function receiveAction(
         action_data_generation: actionDataGeneration,
     } as Action;
 
-    console.log('[Action sent from browser]', action_received);
-    console.log('[Received action]', receivedAction);
+    // console.log('[Action sent from browser]', action_received);
+    // console.log('[Received action]', receivedAction);
 
     const last_action = action_recorded[action_recorded.length - 1];
 

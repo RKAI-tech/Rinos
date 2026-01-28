@@ -724,49 +724,50 @@ export class Controller {
                         break;
                     case ActionType.upload:
                         if (activePage && action.elements && action.elements.length === 1) {
-                            if (actionData?.file_upload) {
-                                const file = actionData.file_upload;
-                                    let content: string | undefined;
-                                    if (file.file_content) {
-                                        content = file.file_content;
-                                    } else {
-                                        // TODO: Call API to get file content
-                                        const payload = {
-                                            file_path: file.file_path || ''
-                                        };
-                                        // console.log('[Controller] payload:', payload);
-                                        const response = await this.fileService.getFileContent(payload);
-                                        // console.log('[Controller] response:', response);
-                                        if (response.success) {
-                                            content = response.data?.file_content;
-                                        }
+                            const uploadData = action.action_datas?.find((data: any) => data.file_upload);
+                            if (uploadData && uploadData.file_upload) {
+                                const file = uploadData.file_upload;
+                                let content: string | undefined;
+                                if (file.file_content) {
+                                    content = file.file_content;
+                                } else {
+                                    // TODO: Call API to get file content
+                                    const payload = {
+                                        file_path: file.file_path || ''
+                                    };
+                                    // console.log('[Controller] payload:', payload);
+                                    const response = await this.fileService.getFileContent(payload);
+                                    // console.log('[Controller] response:', response);
+                                    if (response.success) {
+                                        content = response.data?.file_content;
                                     }
-                                    // TODO: Save `content` to temp file
-                                    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-                                    const tempFileName = `${file.file_name}`;
-                                    const tempFilePath = path.join(tmpDir, tempFileName);
-                                    // Extract base64 from data URL if needed, then decode
-                                    const base64Content = extractBase64FromDataURL(content || '');
-                                    fs.writeFileSync(tempFilePath, Buffer.from(base64Content, 'base64'));
-                                    const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
-                                    if (selectors) {
-                                        const locator = await this.resolveUniqueSelector(activePage, selectors);
-                                        await locator.setInputFiles(tempFilePath);
-                                        
-                                        await locator.waitForSelector && typeof locator.waitForSelector === 'function'
-                                            ? await locator.waitForSelector({ state: 'attached', timeout: 10000 })
-                                            : undefined;
-
-                                        // await activePage.waitForFunction(
-                                        //     el => !el || (el.files && el.files.length > 0),
-                                        //     await locator.elementHandle(),
-                                        //     { timeout: 10000 }
-                                        // );
-                                    }
-
-                                    // TODO: Delete temp file
-                                    // fs.unlinkSync(tempFilePath);
                                 }
+                                // TODO: Save `content` to temp file
+                                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+                                const tempFileName = `${file.file_name}`;
+                                const tempFilePath = path.join(tmpDir, tempFileName);
+                                // Extract base64 from data URL if needed, then decode
+                                const base64Content = extractBase64FromDataURL(content || '');
+                                fs.writeFileSync(tempFilePath, Buffer.from(base64Content, 'base64'));
+                                const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
+                                if (selectors) {
+                                    const locator = await this.resolveUniqueSelector(activePage, selectors);
+                                    await locator.setInputFiles(tempFilePath);
+                                    
+                                    await locator.waitForSelector && typeof locator.waitForSelector === 'function'
+                                        ? await locator.waitForSelector({ state: 'attached', timeout: 10000 })
+                                        : undefined;
+
+                                    // await activePage.waitForFunction(
+                                    //     el => !el || (el.files && el.files.length > 0),
+                                    //     await locator.elementHandle(),
+                                    //     { timeout: 10000 }
+                                    // );
+                                }
+
+                                // TODO: Delete temp file
+                                // fs.unlinkSync(tempFilePath);
+                            }
                         }
                         break;
                     case ActionType.change:
