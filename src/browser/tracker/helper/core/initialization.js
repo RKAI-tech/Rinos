@@ -19,6 +19,120 @@ import { handleWindowResizeEvent, setExecutingActionsState } from '../actions/wi
 let globalAssertMode = false;
 let browserControls = null;
 let browserHandlersDisposer = null;
+let assertOverlayEnabled = false;
+let lastOverlayHoverElement = null;
+
+function pickElementFromPoint(x, y) {
+  const overlay = getHoverOverlay && getHoverOverlay();
+  const previousPointerEvents = overlay ? overlay.style.pointerEvents : '';
+
+  if (overlay) {
+    overlay.style.pointerEvents = 'none';
+  }
+
+  const element = document.elementFromPoint(x, y);
+
+  if (overlay) {
+    overlay.style.pointerEvents = previousPointerEvents || (assertOverlayEnabled ? 'auto' : 'none');
+  }
+
+  return element;
+}
+
+function updateHoverFromPoint(x, y) {
+  const element = pickElementFromPoint(x, y);
+  if (
+    !element ||
+    (element.closest && (
+      element.closest('#rikkei-browser-controls') ||
+      element.closest('#rikkei-hover-overlay')
+    ))
+  ) {
+    lastOverlayHoverElement = null;
+    hideHoverEffect();
+    return;
+  }
+
+  if (element !== lastOverlayHoverElement) {
+    lastOverlayHoverElement = element;
+    showHoverEffect(element);
+  }
+}
+
+function bindAssertOverlayClick(attempt = 0) {
+  const overlay = getHoverOverlay && getHoverOverlay();
+  if (!overlay) {
+    if (attempt < 10) {
+      setTimeout(() => bindAssertOverlayClick(attempt + 1), 100);
+    }
+    return;
+  }
+
+  if (overlay.__rikkeiAssertClickBound) {
+    overlay.style.pointerEvents = assertOverlayEnabled ? 'auto' : 'none';
+    return;
+  }
+
+  overlay.__rikkeiAssertClickBound = true;
+  overlay.style.pointerEvents = assertOverlayEnabled ? 'auto' : 'none';
+
+  overlay.addEventListener('mousemove', (e) => {
+    if (!assertOverlayEnabled) return;
+    updateHoverFromPoint(e.clientX, e.clientY);
+  }, true);
+
+  overlay.addEventListener('mouseout', () => {
+    if (!assertOverlayEnabled) return;
+    lastOverlayHoverElement = null;
+    hideHoverEffect();
+  }, true);
+
+  overlay.addEventListener('click', (e) => {
+    if (!globalAssertMode) return;
+    if (window.currentAssertType !== 'toBeDisabled') return;
+
+    const clickTarget = pickElementFromPoint(e.clientX, e.clientY);
+    if (!clickTarget) return;
+
+    if (clickTarget.closest && (
+      clickTarget.closest('#rikkei-browser-controls') ||
+      clickTarget.closest('#rikkei-hover-overlay')
+    )) {
+      return;
+    }
+
+    const assertType = window.currentAssertType || 'toBeVisible';
+
+    queueMicrotask(() => {
+      if (window.sendActionToMain) {
+        try {
+          const selector = generateAndValidateSelectors(clickTarget, { minScore: 0, validate: true });
+          const elementText = extractElementText(clickTarget);
+          const DOMelement = clickTarget.outerHTML;
+          const element = buildElement(clickTarget, selector, 1);
+
+          const action = {
+            action_type: 'assert',
+            assert_type: assertType,
+            elements: [element],
+            action_datas: [{
+              value: {
+                htmlDOM: DOMelement,
+                elementText: elementText,
+                page_index: window.__PAGE_INDEX__ || 0,
+                page_url: window.location.href || '',
+                page_title: document.title || '',
+              }
+            }]
+          };
+          window.sendActionToMain(action);
+        } catch (error) {
+          /* console.error('Error sending assert action:', error); */
+        }
+      }
+    });
+  }, true);
+}
 
 function handleAssertCaptureBlocking(e) {
   if (!globalAssertMode) {
@@ -27,6 +141,15 @@ function handleAssertCaptureBlocking(e) {
 
   const target = e.target;
   if (!target) {
+    return;
+  }
+
+  // For assert disabled mode, overlay handles click + elementFromPoint
+  if (
+    window.currentAssertType === 'toBeDisabled' &&
+    target.closest &&
+    target.closest('#rikkei-hover-overlay')
+  ) {
     return;
   }
 
@@ -210,6 +333,7 @@ export function initializeTracking() {
   initializeNavigationPrevention();
   initializeElementFreezer();
   initBrowserControls();
+  bindAssertOverlayClick();
   initializeEventListeners();
   initializeHoverEffects();
   // initializeNavigateHandle();
@@ -221,6 +345,11 @@ export function initializeTracking() {
     globalAssertMode = enabled;
     if (enabled) {
       window.currentAssertType = assertType;
+    }
+    assertOverlayEnabled = !!enabled && assertType === 'toBeDisabled';
+    const overlay = getHoverOverlay && getHoverOverlay();
+    if (overlay) {
+      overlay.style.pointerEvents = assertOverlayEnabled ? 'auto' : 'none';
     }
     // setAssertMode(enabled, assertType);
     setNavAssertMode(enabled, assertType);
