@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import chromeLogo from '../../../assets/chrome_logo.png';
 import edgeLogo from '../../../assets/edge_logo.png';
 import firefoxLogo from '../../../assets/firefox_logo.jpeg';
@@ -137,7 +138,11 @@ const BrowserManagerModal: React.FC<BrowserManagerModalProps> = ({ isOpen, onClo
         throw new Error(response?.error || 'Failed to fetch browser information');
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to fetch browser information';
+      const message = logErrorAndGetFriendlyMessage(
+        '[BrowserManagerModal] fetchBrowserInfo',
+        error,
+        'Failed to fetch browser information. Please try again.'
+      );
       setErrorMessage(message);
     } finally {
       setIsLoading(false);
@@ -203,7 +208,11 @@ const BrowserManagerModal: React.FC<BrowserManagerModalProps> = ({ isOpen, onClo
         }
         return;
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to open Edge download page';
+        const message = logErrorAndGetFriendlyMessage(
+          '[BrowserManagerModal] handleInstall openEdge',
+          error,
+          'Failed to open Edge download page. Please try again.'
+        );
         toast.error(message);
         return;
       }
@@ -235,7 +244,11 @@ const BrowserManagerModal: React.FC<BrowserManagerModalProps> = ({ isOpen, onClo
       }
       await updateStateAfterAction(browserId, `${browserId.toUpperCase()} installed successfully.`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to install browser';
+      const message = logErrorAndGetFriendlyMessage(
+        '[BrowserManagerModal] handleInstall',
+        error,
+        'Failed to install browser. Please try again.'
+      );
       toast.error(message);
       setCurrentAction(null);
       setInstallProgress(null);
@@ -256,7 +269,11 @@ const BrowserManagerModal: React.FC<BrowserManagerModalProps> = ({ isOpen, onClo
         await updateStateAfterAction(browserId, `${browserId.toUpperCase()} removed successfully.`);
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to remove browser';
+      const message = logErrorAndGetFriendlyMessage(
+        '[BrowserManagerModal] handleRemove',
+        error,
+        'Failed to remove browser. Please try again.'
+      );
       toast.error(message);
       setCurrentAction(null);
       setInstallProgress(null);

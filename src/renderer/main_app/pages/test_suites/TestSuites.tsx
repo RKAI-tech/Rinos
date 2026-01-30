@@ -10,6 +10,7 @@ import { AddTestCasesToSuiteRequest, TestcaseId } from '../../types/testsuites';
 // import { ExecuteScriptsService } from '../../services/executeScripts';
 // import { ActionService } from '../../services/actions';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../shared/utils/friendlyError';
 import CreateTestSuite from '../../components/testsuite/create_test_suite/CreateTestSuite';
 import EditTestSuite from '../../components/testsuite/edit_test_suite/EditTestSuite';
 import DeleteTestSuite from '../../components/testsuite/delete_test_suite/DeleteTestSuite';
@@ -92,12 +93,22 @@ const TestSuites: React.FC = () => {
         }));
         setTestSuites(mapped);
       } else {
-        setError(resp.error || 'Failed to load test suites');
-        toast.error(resp.error || 'Failed to load test suites');
+        const message = logErrorAndGetFriendlyMessage(
+          '[TestSuites] loadSuites',
+          resp.error,
+          'Failed to load test suites. Please try again.'
+        );
+        setError(message);
+        toast.error(message);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'An error occurred');
-      toast.error('Failed to load test suites');
+      const message = logErrorAndGetFriendlyMessage(
+        '[TestSuites] loadSuites',
+        e,
+        'Failed to load test suites. Please try again.'
+      );
+      setError(message);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -311,10 +322,20 @@ const TestSuites: React.FC = () => {
         setSelectedSuite(testSuites.find(s => s.id === id) || null);
         setIsViewResultOpen(true);
       } else {
-        toast.error(resp.error || 'Failed to run test suite. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[TestSuites] runSuite',
+          resp.error,
+          'Failed to run test suite. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Failed to run test suite. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[TestSuites] runSuite',
+        e,
+        'Failed to run test suite. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setOpenDropdownId(null);
       setRunningSuiteIds(prev => {
@@ -347,10 +368,20 @@ const TestSuites: React.FC = () => {
         setIsCreateOpen(false);
         await fetchSuites();
       } else {
-        toast.error(resp.error || 'Failed to create test suite. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[TestSuites] createSuite',
+          resp.error,
+          'Failed to create test suite. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Failed to create test suite. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[TestSuites] createSuite',
+        e,
+        'Failed to create test suite. Please try again.'
+      );
+      toast.error(message);
     }
   };
 
@@ -364,10 +395,20 @@ const TestSuites: React.FC = () => {
         handleCloseEditSuite();
         await fetchSuites();
       } else {
-        toast.error(resp.error || 'Failed to update test suite. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[TestSuites] updateSuite',
+          resp.error,
+          'Failed to update test suite. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Failed to update test suite. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[TestSuites] updateSuite',
+        e,
+        'Failed to update test suite. Please try again.'
+      );
+      toast.error(message);
     }
   };
 
@@ -380,10 +421,20 @@ const TestSuites: React.FC = () => {
         handleCloseDeleteSuite();
         await fetchSuites();
       } else {
-        toast.error(resp.error || 'Failed to delete test suite. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[TestSuites] deleteSuite',
+          resp.error,
+          'Failed to delete test suite. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Failed to delete test suite. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[TestSuites] deleteSuite',
+        e,
+        'Failed to delete test suite. Please try again.'
+      );
+      toast.error(message);
     }
   };
 
@@ -771,10 +822,20 @@ const TestSuites: React.FC = () => {
               setIsAddOpen(false);
               await fetchSuites();
             } else {
-              toast.error(resp.error || 'Failed to add testcases. Please try again.');
+              const message = logErrorAndGetFriendlyMessage(
+                '[TestSuites] addTestcases',
+                resp.error,
+                'Failed to add testcases. Please try again.'
+              );
+              toast.error(message);
             }
           } catch (e) {
-            toast.error('Failed to add testcases. Please try again.');
+            const message = logErrorAndGetFriendlyMessage(
+              '[TestSuites] addTestcases',
+              e,
+              'Failed to add testcases. Please try again.'
+            );
+            toast.error(message);
           }
         }}
       />

@@ -4,6 +4,7 @@ import { StatementService } from "../../../services/statements";
 import { apiRouter } from "../../../services/baseAPIRequest";
 import QueryResultTableSelectable from "./QueryResultTableSelectable";
 import AssertApiElementPanel from "./AssertApiElementPanel";
+import { logErrorAndGetFriendlyMessage } from "../../../../shared/utils/friendlyError";
 import {
   Connection,
   ApiRequestData,
@@ -633,7 +634,12 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
       const resp = await statementService.runWithoutCreate(connection_payload, connection);
 
       if (!resp.success) {
-        setQueryMessage({ type: "error", text: `Query failed: ${resp.error || "Unknown error"}` });
+        const message = logErrorAndGetFriendlyMessage(
+          "[AssertWithValueModal] runQuery",
+          resp.error,
+          "Query failed. Please try again."
+        );
+        setQueryMessage({ type: "error", text: message });
         setQueryResultData([]);
         setSelectedCellValue("");
         return;
@@ -656,7 +662,12 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
         setQueryMessage({ type: "success", text: "Query executed successfully. Returned 1 row." });
       }
     } catch (error: any) {
-      setQueryMessage({ type: "error", text: `Query failed: ${error.message || "Unknown error"}` });
+      const message = logErrorAndGetFriendlyMessage(
+        "[AssertWithValueModal] runQuery",
+        error,
+        "Query failed. Please try again."
+      );
+      setQueryMessage({ type: "error", text: message });
       setQueryResultData([]);
       setSelectedCellValue("");
     } finally {
@@ -709,20 +720,30 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
           setSelectedApiCellValue(""); // Reset selected value
           setApiMessage({ type: "success", text: `API request successful: ${apiResponse.status}` });
         } else {
+          const message = logErrorAndGetFriendlyMessage(
+            "[AssertWithValueModal] apiRequest",
+            apiResponse.error,
+            "API request failed. Please try again."
+          );
           setApiResponse({
             status: apiResponse.status || 0,
-            data: apiResponse.error || "Unknown error",
+            data: message,
             headers: {},
           });
           setApiRequest(data);
-          setApiMessage({ type: "error", text: `API request failed: ${apiResponse.error || "Unknown error"}` });
+          setApiMessage({ type: "error", text: message });
         }
       }
     } catch (error: any) {
-      setApiMessage({ type: "error", text: `API request failed: ${error.message || "Unknown error"}` });
+      const message = logErrorAndGetFriendlyMessage(
+        "[AssertWithValueModal] apiRequest",
+        error,
+        "API request failed. Please try again."
+      );
+      setApiMessage({ type: "error", text: message });
       setApiResponse({
         status: 0,
-        data: error.message || "Unknown error",
+        data: message,
         headers: {},
       });
       setApiRequest(data);

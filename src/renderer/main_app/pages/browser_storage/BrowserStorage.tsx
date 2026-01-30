@@ -7,6 +7,7 @@ import './BrowserStorage.css';
 import { ProjectService } from '../../services/projects';
 import { BrowserStorageService } from '../../services/browser_storage';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../shared/utils/friendlyError';
 import CreateBrowserStorageModal from '../../components/browser_storage/modals/CreateStorageModal';
 import EditBrowserStorageModal from '../../components/browser_storage/modals/EditStorageModal';
 import DeleteBrowserStorageModal from '../../components/browser_storage/modals/DeleteStorageModal';
@@ -523,10 +524,20 @@ const BrowserStorage: React.FC = () => {
         toast.success('Browser storage deleted');
         await reloadCookies();
       } else {
-        toast.error(resp.error || 'Failed to delete browser storage. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[BrowserStorage] deleteStorage',
+          resp.error,
+          'Failed to delete browser storage. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Failed to delete browser storage. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[BrowserStorage] deleteStorage',
+        e,
+        'Failed to delete browser storage. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setOpenDropdownId(null);
     }
@@ -641,10 +652,20 @@ const BrowserStorage: React.FC = () => {
         handleCloseEdit();
         await reloadList();
       } else {
-        toast.error(resp.error || 'Failed to update browser storage. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[BrowserStorage] updateStorage',
+          resp.error,
+          'Failed to update browser storage. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Failed to update browser storage. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[BrowserStorage] updateStorage',
+        e,
+        'Failed to update browser storage. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setIsUpdating(false);
     }
@@ -693,10 +714,20 @@ const BrowserStorage: React.FC = () => {
         handleCloseCreate();
         await reloadList();
       } else {
-        toast.error(resp.error || 'Failed to create browser storage. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[BrowserStorage] createStorage',
+          resp.error,
+          'Failed to create browser storage. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Failed to create browser storage');
+      const message = logErrorAndGetFriendlyMessage(
+        '[BrowserStorage] createStorage',
+        e,
+        'Failed to create browser storage. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }

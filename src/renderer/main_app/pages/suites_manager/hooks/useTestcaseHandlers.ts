@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import { TestCaseInSuite } from '../../../types/testsuites';
 import { TestCaseService } from '../../../services/testcases';
 import { TestSuiteService } from '../../../services/testsuites';
@@ -111,7 +112,12 @@ export const useTestcaseHandlers = ({
           await fetchTestcasesBySuite(selectedSuiteId, selectedSuiteName || '');
         }
       } else {
-        toast.error(resp.error || 'Failed to update testcase. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[useTestcaseHandlers] updateTestcase',
+          resp.error,
+          'Failed to update testcase. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (err) {
       toast.error('Failed to update testcase. Please try again.');
@@ -163,7 +169,12 @@ export const useTestcaseHandlers = ({
     } as any;
     const resp = await testCaseService.createTestCaseWithActions(payload);
     if (!resp.success) {
-      toast.error(resp.error || 'Disconnect from the server. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[useTestcaseHandlers] addTestcaseToSuite',
+        resp.error,
+        'Unable to connect to the server. Please try again.'
+      );
+      toast.error(message);
       return false;
     }
     return true;
@@ -276,7 +287,12 @@ export const useTestcaseHandlers = ({
           await fetchTestcasesBySuite(selectedSuiteId, selectedSuiteName || '');
         }
       } else {
-        toast.error(resp.error || 'Failed to remove testcase from suite. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[useTestcaseHandlers] removeTestcaseFromSuite',
+          resp.error,
+          'Failed to remove testcase from suite. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
       toast.error('Failed to remove testcase from suite. Please try again.');

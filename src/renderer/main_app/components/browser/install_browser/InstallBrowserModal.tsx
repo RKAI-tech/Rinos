@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { BrowserType } from '../../../types/testcases';
 import './InstallBrowserModal.css';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 
 interface InstallBrowserModalProps {
   isOpen: boolean;
@@ -156,8 +157,11 @@ const InstallBrowserModal: React.FC<InstallBrowserModalProps> = ({
           await onInstall(Array.from(playwrightBrowsers));
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to open Edge download page';
-        /* console.error('[InstallBrowserModal] Error opening Edge download page:', error); */
+        const message = logErrorAndGetFriendlyMessage(
+          '[InstallBrowserModal] openEdgeDownload',
+          error,
+          'Failed to open Edge download page. Please try again.'
+        );
         setInstallError(message);
       }
       return;
@@ -177,8 +181,11 @@ const InstallBrowserModal: React.FC<InstallBrowserModalProps> = ({
     try {
       await onInstall(Array.from(playwrightBrowsers));
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to install browsers';
-      /* console.error('[InstallBrowserModal] Install error:', error); */
+      const message = logErrorAndGetFriendlyMessage(
+        '[InstallBrowserModal] installBrowsers',
+        error,
+        'Failed to install browsers. Please try again.'
+      );
       setInstallError(message);
     }
   }, [selectedBrowsers, onInstall, normalizedPlatform, availableBrowsers]);

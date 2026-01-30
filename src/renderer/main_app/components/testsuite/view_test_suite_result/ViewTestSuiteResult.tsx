@@ -5,6 +5,7 @@ import './ViewTestSuiteResult.css';
 import { TestSuiteService } from '../../../services/testsuites';
 import { TestCaseService } from '../../../services/testcases';
 import { toast, ToastContainer } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import 'react-toastify/dist/ReactToastify.css';
 import { canEdit } from '../../../hooks/useProjectPermissions';
 import { useParams } from 'react-router-dom';
@@ -350,11 +351,21 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
         setCases(mapped);
       } else {
         setCases([]);
-        toast.error(resp.error || 'Failed to load test suite results. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[ViewTestSuiteResult] loadResults',
+          resp.error,
+          'Failed to load test suite results. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
       setCases([]);
-      toast.error('Disconnect from the server. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[ViewTestSuiteResult] loadResults',
+        e,
+        'Unable to connect to the server. Please try again.'
+      );
+      toast.error(message);
     } finally {
       if (!silent) setIsLoading(false);
     }
@@ -399,10 +410,20 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       if (resp.success) {
         toast.success('Test suite execution started');
       } else {
-        toast.error(resp.error || 'Failed to execute test suite. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[ViewTestSuiteResult] executeSuite',
+          resp.error,
+          'Failed to execute test suite. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Failed to execute test suite. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[ViewTestSuiteResult] executeSuite',
+        e,
+        'Failed to execute test suite. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setIsRetryingAll(false);
       await fetchResults();
@@ -554,7 +575,12 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
       const response = await svc.exportTestSuite({ test_suite_id: testSuiteId });
       
       if (!response.success) {
-        toast.error(response.error || 'Failed to export test suite. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[ViewTestSuiteResult] exportSuite',
+          response.error,
+          'Failed to export test suite. Please try again.'
+        );
+        toast.error(message);
         return;
       }
 
@@ -569,10 +595,20 @@ const ViewTestSuiteResult: React.FC<Props> = ({ isOpen, onClose, testSuiteId }) 
         URL.revokeObjectURL(url);
         toast.success('Exported test suite to Excel');
       } else {
-        toast.error(response.error || 'No file received from server');
+        const message = logErrorAndGetFriendlyMessage(
+          '[ViewTestSuiteResult] exportSuite',
+          response.error,
+          'No file received from server.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Export failed. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[ViewTestSuiteResult] exportSuite',
+        e,
+        'Export failed. Please try again.'
+      );
+      toast.error(message);
     }
   };
 

@@ -234,9 +234,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           await usernameStorage.remove();
           setUserUsername(null);
         }
-        // log('login: authenticated');
       } else {
-        throw new Error(response.error || 'Login failed');
+        throw new Error('Failed to login. Please try again or contact support.');
       }
       
     } catch (error) {

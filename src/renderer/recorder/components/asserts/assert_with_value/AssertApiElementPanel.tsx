@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import {
   executeApiRequest,
   validateApiRequest,
@@ -541,10 +542,20 @@ const AssertApiElementPanel: React.FC<AssertApiElementPanelProps> = ({
       if (response.success) {
         toast.success(`Request sent successfully! Status: ${response.status}`);
       } else {
-        toast.error(`Request failed! Status: ${response.status}${response.error ? ` - ${response.error}` : ''}`);
+        const message = logErrorAndGetFriendlyMessage(
+          '[AssertApiElementPanel] handleSendRequest',
+          response.error,
+          `Request failed! Status: ${response.status}`
+        );
+        toast.error(message);
       }
     } catch (error) {
-      toast.error('Request failed: ' + (error as Error).message);
+      const message = logErrorAndGetFriendlyMessage(
+        '[AssertApiElementPanel] handleSendRequest',
+        error,
+        'Request failed. Please try again.'
+      );
+      toast.error(message);
     }
   };
 

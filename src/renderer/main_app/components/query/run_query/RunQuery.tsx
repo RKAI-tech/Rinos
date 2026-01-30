@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import './RunQuery.css';
 import { VariableService } from '../../../services/variables';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 
 interface RunQueryProps {
   isOpen: boolean;
@@ -66,10 +67,20 @@ const RunQuery: React.FC<RunQueryProps> = ({ isOpen, sql, queryName, items, onCl
         toast.success('Variable saved');
         setIsVarOpen(false);
       } else {
-        toast.error(resp.error || 'Failed to save variable. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[RunQuery] saveVariable',
+          resp.error,
+          'Failed to save variable. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Failed to save variable. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[RunQuery] saveVariable',
+        e,
+        'Failed to save variable. Please try again.'
+      );
+      toast.error(message);
     }
   };
 

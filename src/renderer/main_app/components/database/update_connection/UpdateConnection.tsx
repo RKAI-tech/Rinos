@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import './UpdateConnection.css';
 import { testDatabaseConnection, DatabaseConnectionTestParams } from '../../../utils/databaseConnection';
 import { DatabaseService } from '../../../services/database';
@@ -396,12 +397,16 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
         toast.error(result.error || 'Connection test failed');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const message = logErrorAndGetFriendlyMessage(
+        '[UpdateConnection] testConnection',
+        error,
+        'Connection test failed. Please try again.'
+      );
       setTestResult({
         success: false,
-        error: errorMessage,
+        error: message,
       });
-      toast.error(`Connection test failed: ${errorMessage}`);
+      toast.error(message);
     } finally {
       // Cleanup temp files
       if (electronAPI?.fs && tempFilePaths.length > 0) {
@@ -515,13 +520,21 @@ const UpdateConnection: React.FC<UpdateConnectionProps> = ({ isOpen, projectId, 
         toast.success('Database connection updated successfully');
         await onSave();
       } else {
-        const errorMessage = response.error || 'Failed to update database connection. Please check your connection details and try again.';
-        toast.error(errorMessage);
+        const message = logErrorAndGetFriendlyMessage(
+          '[UpdateConnection] updateConnection',
+          response.error,
+          'Failed to update database connection. Please check your connection details and try again.'
+        );
+        toast.error(message);
         shouldClose = false;
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      toast.error(`Failed to update database connection: ${errorMessage}`);
+      const message = logErrorAndGetFriendlyMessage(
+        '[UpdateConnection] updateConnection',
+        error,
+        'Failed to update database connection. Please check your connection details and try again.'
+      );
+      toast.error(message);
       shouldClose = false;
     } finally {
       setIsSaving(false);

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import { BrowserType } from '../../../types/testcases';
 import { TestCaseInSuite } from '../../../types/testsuites';
 import { mapBrowserTypeToPlaywright, isBrowserSupported } from '../utils/suitesManagerUtils';
@@ -149,8 +150,12 @@ export const useBrowserHandlers = ({
         throw new Error(result?.error || 'Installation failed');
       }
     } catch (err) {
-      /* console.error('[SuitesManager] Error installing browsers:', err); */
-      toast.error(err instanceof Error ? err.message : 'Failed to install browsers');
+      const message = logErrorAndGetFriendlyMessage(
+        '[useBrowserHandlers] installBrowsers',
+        err,
+        'Failed to install browsers. Please try again.'
+      );
+      toast.error(message);
       setIsInstallingBrowsers(false);
       setInstallProgress(null);
       throw err;

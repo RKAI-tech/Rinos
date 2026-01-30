@@ -6,6 +6,7 @@ import { GroupService } from '../../../services/group';
 import { TestSuiteService } from '../../../services/testsuites';
 import { isDescendantOf } from '../utils/treeOperations';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 
 interface UseDragAndDropProps {
   groups: TreeGroup[];
@@ -150,7 +151,12 @@ export const useDragAndDrop = ({
         if (resp.success) {
           moveSuiteInTree(draggedSuite, targetGroupId);
         } else {
-          toast.error(resp.error || 'Failed to move suite. Please try again.');
+          const message = logErrorAndGetFriendlyMessage(
+            '[useDragAndDrop] moveSuite',
+            resp.error,
+            'Failed to move suite. Please try again.'
+          );
+          toast.error(message);
         }
       } catch (e) {
         toast.error('Failed to move suite. Please try again.');
@@ -195,7 +201,12 @@ export const useDragAndDrop = ({
         if (resp.success) {
           moveGroupInTree(draggedGroup, targetGroupId);
         } else {
-          toast.error(resp.error || 'Failed to move group. Please try again.');
+          const message = logErrorAndGetFriendlyMessage(
+            '[useDragAndDrop] moveGroup',
+            resp.error,
+            'Failed to move group. Please try again.'
+          );
+          toast.error(message);
         }
       } catch (e) {
         toast.error('Failed to move group. Please try again.');
@@ -264,7 +275,12 @@ export const useDragAndDrop = ({
         if (resp.success) {
           moveSuiteInTree(draggedSuite, null);
         } else {
-          toast.error(resp.error || 'Failed to move suite. Please try again.');
+          const message = logErrorAndGetFriendlyMessage(
+            '[useDragAndDrop] moveSuite',
+            resp.error,
+            'Failed to move suite. Please try again.'
+          );
+          toast.error(message);
         }
       } catch (e) {
         toast.error('Failed to move suite. Please try again.');
@@ -295,7 +311,12 @@ export const useDragAndDrop = ({
         if (resp.success) {
           moveGroupInTree(draggedGroup, null);
         } else {
-          toast.error(resp.error || 'Failed to move group. Please try again.');
+          const message = logErrorAndGetFriendlyMessage(
+            '[useDragAndDrop] moveGroup',
+            resp.error,
+            'Failed to move group. Please try again.'
+          );
+          toast.error(message);
         }
       } catch (e) {
         toast.error('Failed to move group. Please try again.');
@@ -338,7 +359,12 @@ export const useDragAndDrop = ({
         }
         return true;
       } else {
-        toast.error(resp.error || 'Failed to update testcase level. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[useDragAndDrop] updateTestcaseLevel',
+          resp.error,
+          'Failed to update testcase level. Please try again.'
+        );
+        toast.error(message);
         return false;
       }
     } catch (e) {

@@ -3,6 +3,7 @@ import './AddTestcasesToSuite.css';
 import { TestCaseService } from '../../../services/testcases';
 import { TestSuiteService } from '../../../services/testsuites';
 import { TestcaseId } from '../../../types/testsuites';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 
 interface TestcaseItem {
   id: string;
@@ -56,11 +57,21 @@ const AddTestcasesToSuite: React.FC<AddTestcasesToSuiteProps> = ({ isOpen, onClo
             .map(tc => ({ id: tc.testcase_id, name: tc.name, tag: (tc as any).tag }));
           setItems(mapped);
         } else {
-          setError(respAll.error || 'Failed to load testcases');
+          const message = logErrorAndGetFriendlyMessage(
+            '[AddTestcasesToSuite] loadTestcases',
+            respAll.error,
+            'Failed to load testcases. Please try again.'
+          );
+          setError(message);
           setItems([]);
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'An error occurred');
+        const message = logErrorAndGetFriendlyMessage(
+          '[AddTestcasesToSuite] loadTestcases',
+          e,
+          'An error occurred while loading testcases. Please try again.'
+        );
+        setError(message);
         setItems([]);
       } finally {
         setIsLoading(false);

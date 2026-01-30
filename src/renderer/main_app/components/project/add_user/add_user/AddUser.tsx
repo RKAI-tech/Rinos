@@ -3,6 +3,7 @@ import './AddUserToProjectModal.css';
 import { UserService } from '../../../../services/user';
 import { ProjectService } from '../../../../services/projects';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../../shared/utils/friendlyError';
 import { AddUserToProjectRequest, UserInProject } from '../../../../types/projects';
 
 interface AddUserProps {
@@ -162,10 +163,20 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
         }
         if (onSuccess) await onSuccess();
       } else {
-        toast.error(resp.error || 'Failed to remove user. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[AddUser] removeUser',
+          resp.error,
+          'Failed to remove user. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (error) {
-      toast.error('Failed to remove user. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[AddUser] removeUser',
+        error,
+        'Failed to remove user. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setRemovingUser(false);
       setShowRemoveConfirm(false);
@@ -218,7 +229,12 @@ export const AddUser: React.FC<AddUserProps> = ({ isOpen, projectId, onClose, on
         setActiveTab('manage');
         if (onSuccess) await onSuccess();
       } else {
-        toast.error(resp.error || 'Failed to share project');
+        const message = logErrorAndGetFriendlyMessage(
+          '[AddUser] shareProject',
+          resp.error,
+          'Failed to share project. Please try again.'
+        );
+        toast.error(message);
       }
     } finally {
       setSubmitting(false);

@@ -4,6 +4,7 @@ import { ActionService } from '../../../services/actions';
 import { ActionOperationResult } from '../../../components/action_tab/ActionTab';
 import { receiveActionWithInsert } from '../../../utils/receive_action';
 import { TestCaseDataVersion as TestCaseDataVersionFromAPI } from '../../../types/testcase';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 
 interface UseActionsProps {
   testcaseId: string | null;
@@ -343,9 +344,14 @@ export const useActions = ({
         setIsDirty(false);
         onDirtyChange?.(false);
         onBatchLoaded?.({ actions: [] });
+        const message = logErrorAndGetFriendlyMessage(
+          '[useActions] reloadActions',
+          response.error,
+          'Failed to reload actions. Please try again.'
+        );
         return {
           success: false,
-          message: response.error || 'Failed to reload actions',
+          message,
           level: 'error',
         };
       }
@@ -357,7 +363,11 @@ export const useActions = ({
       setIsDirty(false);
       onDirtyChange?.(false);
       onBatchLoaded?.({ actions: [] });
-      const message = error instanceof Error ? error.message : 'Failed to reload actions';
+      const message = logErrorAndGetFriendlyMessage(
+        '[useActions] reloadActions',
+        error,
+        'Failed to reload actions. Please try again.'
+      );
       return {
         success: false,
         message,
@@ -537,7 +547,11 @@ export const useActions = ({
         level: 'error',
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to save actions';
+      const message = logErrorAndGetFriendlyMessage(
+        '[useActions] saveActions',
+        error,
+        'Failed to save actions. Please try again.'
+      );
       return {
         success: false,
         message,

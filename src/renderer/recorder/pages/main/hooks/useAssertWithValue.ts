@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import { Action, ActionType, AssertType, ApiRequestData, Statement } from '../../../types/actions';
 import { receiveActionWithInsert } from '../../../utils/receive_action';
 import { PageInfo } from './usePageSelection';
@@ -150,9 +151,12 @@ export const useAssertWithValue = ({
       (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
       return true;
     } catch (e: any) {
-      // console.error('[useAssertWithValue] submit exception:', e);
-      const message = e?.message || e?.error || e?.reason || e;
-      toast.error(String(message || 'Failed to create assertion'));
+      const message = logErrorAndGetFriendlyMessage(
+        '[useAssertWithValue] handleConfirm',
+        e,
+        'Failed to create assertion. Please try again.'
+      );
+      toast.error(message);
       return false;
     }
   }, [assertType, testcaseId, selectedInsertPosition, setSelectedInsertPosition, setDisplayInsertPosition, setActions, setIsDirty, setSelectedAssert, setIsAssertMode, selectedPageInfo]);

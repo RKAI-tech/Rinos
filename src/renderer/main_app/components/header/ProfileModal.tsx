@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../shared/utils/friendlyError';
 import { useAuth } from '../../contexts/AuthContext';
 import userService from '../../services/users';
 import './ProfileModal.css';
@@ -104,7 +105,12 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onProfileU
         setInitial({ email: resp.data.email || '', username: resp.data.username || '' });
         setForm({ email: resp.data.email || '', username: resp.data.username || '', password: '' });
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Failed to load profile');
+        const message = logErrorAndGetFriendlyMessage(
+          '[ProfileModal] loadProfile',
+          e,
+          'Failed to load profile. Please try again.'
+        );
+        toast.error(message);
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -172,7 +178,12 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onProfileU
       await updateIdentity({ email: trimmedEmail, username: trimmedUsername });
       onProfileUpdated?.(trimmedEmail);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to save profile');
+      const message = logErrorAndGetFriendlyMessage(
+        '[ProfileModal] saveProfile',
+        e,
+        'Failed to save profile. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }
@@ -188,7 +199,12 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onProfileU
       await logout();
       await (window as any).electronAPI?.window?.closeAllWindows({ preserveSender: true });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to unactive account');
+      const message = logErrorAndGetFriendlyMessage(
+        '[ProfileModal] unactivateAccount',
+        e,
+        'Failed to unactivate account. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setIsUnactivating(false);
     }

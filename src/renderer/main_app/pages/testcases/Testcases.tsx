@@ -13,6 +13,7 @@ import InstallBrowserModal from '../../components/browser/install_browser/Instal
 import { TestCaseService } from '../../services/testcases';
 import { ProjectService } from '../../services/projects';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../shared/utils/friendlyError';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { ActionService } from '../../services/actions';
 import { Action, TestCaseDataVersion } from '../../types/actions';
@@ -189,25 +190,34 @@ const Testcases: React.FC = () => {
             setPage(response.data.current_page);
           }
       } else {
-        setError(response.error || 'Failed to load testcases');
-        toast.error(response.error || 'Failed to load testcases');
-          setTestcases([]);
-          setTestcasesData([]);
-          setTotalTestcases(0);
-          setCurrentPage(1);
-          setTotalPages(1);
-          setPage(1);
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'An error occurred';
-      setError(message);
-      toast.error('Failed to load testcases');
+        const message = logErrorAndGetFriendlyMessage(
+          '[Testcases] loadTestcases',
+          response.error,
+          'Failed to load testcases. Please try again.'
+        );
+        setError(message);
+        toast.error(message);
         setTestcases([]);
         setTestcasesData([]);
         setTotalTestcases(0);
         setCurrentPage(1);
         setTotalPages(1);
         setPage(1);
+      }
+    } catch (err) {
+      const message = logErrorAndGetFriendlyMessage(
+        '[Testcases] loadTestcases',
+        err,
+        'Failed to load testcases. Please try again.'
+      );
+      setError(message);
+      toast.error(message);
+      setTestcases([]);
+      setTestcasesData([]);
+      setTotalTestcases(0);
+      setCurrentPage(1);
+      setTotalPages(1);
+      setPage(1);
     } finally {
       setIsLoading(false);
     }
@@ -267,13 +277,22 @@ const Testcases: React.FC = () => {
           setPage(response.data.current_page);
         }
       } else {
-        setError(response.error || 'Failed to load testcases');
-        toast.error(response.error || 'Failed to load testcases');
+        const message = logErrorAndGetFriendlyMessage(
+          '[Testcases] searchTestcases',
+          response.error,
+          'Failed to load testcases. Please try again.'
+        );
+        setError(message);
+        toast.error(message);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'An error occurred';
+      const message = logErrorAndGetFriendlyMessage(
+        '[Testcases] searchTestcases',
+        err,
+        'Failed to load testcases. Please try again.'
+      );
       setError(message);
-      toast.error('Failed to load testcases');
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -511,11 +530,20 @@ const Testcases: React.FC = () => {
         setIsCreateModalOpen(false);
         await reloadTestcases();
       } else {
-        toast.error(resp.error || 'Failed to create testcase. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[Testcases] createTestcase',
+          resp.error,
+          'Failed to create testcase. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (err) {
-      toast.error('Failed to create testcase. Please try again.');
-      // console.error(err);
+      const message = logErrorAndGetFriendlyMessage(
+        '[Testcases] createTestcase',
+        err,
+        'Failed to create testcase. Please try again.'
+      );
+      toast.error(message);
     }
   };
 
@@ -626,7 +654,12 @@ const Testcases: React.FC = () => {
     const payload = { project_id: effectiveProjectId, name, tag: tag || undefined } as any;
     const resp = await testCaseService.createTestCase(payload);
     if (!resp.success) {
-      toast.error(resp.error || 'Failed to create testcase. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[Testcases] createTestcaseAndReturnId',
+        resp.error,
+        'Failed to create testcase. Please try again.'
+      );
+      toast.error(message);
       return undefined;
     }
     // Some backends may not return the id; attempt to extract if available
@@ -651,7 +684,12 @@ const Testcases: React.FC = () => {
     } as any;
     const resp = await testCaseService.createTestCaseWithActions(payload);
     if (!resp.success) {
-      toast.error(resp.error || 'Disconnect from the server. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[Testcases] createTestcaseWithActions',
+        resp.error,
+        'Unable to connect to the server. Please try again.'
+      );
+      toast.error(message);
       return false;
     }
     return true;
@@ -777,8 +815,12 @@ const Testcases: React.FC = () => {
         await openRecorderAfterCheck(id);
       }
     } catch (err) {
-      /* console.error('[Testcases] Error in handleOpenRecorder:', err); */
-      toast.error('Failed to check browser installation');
+      const message = logErrorAndGetFriendlyMessage(
+        '[Testcases] handleOpenRecorder',
+        err,
+        'Failed to check browser installation. Please try again.'
+      );
+      toast.error(message);
     }
   };
 
@@ -819,8 +861,12 @@ const Testcases: React.FC = () => {
         throw new Error(result?.error || 'Installation failed');
       }
     } catch (err) {
-      /* console.error('[Testcases] Error installing browsers:', err); */
-      toast.error(err instanceof Error ? err.message : 'Failed to install browsers');
+      const message = logErrorAndGetFriendlyMessage(
+        '[Testcases] installBrowsers',
+        err,
+        'Failed to install browsers. Please try again.'
+      );
+      toast.error(message);
       setIsInstallingBrowsers(false);
       setInstallProgress(null);
       throw err;
@@ -853,7 +899,12 @@ const Testcases: React.FC = () => {
         );
         
         if (!actionResp.success) {
-          toast.error(actionResp.error || 'Failed to save actions. Please try again.');
+          const message = logErrorAndGetFriendlyMessage(
+            '[Testcases] updateTestcase actions',
+            actionResp.error,
+            'Failed to save actions. Please try again.'
+          );
+          toast.error(message);
           return;
         }
       }
@@ -873,10 +924,20 @@ const Testcases: React.FC = () => {
         handleCloseEditModal();
         await reloadTestcases();
       } else {
-        toast.error(resp.error || 'Disconnect from the server. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[Testcases] updateTestcase',
+          resp.error,
+          'Unable to connect to the server. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (err) {
-      toast.error('Disconnect from the server. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[Testcases] updateTestcase',
+        err,
+        'Unable to connect to the server. Please try again.'
+      );
+      toast.error(message);
     }
   };
 
@@ -920,10 +981,20 @@ const Testcases: React.FC = () => {
         handleCloseDeleteModal();
         await reloadTestcases();
       } else {
-        toast.error(resp.error || 'Failed to delete testcase. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[Testcases] deleteTestcase',
+          resp.error,
+          'Failed to delete testcase. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (err) {
-      toast.error('Failed to delete testcase. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[Testcases] deleteTestcase',
+        err,
+        'Failed to delete testcase. Please try again.'
+      );
+      toast.error(message);
     }
   };
 

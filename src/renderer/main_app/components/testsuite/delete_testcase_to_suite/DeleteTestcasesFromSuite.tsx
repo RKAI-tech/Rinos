@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import './DeleteTestcasesFromSuite.css';
 import { TestSuiteService } from '../../../services/testsuites';
 import { TestCaseInSuite } from '../../../types/testsuites';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 
 interface Props {
   isOpen: boolean;
@@ -63,11 +64,21 @@ const EditTestcaseFromSuite: React.FC<Props> = ({ isOpen, onClose, testSuiteId, 
         if (resp.success && resp.data) {
           setTestCases(resp.data.testcases || []);
         } else {
-          setError(resp.error || 'Failed to load testcases');
+          const message = logErrorAndGetFriendlyMessage(
+            '[DeleteTestcasesFromSuite] loadTestcases',
+            resp.error,
+            'Failed to load testcases. Please try again.'
+          );
+          setError(message);
           setTestCases([]);
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'An error occurred');
+        const message = logErrorAndGetFriendlyMessage(
+          '[DeleteTestcasesFromSuite] loadTestcases',
+          e,
+          'An error occurred while loading testcases. Please try again.'
+        );
+        setError(message);
         setTestCases([]);
       } finally {
         setLoading(false);
@@ -179,10 +190,20 @@ const EditTestcaseFromSuite: React.FC<Props> = ({ isOpen, onClose, testSuiteId, 
           // If we moved to current level, it will show up automatically
         }
       } else {
-        setError(resp.error || 'Failed to update test case level');
+        const message = logErrorAndGetFriendlyMessage(
+          '[DeleteTestcasesFromSuite] updateTestcaseLevel',
+          resp.error,
+          'Failed to update test case level. Please try again.'
+        );
+        setError(message);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'An error occurred while updating level');
+      const message = logErrorAndGetFriendlyMessage(
+        '[DeleteTestcasesFromSuite] updateTestcaseLevel',
+        e,
+        'An error occurred while updating level. Please try again.'
+      );
+      setError(message);
     } finally {
       setUpdatingLevelIds(prev => {
         const next = new Set(prev);
@@ -227,10 +248,20 @@ const EditTestcaseFromSuite: React.FC<Props> = ({ isOpen, onClose, testSuiteId, 
           await onRemove([testcaseId]);
         }
       } else {
-        setError(resp.error || 'Failed to remove test case');
+        const message = logErrorAndGetFriendlyMessage(
+          '[DeleteTestcasesFromSuite] removeTestcase',
+          resp.error,
+          'Failed to remove test case. Please try again.'
+        );
+        setError(message);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'An error occurred while removing test case');
+      const message = logErrorAndGetFriendlyMessage(
+        '[DeleteTestcasesFromSuite] removeTestcase',
+        e,
+        'An error occurred while removing test case. Please try again.'
+      );
+      setError(message);
     } finally {
       setDeletingIds(prev => {
         const next = new Set(prev);

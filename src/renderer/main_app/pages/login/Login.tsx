@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import loginImage from "../../assets/ms_logo.png"
+import { logErrorAndGetFriendlyMessage } from '../../../shared/utils/friendlyError';
 const Login: React.FC = () => {
   const { login, microsoftLogin, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -26,7 +27,11 @@ const Login: React.FC = () => {
       toast.success('Login successful! Redirecting to Dashboard...');
       // AuthContext will automatically redirect through ProtectedRoute
     } catch (err: any) {
-      const msg = err?.message || 'Login failed';
+      const msg = logErrorAndGetFriendlyMessage(
+        '[Login] handleSubmit',
+        err,
+        'Login failed. Please try again.'
+      );
       setError(msg);
       toast.error(msg);
     }
@@ -39,7 +44,11 @@ const Login: React.FC = () => {
       toast.success('Microsoft login successful! Redirecting to Dashboard...');
       // AuthContext will automatically redirect through ProtectedRoute
     } catch (err: any) {
-      const msg = err?.message || 'Microsoft login failed';
+      const msg = logErrorAndGetFriendlyMessage(
+        '[Login] handleMicrosoftLogin',
+        err,
+        'Microsoft login failed. Please try again.'
+      );
       setError(msg);
       toast.error(msg);
     }

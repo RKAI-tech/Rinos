@@ -8,6 +8,7 @@ import { ProjectService } from '../../services/projects';
 import { HistoryItemService } from '../../services/historyItem';
 import { HistoryItem } from '../../types/historyItem';
 import { canManage } from '../../hooks/useProjectPermissions';
+import { logErrorAndGetFriendlyMessage } from '../../../shared/utils/friendlyError';
 
 const ChangeLog: React.FC = () => {
   const location = useLocation();
@@ -106,17 +107,27 @@ const ChangeLog: React.FC = () => {
           setTotalPages(response.data.total_pages);
       } else {
         setHistories([]);
-          setTotalHistories(0);
-          setCurrentPage(1);
-          setTotalPages(1);
-          setError(response.error || 'Failed to load histories');
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'An error occurred');
-      setHistories([]);
         setTotalHistories(0);
         setCurrentPage(1);
         setTotalPages(1);
+        const message = logErrorAndGetFriendlyMessage(
+          '[ChangeLog] loadHistories',
+          response.error,
+          'Failed to load histories. Please try again.'
+        );
+        setError(message);
+      }
+    } catch (e) {
+      const message = logErrorAndGetFriendlyMessage(
+        '[ChangeLog] loadHistories',
+        e,
+        'An error occurred while loading histories. Please try again.'
+      );
+      setError(message);
+      setHistories([]);
+      setTotalHistories(0);
+      setCurrentPage(1);
+      setTotalPages(1);
     } finally {
       setIsLoading(false);
     }
@@ -268,10 +279,20 @@ const ChangeLog: React.FC = () => {
         // Reload to refresh the list
         reloadHistories();
       } else {
-        setError(resp.error || 'Failed to clear timeline');
+        const message = logErrorAndGetFriendlyMessage(
+          '[ChangeLog] clearTimeline',
+          resp.error,
+          'Failed to clear timeline. Please try again.'
+        );
+        setError(message);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'An error occurred while clearing timeline');
+      const message = logErrorAndGetFriendlyMessage(
+        '[ChangeLog] clearTimeline',
+        e,
+        'An error occurred while clearing timeline. Please try again.'
+      );
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -291,10 +312,20 @@ const ChangeLog: React.FC = () => {
         // Reload to refresh the list
         reloadHistories();
       } else {
-        setError(resp.error || 'Failed to delete history item');
+        const message = logErrorAndGetFriendlyMessage(
+          '[ChangeLog] deleteHistoryItem',
+          resp.error,
+          'Failed to delete history item. Please try again.'
+        );
+        setError(message);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'An error occurred while deleting history item');
+      const message = logErrorAndGetFriendlyMessage(
+        '[ChangeLog] deleteHistoryItem',
+        e,
+        'An error occurred while deleting history item. Please try again.'
+      );
+      setError(message);
     } finally {
       setIsLoading(false);
     }

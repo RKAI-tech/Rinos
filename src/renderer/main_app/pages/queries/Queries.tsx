@@ -9,6 +9,7 @@ import { StatementService } from '../../services/statements';
 import { DatabaseService } from '../../services/database';
 import AddQuery from '../../components/query/add_query/AddQuery';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../shared/utils/friendlyError';
 import DeleteQuery from '../../components/query/delete_query/DeleteQuery';
 import RunQuery from '../../components/query/run_query/RunQuery';
 import { canEdit } from '../../hooks/useProjectPermissions';
@@ -104,8 +105,13 @@ const Queries: React.FC = () => {
             setPage(response.data.current_page);
           }
         } else {
-          setError(response.error || 'Failed to load queries');
-          toast.error(response.error || 'Failed to load queries');
+          const message = logErrorAndGetFriendlyMessage(
+            '[Queries] loadQueries',
+            response.error,
+            'Failed to load queries. Please try again.'
+          );
+          setError(message);
+          toast.error(message);
           setQueries([]);
           setTotalQueries(0);
           setCurrentPage(1);
@@ -113,9 +119,13 @@ const Queries: React.FC = () => {
           setPage(1);
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-        setError(errorMessage);
-        toast.error('Failed to load queries');
+        const message = logErrorAndGetFriendlyMessage(
+          '[Queries] loadQueries',
+          err,
+          'Failed to load queries. Please try again.'
+        );
+        setError(message);
+        toast.error(message);
         setQueries([]);
         setTotalQueries(0);
         setCurrentPage(1);
@@ -169,13 +179,22 @@ const Queries: React.FC = () => {
           setPage(response.data.current_page);
         }
       } else {
-        setError(response.error || 'Failed to load queries');
-        toast.error(response.error || 'Failed to load queries');
+        const message = logErrorAndGetFriendlyMessage(
+          '[Queries] loadQueries',
+          response.error,
+          'Failed to load queries. Please try again.'
+        );
+        setError(message);
+        toast.error(message);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      setError(errorMessage);
-      toast.error('Failed to load queries');
+      const message = logErrorAndGetFriendlyMessage(
+        '[Queries] loadQueries',
+        err,
+        'Failed to load queries. Please try again.'
+      );
+      setError(message);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -824,10 +843,20 @@ const Queries: React.FC = () => {
               setIsAddOpen(false);
               await reloadQueries();
             } else {
-              toast.error(resp.error || 'Failed to create query');
+              const message = logErrorAndGetFriendlyMessage(
+                '[Queries] createQuery',
+                resp.error,
+                'Failed to create query. Please try again.'
+              );
+              toast.error(message);
             }
           } catch (e) {
-            toast.error('Failed to create query');
+            const message = logErrorAndGetFriendlyMessage(
+              '[Queries] createQuery',
+              e,
+              'Failed to create query. Please try again.'
+            );
+            toast.error(message);
           }
         }}
       />
@@ -843,10 +872,20 @@ const Queries: React.FC = () => {
               setIsDeleteOpen(false);
               await reloadQueries();
             } else {
-              toast.error(resp.error || 'Failed to delete query');
+              const message = logErrorAndGetFriendlyMessage(
+                '[Queries] deleteQuery',
+                resp.error,
+                'Failed to delete query. Please try again.'
+              );
+              toast.error(message);
             }
           } catch (e) {
-            toast.error('Failed to delete query');
+            const message = logErrorAndGetFriendlyMessage(
+              '[Queries] deleteQuery',
+              e,
+              'Failed to delete query. Please try again.'
+            );
+            toast.error(message);
           }
         }}
       />

@@ -13,6 +13,7 @@ import { Action as MainAction } from '../../../types/actions';
 import { CodeGenerator } from '../../../../shared/services/codeGenerator';
 import { Action as SharedAction, BasicAuthentication } from '../../../../shared/types/actions';
 import Editor from '@monaco-editor/react';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 
 interface Props {
   isOpen: boolean;
@@ -85,15 +86,21 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
         if (resp.success) {
           setActions(resp.data?.actions || []);
         } else {
-          toast.error(resp.error || 'Failed to load actions. Please try again.', {
-            containerId: 'modal-toast-container'
-          });
+          const message = logErrorAndGetFriendlyMessage(
+            '[ViewTestcaseEvidence] loadActions',
+            resp.error,
+            'Failed to load actions. Please try again.'
+          );
+          toast.error(message, { containerId: 'modal-toast-container' });
           setActions([]);
         }
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Failed to load actions. Please try again.', {
-          containerId: 'modal-toast-container'
-        });
+        const message = logErrorAndGetFriendlyMessage(
+          '[ViewTestcaseEvidence] loadActions',
+          e,
+          'Failed to load actions. Please try again.'
+        );
+        toast.error(message, { containerId: 'modal-toast-container' });
         setActions([]);
       } finally {
         setIsActionsLoading(false);
@@ -168,14 +175,20 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
           });
         }
       } else {
-        toast.error(response.error || 'Failed to load evidence data. Please try again.', {
-          containerId: 'modal-toast-container'
-        });
+        const message = logErrorAndGetFriendlyMessage(
+          '[ViewTestcaseEvidence] loadEvidenceData',
+          response.error,
+          'Failed to load evidence data. Please try again.'
+        );
+        toast.error(message, { containerId: 'modal-toast-container' });
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'An unexpected error occurred. Please contact support.', {
-        containerId: 'modal-toast-container'
-      });
+      const message = logErrorAndGetFriendlyMessage(
+        '[ViewTestcaseEvidence] loadEvidenceData',
+        e,
+        'An unexpected error occurred. Please try again.'
+      );
+      toast.error(message, { containerId: 'modal-toast-container' });
     } finally {
       setIsLoading(false);
     }
@@ -217,9 +230,12 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to download file. Please try again.', {
-        containerId: 'modal-toast-container'
-      });
+      const message = logErrorAndGetFriendlyMessage(
+        '[ViewTestcaseEvidence] handleDownloadDatabaseFile',
+        error,
+        'Failed to download file. Please try again.'
+      );
+      toast.error(message, { containerId: 'modal-toast-container' });
     }
   };
   const handleDownloadApiFile = async (fileUrl: string, fileName: string) => {
@@ -246,9 +262,12 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to download file. Please try again.', {
-        containerId: 'modal-toast-container'
-      });
+      const message = logErrorAndGetFriendlyMessage(
+        '[ViewTestcaseEvidence] handleDownloadApiFile',
+        error,
+        'Failed to download file. Please try again.'
+      );
+      toast.error(message, { containerId: 'modal-toast-container' });
     }
   };
 
@@ -294,9 +313,12 @@ const ViewTestcaseEvidence: React.FC<Props> = ({ isOpen, onClose, testcase, test
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to download screenshot. Please try again.', {
-        containerId: 'modal-toast-container'
-      });
+      const message = logErrorAndGetFriendlyMessage(
+        '[ViewTestcaseEvidence] handleDownloadScreenshot',
+        error,
+        'Failed to download screenshot. Please try again.'
+      );
+      toast.error(message, { containerId: 'modal-toast-container' });
     }
   };
 

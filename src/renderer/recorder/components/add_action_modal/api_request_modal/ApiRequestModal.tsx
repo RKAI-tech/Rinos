@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import { executeApiRequest, validateApiRequest, ApiRequestOptions, formatResponseData, getStatusColorClass, getStatusDescription, convertApiRequestDataToOptions } from '../../../utils/api_request';
 import { ApiRequestData } from '../../../types/actions';
 import './ApiRequestModal.css';
@@ -225,7 +226,12 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
     const validation = validateApiRequest(options);
 
     if (!validation.valid) {
-      toast.error(validation.error || 'Invalid request configuration');
+      const message = logErrorAndGetFriendlyMessage(
+        '[ApiRequestModal] handleSendRequest validation',
+        validation.error,
+        'Invalid request configuration. Please try again.'
+      );
+      toast.error(message);
       return;
     }
 
@@ -243,11 +249,20 @@ const ApiRequestModal: React.FC<ApiRequestModalProps> = ({
       if (response.success) {
         toast.success(`Request sent successfully! Status: ${response.status}`);
       } else {
-        toast.error(`Request failed! Status: ${response.status}${response.error ? ` - ${response.error}` : ''}`);
+        const message = logErrorAndGetFriendlyMessage(
+          '[ApiRequestModal] handleSendRequest',
+          response.error,
+          'Request failed. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (error) {
-      // console.error('Request failed:', error);
-      toast.error('Request failed: ' + (error as Error).message);
+      const message = logErrorAndGetFriendlyMessage(
+        '[ApiRequestModal] handleSendRequest',
+        error,
+        'Request failed. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setIsSending(false);
     }

@@ -11,6 +11,7 @@ import { DatabaseService } from '../../services/database';
 import { DatabaseConnection } from '../../types/databases';
 import { ProjectService } from '../../services/projects';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../shared/utils/friendlyError';
 import { canEdit } from '../../hooks/useProjectPermissions';
 
 interface DatabaseItem {
@@ -314,7 +315,12 @@ const Databases: React.FC = () => {
         setIsUpdateOpen(true);
         setOpenDropdownId(null);
       } else {
-        toast.error(resp.error || 'Failed to load connection details');
+        const message = logErrorAndGetFriendlyMessage(
+          '[Databases] loadConnectionDetails',
+          resp.error,
+          'Failed to load connection details. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
       toast.error('Failed to load connection details');
@@ -617,7 +623,12 @@ const Databases: React.FC = () => {
               setIsDeleteOpen(false);
               await reloadConnections();
             } else {
-              toast.error(resp.error || 'Failed to delete connection. Please try again.');
+              const message = logErrorAndGetFriendlyMessage(
+                '[Databases] deleteConnection',
+                resp.error,
+                'Failed to delete connection. Please try again.'
+              );
+              toast.error(message);
             }
           } catch (e) {
             toast.error('Failed to delete connection. Please try again.');

@@ -10,6 +10,7 @@ import { executeApiRequest, validateApiRequest, convertApiRequestDataToOptions }
 import { decryptObject } from '../../../services/encryption';
 import { setConnectionCache } from '../../../utils/databaseConnectionCache';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 const statementService = new StatementService();
 
 type ElementType = 'Browser' | 'Database' | 'API';
@@ -447,20 +448,30 @@ const AiAssertModal: React.FC<AiAssertModalProps> = ({
           }));
           toast.success(`API request successful: ${apiResponse.status}`);
         } else {
-          onChangeElement(idx, (old) => ({ 
-            ...old, 
+          const message = logErrorAndGetFriendlyMessage(
+            '[AiAssertModal] handleSendRequest',
+            apiResponse.error,
+            'API request failed. Please try again.'
+          );
+          onChangeElement(idx, (old) => ({
+            ...old,
             apiRequest: apiData,
-            apiResponse: { status: apiResponse.status || 0, data: apiResponse.error || 'Unknown error', headers: {} } 
+            apiResponse: { status: apiResponse.status || 0, data: message, headers: {} }
           }));
-          toast.error(`API request failed: ${apiResponse.error || 'Unknown error'}`);
+          toast.error(message);
         }
       }
     } catch (error: any) {
-      toast.error(`API request failed: ${error.message || 'Unknown error'}`);
+      const message = logErrorAndGetFriendlyMessage(
+        '[AiAssertModal] handleSendRequest',
+        error,
+        'API request failed. Please try again.'
+      );
+      toast.error(message);
       onChangeElement(idx, (old) => ({ 
         ...old, 
         apiRequest: apiData,
-        apiResponse: { status: 0, data: error.message || 'Unknown error', headers: {} } 
+        apiResponse: { status: 0, data: message, headers: {} } 
       }));
     } finally {
       setIsSendingApiIdx(null);

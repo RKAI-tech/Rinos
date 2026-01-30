@@ -3,6 +3,7 @@ import { Action } from '../../types/actions';
 import { ActionService } from '../../services/actions';
 import { executeJavaScript } from '../../pages/main/utils/executeJavaScript';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../shared/utils/friendlyError';
 import './GenerateActionValueModal.css';
 
 interface GenerateActionValueModalProps {
@@ -100,7 +101,12 @@ const GenerateActionValueModal: React.FC<GenerateActionValueModalProps> = ({
       setError('No function code generated');
       setIsGenerating(false);
     } catch (error: any) {
-      setError(error.message || 'Failed to generate function code');
+      const message = logErrorAndGetFriendlyMessage(
+        '[GenerateActionValueModal] generateCode',
+        error,
+        'Failed to generate function code. Please try again.'
+      );
+      setError(message);
       setIsGenerating(false);
     }
   };
@@ -137,7 +143,12 @@ const GenerateActionValueModal: React.FC<GenerateActionValueModalProps> = ({
       setError('');
       setIsRunning(false);
     } catch (error: any) {
-      setError(`Error executing function: ${error.message}`);
+      const message = logErrorAndGetFriendlyMessage(
+        '[GenerateActionValueModal] executeCode',
+        error,
+        'Error executing function. Please try again.'
+      );
+      setError(message);
       setIsRunning(false);
     }
   };

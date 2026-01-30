@@ -12,6 +12,7 @@ import CreateBrowserVariableModal from '../../components/browser_variable/modals
 import EditBrowserVariableModal from '../../components/browser_variable/modals/EditBrowserVariableModal.js';
 import DeleteBrowserVariableModal from '../../components/browser_variable/modals/DeleteBrowserVariableModal.js';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../shared/utils/friendlyError';
 import { canEdit } from '../../hooks/useProjectPermissions';
 import { VariableListItem } from '../../types/variables';
 import { BrowserVariableListItem } from '../../types/browser_variable';
@@ -105,7 +106,12 @@ const Variables: React.FC = () => {
           setCurrentPage(1);
           setTotalPages(1);
           if (response.error) {
-            toast.error(response.error);
+            const message = logErrorAndGetFriendlyMessage(
+              '[Variables] loadVariables',
+              response.error,
+              'Failed to load variables. Please try again.'
+            );
+            toast.error(message);
           }
         }
       } catch (error) {
@@ -153,7 +159,12 @@ const Variables: React.FC = () => {
           setBrowserCurrentPage(1);
           setBrowserTotalPages(1);
           if (response.error) {
-            toast.error(response.error);
+            const message = logErrorAndGetFriendlyMessage(
+              '[Variables] loadBrowserVariables',
+              response.error,
+              'Failed to load browser variables. Please try again.'
+            );
+            toast.error(message);
           }
         }
       } catch (error) {
@@ -390,7 +401,12 @@ const Variables: React.FC = () => {
         closeBrowserCreateModal();
         reloadBrowserVariables();
       } else {
-        toast.error(resp.error || 'Failed to create browser variable');
+        const message = logErrorAndGetFriendlyMessage(
+          '[Variables] createBrowserVariable',
+          resp.error,
+          'Failed to create browser variable. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
       toast.error('Failed to create browser variable');
@@ -416,7 +432,12 @@ const Variables: React.FC = () => {
         closeBrowserEditModal();
         reloadBrowserVariables();
       } else {
-        toast.error(resp.error || 'Failed to update browser variable');
+        const message = logErrorAndGetFriendlyMessage(
+          '[Variables] updateBrowserVariable',
+          resp.error,
+          'Failed to update browser variable. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
       toast.error('Failed to update browser variable');
@@ -435,7 +456,12 @@ const Variables: React.FC = () => {
         closeBrowserDeleteModal();
         reloadBrowserVariables();
       } else {
-        toast.error(resp.error || 'Failed to delete browser variable');
+        const message = logErrorAndGetFriendlyMessage(
+          '[Variables] deleteBrowserVariable',
+          resp.error,
+          'Failed to delete browser variable. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
       toast.error('Failed to delete browser variable');
@@ -902,7 +928,12 @@ const Variables: React.FC = () => {
               // Reload variables - the useEffect will automatically trigger
               reloadVariables();
             } else {
-              toast.error(resp.error || 'Failed to delete variable');
+              const message = logErrorAndGetFriendlyMessage(
+                '[Variables] deleteVariable',
+                resp.error,
+                'Failed to delete variable. Please try again.'
+              );
+              toast.error(message);
             }
           } catch (e) {
             toast.error('Failed to delete variable');

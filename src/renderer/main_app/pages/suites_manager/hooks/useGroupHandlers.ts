@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import { GroupSuiteItem } from '../../../types/group';
 import { TreeGroup, normalizeGroup } from '../utils/suitesManagerUtils';
 import { findGroupById, getSiblingsByParent } from '../utils/treeOperations';
@@ -143,7 +144,12 @@ export const useGroupHandlers = ({
         parent_group_id: creatingParentId,
       });
       if (!resp.success) {
-        setCreatingGroupError(resp.error || 'Failed to create group.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[useGroupHandlers] createGroup',
+          resp.error,
+          'Failed to create group. Please try again.'
+        );
+        setCreatingGroupError(message);
         setTimeout(() => createInputRef.current?.focus(), 0);
         return;
       }
@@ -168,7 +174,12 @@ export const useGroupHandlers = ({
         await refreshRootGroups();
       }
     } catch (e) {
-      setCreatingGroupError(e instanceof Error ? e.message : 'Failed to create group.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[useGroupHandlers] createGroup',
+        e,
+        'Failed to create group. Please try again.'
+      );
+      setCreatingGroupError(message);
       setTimeout(() => createInputRef.current?.focus(), 0);
     } finally {
       setIsSavingGroup(false);
@@ -243,7 +254,12 @@ export const useGroupHandlers = ({
         name: validName,
       });
       if (!resp.success) {
-        setRenamingGroupError(resp.error || 'Failed to rename group.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[useGroupHandlers] renameGroup',
+          resp.error,
+          'Failed to rename group. Please try again.'
+        );
+        setRenamingGroupError(message);
         setTimeout(() => renameInputRef.current?.focus(), 0);
         return;
       }
@@ -252,7 +268,12 @@ export const useGroupHandlers = ({
       setRenamingGroupError(null);
       updateGroupNameInTree(renamingGroupId, validName);
     } catch (e) {
-      setRenamingGroupError(e instanceof Error ? e.message : 'Failed to rename group.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[useGroupHandlers] renameGroup',
+        e,
+        'Failed to rename group. Please try again.'
+      );
+      setRenamingGroupError(message);
       setTimeout(() => renameInputRef.current?.focus(), 0);
     } finally {
       setIsRenamingGroup(false);
@@ -299,10 +320,20 @@ export const useGroupHandlers = ({
         removeGroupFromTree(groupId);
         setDeletingGroup(null);
       } else {
-        toast.error(resp.error || 'Failed to delete group. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[useGroupHandlers] deleteGroup',
+          resp.error,
+          'Failed to delete group. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Failed to delete group. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[useGroupHandlers] deleteGroup',
+        e,
+        'Failed to delete group. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setIsDeletingGroup(false);
     }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { browserVariableService } from '../../../services/browser_variable';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import { BrowserVariableListItem } from '../../../types/browser_variable';
 
 export interface SelectedPageInfo {
@@ -82,10 +83,20 @@ const NavigateModal: React.FC<NavigateModalProps> = ({
           setBrowserVariables(resp.data.items || []);
         } else {
           setBrowserVariables([]);
-          setError(resp.error || 'Failed to load browser variables');
+          const message = logErrorAndGetFriendlyMessage(
+            '[NavigateModal] loadBrowserVariables',
+            resp.error,
+            'Failed to load browser variables. Please try again.'
+          );
+          setError(message);
         }
       } catch (e) {
-        setError('Failed to load browser variables');
+        const message = logErrorAndGetFriendlyMessage(
+          '[NavigateModal] loadBrowserVariables',
+          e,
+          'Failed to load browser variables. Please try again.'
+        );
+        setError(message);
         setBrowserVariables([]);
       } finally {
         setIsLoading(false);

@@ -3,6 +3,7 @@ import { Action } from '../../../../types/actions';
 import { BrowserStorageResponse } from '../../../../types/browser_storage';
 import { BrowserStorageListItem } from '../../../../types/browser_storage';
 import { BrowserStorageService } from '../../../../services/browser_storage';
+import { logErrorAndGetFriendlyMessage } from '../../../../../shared/utils/friendlyError';
 import '../../ActionDetailModal.css';
 
 interface AddBrowserStorageActionDetailProps {
@@ -57,10 +58,20 @@ const AddBrowserStorageActionDetail: React.FC<AddBrowserStorageActionDetailProps
           setBrowserStorages(resp.data.items || []);
         } else {
           setBrowserStorages([]);
-          setError(resp.error || 'Failed to load browser storages');
+          const message = logErrorAndGetFriendlyMessage(
+            '[AddBrowserStorageActionDetail] loadBrowserStorages',
+            resp.error,
+            'Failed to load browser storages. Please try again.'
+          );
+          setError(message);
         }
       } catch (e) {
-        setError('Failed to load browser storages');
+        const message = logErrorAndGetFriendlyMessage(
+          '[AddBrowserStorageActionDetail] loadBrowserStorages',
+          e,
+          'Failed to load browser storages. Please try again.'
+        );
+        setError(message);
         setBrowserStorages([]);
       } finally {
         setIsLoading(false);

@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import { GroupSuiteItem } from '../../../types/group';
 import { TestcaseId } from '../../../types/testsuites';
 import { TestSuiteService } from '../../../services/testsuites';
@@ -139,10 +140,20 @@ export const useSuiteHandlers = ({
           fetchTestcasesBySuite(selectedSuiteId, selectedSuiteName);
         }, 1000);
       } else {
-        toast.error(resp.error || 'Failed to execute test suite. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[useSuiteHandlers] executeSuite',
+          resp.error,
+          'Failed to execute test suite. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Failed to execute test suite. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[useSuiteHandlers] executeSuite',
+        e,
+        'Failed to execute test suite. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setIsRunningSuite(false);
     }
@@ -156,7 +167,12 @@ export const useSuiteHandlers = ({
       const response = await suiteService.exportTestSuite({ test_suite_id: selectedSuiteId });
       
       if (!response.success) {
-        toast.error(response.error || 'Failed to export test suite. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[useSuiteHandlers] exportSuite',
+          response.error,
+          'Failed to export test suite. Please try again.'
+        );
+        toast.error(message);
         return;
       }
 
@@ -171,10 +187,20 @@ export const useSuiteHandlers = ({
         URL.revokeObjectURL(url);
         // toast.success('Exported test suite to Excel');
       } else {
-        toast.error(response.error || 'No file received from server');
+        const message = logErrorAndGetFriendlyMessage(
+          '[useSuiteHandlers] exportSuite',
+          response.error,
+          'No file received from server.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Export failed. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[useSuiteHandlers] exportSuite',
+        e,
+        'Export failed. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setIsExportingSuite(false);
     }
@@ -202,10 +228,20 @@ export const useSuiteHandlers = ({
         setIsDeleteSuiteModalOpen(false);
         setDeletingSuite(null);
       } else {
-        toast.error(resp.error || 'Failed to delete suite. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[useSuiteHandlers] deleteSuite',
+          resp.error,
+          'Failed to delete suite. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Failed to delete suite. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[useSuiteHandlers] deleteSuite',
+        e,
+        'Failed to delete suite. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setIsDeletingSuite(false);
     }
@@ -246,10 +282,20 @@ export const useSuiteHandlers = ({
         setIsEditSuiteModalOpen(false);
         setEditingSuite(null);
       } else {
-        toast.error(resp.error || 'Failed to update suite. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[useSuiteHandlers] updateSuite',
+          resp.error,
+          'Failed to update suite. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Failed to update suite. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[useSuiteHandlers] updateSuite',
+        e,
+        'Failed to update suite. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setIsSavingSuite(false);
     }
@@ -283,10 +329,20 @@ export const useSuiteHandlers = ({
           adjustSuiteCountInTree(addingSuite.test_suite_id, testcaseIds.length);
         }
       } else {
-        toast.error(resp.error || 'Failed to add testcases. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[useSuiteHandlers] addTestcases',
+          resp.error,
+          'Failed to add testcases. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Failed to add testcases. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[useSuiteHandlers] addTestcases',
+        e,
+        'Failed to add testcases. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setIsAddingCases(false);
     }

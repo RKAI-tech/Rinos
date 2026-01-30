@@ -6,6 +6,7 @@ import { TestCaseService } from '../../../services/testcases';
 import { TestCaseDataVersion } from '../../../types/testcases';
 import { ActionDataGeneration } from '../../../types/actions';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import EditVersionModal from './EditVersionModal';
 import NewVersionModal from './NewVersionModal';
 import { truncateText } from '../../../utils/textUtils';
@@ -238,7 +239,12 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
         setLocalActions([]);
         setSelectedVersionId(null);
         if (actionsResp.error) {
-          toast.error(actionsResp.error);
+          const message = logErrorAndGetFriendlyMessage(
+            '[TestcaseDataVersionModal] loadActions',
+            actionsResp.error,
+            'Failed to load actions. Please try again.'
+          );
+          toast.error(message);
         }
       }
 
@@ -270,13 +276,22 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
         setSelectedVersions([]);
         setTempVersions([]);
         if (versionsResp.error) {
-          toast.error(versionsResp.error);
+          const message = logErrorAndGetFriendlyMessage(
+            '[TestcaseDataVersionModal] loadVersions',
+            versionsResp.error,
+            'Failed to load versions. Please try again.'
+          );
+          toast.error(message);
         }
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'An unexpected error occurred';
-      setError(msg);
-      toast.error(msg);
+      const message = logErrorAndGetFriendlyMessage(
+        '[TestcaseDataVersionModal] loadData',
+        e,
+        'An unexpected error occurred. Please try again.'
+      );
+      setError(message);
+      toast.error(message);
       setActions([]);
       setDataVersions([]);
     } finally {
@@ -586,14 +601,22 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
         // Reload data
         await loadData();
       } else {
-        const errorMsg = response.error || 'Failed to save actions';
-        toast.error(errorMsg);
-        setError(errorMsg);
+        const message = logErrorAndGetFriendlyMessage(
+          '[TestcaseDataVersionModal] saveActions',
+          response.error,
+          'Failed to save actions. Please try again.'
+        );
+        toast.error(message);
+        setError(message);
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'An unexpected error occurred';
-      toast.error(msg);
-      setError(msg);
+      const message = logErrorAndGetFriendlyMessage(
+        '[TestcaseDataVersionModal] saveActions',
+        e,
+        'An unexpected error occurred. Please try again.'
+      );
+      toast.error(message);
+      setError(message);
     } finally {
       setIsSaving(false);
     }
@@ -691,14 +714,22 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
         // Reload data
         await loadData();
       } else {
-        const errorMsg = response.error || 'Failed to update Test Data';
-        toast.error(errorMsg);
-        setError(errorMsg);
+        const message = logErrorAndGetFriendlyMessage(
+          '[TestcaseDataVersionModal] updateTestData',
+          response.error,
+          'Failed to update Test Data. Please try again.'
+        );
+        toast.error(message);
+        setError(message);
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'An unexpected error occurred';
-      toast.error(msg);
-      setError(msg);
+      const message = logErrorAndGetFriendlyMessage(
+        '[TestcaseDataVersionModal] updateTestData',
+        e,
+        'An unexpected error occurred. Please try again.'
+      );
+      toast.error(message);
+      setError(message);
     } finally {
       setIsSaving(false);
     }
@@ -751,14 +782,22 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
         // Reload data
         await loadData();
       } else {
-        const errorMsg = response.error || 'Failed to create Test Data';
-        toast.error(errorMsg);
-        setError(errorMsg);
+        const message = logErrorAndGetFriendlyMessage(
+          '[TestcaseDataVersionModal] createTestData',
+          response.error,
+          'Failed to create Test Data. Please try again.'
+        );
+        toast.error(message);
+        setError(message);
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'An unexpected error occurred';
-      toast.error(msg);
-      setError(msg);
+      const message = logErrorAndGetFriendlyMessage(
+        '[TestcaseDataVersionModal] createTestData',
+        e,
+        'An unexpected error occurred. Please try again.'
+      );
+      toast.error(message);
+      setError(message);
     } finally {
       setIsSaving(false);
     }
@@ -823,18 +862,30 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
             toast.success('Recorder opened successfully');
           }
         } catch (err) {
-          /* console.error('[TestcaseDataVersionModal] openRecorder error:', err); */
-          toast.error('Failed to open recorder');
+          const message = logErrorAndGetFriendlyMessage(
+            '[TestcaseDataVersionModal] openRecorder',
+            err,
+            'Failed to open recorder. Please try again.'
+          );
+          toast.error(message);
         }
       } else {
-        const errorMsg = response.error || 'Failed to save actions';
-        toast.error(errorMsg);
-        setError(errorMsg);
+        const message = logErrorAndGetFriendlyMessage(
+          '[TestcaseDataVersionModal] saveActionsForRecord',
+          response.error,
+          'Failed to save actions. Please try again.'
+        );
+        toast.error(message);
+        setError(message);
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'An unexpected error occurred';
-      toast.error(msg);
-      setError(msg);
+      const message = logErrorAndGetFriendlyMessage(
+        '[TestcaseDataVersionModal] saveActionsForRecord',
+        e,
+        'An unexpected error occurred. Please try again.'
+      );
+      toast.error(message);
+      setError(message);
     } finally {
       setIsSaving(false);
     }
@@ -911,17 +962,30 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
 
         if (executeResponse.success) {
         } else {
-          toast.error(executeResponse.error || 'Failed to execute testcase');
+          const message = logErrorAndGetFriendlyMessage(
+            '[TestcaseDataVersionModal] executeTestcase',
+            executeResponse.error,
+            'Failed to execute testcase. Please try again.'
+          );
+          toast.error(message);
         }
       } else {
-        const errorMsg = response.error || 'Failed to save actions';
-        toast.error(errorMsg);
-        setError(errorMsg);
+        const message = logErrorAndGetFriendlyMessage(
+          '[TestcaseDataVersionModal] saveActionsForRun',
+          response.error,
+          'Failed to save actions. Please try again.'
+        );
+        toast.error(message);
+        setError(message);
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'An unexpected error occurred';
-      toast.error(msg);
-      setError(msg);
+      const message = logErrorAndGetFriendlyMessage(
+        '[TestcaseDataVersionModal] runVersion',
+        e,
+        'An unexpected error occurred. Please try again.'
+      );
+      toast.error(message);
+      setError(message);
     } finally {
       setIsSaving(false);
     }

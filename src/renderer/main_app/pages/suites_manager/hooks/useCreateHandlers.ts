@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import { TestSuiteService } from '../../../services/testsuites';
 import { TestCaseService } from '../../../services/testcases';
 
@@ -120,10 +121,20 @@ export const useCreateHandlers = ({
         // Clear saved group_id after successful creation
         setCreatingSuiteGroupId(null);
       } else {
-        toast.error(resp.error || 'Failed to create test suite. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[useCreateHandlers] createSuite',
+          resp.error,
+          'Failed to create test suite. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Failed to create test suite. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[useCreateHandlers] createSuite',
+        e,
+        'Failed to create test suite. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setIsCreatingSuite(false);
     }
@@ -187,10 +198,20 @@ export const useCreateHandlers = ({
         setCreatingTestcaseDefaultLevel(1);
         await fetchTestcasesBySuite(selectedSuiteId, selectedSuiteName);
       } else {
-        toast.error(resp.error || 'Failed to create testcase. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[useCreateHandlers] createTestcaseInSuite',
+          resp.error,
+          'Failed to create testcase. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (e) {
-      toast.error('Failed to create testcase. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[useCreateHandlers] createTestcaseInSuite',
+        e,
+        'Failed to create testcase. Please try again.'
+      );
+      toast.error(message);
     } finally {
       setIsCreatingTestcaseInSuite(false);
     }

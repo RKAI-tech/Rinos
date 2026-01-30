@@ -5,6 +5,7 @@ import QueryResultTable from '../../asserts/ai_assert/QueryResultTable';
 import { Connection } from '../../../types/actions';
 import { decryptObject } from '../../../services/encryption';
 import { setConnectionCache } from '../../../utils/databaseConnectionCache';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 
 const statementService = new StatementService();
 
@@ -147,10 +148,14 @@ const DatabaseExecutionModal: React.FC<DatabaseExecutionModalProps> = ({
         setQueryStatus('Query executed successfully. No rows returned.');
       }
     } catch (error) {
-      // console.error('Query execution failed:', error);
+      const message = logErrorAndGetFriendlyMessage(
+        '[DatabaseExecutionModal] runQuery',
+        error,
+        'Query execution failed. Please try again.'
+      );
       setQueryResultData([]);
       setQueryResultPreview('');
-      setQueryError(error instanceof Error ? error.message : 'Query execution failed');
+      setQueryError(message);
       setQueryStatus('Query execution failed.');
     } finally {
       setIsRunningQuery(false);

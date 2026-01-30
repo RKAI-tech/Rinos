@@ -21,6 +21,7 @@ import CreateTestcaseInSuite from '../../components/testcase/create_testcase_in_
 import InstallBrowserModal from '../../components/browser/install_browser/InstallBrowserModal';
 import './SuitesManager.css';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../shared/utils/friendlyError';
 import { BrowserType } from '../../types/testcases';
 import {
   TreeGroup,
@@ -364,8 +365,13 @@ const SuitesManager: React.FC = () => {
         setGroups([]);
         setRootSuites([]);
         if (treeResp.error) {
-          setError(treeResp.error);
-          toast.error(treeResp.error);
+          const message = logErrorAndGetFriendlyMessage(
+            '[SuitesManager] fetchTree',
+            treeResp.error,
+            'Failed to load suites. Please try again.'
+          );
+          setError(message);
+          toast.error(message);
         }
         // Clear selection on error
         if (previousSuiteId) {
@@ -376,9 +382,13 @@ const SuitesManager: React.FC = () => {
         }
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'An error occurred';
-      setError(msg);
-      toast.error(msg);
+      const message = logErrorAndGetFriendlyMessage(
+        '[SuitesManager] fetchTree',
+        e,
+        'An unexpected error occurred. Please try again.'
+      );
+      setError(message);
+      toast.error(message);
       setGroups([]);
       setRootSuites([]);
       // Clear selection on error
@@ -785,16 +795,25 @@ const SuitesManager: React.FC = () => {
         setTestcases([]);
         setTotalPages(1);
         setTotalItems(0);
-        setTestcasesError(resp.error || 'Failed to load testcases');
-        toast.error(resp.error || 'Failed to load testcases');
+        const message = logErrorAndGetFriendlyMessage(
+          '[SuitesManager] loadTestcases',
+          resp.error,
+          'Failed to load testcases. Please try again.'
+        );
+        setTestcasesError(message);
+        toast.error(message);
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'An error occurred while loading testcases';
-      setTestcasesError(msg);
+      const message = logErrorAndGetFriendlyMessage(
+        '[SuitesManager] loadTestcases',
+        e,
+        'An error occurred while loading testcases. Please try again.'
+      );
+      setTestcasesError(message);
       setTestcases([]);
       setTotalPages(1);
       setTotalItems(0);
-      toast.error(msg);
+      toast.error(message);
     } finally {
       setIsLoadingTestcases(false);
     }
@@ -1212,10 +1231,20 @@ const SuitesManager: React.FC = () => {
               }, 1000);
             }
           } else {
-            toast.error(resp.error || 'Failed to execute test suite. Please try again.');
+            const message = logErrorAndGetFriendlyMessage(
+              '[SuitesManager] executeTestSuite',
+              resp.error,
+              'Failed to execute test suite. Please try again.'
+            );
+            toast.error(message);
           }
         } catch (e) {
-          toast.error('Failed to execute test suite. Please try again.');
+          const message = logErrorAndGetFriendlyMessage(
+            '[SuitesManager] executeTestSuite',
+            e,
+            'Failed to execute test suite. Please try again.'
+          );
+          toast.error(message);
         } finally {
           setIsRunningSuite(false);
         }

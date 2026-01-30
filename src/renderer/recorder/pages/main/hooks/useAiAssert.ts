@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import { Action, ActionType, AssertType, ApiRequestData } from '../../../types/actions';
 import { Connection } from '../../../types/actions';
 import { ActionService } from '../../../services/actions';
@@ -311,9 +312,12 @@ export const useAiAssert = ({
       (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
       return true;
     } catch (e: any) {
-      // console.error('[useAiAssert] generateAiAssert exception:', e);
-      const message = e?.message || e?.error || e?.reason || e;
-      toast.error(String(message || 'Failed to generate AI assertion'));
+      const message = logErrorAndGetFriendlyMessage(
+        '[useAiAssert] generateAiAssert',
+        e,
+        'Failed to generate AI assertion. Please try again.'
+      );
+      toast.error(message);
       return false;
     } finally {
       setIsGeneratingAi(false);

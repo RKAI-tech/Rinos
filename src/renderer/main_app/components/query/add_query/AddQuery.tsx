@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import './AddQuery.css';
 import { DatabaseService } from '../../../services/database';
 import { connectionToIpcParams } from '../../../utils/databaseConnection';
@@ -116,8 +117,12 @@ const AddQuery: React.FC<AddQueryProps> = ({ isOpen, projectId, onClose, onSave 
 
       setTestResult(result);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to test query';
-      setTestResult({ success: false, error: errorMessage });
+      const message = logErrorAndGetFriendlyMessage(
+        '[AddQuery] testQuery',
+        error,
+        'Failed to test query. Please try again.'
+      );
+      setTestResult({ success: false, error: message });
     } finally {
       setIsTesting(false);
     }

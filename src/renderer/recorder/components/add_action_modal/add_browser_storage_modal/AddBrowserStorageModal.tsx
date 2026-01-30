@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import { browserStorageService } from '../../../services/browser_storage';
 import { BrowserStorageListItem } from '../../../types/browser_storage';
 
@@ -55,10 +56,20 @@ const AddBrowserStorageModal: React.FC<AddBrowserStorageModalProps> = ({
           setBrowserStorages(resp.data.items || []);
         } else {
           setBrowserStorages([]);
-          setError(resp.error || 'Failed to load browser storages');
+          const message = logErrorAndGetFriendlyMessage(
+            '[AddBrowserStorageModal] loadBrowserStorages',
+            resp.error,
+            'Failed to load browser storages. Please try again.'
+          );
+          setError(message);
         }
       } catch (e) {
-        setError('Failed to load browser storages');
+        const message = logErrorAndGetFriendlyMessage(
+          '[AddBrowserStorageModal] loadBrowserStorages',
+          e,
+          'Failed to load browser storages. Please try again.'
+        );
+        setError(message);
         setBrowserStorages([]);
       } finally {
         setIsLoading(false);

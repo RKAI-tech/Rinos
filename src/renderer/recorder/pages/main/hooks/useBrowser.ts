@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import { Action, ActionType } from '../../../types/actions';
 import { BasicAuthentication } from '../../../types/basic_auth';
 import { receiveAction } from '../../../utils/receive_action';
@@ -157,18 +158,20 @@ export const useBrowser = ({
       }
     } catch (error) {
       setIsBrowserOpen(false);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+      const fallback = 'Failed to start browser. Please try again.';
+
       // Check if error is related to browser compatibility
-      if (errorMessage.includes('Unknown option') || errorMessage.includes('Cannot parse arguments')) {
+      if (error instanceof Error && (error.message.includes('Unknown option') || error.message.includes('Cannot parse arguments'))) {
         const compatibility = checkBrowserCompatibility(browserType);
-        if (!compatibility.supported) {
-          toast.error(compatibility.warning || 'This browser is not supported on your platform. Please use a different browser.');
-        } else {
-          toast.error(`Failed to start browser: ${errorMessage}. This browser may not be fully compatible with your platform.`);
-        }
+        const message = logErrorAndGetFriendlyMessage(
+          '[useBrowser] startBrowser compatibility',
+          error,
+          compatibility.warning || 'This browser is not supported on your platform. Please use a different browser.'
+        );
+        toast.error(message);
       } else {
-        toast.error(`Failed to start browser: ${errorMessage}`);
+        const message = logErrorAndGetFriendlyMessage('[useBrowser] startBrowser', error, fallback);
+        toast.error(message);
       }
       throw error;
     }
@@ -215,8 +218,12 @@ export const useBrowser = ({
     } catch (error) {
       executionStartIndexRef.current = null;
       setIsPaused(false);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      toast.error(`Failed to continue execution: ${errorMessage}`);
+      const message = logErrorAndGetFriendlyMessage(
+        '[useBrowser] continueExecution',
+        error,
+        'Failed to continue execution. Please try again.'
+      );
+      toast.error(message);
       throw error;
     }
   }, [
@@ -272,7 +279,12 @@ export const useBrowser = ({
         toast.warning(`Browser is opened`);
       }
     } catch (error) {
-      toast.error('Failed to start recording from this action');
+      const message = logErrorAndGetFriendlyMessage(
+        '[useBrowser] startRecordingFromAction',
+        error,
+        'Failed to start recording from this action. Please try again.'
+      );
+      toast.error(message);
     }
   }, [recordingFromActionIndexLocal, isBrowserOpen, actions.length, url, startBrowser, setSelectedInsertPosition, setDisplayInsertPosition]);
 
@@ -299,10 +311,19 @@ export const useBrowser = ({
         toast.success('Run succeeded', { autoClose: 2000 });
       } else {
         setRunResult((resp as any).logs || 'Run failed');
-        toast.error(resp.error || 'Run failed', { autoClose: 3000 });
+        const message = logErrorAndGetFriendlyMessage(
+          '[useBrowser] handleRunScript',
+          resp.error,
+          'Failed to run script. Please try again.'
+        );
+        toast.error(message, { autoClose: 3000 });
       }
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Unknown error';
+      const message = logErrorAndGetFriendlyMessage(
+        '[useBrowser] handleRunScript',
+        e,
+        'Failed to run script. Please try again.'
+      );
       setRunResult(message || 'Unknown error');
       toast.error(message);
     } finally {

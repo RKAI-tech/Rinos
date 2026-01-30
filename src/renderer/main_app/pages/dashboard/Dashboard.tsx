@@ -10,6 +10,7 @@ import KeyManagementModal from '../../components/project/key_management/KeyManag
 import { ProjectService } from '../../services/projects';
 import { Project } from '../../types/projects';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../shared/utils/friendlyError';
 import { useAuth } from '../../contexts/AuthContext';
 import './Dashboard.css';
 
@@ -80,23 +81,32 @@ const Dashboard: React.FC = () => {
             setPage(response.data.current_page);
           }
       } else {
-        setError(response.error || 'Failed to load projects');
-        toast.error(response.error || 'Failed to load projects');
-          setProjects([]);
-          setTotalProjects(0);
-          setCurrentPage(1);
-          setTotalPages(1);
-          setPage(1);
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      setError(errorMessage);
-      toast.error('Failed to load projects');
+        const message = logErrorAndGetFriendlyMessage(
+          '[Dashboard] loadProjects',
+          response.error,
+          'Failed to load projects. Please try again.'
+        );
+        setError(message);
+        toast.error(message);
         setProjects([]);
         setTotalProjects(0);
         setCurrentPage(1);
         setTotalPages(1);
         setPage(1);
+      }
+    } catch (err) {
+      const message = logErrorAndGetFriendlyMessage(
+        '[Dashboard] loadProjects',
+        err,
+        'Failed to load projects. Please try again.'
+      );
+      setError(message);
+      toast.error(message);
+      setProjects([]);
+      setTotalProjects(0);
+      setCurrentPage(1);
+      setTotalPages(1);
+      setPage(1);
     } finally {
         setIsLoading(false);
     }
@@ -132,13 +142,22 @@ const Dashboard: React.FC = () => {
           setPage(response.data.current_page);
         }
         } else {
-          setError(response.error || 'Failed to load projects');
-          toast.error(response.error || 'Failed to load projects');
+          const message = logErrorAndGetFriendlyMessage(
+            '[Dashboard] reloadProjects',
+            response.error,
+            'Failed to load projects. Please try again.'
+          );
+          setError(message);
+          toast.error(message);
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-        setError(errorMessage);
-        toast.error('Failed to load projects');
+        const message = logErrorAndGetFriendlyMessage(
+          '[Dashboard] reloadProjects',
+          err,
+          'Failed to load projects. Please try again.'
+        );
+        setError(message);
+        toast.error(message);
       } finally {
       setIsReloading(false);
       }
@@ -215,12 +234,20 @@ const Dashboard: React.FC = () => {
         // Reload projects to ensure data consistency
         await reloadProjects();
       } else {
-        toast.error(response.error || 'Failed to create project');
+        const message = logErrorAndGetFriendlyMessage(
+          '[Dashboard] createProject',
+          response.error,
+          'Failed to create project. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      toast.error('Failed to create project');
-      // console.error('Error creating project:', err);
+      const message = logErrorAndGetFriendlyMessage(
+        '[Dashboard] createProject',
+        err,
+        'Failed to create project. Please try again.'
+      );
+      toast.error(message);
     }
   };
 
@@ -290,11 +317,20 @@ const Dashboard: React.FC = () => {
         // Reload projects to ensure data consistency
         await reloadProjects();
       } else {
-        toast.error(response.error || 'Failed to update project. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[Dashboard] updateProject',
+          response.error,
+          'Failed to update project. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (err) {
-      toast.error('Failed to update project. Please try again.');
-      // console.error('Error updating project:', err);
+      const message = logErrorAndGetFriendlyMessage(
+        '[Dashboard] updateProject',
+        err,
+        'Failed to update project. Please try again.'
+      );
+      toast.error(message);
     }
   };
 
@@ -312,11 +348,20 @@ const Dashboard: React.FC = () => {
         // Reload projects to ensure data consistency
         await reloadProjects();
       } else {
-        toast.error(response.error || 'Failed to delete project. Please try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[Dashboard] deleteProject',
+          response.error,
+          'Failed to delete project. Please try again.'
+        );
+        toast.error(message);
       }
     } catch (err) {
-      toast.error('Failed to delete project. Please try again.');
-      // console.error('Error deleting project:', err);
+      const message = logErrorAndGetFriendlyMessage(
+        '[Dashboard] deleteProject',
+        err,
+        'Failed to delete project. Please try again.'
+      );
+      toast.error(message);
     }
   };
 

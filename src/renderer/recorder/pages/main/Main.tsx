@@ -15,6 +15,7 @@ import CSSAssertModal from '../../components/asserts/css_input_modal/CSSAssertMo
 import { Action, ActionBatch, AssertType, TestCaseDataVersion } from '../../types/actions';
 import { ExecuteScriptsService } from '../../services/executeScripts';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../shared/utils/friendlyError';
 import { GenerationCodeRequest } from '../../types/executeScripts';
 
 // Hooks
@@ -323,14 +324,22 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
       if (response.success && response.data?.code) {
         setCustomScript(response.data.code);
       } else {
-        // console.error('[Main] Server code generation failed:', response.error);
+        const message = logErrorAndGetFriendlyMessage(
+          '[Main] generateCode',
+          response.error,
+          'Failed to generate code from server. Please try again.'
+        );
         setCustomScript('// Failed to generate code from server. Please try again.');
-        toast.error(response.error || 'Failed to generate code from server');
+        toast.error(message);
       }
     } catch (error) {
-      // console.error('[Main] Error generating code:', error);
+      const message = logErrorAndGetFriendlyMessage(
+        '[Main] generateCode',
+        error,
+        'Failed to generate code from server. Please try again.'
+      );
       setCustomScript('// Error generating code. Please try again.');
-      toast.error('Error generating code from server');
+      toast.error(message);
     } finally {
       setBrowserIsGeneratingCode(false);
     }
@@ -514,7 +523,12 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
       await reloadTestCaseDataVersions();
       toast.success('All actions deleted successfully');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to delete actions');
+      const message = logErrorAndGetFriendlyMessage(
+        '[Main] handleConfirmDeleteAll',
+        error,
+        'Failed to delete actions. Please try again.'
+      );
+      toast.error(message);
     }
   };
 
@@ -569,8 +583,12 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
       }, 500);
     } catch (error) {
       modals.setIsConfirmCloseOpen(true);
-      const message = error instanceof Error ? error.message : 'Failed to save actions. Please try again.';
-      toast.error(message || 'Failed to save actions. Please try again.');
+      const message = logErrorAndGetFriendlyMessage(
+        '[Main] handleSaveAndClose',
+        error,
+        'Failed to save actions. Please try again.'
+      );
+      toast.error(message);
     }
   };
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendlyError';
 import './CreateConnection.css';
 import { testDatabaseConnection, DatabaseConnectionTestParams } from '../../../utils/databaseConnection';
 
@@ -324,12 +325,16 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
         toast.error(result.error || 'Connection test failed');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const message = logErrorAndGetFriendlyMessage(
+        '[CreateConnection] testConnection',
+        error,
+        'Connection test failed. Please try again.'
+      );
       setTestResult({
         success: false,
-        error: errorMessage,
+        error: message,
       });
-      toast.error(`Connection test failed: ${errorMessage}`);
+      toast.error(message);
     } finally {
       // Cleanup temp files
       if (electronAPI?.fs && tempFilePaths.length > 0) {
@@ -432,18 +437,31 @@ const CreateConnection: React.FC<CreateConnectionProps> = ({ isOpen, projectId, 
         if (response.success) {
           toast.success('Database connection created successfully');
         } else {
-          const errorMessage = response.error || 'Failed to create database connection. Please check your connection details and try again.';
-          toast.error(errorMessage);
+          const message = logErrorAndGetFriendlyMessage(
+            '[CreateConnection] createConnection',
+            response.error,
+            'Failed to create database connection. Please check your connection details and try again.'
+          );
+          toast.error(message);
           shouldClose = false;
         }
       } else {
         // Không có cấu trúc success → coi như thất bại để tránh đóng modal ngoài ý muốn
-        toast.error(response.error || 'Failed to create database connection. Please check your connection details and try again.');
+        const message = logErrorAndGetFriendlyMessage(
+          '[CreateConnection] createConnection',
+          response.error,
+          'Failed to create database connection. Please check your connection details and try again.'
+        );
+        toast.error(message);
         shouldClose = false;
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      toast.error(`Failed to create database connection: ${errorMessage}`);
+      const message = logErrorAndGetFriendlyMessage(
+        '[CreateConnection] createConnection',
+        error,
+        'Failed to create database connection. Please check your connection details and try again.'
+      );
+      toast.error(message);
       shouldClose = false;
     } finally {
       setIsSaving(false);

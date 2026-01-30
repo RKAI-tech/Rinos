@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { logErrorAndGetFriendlyMessage } from '../../../../../shared/utils/friendlyError';
 import { executeApiRequest, validateApiRequest, ApiRequestOptions, formatResponseData, getStatusColorClass, getStatusDescription, convertApiRequestDataToOptions } from '../../../../utils/api_request';
 import { ApiRequestData, ApiRequestTokenStorage, ApiRequestBasicAuthStorage, ApiRequestBody, ApiRequestMethod, ApiRequestAuth } from '../../../../types/actions';
 import './ApiElementPanel.css';
@@ -517,11 +518,20 @@ const ApiElementPanel: React.FC<ApiElementPanelProps> = ({
       if (response.success) {
         toast.success(`Request sent successfully! Status: ${response.status}`);
       } else {
-        toast.error(`Request failed! Status: ${response.status}${response.error ? ` - ${response.error}` : ''}`);
+        const message = logErrorAndGetFriendlyMessage(
+          '[ApiElementPanel] handleSendRequest',
+          response.error,
+          `Request failed! Status: ${response.status}`
+        );
+        toast.error(message);
       }
     } catch (error) {
-      // console.error('Request failed:', error);
-      toast.error('Request failed: ' + (error as Error).message);
+      const message = logErrorAndGetFriendlyMessage(
+        '[ApiElementPanel] handleSendRequest',
+        error,
+        'Request failed. Please try again.'
+      );
+      toast.error(message);
     }
   };
 
