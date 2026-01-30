@@ -4,7 +4,7 @@ import { Action, ActionType, AssertType, ApiRequestData, Statement } from '../..
 import { receiveActionWithInsert } from '../../../utils/receive_action';
 import { PageInfo } from './usePageSelection';
 
-type ValueSourceType = 'manual' | 'database' | 'api' | 'variables';
+type ValueSourceType = 'manual' | 'database' | 'api' | 'variables' | 'browser_variable';
 
 interface UseAssertWithValueProps {
   testcaseId: string | null;
@@ -45,9 +45,11 @@ export const useAssertWithValue = ({
     pageInfo?: PageInfo,
     statement?: Statement,
     apiRequest?: ApiRequestData,
-    valueSourceType?: ValueSourceType
+    valueSourceType?: ValueSourceType,
+    browserVariableId?: string,
+    browserVariableName?: string
   ): Promise<boolean> => {
-    if (!value || !value.trim()) {
+    if (valueSourceType !== 'browser_variable' && (!value || !value.trim())) {
       toast.error('Value is required');
       return false;
     }
@@ -71,6 +73,12 @@ export const useAssertWithValue = ({
       valuePayload.key = value.trim();
     } else if (sourceType === 'database' || sourceType === 'variables') {
       valuePayload.column = value.trim();
+    } else if (sourceType === 'browser_variable') {
+      if (!browserVariableId) {
+        toast.error('Browser variable is required');
+        return false;
+      }
+      valuePayload.selected_variable_id = browserVariableId;
     } else {
       valuePayload.value = value.trim();
     }
@@ -109,10 +117,14 @@ export const useAssertWithValue = ({
       element_data: element.element_data,
     }];
 
+    const browserVariableDisplay = browserVariableName || browserVariableId || value.trim();
     const assertAction = {
       action_type: ActionType.assert,
       assert_type: assertType,
-      description: `Verify element has ${assertType} value: ${value.trim()}`,
+      description:
+        sourceType === 'browser_variable'
+          ? `Verify element has ${assertType} value from browser variable: ${browserVariableDisplay}`
+          : `Verify element has ${assertType} value: ${value.trim()}`,
       elements: html_element_action,
       action_datas: actionDatas
     };

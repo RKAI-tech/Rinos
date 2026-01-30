@@ -4,15 +4,19 @@ import RenderedAction from '../action/Action';
 import AddActionModal from '../add_action_modal/AddActionModal';
 import DatabaseExecutionModal from '../add_action_modal/database_execution_modal/DatabaseExecutionModal';
 import WaitModal from '../add_action_modal/wait_modal/WaitModal';
-import NavigateModal, { SelectedPageInfo as NavigateSelectedPageInfo } from '../add_action_modal/navigate_modal/NavigateModal';
+import NavigateModal, { NavigateConfirmPayload, SelectedPageInfo as NavigateSelectedPageInfo } from '../add_action_modal/navigate_modal/NavigateModal';
+import InputModal, { InputConfirmPayload } from '../add_action_modal/input_modal/InputModal';
 import ApiRequestModal, { SelectedPageInfo as ApiRequestSelectedPageInfo } from '../add_action_modal/api_request_modal/ApiRequestModal';
 import BrowserActionModal, { BrowserActionType, SelectedPageInfo as BrowserActionSelectedPageInfo } from '../add_action_modal/browser_action_modal/BrowserActionModal';
 import { Action, ActionType, AssertType, Connection, ApiRequestData, TestCaseDataVersion } from '../../types/actions';
 import { receiveActionWithInsert } from '../../utils/receive_action';
 import { BrowserStorageResponse } from '../../types/browser_storage';
+import { BrowserVariableListItem } from '../../types/browser_variable';
 import AddBrowserStorageModal, { SelectedPageInfo as AddBrowserStorageSelectedPageInfo } from '../add_action_modal/add_browser_storage_modal/AddBrowserStorageModal';
+import SetBrowserVariableModal, { SelectedElementInfo as BrowserVariableSelectedElementInfo } from '../add_action_modal/set_browser_variable_modal/SetBrowserVariableModal';
 import DataVersionModal from '../data_versions/DataVersionModal';
 import { toast } from 'react-toastify';
+import { browserVariableService } from '../../services/browser_variable';
 
 export type ActionOperationResult = {
   success: boolean;
@@ -52,13 +56,17 @@ interface ActionTabProps {
   projectId?: string | null;
   basicAuthStatus?: 'idle' | 'success';
   onBasicAuthStatusClear?: () => void;
-  onModalStateChange?: (modalType: 'wait' | 'navigate' | 'api_request' | 'add_browser_storage' | 'database_execution' | 'browser_action', isOpen: boolean) => void;
+  onModalStateChange?: (modalType: 'wait' | 'navigate' | 'input' | 'api_request' | 'add_browser_storage' | 'set_browser_variable' | 'database_execution' | 'browser_action', isOpen: boolean) => void;
   navigateSelectedPageInfo?: NavigateSelectedPageInfo | null;
   onNavigatePageInfoChange?: (pageInfo: NavigateSelectedPageInfo | null) => void;
   browserActionSelectedPageInfo?: BrowserActionSelectedPageInfo | null;
   onBrowserActionPageInfoChange?: (pageInfo: BrowserActionSelectedPageInfo | null) => void;
   addBrowserStorageSelectedPageInfo?: AddBrowserStorageSelectedPageInfo | null;
   onAddBrowserStoragePageInfoChange?: (pageInfo: AddBrowserStorageSelectedPageInfo | null) => void;
+  browserVariableSelectedElement?: BrowserVariableSelectedElementInfo | null;
+  onBrowserVariableElementChange?: (element: BrowserVariableSelectedElementInfo | null) => void;
+  inputSelectedElement?: BrowserVariableSelectedElementInfo | null;
+  onInputElementChange?: (element: BrowserVariableSelectedElementInfo | null) => void;
   apiRequestSelectedPageInfo?: ApiRequestSelectedPageInfo | null;
   onApiRequestPageInfoChange?: (pageInfo: ApiRequestSelectedPageInfo | null) => void;
   testcaseDataVersions?: import('../../types/testcase').TestCaseDataVersion[];
@@ -104,6 +112,10 @@ const ActionTab: React.FC<ActionTabProps> = ({
   onBrowserActionPageInfoChange,
   addBrowserStorageSelectedPageInfo: propAddBrowserStorageSelectedPageInfo,
   onAddBrowserStoragePageInfoChange,
+  browserVariableSelectedElement: propBrowserVariableSelectedElement,
+  onBrowserVariableElementChange,
+  inputSelectedElement: propInputSelectedElement,
+  onInputElementChange,
   apiRequestSelectedPageInfo: propApiRequestSelectedPageInfo,
   onApiRequestPageInfoChange,
   testcaseDataVersions: propTestCaseDataVersions,
@@ -114,17 +126,26 @@ const ActionTab: React.FC<ActionTabProps> = ({
   const [isDatabaseExecutionOpen, setIsDatabaseExecutionOpen] = useState(false);
   const [isWaitOpen, setIsWaitOpen] = useState(false);
   const [isNavigateOpen, setIsNavigateOpen] = useState(false);
+  const [isInputOpen, setIsInputOpen] = useState(false);
   const [isApiRequestOpen, setIsApiRequestOpen] = useState(false);
   const [isAddBrowserStorageOpen, setIsAddBrowserStorageOpen] = useState(false);
+  const [isSetBrowserVariableOpen, setIsSetBrowserVariableOpen] = useState(false);
   const [isBrowserActionOpen, setIsBrowserActionOpen] = useState(false);
   const [browserActionType, setBrowserActionType] = useState<BrowserActionType>('back');
   const [navigateSelectedPageInfo, setNavigateSelectedPageInfo] = useState<NavigateSelectedPageInfo | null>(null);
   const [browserActionSelectedPageInfo, setBrowserActionSelectedPageInfo] = useState<BrowserActionSelectedPageInfo | null>(null);
   const [addBrowserStorageSelectedPageInfo, setAddBrowserStorageSelectedPageInfo] = useState<AddBrowserStorageSelectedPageInfo | null>(null);
+  const [browserVariableSelectedElement, setBrowserVariableSelectedElement] = useState<BrowserVariableSelectedElementInfo | null>(null);
+  const [inputSelectedElement, setInputSelectedElement] = useState<BrowserVariableSelectedElementInfo | null>(null);
   const [apiRequestSelectedPageInfo, setApiRequestSelectedPageInfo] = useState<ApiRequestSelectedPageInfo | null>(null);
   const [isDataVersionModalOpen, setIsDataVersionModalOpen] = useState(false);
   // Use testcaseDataVersions from props (managed by Main component)
   const testcaseDataVersions = propTestCaseDataVersions || [];
+
+  const effectiveBrowserVariableSelectedElement =
+    propBrowserVariableSelectedElement || browserVariableSelectedElement;
+  const effectiveInputSelectedElement =
+    propInputSelectedElement || inputSelectedElement;
   
   // Get current version name from actions
   const currentVersionName = useMemo(() => {
@@ -357,6 +378,11 @@ const ActionTab: React.FC<ActionTabProps> = ({
     onModalStateChange?.('navigate', true);
   };
 
+  const handleSelectInput = () => {
+    setIsInputOpen(true);
+    onModalStateChange?.('input', true);
+  };
+
   const handleSelectAddBrowserStorage = () => {
     setIsAddBrowserStorageOpen(true);
     onModalStateChange?.('add_browser_storage', true);
@@ -424,12 +450,29 @@ const ActionTab: React.FC<ActionTabProps> = ({
     }
   };
 
-  const handleNavigateConfirm = async (url: string, pageInfo?: NavigateSelectedPageInfo) => {
+  const resolveBrowserVariableValue = async (browserVariableId?: string): Promise<string | null> => {
+    if (!browserVariableId) return null;
+    try {
+      const resp = await browserVariableService.getBrowserVariableValue(browserVariableId);
+      if (!resp.success) return null;
+      const data: any = (resp as any).data ?? (resp as any).value ?? null;
+      if (data && typeof data === 'object' && 'value' in data) {
+        return data.value != null ? String((data as any).value) : null;
+      }
+      return data != null ? String(data) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleNavigateConfirm = async (payload: NavigateConfirmPayload, pageInfo?: NavigateSelectedPageInfo) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+    const isManual = payload.mode === 'manual';
+    const url = isManual ? payload.url : '';
     const actionDatas: any[] = [
       {
         value: {
-          value: url,
+          ...(isManual ? { value: url } : { selected_variable_id: payload.selectedVariableId }),
           ...(pageInfo ? {
             page_index: pageInfo.page_index,
             page_url: pageInfo.page_url,
@@ -444,7 +487,11 @@ const ActionTab: React.FC<ActionTabProps> = ({
       action_id: Math.random().toString(36),
       action_type: ActionType.navigate,
       action_datas: actionDatas,
-      description: pageInfo ? `Navigate to ${url} on page ${pageInfo.page_title || pageInfo.page_url}` : `Navigate to ${url}`,
+      description: isManual
+        ? (pageInfo ? `Navigate to ${url} on page ${pageInfo.page_title || pageInfo.page_url}` : `Navigate to ${url}`)
+        : (pageInfo
+            ? `Navigate using browser variable ${payload.selectedVariableName || payload.selectedVariableId} on page ${pageInfo.page_title || pageInfo.page_url}`
+            : `Navigate using browser variable ${payload.selectedVariableName || payload.selectedVariableId}`),
     } as any;
     onActionsChange(prev => {
       const next = receiveActionWithInsert(
@@ -465,9 +512,91 @@ const ActionTab: React.FC<ActionTabProps> = ({
     setNavigateSelectedPageInfo(null);
     onModalStateChange?.('navigate', false);
     onNavigatePageInfoChange?.(null);
-    await (window as any).browserAPI?.browser.navigate(url);
+    let executeUrl: string | null = null;
+    if (isManual) {
+      executeUrl = url;
+    } else {
+      executeUrl = await resolveBrowserVariableValue(payload.selectedVariableId);
+      if (!executeUrl) {
+        toast.warning('Failed to resolve browser variable value');
+      }
+    }
+    if (executeUrl) {
+      const normalizedUrl = executeUrl.startsWith('http') ? executeUrl : `https://${executeUrl}`;
+      await (window as any).browserAPI?.browser.navigate(normalizedUrl);
+    }
     // toast.success('Added navigate action');
   }
+
+  const handleInputConfirm = async (payload: InputConfirmPayload) => {
+    if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+    if (!effectiveInputSelectedElement || effectiveInputSelectedElement.selectors.length === 0) {
+      toast.warning('Please select an element first');
+      return;
+    }
+    const isManual = payload.mode === 'manual';
+    const actionDatas: any[] = [
+      {
+        value: {
+          ...(isManual ? { value: payload.value } : { selected_variable_id: payload.selectedVariableId }),
+        },
+      }
+    ];
+
+    const newAction = {
+      testcase_id: testcaseId,
+      action_id: Math.random().toString(36),
+      action_type: ActionType.input,
+      action_datas: actionDatas,
+      elements: [
+        {
+          selectors: effectiveInputSelectedElement.selectors.map((s) => ({ value: s })),
+          order_index: 1,
+          element_data: effectiveInputSelectedElement.element_data,
+        },
+      ],
+      description: isManual
+        ? `Input ${payload.value}`
+        : `Input using browser variable ${payload.selectedVariableName || payload.selectedVariableId}`,
+    } as any;
+
+    onActionsChange(prev => {
+      const next = receiveActionWithInsert(
+        testcaseId,
+        prev,
+        newAction,
+        selectedInsertPosition || 0
+      );
+      const added = next.length > prev.length;
+      if (added) {
+        const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
+        onInsertPositionChange(newPos);
+        onDisplayPositionChange(newPos);
+      }
+      return next;
+    });
+
+    setIsInputOpen(false);
+    setInputSelectedElement(null);
+    onInputElementChange?.(null);
+    onModalStateChange?.('input', false);
+
+    let executeValue: string | null = null;
+    if (isManual) {
+      executeValue = payload.value;
+    } else {
+      executeValue = await resolveBrowserVariableValue(payload.selectedVariableId);
+      if (executeValue == null) {
+        toast.warning('Failed to resolve browser variable value');
+      }
+    }
+    if (executeValue != null) {
+      await (window as any).browserAPI?.browser.input(
+        executeValue,
+        effectiveInputSelectedElement.selectors
+      );
+    }
+  };
 
   const handleWaitConfirm = async (ms: any) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
@@ -512,6 +641,13 @@ const ActionTab: React.FC<ActionTabProps> = ({
       onNavigatePageInfoChange?.(null);
     }
   }, [isNavigateOpen, onNavigatePageInfoChange]);
+
+  useEffect(() => {
+    if (!isInputOpen) {
+      setInputSelectedElement(null);
+      onInputElementChange?.(null);
+    }
+  }, [isInputOpen, onInputElementChange]);
 
   useEffect(() => {
     if (!isBrowserActionOpen) {
@@ -657,6 +793,58 @@ const ActionTab: React.FC<ActionTabProps> = ({
     // toast.success('Added cookies action');
   }
 
+  const handleSetBrowserVariableConfirm = async (selectedBrowserVariable: BrowserVariableListItem, element: BrowserVariableSelectedElementInfo) => {
+    if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
+
+    const newAction = {
+      testcase_id: testcaseId,
+      action_id: Math.random().toString(36),
+      action_type: ActionType.set_browser_variable,
+      action_datas: [
+        {
+          value: {
+            variable_id: selectedBrowserVariable.browser_variable_id,
+          },
+        },
+      ],
+      elements: [
+        {
+          selectors: element.selectors.map((s) => ({ value: s })),
+          order_index: 1,
+          element_data: element.element_data,
+        },
+      ],
+      description: `Set browser variable: ${selectedBrowserVariable.name}`,
+    } as any;
+
+    onActionsChange(prev => {
+      const next = receiveActionWithInsert(
+        testcaseId,
+        prev,
+        newAction,
+        selectedInsertPosition || 0
+      );
+      const added = next.length > prev.length;
+      if (added) {
+        const newPos = Math.min((selectedInsertPosition ?? 0) + 1, next.length);
+        onInsertPositionChange(newPos);
+        onDisplayPositionChange(newPos);
+      }
+      return next;
+    });
+
+    setIsSetBrowserVariableOpen(false);
+    setBrowserVariableSelectedElement(null);
+    onBrowserVariableElementChange?.(null);
+    onModalStateChange?.('set_browser_variable', false);
+    if (element.selectors && element.selectors.length > 0) {
+      await (window as any).browserAPI?.browser?.setBrowserVariable?.(
+        selectedBrowserVariable.browser_variable_id,
+        element.selectors
+      );
+    }
+  };
+
   const handleDatabaseExecutionConfirm = (query: string, connectionId: string, connection: Connection) => {
     if (!onActionsChange || !onInsertPositionChange || !onDisplayPositionChange || !testcaseId) return;
 
@@ -719,8 +907,19 @@ const ActionTab: React.FC<ActionTabProps> = ({
       return;
     }
 
+    if (actionType === 'input') {
+      handleSelectInput();
+      return;
+    }
+
     if (actionType === 'add_cookies') {
       handleSelectAddBrowserStorage();
+      return;
+    }
+
+    if (actionType === 'set_browser_variable') {
+      setIsSetBrowserVariableOpen(true);
+      onModalStateChange?.('set_browser_variable', true);
       return;
     }
 
@@ -755,7 +954,7 @@ const ActionTab: React.FC<ActionTabProps> = ({
       // toast.success(`Added ${actionType} action`);
     } else {
       // Chỉ log error nếu không phải là action type được xử lý bởi modal
-      const modalHandledTypes = ['back', 'forward', 'reload', 'api_request', 'database_execution'];
+      const modalHandledTypes = ['back', 'forward', 'reload', 'api_request', 'database_execution', 'set_browser_variable'];
       if (!modalHandledTypes.includes(actionType)) {
         /* console.error("Failed to create action for type:", actionType); */
       }
@@ -925,10 +1124,25 @@ const ActionTab: React.FC<ActionTabProps> = ({
               }}
               onConfirm={handleNavigateConfirm}
               selectedPageInfo={propNavigateSelectedPageInfo || navigateSelectedPageInfo}
+              projectId={projectId || undefined}
               onClearPage={() => {
                 setNavigateSelectedPageInfo(null);
                 onNavigatePageInfoChange?.(null);
               }}
+            />
+            <InputModal
+              isOpen={isInputOpen}
+              onClose={() => {
+                setIsInputOpen(false);
+                onModalStateChange?.('input', false);
+              }}
+              onConfirm={handleInputConfirm}
+              selectedElement={effectiveInputSelectedElement}
+              onClearElement={() => {
+                setInputSelectedElement(null);
+                onInputElementChange?.(null);
+              }}
+              projectId={projectId || undefined}
             />
             <BrowserActionModal
               isOpen={isBrowserActionOpen}
@@ -960,6 +1174,22 @@ const ActionTab: React.FC<ActionTabProps> = ({
               onClearPage={() => {
                 setAddBrowserStorageSelectedPageInfo(null);
                 onAddBrowserStoragePageInfoChange?.(null);
+              }}
+            />
+            <SetBrowserVariableModal
+              isOpen={isSetBrowserVariableOpen}
+              projectId={projectId || ''}
+              onClose={() => {
+                setIsSetBrowserVariableOpen(false);
+                setBrowserVariableSelectedElement(null);
+                onBrowserVariableElementChange?.(null);
+                onModalStateChange?.('set_browser_variable', false);
+              }}
+              onConfirm={handleSetBrowserVariableConfirm}
+              selectedElement={effectiveBrowserVariableSelectedElement}
+              onClearElement={() => {
+                setBrowserVariableSelectedElement(null);
+                onBrowserVariableElementChange?.(null);
               }}
             />
           </div>

@@ -32,6 +32,7 @@ export enum ActionType {
   forward = "forward",
   window_resize = "window_resize",
   add_browser_storage = "add_browser_storage",
+  set_browser_variable = "set_browser_variable",
   api_request = "api_request",
   page_create="page_create",
   page_close="page_close",
@@ -195,7 +196,8 @@ export interface ActionDataGeneration {
   action_data_generation_id?: string;
   action_id?: string;
   version_number?: number;
-  value?: Record<string, any>;
+  browser_variable_id?: string;
+  value?: Record<string, any> | null;
 }
 
 export interface ActionData {

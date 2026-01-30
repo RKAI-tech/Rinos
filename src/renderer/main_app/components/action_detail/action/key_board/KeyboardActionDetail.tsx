@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Action, Element, ActionDataGeneration } from '../../../../types/actions';
 import { TestCaseDataVersion } from '../../../../types/testcases';
-import { getSelectedGenerationValue, getSelectedValueId } from '../../../../../shared/utils/actionDataGeneration';
+import { getSelectedValueId, resolveSelectedGenerationValue } from '../../../../../shared/utils/actionDataGeneration';
+import { browserVariableService } from '../../../../services/browser_variable';
 import EditActionValuesModal from '../../../../pages/suites_manager/components/EditActionValuesModal';
 import GenerateActionValueModal from '../../../../pages/suites_manager/components/GenerateActionValueModal';
 import '../../ActionDetailModal.css';
@@ -55,21 +56,38 @@ const KeyboardActionDetail: React.FC<KeyboardActionDetailProps> = ({
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   
   useEffect(() => {
-    if (draft.action_data_generation && draft.action_data_generation.length > 0) {
-      const selectedValueId = getSelectedValueId(draft);
-      const generationValue = selectedValueId ? getSelectedGenerationValue(draft) : null;
-      const valueStr = generationValue != null ? String(generationValue) : '';
-      setKeyValue(valueStr);
-      return;
-    }
-
-    // Find value from any action_data in the array, not just [0]
-    for (const ad of draft.action_datas || []) {
-      if (ad.value?.["value"]) {
-        setKeyValue(ad.value?.["value"]);
-        break;
+    let isActive = true;
+    const fetchBrowserVariableValue = async (browserVariableId: string) => {
+      const resp = await browserVariableService.getBrowserVariableById(browserVariableId);
+      if (!resp?.success) {
+        return null;
       }
-    }
+      return (resp as any)?.data?.value ?? null;
+    };
+    const resolveValue = async () => {
+      if (draft.action_data_generation && draft.action_data_generation.length > 0) {
+        const generationValue = await resolveSelectedGenerationValue(draft, fetchBrowserVariableValue);
+        const valueStr = generationValue != null ? String(generationValue) : '';
+        if (isActive) {
+          setKeyValue(valueStr);
+        }
+        return;
+      }
+
+      // Find value from any action_data in the array, not just [0]
+      for (const ad of draft.action_datas || []) {
+        if (ad.value?.["value"]) {
+          if (isActive) {
+            setKeyValue(ad.value?.["value"]);
+          }
+          break;
+        }
+      }
+    };
+    resolveValue();
+    return () => {
+      isActive = false;
+    };
   }, [draft.action_datas, draft.action_data_generation]);
 
   // Hàm update action data value - giữ nguyên các action_data khác

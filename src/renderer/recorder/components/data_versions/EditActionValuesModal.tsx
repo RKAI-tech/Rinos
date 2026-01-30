@@ -4,6 +4,7 @@ import { TestCaseDataVersion } from '../../types/testcase';
 import { toast } from 'react-toastify';
 import EditValueItem from './EditValueItem';
 import { findActiveVersionInActions, syncGenerationsBetweenActionsAndVersions } from './versionSyncUtils';
+import { browserVariableService } from '../../services/browser_variable';
 import './EditActionValuesModal.css';
 
 interface EditActionValuesModalProps {
@@ -27,6 +28,7 @@ const EditActionValuesModal: React.FC<EditActionValuesModalProps> = ({
   const [currentAction, setCurrentAction] = useState<Action>(action);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [tempNewValue, setTempNewValue] = useState<ActionDataGeneration | null>(null);
+  const [browserVariableNames, setBrowserVariableNames] = useState<Record<string, string>>({});
   const generations = currentAction.action_data_generation || [];
 
   // Sync with action prop when it changes
@@ -43,8 +45,50 @@ const EditActionValuesModal: React.FC<EditActionValuesModalProps> = ({
   }, [action]);
 
   const handleEdit = (index: number) => {
+    const gen = generations[index];
+    if (gen?.browser_variable_id) {
+      return;
+    }
     setEditingIndex(index);
   };
+
+  useEffect(() => {
+    let isActive = true;
+    const browserVariableIds = Array.from(
+      new Set(
+        generations
+          .map(gen => gen.browser_variable_id)
+          .filter((id): id is string => !!id)
+          .filter(id => !browserVariableNames[id])
+      )
+    );
+
+    if (browserVariableIds.length === 0) {
+      return;
+    }
+
+    const fetchNames = async () => {
+      const entries = await Promise.all(
+        browserVariableIds.map(async id => {
+          const resp = await browserVariableService.getBrowserVariableById(id);
+          const name = resp?.success ? (resp as any)?.data?.name : null;
+          return [id, name || id] as const;
+        })
+      );
+      if (isActive) {
+        setBrowserVariableNames(prev => ({
+          ...prev,
+          ...Object.fromEntries(entries),
+        }));
+      }
+    };
+
+    fetchNames();
+
+    return () => {
+      isActive = false;
+    };
+  }, [generations, browserVariableNames]);
 
   const handleSaveEdit = (value: any) => {
     if (!onActionsChange) {
@@ -268,6 +312,10 @@ const EditActionValuesModal: React.FC<EditActionValuesModalProps> = ({
   };
 
   const getDisplayValue = (gen: ActionDataGeneration, index: number) => {
+    if (gen.browser_variable_id) {
+      const name = browserVariableNames[gen.browser_variable_id] || gen.browser_variable_id;
+      return `Using browser variable: ${name}`;
+    }
     const genValue = gen.value && typeof gen.value === 'object'
       ? (gen.value as any).value ?? JSON.stringify(gen.value)
       : gen.value || '';
@@ -363,6 +411,7 @@ const EditActionValuesModal: React.FC<EditActionValuesModalProps> = ({
               generations.map((gen, index) => {
                 const isEditing = editingIndex === index;
                 const displayValue = getDisplayValue(gen, index);
+                const isBrowserVariableGeneration = !!gen.browser_variable_id;
 
                 return (
                   <div key={gen.action_data_generation_id || index} className="edit-action-values-item">
@@ -382,7 +431,8 @@ const EditActionValuesModal: React.FC<EditActionValuesModalProps> = ({
                           <button
                             className="edit-action-values-btn-edit"
                             onClick={() => handleEdit(index)}
-                            title="Edit value"
+                            title={isBrowserVariableGeneration ? 'Browser variable values cannot be edited' : 'Edit value'}
+                            disabled={isBrowserVariableGeneration}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

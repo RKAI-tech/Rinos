@@ -7,6 +7,7 @@ import EditVersionModal from './EditVersionModal';
 import ConfirmModal from './ConfirmModal';
 import { syncActionsOnVersionUpdate, findActiveVersionInActions } from './versionSyncUtils';
 import { truncateText } from '../../utils/textUtils';
+import { browserVariableService } from '../../services/browser_variable';
 import './DataVersionModal.css';
 
 export type ActionOperationResult = {
@@ -40,6 +41,7 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
   const [isEditVersionModalOpen, setIsEditVersionModalOpen] = useState(false);
   const [versionToEdit, setVersionToEdit] = useState<TestCaseDataVersion | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [browserVariableNames, setBrowserVariableNames] = useState<Record<string, string>>({});
 
   // Reset selected version when modal closes
   useEffect(() => {
@@ -77,6 +79,45 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
       }
     }
   }, [isOpen, testcaseDataVersions, selectedVersion, actions]);
+
+  useEffect(() => {
+    let isActive = true;
+    const browserVariableIds = Array.from(
+      new Set(
+        actions
+          .flatMap(action => action.action_data_generation || [])
+          .map(gen => gen.browser_variable_id)
+          .filter((id): id is string => !!id)
+          .filter(id => !browserVariableNames[id])
+      )
+    );
+
+    if (browserVariableIds.length === 0) {
+      return;
+    }
+
+    const fetchNames = async () => {
+      const entries = await Promise.all(
+        browserVariableIds.map(async id => {
+          const resp = await browserVariableService.getBrowserVariableById(id);
+          const name = resp?.success ? (resp as any)?.data?.name : null;
+          return [id, name || id] as const;
+        })
+      );
+      if (isActive) {
+        setBrowserVariableNames(prev => ({
+          ...prev,
+          ...Object.fromEntries(entries),
+        }));
+      }
+    };
+
+    fetchNames();
+
+    return () => {
+      isActive = false;
+    };
+  }, [actions, browserVariableNames]);
 
 
   // Create a map of action_data_generation_id to action and generation
@@ -566,9 +607,11 @@ const DataVersionModal: React.FC<DataVersionModalProps> = ({
                   {allActionsWithData.map(({ action, actionIndex, generations, selectedGenerationId }) => {
                       // Get the selected generation
                       const selectedGeneration = generations.find(gen => gen.action_data_generation_id === selectedGenerationId) || generations[0];
-                      const value = selectedGeneration && selectedGeneration.value && typeof selectedGeneration.value === 'object'
-                        ? (selectedGeneration.value as any).value ?? JSON.stringify(selectedGeneration.value)
-                        : selectedGeneration?.value || '';
+                      const value = selectedGeneration?.browser_variable_id
+                        ? `Using browser variable: ${browserVariableNames[selectedGeneration.browser_variable_id] || selectedGeneration.browser_variable_id}`
+                        : selectedGeneration && selectedGeneration.value && typeof selectedGeneration.value === 'object'
+                          ? (selectedGeneration.value as any).value ?? JSON.stringify(selectedGeneration.value)
+                          : selectedGeneration?.value || '';
 
                       return (
                         <div key={action.action_id} className="data-version-item">

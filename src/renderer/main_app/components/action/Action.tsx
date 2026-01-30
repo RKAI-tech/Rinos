@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import './Action.css';
 import { Action as ActionGetResponse } from '../../types/actions';
-import { getSelectedGenerationValue } from '../../../shared/utils/actionDataGeneration';
+import { resolveSelectedGenerationValue } from '../../../shared/utils/actionDataGeneration';
+import { browserVariableService } from '../../services/browser_variable';
 
 interface MAActionProps {
   action: ActionGetResponse;
@@ -17,9 +18,9 @@ const formatDescription = (description?: string) => {
   if (!description) return '';
   return description.length > 50 ? description.substring(0, 50) + '...' : description;
 };
-const getFullValue = (action: ActionGetResponse) => {
+const getFullValue = (action: ActionGetResponse, resolvedGenerationValue?: any) => {
   if (action.action_data_generation && action.action_data_generation.length > 0) {
-    const dataValue: any = getSelectedGenerationValue(action);
+    const dataValue: any = resolvedGenerationValue;
     if (action.action_type === 'scroll') {
       if (dataValue && typeof dataValue === 'object' && (dataValue.scrollX != null || dataValue.scrollY != null)) {
         const x = dataValue.scrollX != null ? String(dataValue.scrollX) : '0';
@@ -63,15 +64,42 @@ const getFullValue = (action: ActionGetResponse) => {
   return '';
 };
 
-const formatValue = (action: ActionGetResponse) => {
-  const value = getFullValue(action);
+const formatValue = (action: ActionGetResponse, resolvedGenerationValue?: any) => {
+  const value = getFullValue(action, resolvedGenerationValue);
   if (!value) return '';
   return value.length > 30 ? value.substring(0, 30) + '...' : value;
 };
 
 const MAAction: React.FC<MAActionProps> = ({ action, onEdit, onDelete }) => {
-  const fullValue = getFullValue(action);
-  const displayValue = formatValue(action);
+  const [resolvedGenerationValue, setResolvedGenerationValue] = useState<any>(null);
+
+  useEffect(() => {
+    let isActive = true;
+    const fetchBrowserVariableValue = async (browserVariableId: string) => {
+      const resp = await browserVariableService.getBrowserVariableById(browserVariableId);
+      if (!resp?.success) {
+        return null;
+      }
+      return (resp as any)?.data?.value ?? null;
+    };
+    const resolveValue = async () => {
+      if (action.action_data_generation && action.action_data_generation.length > 0) {
+        const value = await resolveSelectedGenerationValue(action, fetchBrowserVariableValue);
+        if (isActive) {
+          setResolvedGenerationValue(value);
+        }
+      } else if (isActive) {
+        setResolvedGenerationValue(null);
+      }
+    };
+    resolveValue();
+    return () => {
+      isActive = false;
+    };
+  }, [action]);
+
+  const fullValue = getFullValue(action, resolvedGenerationValue);
+  const displayValue = formatValue(action, resolvedGenerationValue);
   return (
     <div className="ma-action">
       <div className="ma-action-icon">?</div>

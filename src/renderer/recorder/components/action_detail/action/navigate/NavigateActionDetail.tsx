@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Action, ActionDataGeneration } from '../../../../types/actions';
 import { TestCaseDataVersion } from '../../../../types/testcase';
-import { getSelectedGenerationValue, getSelectedValueId } from '../../../../../shared/utils/actionDataGeneration';
+import { getSelectedValueId, resolveSelectedGenerationValue } from '../../../../../shared/utils/actionDataGeneration';
+import { browserVariableService } from '../../../../services/browser_variable';
 import EditActionValuesModal from '../../../data_versions/EditActionValuesModal';
 import GenerateActionValueModal from '../../../data_versions/GenerateActionValueModal';
 import '../../ActionDetailModal.css';
@@ -38,27 +39,44 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
   const [isEditValuesModalOpen, setIsEditValuesModalOpen] = useState(false);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const prevUrlRef = useRef<string>('');
+  const [browserVariableNames, setBrowserVariableNames] = useState<Record<string, string>>({});
   
   useEffect(() => {
-    if (draft.action_data_generation && draft.action_data_generation.length > 0) {
-      const selectedValueId = getSelectedValueId(draft);
-      const generationValue = selectedValueId ? getSelectedGenerationValue(draft) : null;
-      const valueStr = generationValue != null ? String(generationValue) : '';
-      setUrl(valueStr);
-      prevUrlRef.current = valueStr;
-      return;
-    }
-
-    for (const ad of draft.action_datas || []) {
-      if (ad.value?.["value"]) {
-        const urlValue = ad.value?.["value"];
-        setUrl(urlValue);
-        prevUrlRef.current = urlValue; // Lưu giá trị ban đầu
-        break;
+    let isActive = true;
+    const fetchBrowserVariableValue = async (browserVariableId: string) => {
+      const resp = await browserVariableService.getBrowserVariableById(browserVariableId);
+      if (!resp?.success) {
+        return null;
       }
-    }
-  }, [draft.action_datas, draft.action_data_generation]);
+      return (resp as any)?.data?.value ?? null;
+    };
+    const resolveValue = async () => {
+      if (draft.action_data_generation && draft.action_data_generation.length > 0) {
+        const generationValue = await resolveSelectedGenerationValue(draft, fetchBrowserVariableValue);
+        const valueStr = generationValue != null ? String(generationValue) : '';
+        if (isActive) {
+          setUrl(valueStr);
+          prevUrlRef.current = valueStr;
+        }
+        return;
+      }
 
+      for (const ad of draft.action_datas || []) {
+        if (ad.value?.["value"]) {
+          const urlValue = ad.value?.["value"];
+          if (isActive) {
+            setUrl(urlValue);
+            prevUrlRef.current = urlValue; // Lưu giá trị ban đầu
+          }
+          break;
+        }
+      }
+    };
+    resolveValue();
+    return () => {
+      isActive = false;
+    };
+  }, [draft.action_datas, draft.action_data_generation]);
 
   // Hàm update action data value - giữ nguyên các action_data khác
   const updateActionDataSelectedValueId = (selectedValueId: string) => {
@@ -156,6 +174,10 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
       setUrl(valueStr);
       updateActionDataSelectedValueId(selectedValueId);
       prevUrlRef.current = valueStr;
+    } else if (selectedGeneration.browser_variable_id) {
+      setUrl('');
+      updateActionDataSelectedValueId(selectedValueId);
+      prevUrlRef.current = '';
     }
     
     // Sync sẽ được thực hiện khi Save trong ActionDetailModal
@@ -190,6 +212,44 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
       return aVersion - bVersion;
     });
   }, [draft.action_data_generation]);
+
+  useEffect(() => {
+    let isActive = true;
+    const browserVariableIds = Array.from(
+      new Set(
+        versions
+          .map(version => version.browser_variable_id)
+          .filter((id): id is string => !!id)
+          .filter(id => !browserVariableNames[id])
+      )
+    );
+
+    if (browserVariableIds.length === 0) {
+      return;
+    }
+
+    const fetchNames = async () => {
+      const entries = await Promise.all(
+        browserVariableIds.map(async id => {
+          const resp = await browserVariableService.getBrowserVariableById(id);
+          const name = resp?.success ? (resp as any)?.data?.name : null;
+          return [id, name || id] as const;
+        })
+      );
+      if (isActive) {
+        setBrowserVariableNames(prev => ({
+          ...prev,
+          ...Object.fromEntries(entries),
+        }));
+      }
+    };
+
+    fetchNames();
+
+    return () => {
+      isActive = false;
+    };
+  }, [versions, browserVariableNames]);
 
   return (
     <>
@@ -237,7 +297,9 @@ const NavigateActionDetail: React.FC<NavigateActionDetailProps> = ({
                   }
                   const versionValue = version.value?.value || 
                     (typeof version.value === 'string' ? version.value : '');
-                  const displayValue = truncate(String(versionValue || ''), 50);
+                  const displayValue = version.browser_variable_id
+                    ? `Using browser variable: ${browserVariableNames[version.browser_variable_id] || version.browser_variable_id}`
+                    : truncate(String(versionValue || ''), 50);
                   return (
                     <option 
                       key={version.version_number || `version-${version.action_data_generation_id}`} 

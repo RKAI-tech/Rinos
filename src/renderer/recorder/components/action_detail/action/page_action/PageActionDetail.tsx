@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Action, ActionType, ActionDataGeneration } from '../../../../types/actions';
-import { getSelectedGenerationValue, getSelectedValueId } from '../../../../../shared/utils/actionDataGeneration';
+import { getSelectedValueId, resolveSelectedGenerationValue } from '../../../../../shared/utils/actionDataGeneration';
+import { browserVariableService } from '../../../../services/browser_variable';
 import { TestCaseDataVersion } from '../../../../types/testcase';
 import EditActionValuesModal from '../../../data_versions/EditActionValuesModal';
 import GenerateActionValueModal from '../../../data_versions/GenerateActionValueModal';
@@ -40,20 +41,36 @@ const PageActionDetail: React.FC<PageActionDetailProps> = ({
   const prevUrlRef = useRef<string>('');
 
   useEffect(() => {
-    if (draft.action_type === ActionType.page_create) {
-      const generationValue = getSelectedGenerationValue(draft);
-      if (generationValue != null) {
-        const urlValue = String(generationValue);
-        setUrl(urlValue);
-        prevUrlRef.current = urlValue;
-      } else {
+    let isActive = true;
+    const fetchBrowserVariableValue = async (browserVariableId: string) => {
+      const resp = await browserVariableService.getBrowserVariableById(browserVariableId);
+      if (!resp?.success) {
+        return null;
+      }
+      return (resp as any)?.data?.value ?? null;
+    };
+    const resolveValue = async () => {
+      if (draft.action_type === ActionType.page_create) {
+        const generationValue = await resolveSelectedGenerationValue(draft, fetchBrowserVariableValue);
+        if (generationValue != null) {
+          const urlValue = String(generationValue);
+          if (isActive) {
+            setUrl(urlValue);
+            prevUrlRef.current = urlValue;
+          }
+        } else if (isActive) {
+          setUrl('');
+          prevUrlRef.current = '';
+        }
+      } else if (isActive) {
         setUrl('');
         prevUrlRef.current = '';
       }
-    } else {
-      setUrl('');
-      prevUrlRef.current = '';
-    }
+    };
+    resolveValue();
+    return () => {
+      isActive = false;
+    };
   }, [draft.action_data_generation, draft.action_type, draft.action_datas]);
 
 

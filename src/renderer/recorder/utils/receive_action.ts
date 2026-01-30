@@ -194,6 +194,20 @@ function createActionDataGeneration(action_received: any): { generation?: Action
     const firstActionData = actionDatas[0];
     const dataValue = firstActionData?.value;
 
+    const selectedVariableId = actionDatas.find((ad: any) => ad?.value?.selected_variable_id != null)?.value?.selected_variable_id;
+    if (selectedVariableId) {
+        const dataId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+        return {
+            selectedValueId: dataId,
+            generation: [{
+                action_data_generation_id: dataId,
+                version_number: 1,
+                browser_variable_id: String(selectedVariableId),
+                value: null
+            }]
+        };
+    }
+
     const hasValueValue = actionDatas.some((ad: any) => ad?.value?.value !== undefined && ad?.value?.value !== null);
     if (!hasValueValue) {
         return {};
@@ -259,7 +273,8 @@ export function receiveAction(
     const actionDatas = action_received.action_datas ? action_received.action_datas as ActionData[] : [];
     const sanitizedActionDatas = actionDatas.map((actionData) => {
         const hasValue = actionData?.value?.value !== undefined && actionData?.value?.value !== null;
-        if (!selectedValueId || !hasValue) return actionData;
+        const hasSelectedVariable = actionData?.value?.selected_variable_id != null;
+        if (!selectedValueId || (!hasValue && !hasSelectedVariable)) return actionData;
 
         const { value, ...restValue } = actionData.value || {};
         return {
@@ -295,7 +310,7 @@ export function receiveAction(
     } as Action;
 
     // console.log('[Action sent from browser]', action_received);
-    // console.log('[Received action]', receivedAction);
+    console.log('[Received action]', receivedAction);
 
     const last_action = action_recorded[action_recorded.length - 1];
 

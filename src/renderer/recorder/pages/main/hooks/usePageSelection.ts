@@ -11,6 +11,18 @@ export const usePageSelection = () => {
   const [browserActionSelectedPageInfo, setBrowserActionSelectedPageInfo] = useState<PageInfo | null>(null);
   const [addBrowserStorageSelectedPageInfo, setAddBrowserStorageSelectedPageInfo] = useState<PageInfo | null>(null);
   const [apiRequestSelectedPageInfo, setApiRequestSelectedPageInfo] = useState<PageInfo | null>(null);
+  const [browserVariableSelectedElement, setBrowserVariableSelectedElement] = useState<{
+    selectors: string[];
+    domHtml: string;
+    value: string;
+    element_data?: Record<string, any>;
+  } | null>(null);
+  const [inputSelectedElement, setInputSelectedElement] = useState<{
+    selectors: string[];
+    domHtml: string;
+    value: string;
+    element_data?: Record<string, any>;
+  } | null>(null);
   const [urlInputSelectedPageInfo, setUrlInputSelectedPageInfo] = useState<PageInfo | null>(null);
   const [titleInputSelectedPageInfo, setTitleInputSelectedPageInfo] = useState<PageInfo | null>(null);
   const [aiAssertSelectedPageInfo, setAiAssertSelectedPageInfo] = useState<PageInfo | null>(null);
@@ -44,6 +56,10 @@ export const usePageSelection = () => {
     setAddBrowserStorageSelectedPageInfo,
     apiRequestSelectedPageInfo,
     setApiRequestSelectedPageInfo,
+    browserVariableSelectedElement,
+    setBrowserVariableSelectedElement,
+    inputSelectedElement,
+    setInputSelectedElement,
     urlInputSelectedPageInfo,
     setUrlInputSelectedPageInfo,
     titleInputSelectedPageInfo,

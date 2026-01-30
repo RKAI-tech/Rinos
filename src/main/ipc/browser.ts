@@ -187,6 +187,34 @@ export function registerBrowserIpc() {
         }
     });
 
+    ipcMain.handle("browser:setBrowserVariable", async (event, browserVariableId: string, selectors: string[], page_index?: number) => {
+        const win = getWindowFromEvent(event);
+        if (!win) return;
+        const manager = getOrCreateManagerForWindow(win);
+        if (!manager.activePageId) {
+            return;
+        }
+        let pageId = null;
+        for (const [idd, index] of manager.pages_index.entries()) {
+            if (index === page_index) {
+                pageId = idd;
+                break;
+            }
+        }
+        if (!pageId) {
+            pageId = manager.activePageId;
+        }
+        if (!pageId) {
+            return;
+        }
+        const currentPage = manager.pages.get(pageId);
+        if (!currentPage) {
+            return;
+        }
+        await currentPage.bringToFront();
+        await manager.controller?.updateBrowserVariableValue(currentPage, browserVariableId, selectors);
+    });
+
     ipcMain.handle("browser:navigate", async (event, url: string,page_index?: number) => {
         const win = getWindowFromEvent(event);
         if (!win) return;
@@ -216,6 +244,34 @@ export function registerBrowserIpc() {
         }
         await currentPage.bringToFront();
         await manager.controller?.navigate(currentPage, url);
+    });
+
+    ipcMain.handle("browser:input", async (event, value: string, selectors: string[], page_index?: number) => {
+        const win = getWindowFromEvent(event);
+        if (!win) return;
+        const manager = getOrCreateManagerForWindow(win);
+        if (!manager.activePageId) {
+            return;
+        }
+        let pageId = null;
+        for (const [idd, index] of manager.pages_index.entries()) {
+            if (index === page_index) {
+                pageId = idd;
+                break;
+            }
+        }
+        if (!pageId) {
+            pageId = manager.activePageId;
+        }
+        if (!pageId) {
+            return;
+        }
+        const currentPage = manager.pages.get(pageId);
+        if (!currentPage) {
+            return;
+        }
+        await currentPage.bringToFront();
+        await manager.controller?.input(currentPage, selectors, value);
     });
 
     ipcMain.handle("browser:reload", async (event,page_index?: number) => {

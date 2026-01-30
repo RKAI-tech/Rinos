@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import './Action.css';
 import { Action as ActionType } from '../../types/actions';
-import { getSelectedGenerationValue } from '../../../shared/utils/actionDataGeneration';
+import { resolveSelectedGenerationValue } from '../../../shared/utils/actionDataGeneration';
+import { browserVariableService } from '../../services/browser_variable';
 
 interface ActionProps {
   action: ActionType;
@@ -16,6 +17,32 @@ interface ActionProps {
 }
 
 export default function RenderedAction({ action, onDelete, onClick, onStartRecording, onContinueExecution, isBrowserOpen, isRecordingFromThisAction, failedMessage, index }: ActionProps) {
+  const [resolvedGenerationValue, setResolvedGenerationValue] = useState<any>(null);
+
+  useEffect(() => {
+    let isActive = true;
+    const fetchBrowserVariableValue = async (browserVariableId: string) => {
+      const resp = await browserVariableService.getBrowserVariableById(browserVariableId);
+      if (!resp?.success) {
+        return null;
+      }
+      return (resp as any)?.data?.value ?? null;
+    };
+    const resolveValue = async () => {
+      if (action.action_data_generation && action.action_data_generation.length > 0) {
+        const value = await resolveSelectedGenerationValue(action, fetchBrowserVariableValue);
+        if (isActive) {
+          setResolvedGenerationValue(value);
+        }
+      } else if (isActive) {
+        setResolvedGenerationValue(null);
+      }
+    };
+    resolveValue();
+    return () => {
+      isActive = false;
+    };
+  }, [action]);
   // Format action type for display
   const formatActionType = (type: string) => {
     return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
@@ -145,7 +172,7 @@ export default function RenderedAction({ action, onDelete, onClick, onStartRecor
   };
   const renderValue = () => {
     if (action.action_data_generation && action.action_data_generation.length > 0) {
-      const dataValue: any = getSelectedGenerationValue(action);
+      const dataValue: any = resolvedGenerationValue;
       if (action.action_type === 'scroll') {
         if (dataValue && typeof dataValue === 'object' && (dataValue.scrollX != null || dataValue.scrollY != null)) {
           const x = dataValue.scrollX != null ? String(dataValue.scrollX) : '0';

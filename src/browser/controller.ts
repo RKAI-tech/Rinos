@@ -4,6 +4,7 @@ import { BrowserContext, Locator, Page, Request } from "playwright";
 import { BasicAuthentication } from "../renderer/recorder/types/basic_auth";
 import { FileService } from "./services/files";
 import { StatementService } from "./services/statements";
+import { apiRouter } from "./services/baseAPIRequest";
 import  os from 'os';
 import fs from 'fs';
 import path from 'path';
@@ -87,6 +88,22 @@ export class Controller {
         }
     }
 
+    async input(page: Page, selectors: string[], value: string): Promise<void> {
+        if (!page) {
+            throw new Error('Browser page not found');
+        }
+        if (!selectors || selectors.length === 0) {
+            throw new Error('Selectors are required for input action');
+        }
+        const inputValue = value ?? '';
+        try {
+            const locator = await this.resolveUniqueSelector(page, selectors);
+            await locator.fill(inputValue);
+        } catch (err) {
+            await this.forceAction(page, selectors, 'input', inputValue);
+        }
+    }
+
     async reload(page: Page): Promise<void> {
         await page.reload();
     }
@@ -97,6 +114,36 @@ export class Controller {
 
     async goForward(page: Page): Promise<void> {
         await page.goForward();
+    }
+
+    async updateBrowserVariableValue(page: Page, browserVariableId: string, selectors: string[]): Promise<void> {
+        if (!page) {
+            throw new Error('Browser page not found');
+        }
+        if (!browserVariableId) {
+            throw new Error('browser_variable_id is required for set_browser_variable action');
+        }
+        if (!selectors || selectors.length === 0) {
+            throw new Error('Selectors are required for set_browser_variable action');
+        }
+        const locator = await this.resolveUniqueSelector(page, selectors);
+        const value = await locator.evaluate((el: any) => {
+            if (el && 'value' in el) {
+                return el.value ?? '';
+            }
+            return (el.innerText ?? el.textContent ?? '').toString();
+        });
+        const payload = {
+            browser_variable_id: browserVariableId,
+            value: value ?? '',
+        };
+        const resp = await apiRouter.request(`/browser-variables/${browserVariableId}/update_value`, {
+            method: 'PUT',
+            body: JSON.stringify(payload),
+        });
+        if (!resp.success) {
+            throw new Error(resp.error || 'Failed to update browser variable');
+        }
     }
 
     private async executeApiRequest(page: Page, apiData: ApiRequestData): Promise<void> {
@@ -550,7 +597,7 @@ export class Controller {
         return false;
     }
     
-    private resolveActionValue(action: any, actionData?: any): any {
+    private async resolveActionValue(action: any, actionData?: any): Promise<any> {
         const rawValue =
           actionData?.value && typeof actionData.value === 'object'
             ? actionData.value.value
@@ -566,8 +613,22 @@ export class Controller {
           if (selected) {
             const genValue = selected.value;
             if (genValue && typeof genValue === 'object' && 'value' in genValue) {
-              return (genValue as any).value;
+              const innerValue = (genValue as any).value;
+              if (innerValue !== null && innerValue !== undefined) {
+                return innerValue;
+              }
+            } else if (genValue !== null && genValue !== undefined) {
+              return genValue;
             }
+
+            const browserVariableId =
+              selected.browser_variable_id || actionData?.value?.selected_variable_id;
+            if (browserVariableId) {
+              const resp = await apiRouter.request(`/browser-variables/${browserVariableId}/value`, { method: 'GET' });
+              console.log(resp);
+              return (resp as any)?.data ?? (resp as any)?.value ?? rawValue ?? null;
+            }
+
             return genValue ?? rawValue;
           }
         }
@@ -606,7 +667,24 @@ export class Controller {
                 }
                 switch (action.action_type) {
                     case ActionType.navigate:
-                        let url_navigated = this.resolveActionValue(action, actionData);
+                        let url_navigated = await this.resolveActionValue(action, actionData);
+                        if (!url_navigated) {
+                            const selectedValueId = actionData?.value?.selected_value_id;
+                            const selectedGeneration = selectedValueId && Array.isArray((action as any)?.action_data_generation)
+                                ? (action as any).action_data_generation.find(
+                                    (gen: any) => gen.action_data_generation_id === selectedValueId
+                                )
+                                : null;
+                            const browserVariableId = selectedGeneration?.browser_variable_id || actionData?.value?.selected_variable_id;
+                            if (browserVariableId) {
+                                const resp = await apiRouter.request(`/browser-variables/${browserVariableId}/value`, { method: 'GET' });
+                                const resolvedValue = (resp as any)?.data;
+                                console.log(resolvedValue);
+                                if (resolvedValue) {
+                                    url_navigated = resolvedValue;
+                                }
+                            }
+                        }
                         if (!url_navigated) {
                             throw new Error('URL is required for navigate action');
                         }
@@ -641,6 +719,18 @@ export class Controller {
                             }
                         }
                         break;
+                    case ActionType.set_browser_variable:
+                        if (activePage && action.elements && action.elements.length === 1) {
+                            const variableId = actionData?.value?.variable_id;
+                            if (!variableId) {
+                                throw new Error('browser_variable_id is required for set_browser_variable action');
+                            }
+                            const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
+                            if (selectors) {
+                                await this.updateBrowserVariableValue(activePage, variableId, selectors);
+                            }
+                        }
+                        break;
                     case ActionType.click:
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
@@ -670,7 +760,7 @@ export class Controller {
                         }
                         break;
                     case ActionType.input:
-                        let value_input = this.resolveActionValue(action, actionData);
+                        let value_input = await this.resolveActionValue(action, actionData);
                         if (!value_input) {
                             throw new Error('Value is required for input action');
                         }
@@ -687,7 +777,7 @@ export class Controller {
                         }
                         break;
                     case ActionType.select:
-                        let value_select = this.resolveActionValue(action, actionData);
+                        let value_select = await this.resolveActionValue(action, actionData);
                         if (!value_select) {
                             throw new Error('Value is required for select action');
                         }
@@ -713,7 +803,7 @@ export class Controller {
                         }
                         break;
                     case ActionType.keydown:
-                        let value_keydown = this.resolveActionValue(action, actionData);
+                        let value_keydown = await this.resolveActionValue(action, actionData);
                         if (action.elements && action.elements.length === 1) {
                             const selectors = action.elements[0].selectors?.map((selector: Selector) => selector.value);
                             if (selectors) {
@@ -784,7 +874,7 @@ export class Controller {
                         }
                         break;
                     case ActionType.wait:
-                        let value_wait = this.resolveActionValue(action, actionData);
+                        let value_wait = await this.resolveActionValue(action, actionData);
                         await new Promise(resolve => setTimeout(resolve, Number(value_wait) || 0));
                         break;
                     case ActionType.drag_and_drop:

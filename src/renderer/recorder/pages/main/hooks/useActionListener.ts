@@ -21,8 +21,10 @@ interface UseActionListenerProps {
   // Page selection modals
   isActionTabWaitOpen: boolean;
   isActionTabNavigateOpen: boolean;
+  isActionTabInputOpen: boolean;
   isActionTabBrowserActionOpen: boolean;
   isActionTabAddBrowserStorageOpen: boolean;
+  isActionTabSetBrowserVariableOpen: boolean;
   isActionTabApiRequestOpen: boolean;
   isUrlInputOpen: boolean;
   isTitleInputOpen: boolean;
@@ -32,6 +34,18 @@ interface UseActionListenerProps {
   setNavigateSelectedPageInfo: (info: PageInfo | null) => void;
   setBrowserActionSelectedPageInfo: (info: PageInfo | null) => void;
   setAddBrowserStorageSelectedPageInfo: (info: PageInfo | null) => void;
+  setBrowserVariableSelectedElement: (element: {
+    selectors: string[];
+    domHtml: string;
+    value: string;
+    element_data?: Record<string, any>;
+  } | null) => void;
+  setInputSelectedElement: (element: {
+    selectors: string[];
+    domHtml: string;
+    value: string;
+    element_data?: Record<string, any>;
+  } | null) => void;
   setApiRequestSelectedPageInfo: (info: PageInfo | null) => void;
   setUrlInputSelectedPageInfo: (info: PageInfo | null) => void;
   setTitleInputSelectedPageInfo: (info: PageInfo | null) => void;
@@ -77,8 +91,10 @@ export const useActionListener = ({
   setFailedActionIndex,
   isActionTabWaitOpen,
   isActionTabNavigateOpen,
+  isActionTabInputOpen,
   isActionTabBrowserActionOpen,
   isActionTabAddBrowserStorageOpen,
+  isActionTabSetBrowserVariableOpen,
   isActionTabApiRequestOpen,
   isUrlInputOpen,
   isTitleInputOpen,
@@ -88,6 +104,8 @@ export const useActionListener = ({
   setNavigateSelectedPageInfo,
   setBrowserActionSelectedPageInfo,
   setAddBrowserStorageSelectedPageInfo,
+  setBrowserVariableSelectedElement,
+  setInputSelectedElement,
   setApiRequestSelectedPageInfo,
   setUrlInputSelectedPageInfo,
   setTitleInputSelectedPageInfo,
@@ -302,6 +320,71 @@ export const useActionListener = ({
           return;
         } else {
           /* console.warn('[useActionListener] No page info found in click action. action_datas:', action?.action_datas); */
+        }
+      }
+
+      // Handle element selection for SetBrowserVariableModal
+      if (isActionTabSetBrowserVariableOpen && action?.action_type === 'click') {
+        /* console.log('[useActionListener] Click event received while SetBrowserVariableModal is open:', action); */
+        const selectors = action.elements?.[0]?.selectors?.map((s: any) => s.value) || [];
+        let domHtml = '';
+        let elementText = '';
+        const elementData = action.elements?.[0]?.element_data || undefined;
+        if (Array.isArray(action?.action_datas)) {
+          for (const ad of action.action_datas) {
+            if (ad.value?.htmlDOM !== undefined) {
+              domHtml = ad.value.htmlDOM;
+            }
+            if (ad.value?.elementText !== undefined) {
+              elementText = ad.value.elementText;
+            }
+          }
+        }
+
+        if (selectors.length > 0 || domHtml) {
+          setBrowserVariableSelectedElement({
+            selectors,
+            domHtml,
+            value: elementText,
+            element_data: elementData,
+          });
+          toast.success('Element selected successfully');
+          return;
+        } else {
+          toast.warn('Failed to capture element. Please click again.');
+          return;
+        }
+      }
+
+      // Handle element selection for InputModal
+      if (isActionTabInputOpen && action?.action_type === 'click') {
+        const selectors = action.elements?.[0]?.selectors?.map((s: any) => s.value) || [];
+        let domHtml = '';
+        let elementText = '';
+        const elementData = action.elements?.[0]?.element_data || undefined;
+        if (Array.isArray(action?.action_datas)) {
+          for (const ad of action.action_datas) {
+            if (ad.value?.htmlDOM !== undefined) {
+              domHtml = ad.value.htmlDOM;
+            }
+            if (ad.value?.elementText !== undefined) {
+              elementText = ad.value.elementText;
+            }
+          }
+        }
+
+        if (selectors.length > 0 || domHtml) {
+          setInputSelectedElement({
+            selectors,
+            domHtml,
+            value: elementText,
+            element_data: elementData,
+          });
+          toast.success('Element selected successfully');
+          return;
+        } else {
+          toast.warn('Failed to capture element. Please click again.');
+          return;
         }
       }
 
@@ -634,8 +717,10 @@ export const useActionListener = ({
     isAnyModalOpen,
     isActionTabWaitOpen,
     isActionTabNavigateOpen,
+    isActionTabInputOpen,
     isActionTabBrowserActionOpen,
     isActionTabAddBrowserStorageOpen,
+    isActionTabSetBrowserVariableOpen,
     isActionTabApiRequestOpen,
     isUrlInputOpen,
     isTitleInputOpen,
@@ -645,6 +730,8 @@ export const useActionListener = ({
     setNavigateSelectedPageInfo,
     setBrowserActionSelectedPageInfo,
     setAddBrowserStorageSelectedPageInfo,
+    setBrowserVariableSelectedElement,
+    setInputSelectedElement,
     setApiRequestSelectedPageInfo,
     setUrlInputSelectedPageInfo,
     setTitleInputSelectedPageInfo,

@@ -258,8 +258,10 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
            modals.isConfirmCloseOpen ||
            modals.isActionTabWaitOpen ||
            modals.isActionTabNavigateOpen ||
+           modals.isActionTabInputOpen ||
            modals.isActionTabApiRequestOpen ||
            modals.isActionTabAddBrowserStorageOpen ||
+           modals.isActionTabSetBrowserVariableOpen ||
            modals.isActionTabBrowserActionOpen;
   }, [
     modals.isAddActionOpen, 
@@ -274,8 +276,10 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
     modals.isConfirmCloseOpen,
     modals.isActionTabWaitOpen,
     modals.isActionTabNavigateOpen,
+    modals.isActionTabInputOpen,
     modals.isActionTabApiRequestOpen,
     modals.isActionTabAddBrowserStorageOpen,
+    modals.isActionTabSetBrowserVariableOpen,
     modals.isActionTabBrowserActionOpen
   ]);
 
@@ -377,8 +381,10 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
     setFailedActionIndex: setBrowserFailedActionIndex,
     isActionTabWaitOpen: modals.isActionTabWaitOpen,
     isActionTabNavigateOpen: modals.isActionTabNavigateOpen,
+    isActionTabInputOpen: modals.isActionTabInputOpen,
     isActionTabBrowserActionOpen: modals.isActionTabBrowserActionOpen,
     isActionTabAddBrowserStorageOpen: modals.isActionTabAddBrowserStorageOpen,
+    isActionTabSetBrowserVariableOpen: modals.isActionTabSetBrowserVariableOpen,
     isActionTabApiRequestOpen: modals.isActionTabApiRequestOpen,
     isUrlInputOpen: modals.isUrlInputOpen,
     isTitleInputOpen: modals.isTitleInputOpen,
@@ -388,6 +394,8 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
     setNavigateSelectedPageInfo: pageSelection.setNavigateSelectedPageInfo,
     setBrowserActionSelectedPageInfo: pageSelection.setBrowserActionSelectedPageInfo,
     setAddBrowserStorageSelectedPageInfo: pageSelection.setAddBrowserStorageSelectedPageInfo,
+    setBrowserVariableSelectedElement: pageSelection.setBrowserVariableSelectedElement,
+    setInputSelectedElement: pageSelection.setInputSelectedElement,
     setApiRequestSelectedPageInfo: pageSelection.setApiRequestSelectedPageInfo,
     setUrlInputSelectedPageInfo: pageSelection.setUrlInputSelectedPageInfo,
     setTitleInputSelectedPageInfo: pageSelection.setTitleInputSelectedPageInfo,
@@ -780,6 +788,14 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
             onAddBrowserStoragePageInfoChange={(pageInfo) => {
               pageSelection.setAddBrowserStorageSelectedPageInfo(pageInfo);
             }}
+            browserVariableSelectedElement={pageSelection.browserVariableSelectedElement}
+            onBrowserVariableElementChange={(element) => {
+              pageSelection.setBrowserVariableSelectedElement(element);
+            }}
+            inputSelectedElement={pageSelection.inputSelectedElement}
+            onInputElementChange={(element) => {
+              pageSelection.setInputSelectedElement(element);
+            }}
             apiRequestSelectedPageInfo={pageSelection.apiRequestSelectedPageInfo}
             onApiRequestPageInfoChange={(pageInfo) => {
               pageSelection.setApiRequestSelectedPageInfo(pageInfo);
@@ -788,7 +804,7 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
             onTestCaseDataVersionsChange={(updater) => {
               setTestCaseDataVersions(updater);
             }}
-            onModalStateChange={(modalType: 'wait' | 'navigate' | 'api_request' | 'add_browser_storage' | 'database_execution' | 'browser_action', isOpen: boolean) => {
+            onModalStateChange={(modalType: 'wait' | 'navigate' | 'input' | 'api_request' | 'add_browser_storage' | 'set_browser_variable' | 'database_execution' | 'browser_action', isOpen: boolean) => {
               switch (modalType) {
                 case 'wait':
                   modals.setIsActionTabWaitOpen(isOpen);
@@ -797,6 +813,12 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
                   modals.setIsActionTabNavigateOpen(isOpen);
                   if (!isOpen) {
                     pageSelection.setNavigateSelectedPageInfo(null);
+                  }
+                  break;
+                case 'input':
+                  modals.setIsActionTabInputOpen(isOpen);
+                  if (!isOpen) {
+                    pageSelection.setInputSelectedElement(null);
                   }
                   break;
                 case 'api_request':
@@ -809,6 +831,12 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
                   modals.setIsActionTabAddBrowserStorageOpen(isOpen);
                   if (!isOpen) {
                     pageSelection.setAddBrowserStorageSelectedPageInfo(null);
+                  }
+                  break;
+                case 'set_browser_variable':
+                  modals.setIsActionTabSetBrowserVariableOpen(isOpen);
+                  if (!isOpen) {
+                    pageSelection.setBrowserVariableSelectedElement(null);
                   }
                   break;
                 case 'database_execution':
@@ -965,14 +993,25 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
           pageSelection.setAssertWithValueSelectedElement(null);
           await (window as any).browserAPI?.browser?.setAssertMode(false, '' as any);
         }}
-        onConfirm={async (value, element, pageInfo, statement, apiRequest, valueSourceType) => {
+        onConfirm={async (
+          value,
+          element,
+          pageInfo,
+          statement,
+          apiRequest,
+          valueSourceType,
+          browserVariableId,
+          browserVariableName
+        ) => {
           const result = await assertWithValueHook.handleConfirm(
             value,
             element,
             pageInfo,
             statement,
             apiRequest,
-            valueSourceType
+            valueSourceType,
+            browserVariableId,
+            browserVariableName
           );
           if (result) {
             modals.setIsAssertWithValueModalOpen(false);

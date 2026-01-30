@@ -16,8 +16,10 @@ export const useModals = () => {
   // State để track các modal trong ActionTab
   const [isActionTabWaitOpen, setIsActionTabWaitOpen] = useState(false);
   const [isActionTabNavigateOpen, setIsActionTabNavigateOpen] = useState(false);
+  const [isActionTabInputOpen, setIsActionTabInputOpen] = useState(false);
   const [isActionTabApiRequestOpen, setIsActionTabApiRequestOpen] = useState(false);
   const [isActionTabAddBrowserStorageOpen, setIsActionTabAddBrowserStorageOpen] = useState(false);
+  const [isActionTabSetBrowserVariableOpen, setIsActionTabSetBrowserVariableOpen] = useState(false);
   const [isActionTabBrowserActionOpen, setIsActionTabBrowserActionOpen] = useState(false);
 
   return {
@@ -47,10 +49,14 @@ export const useModals = () => {
     setIsActionTabWaitOpen,
     isActionTabNavigateOpen,
     setIsActionTabNavigateOpen,
+    isActionTabInputOpen,
+    setIsActionTabInputOpen,
     isActionTabApiRequestOpen,
     setIsActionTabApiRequestOpen,
     isActionTabAddBrowserStorageOpen,
     setIsActionTabAddBrowserStorageOpen,
+    isActionTabSetBrowserVariableOpen,
+    setIsActionTabSetBrowserVariableOpen,
     isActionTabBrowserActionOpen,
     setIsActionTabBrowserActionOpen,
   };

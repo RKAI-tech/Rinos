@@ -53,6 +53,11 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
       description: 'Navigate to a specific URL'
     },
     {
+      value: 'input',
+      label: 'Input',
+      description: 'Add an input action (manual or browser variable)'
+    },
+    {
       value: 'back',
       label: 'Back',
       description: 'Go back to previous page'
@@ -71,6 +76,11 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
       value: 'add_browser_storage',
       label: 'Add Browser Storage',
       description: 'Select and add browser storage from project list'
+    },
+    {
+      value: 'set_browser_variable',
+      label: 'Set Browser Variable',
+      description: 'Set a browser variable from a selected element'
     },
     {
       value: 'api_request',
@@ -134,6 +144,13 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         );
+      case 'input':
+        return (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" strokeWidth="2"/>
+            <path d="M7 12h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        );
       case 'reload':
         return (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -151,6 +168,14 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
             <circle cx="15" cy="12" r="1" fill="currentColor"/>
             <circle cx="9" cy="12.5" r="1" fill="currentColor"/>
             <circle cx="12" cy="16.5" r="1" fill="currentColor"/>
+          </svg>
+        );
+      case 'set_browser_variable':
+        return (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="2"/>
+            <path d="M9 15l3-6 3 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M10.5 13h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         );
       case 'back':
@@ -190,6 +215,10 @@ const AddActionModal: React.FC<AddActionModalProps> = ({ isOpen, onClose, onSele
         return '#10b981'; // Green color
       case 'visit_url':
         return '#10b981'; // Green color
+      case 'input':
+        return '#22c55e'; // Green color
+      case 'set_browser_variable':
+        return '#0ea5e9'; // Sky color
       case 'api_request':
         return '#8b5cf6'; // Purple color
       default:

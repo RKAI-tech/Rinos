@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Action, AssertType, Element } from '../../../../types/actions';
-import { getSelectedGenerationValue, getSelectedValueId } from '../../../../../shared/utils/actionDataGeneration';
+import { getSelectedValueId, resolveSelectedGenerationValue } from '../../../../../shared/utils/actionDataGeneration';
+import { browserVariableService } from '../../../../services/browser_variable';
 import '../../ActionDetailModal.css';
 
 interface AssertWithValueActionDetailProps {
@@ -44,6 +45,7 @@ const AssertWithValueActionDetail: React.FC<AssertWithValueActionDetailProps> = 
   removeSelector,
 }) => {
   const [assertValue, setAssertValue] = useState<string>('');
+  const [browserVariableName, setBrowserVariableName] = useState<string>('');
 
   const hasStatement = useMemo(
     () => (draft.action_datas || []).some(ad => ad.statement),
@@ -53,35 +55,81 @@ const AssertWithValueActionDetail: React.FC<AssertWithValueActionDetailProps> = 
     () => (draft.action_datas || []).some(ad => ad.api_request),
     [draft.action_datas],
   );
+  const selectedValueId = getSelectedValueId(draft);
+  const selectedGeneration = selectedValueId
+    ? draft.action_data_generation?.find(gen => gen.action_data_generation_id === selectedValueId)
+    : null;
+  const selectedBrowserVariableId = selectedGeneration?.browser_variable_id || '';
+  const isBrowserVariableValue = !!selectedBrowserVariableId;
 
   useEffect(() => {
-    if (draft.action_data_generation && draft.action_data_generation.length > 0) {
-      const selectedValueId = getSelectedValueId(draft);
-      const generationValue = selectedValueId ? getSelectedGenerationValue(draft) : null;
-      if (generationValue != null) {
-        setAssertValue(String(generationValue));
+    let isActive = true;
+    const fetchBrowserVariableValue = async (browserVariableId: string) => {
+      const resp = await browserVariableService.getBrowserVariableById(browserVariableId);
+      if (!resp?.success) {
+        return null;
+      }
+      return (resp as any)?.data?.value ?? null;
+    };
+    const resolveValue = async () => {
+      if (draft.action_data_generation && draft.action_data_generation.length > 0) {
+        const generationValue = await resolveSelectedGenerationValue(draft, fetchBrowserVariableValue);
+        if (generationValue != null && isActive) {
+          setAssertValue(String(generationValue));
+          return;
+        }
+      }
+      for (const ad of draft.action_datas || []) {
+        if (ad.value && typeof ad.value === 'object') {
+          if (typeof ad.value['key'] === 'string') {
+            if (isActive) setAssertValue(ad.value['key']);
+            return;
+          }
+          if (typeof ad.value['column'] === 'string') {
+            if (isActive) setAssertValue(ad.value['column']);
+            return;
+          }
+          if (typeof ad.value['value'] === 'string') {
+            if (isActive) setAssertValue(ad.value['value']);
+            return;
+          }
+          return;
+        }
+      }
+      if (isActive) {
+        setAssertValue('');
+      }
+    };
+    resolveValue();
+    return () => {
+      isActive = false;
+    };
+  }, [draft.action_datas, draft.action_data_generation]);
+
+  useEffect(() => {
+    let isActive = true;
+    const loadBrowserVariableName = async () => {
+      if (!selectedBrowserVariableId) {
+        if (isActive) setBrowserVariableName('');
         return;
       }
-    }
-    for (const ad of draft.action_datas || []) {
-      if (ad.value && typeof ad.value === 'object') {
-        if (typeof ad.value['key'] === 'string') {
-          setAssertValue(ad.value['key']);
-          return;
+      try {
+        const resp = await browserVariableService.getBrowserVariableById(selectedBrowserVariableId);
+        if (!isActive) return;
+        if (resp?.success && (resp as any)?.data?.name) {
+          setBrowserVariableName((resp as any).data.name);
+        } else {
+          setBrowserVariableName(selectedBrowserVariableId);
         }
-        if (typeof ad.value['column'] === 'string') {
-          setAssertValue(ad.value['column']);
-          return;
-        }
-        if (typeof ad.value['value'] === 'string') {
-          setAssertValue(ad.value['value']);
-          return;
-        }
-        return;
+      } catch {
+        if (isActive) setBrowserVariableName(selectedBrowserVariableId);
       }
-    }
-    setAssertValue('');
-  }, [draft.action_datas]);
+    };
+    loadBrowserVariableName();
+    return () => {
+      isActive = false;
+    };
+  }, [selectedBrowserVariableId]);
 
   const updateAssertValue = (value: string) => {
     setAssertValue(value);
@@ -260,9 +308,29 @@ const AssertWithValueActionDetail: React.FC<AssertWithValueActionDetailProps> = 
             <input
               className="rcd-action-detail-input"
               value={assertValue}
-              onChange={e => updateAssertValue(e.target.value)}
+              onChange={e => {
+                if (isBrowserVariableValue) return;
+                updateAssertValue(e.target.value);
+              }}
+              readOnly={isBrowserVariableValue}
               placeholder="Enter expected value"
             />
+            {isBrowserVariableValue && (
+              <div
+                style={{
+                  marginTop: 6,
+                  padding: '8px 10px',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                  color: '#1f2937',
+                  background: '#f3f4f6',
+                  border: '1px solid #e5e7eb',
+                }}
+              >
+                {`Using browser variable: ${browserVariableName || selectedBrowserVariableId}. Value is resolved at runtime.`}
+              </div>
+            )}
             {(hasStatement || hasApiRequest) && (
               <div
                 style={{

@@ -6,7 +6,7 @@ import { convertListSelectorsToLiteral } from './selectorFuncs';
 import { generateConnectDbCode } from './dbConnectionCode';
 import { generateAssertCode } from './assertCodeGenerator';
 import { sanitizeJsString } from './base';
-import { getSelectedGenerationValue } from '../actionDataGeneration';
+import { getSelectedGenerationValue, getSelectedValueId } from '../actionDataGeneration';
 import { serializeApiRequest } from './apiRequestFuncs';
 import { preProcessCookies } from './base';
 
@@ -31,6 +31,12 @@ export function generateActionCode(
   const generationValue = action.action_data_generation?.length
     ? getSelectedGenerationValue(action)
     : null;
+  const selectedValueId = getSelectedValueId(action);
+  const selectedGeneration = selectedValueId
+    ? action.action_data_generation?.find(gen => gen.action_data_generation_id === selectedValueId)
+    : null;
+  const browserVariableId = selectedGeneration?.browser_variable_id;
+  const shouldResolveBrowserVariable = !!browserVariableId && generationValue == null;
 
   if (action.action_data_generation?.length) {
     if (generationValue != null) {
@@ -81,6 +87,22 @@ export function generateActionCode(
   const currentPage = pageIndex === null || pageIndex === 0 ? '' : String(pageIndex);
 
   if (actionType === ActionType.navigate) {
+    if (browserVariableId) {
+      const sanitizedId = sanitizeJsString(String(browserVariableId));
+      return (
+        `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
+        `      const browserVariableId = '${sanitizedId}';\n` +
+        `      const apiBaseUrl = 'https://automation-test-server.rikkei.org';\n` +
+        `      const resp = await page${currentPage}.request.get(\`\${apiBaseUrl}/browser-variables/\${browserVariableId}/value\`);\n` +
+        `      const url = await resp.json();\n` +
+        `      if (!url) {\n` +
+        `        throw new Error('Navigate URL is empty from browser variable');\n` +
+        `      }\n` +
+        `      await page${currentPage}.goto(String(url));\n` +
+        `    })\n` +
+        `    await bm.waitForAppIdle();\n`
+      );
+    }
     return (
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      await page${currentPage}.goto('${value || ''}');\n` +
@@ -126,6 +148,24 @@ export function generateActionCode(
     code += `    await bm.waitForAppIdle();\n`;
     return code;
   } else if (actionType === ActionType.input) {
+    if (shouldResolveBrowserVariable) {
+      const sanitizedId = sanitizeJsString(String(browserVariableId));
+      return (
+        `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
+        `      const browserVariableId = '${sanitizedId}';\n` +
+        `      const apiBaseUrl = 'https://automation-test-server.rikkei.org';\n` +
+        `      const resp = await page${currentPage}.request.get(\`\${apiBaseUrl}/browser-variables/\${browserVariableId}/value\`);\n` +
+        `      const resolvedValue = await resp.json();\n` +
+        `      try {\n` +
+        `        locator = await resolveUniqueSelector(page${currentPage}, ${selector1st || '[]'});\n` +
+        `        await locator.fill(String(resolvedValue ?? ''));\n` +
+        `      } catch (err) {\n` +
+        `        await forceAction(page${currentPage}, ${selector1st || '[]'}, 'input', String(resolvedValue ?? ''));\n` +
+        `      }\n` +
+        `    })\n` +
+        `    await bm.waitForAppIdle();\n`
+      );
+    }
     return (
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      try {\n` +
@@ -138,6 +178,24 @@ export function generateActionCode(
       `    await bm.waitForAppIdle();\n`
     );
   } else if (actionType === ActionType.select) {
+    if (shouldResolveBrowserVariable) {
+      const sanitizedId = sanitizeJsString(String(browserVariableId));
+      return (
+        `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
+        `      const browserVariableId = '${sanitizedId}';\n` +
+        `      const apiBaseUrl = 'https://automation-test-server.rikkei.org';\n` +
+        `      const resp = await page${currentPage}.request.get(\`\${apiBaseUrl}/browser-variables/\${browserVariableId}/value\`);\n` +
+        `      const resolvedValue = await resp.json();\n` +
+        `      try {\n` +
+        `        locator = await resolveUniqueSelector(page${currentPage}, ${selector1st || '[]'});\n` +
+        `        await locator.selectOption(String(resolvedValue ?? ''));\n` +
+        `      } catch (err) {\n` +
+        `        await forceAction(page${currentPage}, ${selector1st || '[]'}, 'select', String(resolvedValue ?? ''));\n` +
+        `      }\n` +
+        `    })\n` +
+        `    await bm.waitForAppIdle();\n`
+      );
+    }
     return (
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      try {\n` +
@@ -178,6 +236,20 @@ export function generateActionCode(
       `    await bm.waitForAppIdle();\n`
     );
   } else if (actionType === ActionType.keydown || actionType === ActionType.keyup || actionType === ActionType.keypress) {
+    if (shouldResolveBrowserVariable) {
+      const sanitizedId = sanitizeJsString(String(browserVariableId));
+      return (
+        `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
+        `      const browserVariableId = '${sanitizedId}';\n` +
+        `      const apiBaseUrl = 'https://automation-test-server.rikkei.org';\n` +
+        `      const resp = await page${currentPage}.request.get(\`\${apiBaseUrl}/browser-variables/\${browserVariableId}/value\`);\n` +
+        `      const resolvedValue = await resp.json();\n` +
+        `      locator = await resolveUniqueSelector(page${currentPage}, ${selector1st || '[]'});\n` +
+        `      await locator.press(String(resolvedValue ?? ''));\n` +
+        `    })\n` +
+        `    await bm.waitForAppIdle();\n`
+      );
+    }
     return (
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selector1st || '[]'});\n` +
@@ -235,6 +307,19 @@ export function generateActionCode(
       `    await bm.waitForAppIdle();\n`
     );
   } else if (actionType === ActionType.wait) {
+    if (shouldResolveBrowserVariable) {
+      const sanitizedId = sanitizeJsString(String(browserVariableId));
+      return (
+        `    async function waitForTimeout(ms) {\n` +
+        `        await new Promise(resolve => setTimeout(resolve, ms));\n` +
+        `    }\n` +
+        `    const browserVariableId = '${sanitizedId}';\n` +
+        `    const apiBaseUrl = 'https://automation-test-server.rikkei.org';\n` +
+        `    const resp = await page${currentPage}.request.get(\`\${apiBaseUrl}/browser-variables/\${browserVariableId}/value\`);\n` +
+        `    const resolvedValue = await resp.json();\n` +
+        `    await waitForTimeout(Number(resolvedValue) || 0);\n`
+      );
+    }
     return (
       `    async function waitForTimeout(ms) {\n` +
       `        await new Promise(resolve => setTimeout(resolve, ms));\n` +
@@ -303,6 +388,29 @@ export function generateActionCode(
         y = parseInt(match[2], 10);
       }
     }
+    if (shouldResolveBrowserVariable) {
+      const sanitizedId = sanitizeJsString(String(browserVariableId));
+      return (
+        `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
+        `      const browserVariableId = '${sanitizedId}';\n` +
+        `      const apiBaseUrl = 'https://automation-test-server.rikkei.org';\n` +
+        `      const resp = await page${currentPage}.request.get(\`\${apiBaseUrl}/browser-variables/\${browserVariableId}/value\`);\n` +
+        `      const resolvedValue = await resp.json();\n` +
+        `      let scrollX = ${x};\n` +
+        `      let scrollY = ${y};\n` +
+        `      if (scrollX === 0 && scrollY === 0) {\n` +
+        `        const match = String(resolvedValue).match(/X\\s*:\\s*(\\d+)\\s*,\\s*Y\\s*:\\s*(\\d+)/i);\n` +
+        `        if (match) {\n` +
+        `          scrollX = parseInt(match[1], 10);\n` +
+        `          scrollY = parseInt(match[2], 10);\n` +
+        `        }\n` +
+        `      }\n` +
+        `      locator = await resolveUniqueSelector(page${currentPage}, ${selector1st || '[]'});\n` +
+        `      await locator.evaluate((e) => { e.scrollTo(scrollX, scrollY); });\n` +
+        `    })\n` +
+        `    await page${currentPage}.waitForLoadState('networkidle');\n`
+      );
+    }
     return (
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selector1st || '[]'});\n` +
@@ -333,6 +441,28 @@ export function generateActionCode(
         width = parseInt(match[1], 10);
         height = parseInt(match[2], 10);
       }
+    }
+    if (shouldResolveBrowserVariable) {
+      const sanitizedId = sanitizeJsString(String(browserVariableId));
+      return (
+        `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
+        `      const browserVariableId = '${sanitizedId}';\n` +
+        `      const apiBaseUrl = 'https://automation-test-server.rikkei.org';\n` +
+        `      const resp = await page${currentPage}.request.get(\`\${apiBaseUrl}/browser-variables/\${browserVariableId}/value\`);\n` +
+        `      const resolvedValue = await resp.json();\n` +
+        `      let resizeWidth = ${width};\n` +
+        `      let resizeHeight = ${height};\n` +
+        `      if (resizeWidth === 0 && resizeHeight === 0) {\n` +
+        `        const match = String(resolvedValue).match(/Width\\s*:\\s*(\\d+)\\s*,\\s*Height\\s*:\\s*(\\d+)/i);\n` +
+        `        if (match) {\n` +
+        `          resizeWidth = parseInt(match[1], 10);\n` +
+        `          resizeHeight = parseInt(match[2], 10);\n` +
+        `        }\n` +
+        `      }\n` +
+        `      await page${currentPage}.setViewportSize({ width: resizeWidth, height: resizeHeight });\n` +
+        `    })\n` +
+        `    await bm.waitForAppIdle();\n`
+      );
     }
     return (
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
@@ -444,6 +574,38 @@ export function generateActionCode(
     }
     
     return preProcessCookies(code);
+  } else if (actionType === ActionType.set_browser_variable) {
+    let browserVariableId: string | null = null;
+    if (action.action_datas && Array.isArray(action.action_datas)) {
+      for (const actionData of action.action_datas) {
+        if (actionData.value && typeof actionData.value === 'object' && 'variable_id' in actionData.value) {
+          if (actionData.value.variable_id != null) {
+            browserVariableId = String(actionData.value.variable_id);
+            break;
+          }
+        }
+      }
+    }
+    if (!browserVariableId) {
+      return '';
+    }
+    const sanitizedId = sanitizeJsString(browserVariableId);
+    return (
+      `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
+      `      const browserVariableId = '${sanitizedId}';\n` +
+      `      locator = await resolveUniqueSelector(page${currentPage}, ${selector1st || '[]'});\n` +
+      `      const value = await locator.evaluate((el) => {\n` +
+      `        if (el && 'value' in el) {\n` +
+      `          return el.value ?? '';\n` +
+      `        }\n` +
+      `        return (el.innerText ?? el.textContent ?? '').toString();\n` +
+      `      });\n` +
+      `      const payload = { browser_variable_id: browserVariableId, value: value ?? '' };\n` +
+      `      const apiBaseUrl = 'https://automation-test-server.rikkei.org';\n` +
+      `      await page${currentPage}.request.put(\`\${apiBaseUrl}/browser-variables/\${browserVariableId}/update_value\`, { data: payload });\n` +
+      `    })\n` +
+      `    await bm.waitForAppIdle();\n`
+    );
   } else if (actionType === ActionType.page_create) {
     let openerIndex: number | null = null;
     if (action.action_datas && Array.isArray(action.action_datas)) {

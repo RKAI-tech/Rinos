@@ -9,6 +9,7 @@ import { toast } from 'react-toastify';
 import EditVersionModal from './EditVersionModal';
 import NewVersionModal from './NewVersionModal';
 import { truncateText } from '../../../utils/textUtils';
+import { browserVariableService } from '../../../services/browser_variable';
 import './TestcaseDataVersionModal.css';
 
 interface TestcaseDataVersionModalProps {
@@ -30,6 +31,7 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
   const [actions, setActions] = useState<Action[]>([]);
   const [dataVersions, setDataVersions] = useState<TestCaseDataVersion[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [browserVariableNames, setBrowserVariableNames] = useState<Record<string, string>>({});
 
   // Version selection states
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
@@ -282,6 +284,45 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
     }
   };
 
+  useEffect(() => {
+    let isActive = true;
+    const browserVariableIds = Array.from(
+      new Set(
+        dataVersions
+          .flatMap(version => version.action_data_generations || [])
+          .map(gen => gen.browser_variable_id)
+          .filter((id): id is string => !!id)
+          .filter(id => !browserVariableNames[id])
+      )
+    );
+
+    if (browserVariableIds.length === 0) {
+      return;
+    }
+
+    const fetchNames = async () => {
+      const entries = await Promise.all(
+        browserVariableIds.map(async id => {
+          const resp = await browserVariableService.getBrowserVariableById(id);
+          const name = resp?.success ? (resp as any)?.data?.name : null;
+          return [id, name || id] as const;
+        })
+      );
+      if (isActive) {
+        setBrowserVariableNames(prev => ({
+          ...prev,
+          ...Object.fromEntries(entries),
+        }));
+      }
+    };
+
+    fetchNames();
+
+    return () => {
+      isActive = false;
+    };
+  }, [dataVersions, browserVariableNames]);
+
   // Get value for a specific action and version
   const getValueForActionAndVersion = useCallback((actionId: string | undefined, version: TestCaseDataVersion): string => {
     if (!actionId || !version.action_data_generations) {
@@ -293,7 +334,14 @@ const TestcaseDataVersionModal: React.FC<TestcaseDataVersionModalProps> = ({
       (gen) => gen.action_id === actionId
     );
 
-    if (!generation || !generation.value) {
+    if (!generation) {
+      return '—';
+    }
+    if (generation.browser_variable_id) {
+      const name = browserVariableNames[generation.browser_variable_id] || generation.browser_variable_id;
+      return `Using browser variable: ${name}`;
+    }
+    if (!generation.value) {
       return '—';
     }
 

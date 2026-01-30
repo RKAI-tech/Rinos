@@ -6,6 +6,7 @@ import { convertListSelectorsToLiteral } from './selectorFuncs';
 import { generateConnectDbCode } from './dbConnectionCode';
 import { sanitizeJsString, escape } from './base';
 import { serializeApiRequest } from './apiRequestFuncs';
+import { getSelectedGenerationValue, getSelectedValueId } from '../actionDataGeneration';
 import { generateExcelExportCode } from './excelExport';
 import { generateApiExportCode } from './apiExport';
 
@@ -54,6 +55,16 @@ export function generateAssertCode(action: Action, index: number): string {
       }
     }
   }
+
+  const generationValue = action.action_data_generation?.length
+    ? getSelectedGenerationValue(action)
+    : null;
+  const selectedValueId = getSelectedValueId(action);
+  const selectedGeneration = selectedValueId
+    ? action.action_data_generation?.find(gen => gen.action_data_generation_id === selectedValueId)
+    : null;
+  const browserVariableId = selectedGeneration?.browser_variable_id;
+  const shouldResolveBrowserVariable = !!browserVariableId && generationValue == null;
 
   const connections: any[] = [];
   const queries: string[] = [];
@@ -140,7 +151,7 @@ export function generateAssertCode(action: Action, index: number): string {
   } else if (assertType === AssertType.toBeDisabled) {
     return (
       captureScript +
-      `    await test.step('${index}.${action.description || ''}', async () => {\n` +
+      `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
       `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n` +
       `      await locator.scrollIntoViewIfNeeded();\n` +
       `      await expect(locator).toBeDisabled();\n` +
@@ -223,7 +234,14 @@ export function generateAssertCode(action: Action, index: number): string {
     codeReturn += `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n`;
     codeReturn += `      await locator.scrollIntoViewIfNeeded();\n`;
     
-    if (connections.length > 0) {
+    if (shouldResolveBrowserVariable) {
+      const sanitizedId = sanitizeJsString(String(browserVariableId));
+      codeReturn += `      const browserVariableId = '${sanitizedId}';\n`;
+      codeReturn += `      const apiBaseUrl = 'https://automation-test-server.rikkei.org';\n`;
+      codeReturn += `      const resp = await page${currentPage}.request.get(\`\${apiBaseUrl}/browser-variables/\${browserVariableId}/value\`);\n`;
+      codeReturn += `      const resolvedValue = await resp.json();\n`;
+      codeReturn += `      await expect(locator).toContainText(String(resolvedValue ?? ''));\n`;
+    } else if (connections.length > 0) {
       const [connectDbCode, dbVar] = generateConnectDbCode(connections[0]);
       const queryStr = queries[0] || '';
       codeReturn += `      ${connectDbCode}`;
@@ -305,7 +323,14 @@ export function generateAssertCode(action: Action, index: number): string {
     codeReturn += `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n`;
     codeReturn += `      await locator.scrollIntoViewIfNeeded();\n`;
     
-    if (connections.length > 0) {
+    if (shouldResolveBrowserVariable) {
+      const sanitizedId = sanitizeJsString(String(browserVariableId));
+      codeReturn += `      const browserVariableId = '${sanitizedId}';\n`;
+      codeReturn += `      const apiBaseUrl = 'https://automation-test-server.rikkei.org';\n`;
+      codeReturn += `      const resp = await page${currentPage}.request.get(\`\${apiBaseUrl}/browser-variables/\${browserVariableId}/value\`);\n`;
+      codeReturn += `      const resolvedValue = await resp.json();\n`;
+      codeReturn += `      await expect(locator).toHaveText(String(resolvedValue ?? ''));\n`;
+    } else if (connections.length > 0) {
       const [connectDbCode, dbVar] = generateConnectDbCode(connections[0]);
       const queryStr = queries[0] || '';
       codeReturn += `      ${connectDbCode}`;
@@ -338,7 +363,14 @@ export function generateAssertCode(action: Action, index: number): string {
     codeReturn += `      locator = await resolveUniqueSelector(page${currentPage}, ${selectors[0] || '[]'});\n`;
     codeReturn += `      await locator.scrollIntoViewIfNeeded();\n`;
     
-    if (connections.length > 0) {
+    if (shouldResolveBrowserVariable) {
+      const sanitizedId = sanitizeJsString(String(browserVariableId));
+      codeReturn += `      const browserVariableId = '${sanitizedId}';\n`;
+      codeReturn += `      const apiBaseUrl = 'https://automation-test-server.rikkei.org';\n`;
+      codeReturn += `      const resp = await page${currentPage}.request.get(\`\${apiBaseUrl}/browser-variables/\${browserVariableId}/value\`);\n`;
+      codeReturn += `      const resolvedValue = await resp.json();\n`;
+      codeReturn += `      await expect(locator).toHaveValue(String(resolvedValue ?? ''));\n`;
+    } else if (connections.length > 0) {
       const [connectDbCode, dbVar] = generateConnectDbCode(connections[0]);
       const queryStr = queries[0] || '';
       codeReturn += `      ${connectDbCode}`;
@@ -399,6 +431,20 @@ export function generateAssertCode(action: Action, index: number): string {
     codeReturn += `    await bm.waitForAppIdle();\n`;
     return codeReturn;
   } else if (assertType === AssertType.pageHasATitle) {
+    if (shouldResolveBrowserVariable) {
+      const sanitizedId = sanitizeJsString(String(browserVariableId));
+      return (
+        captureScript +
+        `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
+        `      const browserVariableId = '${sanitizedId}';\n` +
+        `      const apiBaseUrl = 'https://automation-test-server.rikkei.org';\n` +
+        `      const resp = await page${currentPage}.request.get(\`\${apiBaseUrl}/browser-variables/\${browserVariableId}/value\`);\n` +
+        `      const resolvedValue = await resp.json();\n` +
+        `      await expect(page${currentPage}).toHaveTitle(String(resolvedValue ?? ''));\n` +
+        `    })\n` +
+        `    await bm.waitForAppIdle();\n`
+      );
+    }
     return (
       captureScript +
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
@@ -407,6 +453,20 @@ export function generateAssertCode(action: Action, index: number): string {
       `    await bm.waitForAppIdle();\n`
     );
   } else if (assertType === AssertType.pageHasAURL) {
+    if (shouldResolveBrowserVariable) {
+      const sanitizedId = sanitizeJsString(String(browserVariableId));
+      return (
+        captureScript +
+        `    await test.step('${index}. ${action.description || ''}', async () => {\n` +
+        `      const browserVariableId = '${sanitizedId}';\n` +
+        `      const apiBaseUrl = 'https://automation-test-server.rikkei.org';\n` +
+        `      const resp = await page${currentPage}.request.get(\`\${apiBaseUrl}/browser-variables/\${browserVariableId}/value\`);\n` +
+        `      const resolvedValue = await resp.json();\n` +
+        `      await expect(page${currentPage}).toHaveURL(String(resolvedValue ?? ''));\n` +
+        `    })\n` +
+        `    await bm.waitForAppIdle();\n`
+      );
+    }
     return (
       captureScript +
       `    await test.step('${index}. ${action.description || ''}', async () => {\n` +

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Action, Element } from '../../../../types/actions';
-import { getSelectedGenerationValue, getSelectedValueId } from '../../../../../shared/utils/actionDataGeneration';
+import { getSelectedValueId, resolveSelectedGenerationValue } from '../../../../../shared/utils/actionDataGeneration';
+import { browserVariableService } from '../../../../services/browser_variable';
 import '../../ActionDetailModal.css';
 
 interface WindowResizeActionDetailProps {
@@ -87,37 +88,58 @@ const WindowResizeActionDetail: React.FC<WindowResizeActionDetailProps> = ({
   const [windowHeight, setWindowHeight] = useState("");
   
   useEffect(() => {
-    if (draft.action_data_generation && draft.action_data_generation.length > 0) {
-      const selectedValueId = getSelectedValueId(draft);
-      const generationValue: any = selectedValueId ? getSelectedGenerationValue(draft) : null;
-      if (generationValue && typeof generationValue === 'object' && (generationValue.width != null || generationValue.height != null)) {
-        setWindowWidth(generationValue.width != null ? String(generationValue.width) : '');
-        setWindowHeight(generationValue.height != null ? String(generationValue.height) : '');
-        return;
+    let isActive = true;
+    const fetchBrowserVariableValue = async (browserVariableId: string) => {
+      const resp = await browserVariableService.getBrowserVariableById(browserVariableId);
+      if (!resp?.success) {
+        return null;
       }
-      if (generationValue != null) {
-        const parsed = parseWindowResizeValue(String(generationValue));
-        setWindowWidth(parsed.width);
-        setWindowHeight(parsed.height);
-        return;
+      return (resp as any)?.data?.value ?? null;
+    };
+    const resolveValue = async () => {
+      if (draft.action_data_generation && draft.action_data_generation.length > 0) {
+        const generationValue: any = await resolveSelectedGenerationValue(draft, fetchBrowserVariableValue);
+        if (generationValue && typeof generationValue === 'object' && (generationValue.width != null || generationValue.height != null)) {
+          if (isActive) {
+            setWindowWidth(generationValue.width != null ? String(generationValue.width) : '');
+            setWindowHeight(generationValue.height != null ? String(generationValue.height) : '');
+          }
+          return;
+        }
+        if (generationValue != null) {
+          const parsed = parseWindowResizeValue(String(generationValue));
+          if (isActive) {
+            setWindowWidth(parsed.width);
+            setWindowHeight(parsed.height);
+          }
+          return;
+        }
       }
-    }
 
-    // Find value from any action_data in the array, not just [0]
-    for (const ad of draft.action_datas || []) {
-      const dataValue: any = ad.value;
-      if (dataValue && typeof dataValue === 'object' && (dataValue.width != null || dataValue.height != null)) {
-        setWindowWidth(dataValue.width != null ? String(dataValue.width) : '');
-        setWindowHeight(dataValue.height != null ? String(dataValue.height) : '');
-        break;
+      // Find value from any action_data in the array, not just [0]
+      for (const ad of draft.action_datas || []) {
+        const dataValue: any = ad.value;
+        if (dataValue && typeof dataValue === 'object' && (dataValue.width != null || dataValue.height != null)) {
+          if (isActive) {
+            setWindowWidth(dataValue.width != null ? String(dataValue.width) : '');
+            setWindowHeight(dataValue.height != null ? String(dataValue.height) : '');
+          }
+          break;
+        }
+        if (dataValue?.["value"]) {
+          const parsed = parseWindowResizeValue(String(dataValue["value"]));
+          if (isActive) {
+            setWindowWidth(parsed.width);
+            setWindowHeight(parsed.height);
+          }
+          break;
+        }
       }
-      if (dataValue?.["value"]) {
-        const parsed = parseWindowResizeValue(String(dataValue["value"]));
-        setWindowWidth(parsed.width);
-        setWindowHeight(parsed.height);
-        break;
-      }
-    }
+    };
+    resolveValue();
+    return () => {
+      isActive = false;
+    };
   }, [draft.action_datas, draft.action_data_generation]);
 
   // Hàm update action data value - giữ nguyên các action_data khác (như page_index, elementText)

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Action, ActionDataGeneration } from '../../../../types/actions';
 import { TestCaseDataVersion } from '../../../../types/testcase';
-import { getSelectedGenerationValue, getSelectedValueId } from '../../../../../shared/utils/actionDataGeneration';
+import { getSelectedValueId, resolveSelectedGenerationValue } from '../../../../../shared/utils/actionDataGeneration';
+import { browserVariableService } from '../../../../services/browser_variable';
 import EditActionValuesModal from '../../../data_versions/EditActionValuesModal';
 import GenerateActionValueModal from '../../../data_versions/GenerateActionValueModal';
 import '../../ActionDetailModal.css';
@@ -38,24 +39,41 @@ const WaitActionDetail: React.FC<WaitActionDetailProps> = ({
   const prevWaitTimeRef = useRef<string>('1000');
   
   useEffect(() => {
-    if (draft.action_data_generation && draft.action_data_generation.length > 0) {
-      const selectedValueId = getSelectedValueId(draft);
-      const generationValue = selectedValueId ? getSelectedGenerationValue(draft) : null;
-      const valueStr = generationValue != null ? String(generationValue) : '';
-      setWaitTime(valueStr);
-      prevWaitTimeRef.current = valueStr;
-      return;
-    }
-
-    // Find value from action_data that has value.value (wait time)
-    for (const ad of draft.action_datas || []) {
-      if (ad.value?.["value"]) {
-        const timeValue = String(ad.value?.["value"]);
-        setWaitTime(timeValue);
-        prevWaitTimeRef.current = timeValue; // Lưu giá trị ban đầu
-        break;
+    let isActive = true;
+    const fetchBrowserVariableValue = async (browserVariableId: string) => {
+      const resp = await browserVariableService.getBrowserVariableById(browserVariableId);
+      if (!resp?.success) {
+        return null;
       }
-    }
+      return (resp as any)?.data?.value ?? null;
+    };
+    const resolveValue = async () => {
+      if (draft.action_data_generation && draft.action_data_generation.length > 0) {
+        const generationValue = await resolveSelectedGenerationValue(draft, fetchBrowserVariableValue);
+        const valueStr = generationValue != null ? String(generationValue) : '';
+        if (isActive) {
+          setWaitTime(valueStr);
+          prevWaitTimeRef.current = valueStr;
+        }
+        return;
+      }
+
+      // Find value from action_data that has value.value (wait time)
+      for (const ad of draft.action_datas || []) {
+        if (ad.value?.["value"]) {
+          const timeValue = String(ad.value?.["value"]);
+          if (isActive) {
+            setWaitTime(timeValue);
+            prevWaitTimeRef.current = timeValue; // Lưu giá trị ban đầu
+          }
+          break;
+        }
+      }
+    };
+    resolveValue();
+    return () => {
+      isActive = false;
+    };
   }, [draft.action_datas, draft.action_data_generation]);
 
   // Helper function để truncate text

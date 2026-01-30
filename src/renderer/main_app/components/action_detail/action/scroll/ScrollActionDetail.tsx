@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Action, Element } from '../../../../types/actions';
-import { getSelectedGenerationValue, getSelectedValueId } from '../../../../../shared/utils/actionDataGeneration';
+import { getSelectedValueId, resolveSelectedGenerationValue } from '../../../../../shared/utils/actionDataGeneration';
+import { browserVariableService } from '../../../../services/browser_variable';
 import '../../ActionDetailModal.css';
 
 interface ScrollActionDetailProps {
@@ -87,37 +88,58 @@ const ScrollActionDetail: React.FC<ScrollActionDetailProps> = ({
   const [scrollY, setScrollY] = useState("");
   
   useEffect(() => {
-    if (draft.action_data_generation && draft.action_data_generation.length > 0) {
-      const selectedValueId = getSelectedValueId(draft);
-      const generationValue: any = selectedValueId ? getSelectedGenerationValue(draft) : null;
-      if (generationValue && typeof generationValue === 'object' && (generationValue.scrollX != null || generationValue.scrollY != null)) {
-        setScrollX(generationValue.scrollX != null ? String(generationValue.scrollX) : '');
-        setScrollY(generationValue.scrollY != null ? String(generationValue.scrollY) : '');
-        return;
+    let isActive = true;
+    const fetchBrowserVariableValue = async (browserVariableId: string) => {
+      const resp = await browserVariableService.getBrowserVariableById(browserVariableId);
+      if (!resp?.success) {
+        return null;
       }
-      if (generationValue != null) {
-        const parsed = parseScrollValue(String(generationValue));
-        setScrollX(parsed.x);
-        setScrollY(parsed.y);
-        return;
+      return (resp as any)?.data?.value ?? null;
+    };
+    const resolveValue = async () => {
+      if (draft.action_data_generation && draft.action_data_generation.length > 0) {
+        const generationValue: any = await resolveSelectedGenerationValue(draft, fetchBrowserVariableValue);
+        if (generationValue && typeof generationValue === 'object' && (generationValue.scrollX != null || generationValue.scrollY != null)) {
+          if (isActive) {
+            setScrollX(generationValue.scrollX != null ? String(generationValue.scrollX) : '');
+            setScrollY(generationValue.scrollY != null ? String(generationValue.scrollY) : '');
+          }
+          return;
+        }
+        if (generationValue != null) {
+          const parsed = parseScrollValue(String(generationValue));
+          if (isActive) {
+            setScrollX(parsed.x);
+            setScrollY(parsed.y);
+          }
+          return;
+        }
       }
-    }
 
-    // Find value from any action_data in the array, not just [0]
-    for (const ad of draft.action_datas || []) {
-      const dataValue: any = ad.value;
-      if (dataValue && typeof dataValue === 'object' && (dataValue.scrollX != null || dataValue.scrollY != null)) {
-        setScrollX(dataValue.scrollX != null ? String(dataValue.scrollX) : '');
-        setScrollY(dataValue.scrollY != null ? String(dataValue.scrollY) : '');
-        break;
+      // Find value from any action_data in the array, not just [0]
+      for (const ad of draft.action_datas || []) {
+        const dataValue: any = ad.value;
+        if (dataValue && typeof dataValue === 'object' && (dataValue.scrollX != null || dataValue.scrollY != null)) {
+          if (isActive) {
+            setScrollX(dataValue.scrollX != null ? String(dataValue.scrollX) : '');
+            setScrollY(dataValue.scrollY != null ? String(dataValue.scrollY) : '');
+          }
+          break;
+        }
+        if (dataValue?.["value"]) {
+          const parsed = parseScrollValue(String(dataValue["value"]));
+          if (isActive) {
+            setScrollX(parsed.x);
+            setScrollY(parsed.y);
+          }
+          break;
+        }
       }
-      if (dataValue?.["value"]) {
-        const parsed = parseScrollValue(String(dataValue["value"]));
-        setScrollX(parsed.x);
-        setScrollY(parsed.y);
-        break;
-      }
-    }
+    };
+    resolveValue();
+    return () => {
+      isActive = false;
+    };
   }, [draft.action_datas, draft.action_data_generation]);
 
   // Hàm update action data value - giữ nguyên các action_data khác

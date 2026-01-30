@@ -16,11 +16,14 @@ import {
   convertApiRequestDataToOptions,
 } from "../../../utils/api_request";
 import { VariableService } from "../../../services/variables";
+import { BrowserVariableService } from "../../../services/browser_variable";
 import { Variable } from "../../../types/variables";
+import { BrowserVariableListItem } from "../../../types/browser_variable";
 import { decryptObject } from "../../../services/encryption";
 import { setConnectionCache } from "../../../utils/databaseConnectionCache";
 const statementService = new StatementService();
 const variableService = new VariableService();
+const browserVariableService = new BrowserVariableService();
 
 /**
  * Xác định các trường cần mã hóa/giải mã trong DatabaseConnection
@@ -52,7 +55,12 @@ export interface SelectedPageInfo {
   page_title: string;
 }
 
-type ValueSourceType = "manual" | "database" | "api" | "variables";
+type ValueSourceType =
+  | "manual"
+  | "database"
+  | "api"
+  | "variables"
+  | "browser_variable";
 
 interface ConnectionOption {
   id: string;
@@ -78,7 +86,9 @@ interface AssertWithValueModalProps {
     pageInfo?: SelectedPageInfo,
     statement?: Statement,
     apiRequest?: ApiRequestData,
-    valueSourceType?: ValueSourceType
+    valueSourceType?: ValueSourceType,
+    browserVariableId?: string,
+    browserVariableName?: string
   ) => void;
   selectedPageInfo?: SelectedPageInfo | null;
   onClearPage?: () => void;
@@ -143,10 +153,17 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
   const [selectedVariableStatementId, setSelectedVariableStatementId] = useState<string>("");
   const [variablesPage, setVariablesPage] = useState<number>(1);
 
+  // Browser variables state
+  const [browserVariables, setBrowserVariables] = useState<BrowserVariableListItem[]>([]);
+  const [isLoadingBrowserVariables, setIsLoadingBrowserVariables] = useState(false);
+  const [selectedBrowserVariableId, setSelectedBrowserVariableId] = useState<string>("");
+  const [browserVariableCurrentValue, setBrowserVariableCurrentValue] = useState<string>("");
+
   // Message states for inline display
   const [queryMessage, setQueryMessage] = useState<{ type: "success" | "error" | "info" | "warning"; text: string } | null>(null);
   const [apiMessage, setApiMessage] = useState<{ type: "success" | "error" | "info" | "warning"; text: string } | null>(null);
   const [variableMessage, setVariableMessage] = useState<{ type: "success" | "error" | "info" | "warning"; text: string } | null>(null);
+  const [browserVariableMessage, setBrowserVariableMessage] = useState<{ type: "success" | "error" | "info" | "warning"; text: string } | null>(null);
   const [confirmMessage, setConfirmMessage] = useState<{ type: "success" | "error" | "info" | "warning"; text: string } | null>(null);
 
   // Load connections mỗi lần mở modal
@@ -247,6 +264,65 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
       loadVariables();
     }
   }, [isOpen, valueSourceType]);
+
+  // Load browser variables when open or when selecting browser variable mode
+  useEffect(() => {
+    const loadBrowserVariables = async () => {
+      try {
+        setIsLoadingBrowserVariables(true);
+        const projectId = await (
+          window as any
+        ).browserAPI?.browser?.getProjectId?.();
+        if (!projectId) {
+          setBrowserVariables([]);
+          return;
+        }
+        const resp = await browserVariableService.getBrowserVariablesByProject(projectId);
+        if (resp.success && resp.data && Array.isArray(resp.data.items)) {
+          setBrowserVariables(resp.data.items);
+        } else {
+          setBrowserVariables([]);
+        }
+      } catch (e) {
+        setBrowserVariables([]);
+      } finally {
+        setIsLoadingBrowserVariables(false);
+      }
+    };
+
+    if (isOpen && valueSourceType === "browser_variable") {
+      loadBrowserVariables();
+    }
+  }, [isOpen, valueSourceType]);
+
+  useEffect(() => {
+    const loadBrowserVariableValue = async () => {
+      if (valueSourceType !== "browser_variable" || !selectedBrowserVariableId) {
+        setBrowserVariableCurrentValue("");
+        return;
+      }
+      try {
+        const resp = await browserVariableService.getBrowserVariableValue(
+          selectedBrowserVariableId
+        );
+        if (!resp.success) {
+          setBrowserVariableCurrentValue("");
+          return;
+        }
+        const data: any = (resp as any).data ?? (resp as any).value ?? null;
+        if (data && typeof data === "object" && "value" in data) {
+          setBrowserVariableCurrentValue(
+            data.value != null ? String((data as any).value) : ""
+          );
+          return;
+        }
+        setBrowserVariableCurrentValue(data != null ? String(data) : "");
+      } catch {
+        setBrowserVariableCurrentValue("");
+      }
+    };
+    loadBrowserVariableValue();
+  }, [valueSourceType, selectedBrowserVariableId]);
 
   // Tự động cập nhật page info từ element khi element được chọn
   useEffect(() => {
@@ -364,7 +440,7 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
   const handleConfirm = async () => {
     setConfirmMessage(null);
     
-    if (!value.trim()) {
+    if (valueSourceType !== "browser_variable" && !value.trim()) {
       setConfirmMessage({ type: "warning", text: "Please enter a value" });
       return;
     }
@@ -446,7 +522,16 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
         setVariableMessage({ type: "warning", text: "Failed to load statement information for variable" });
         }
       }
+    } else if (valueSourceType === "browser_variable") {
+      if (!selectedBrowserVariableId) {
+        setBrowserVariableMessage({ type: "warning", text: "Please select a browser variable" });
+        return;
+      }
     }
+
+    const selectedBrowserVariable = browserVariables.find(
+      (v) => v.browser_variable_id === selectedBrowserVariableId
+    );
 
     onConfirm(
       value.trim(),
@@ -454,7 +539,9 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
       selectedPageInfo || undefined,
       statement,
       apiRequestData,
-      valueSourceType
+      valueSourceType,
+      selectedBrowserVariableId || undefined,
+      selectedBrowserVariable?.name
     );
     setValue("");
     setValueSourceType("manual");
@@ -470,9 +557,13 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
     setSelectedVariable(null);
     setSelectedVariableStatementId("");
     setVariablesSearch("");
+    setBrowserVariables([]);
+    setSelectedBrowserVariableId("");
+    setBrowserVariableCurrentValue("");
     setQueryMessage(null);
     setApiMessage(null);
     setVariableMessage(null);
+    setBrowserVariableMessage(null);
     setConfirmMessage(null);
     onClose();
   };
@@ -492,9 +583,13 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
     setSelectedVariable(null);
     setSelectedVariableStatementId("");
     setVariablesSearch("");
+    setBrowserVariables([]);
+    setSelectedBrowserVariableId("");
+    setBrowserVariableCurrentValue("");
     setQueryMessage(null);
     setApiMessage(null);
     setVariableMessage(null);
+    setBrowserVariableMessage(null);
     setConfirmMessage(null);
     onClose();
   };
@@ -661,7 +756,7 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
   };
 
   const disabled =
-    !value.trim() ||
+    (valueSourceType !== "browser_variable" && !value.trim()) ||
     !hasSelectedElement ||
     !hasSelectedPage ||
     (valueSourceType === "database" &&
@@ -670,7 +765,8 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
       (!apiRequest ||
         !apiResponse ||
         apiResponse.status === 0 ||
-        !selectedApiCellValue));
+        !selectedApiCellValue)) ||
+    (valueSourceType === "browser_variable" && !selectedBrowserVariableId);
 
   // Auto-focus on input when modal opens
   useEffect(() => {
@@ -840,10 +936,13 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
                 setSelectedVariableName("");
                 setSelectedVariable(null);
                 setSelectedVariableStatementId("");
+                setSelectedBrowserVariableId("");
+                setBrowserVariableCurrentValue("");
                 // Reset messages when changing source type
                 setQueryMessage(null);
                 setApiMessage(null);
                 setVariableMessage(null);
+                setBrowserVariableMessage(null);
                 setConfirmMessage(null);
               }}
             >
@@ -851,6 +950,7 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
               <option value="database">From Database</option>
               <option value="api">From API</option>
               <option value="variables">From Variables</option>
+              <option value="browser_variable">From Browser Variable</option>
             </select>
           </div>
 
@@ -989,6 +1089,46 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
                   className={`assert-message assert-message-${variableMessage.type}`}
                 >
                   {variableMessage.text}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Browser Variable Input */}
+          {valueSourceType === "browser_variable" && (
+            <div>
+              <label className="assert-label">
+                Browser Variable <span className="assert-label-required">*</span>
+              </label>
+              <select
+                className="assert-select"
+                value={selectedBrowserVariableId}
+                onChange={(e) => {
+                  const nextId = e.target.value;
+                  setSelectedBrowserVariableId(nextId);
+                  setBrowserVariableCurrentValue("");
+                  const selected = browserVariables.find(
+                    (v) => v.browser_variable_id === nextId
+                  );
+                  setValue(selected?.name || nextId || "");
+                  setBrowserVariableMessage(null);
+                }}
+                disabled={isLoadingBrowserVariables}
+              >
+                <option value="">
+                  {isLoadingBrowserVariables ? "Loading..." : "Select a browser variable"}
+                </option>
+                {browserVariables.map((v) => (
+                  <option key={v.browser_variable_id} value={v.browser_variable_id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+              {browserVariableMessage && (
+                <div
+                  className={`assert-message assert-message-${browserVariableMessage.type}`}
+                >
+                  {browserVariableMessage.text}
                 </div>
               )}
             </div>
@@ -1136,14 +1276,21 @@ const AssertWithValueModal: React.FC<AssertWithValueModalProps> = ({
           {/* Display current value if set from DB/API/Variables */}
           {(valueSourceType === "database" ||
             valueSourceType === "api" ||
-            valueSourceType === "variables") &&
-            value && (
+            valueSourceType === "variables" ||
+            valueSourceType === "browser_variable") &&
+            ((valueSourceType === "browser_variable" &&
+              browserVariableCurrentValue !== "") ||
+              (valueSourceType !== "browser_variable" && value)) && (
               <div className="assert-current-value">
                 <label className="assert-label">Current Value</label>
                 <input
                   type="text"
                   className="assert-current-value-input"
-                  value={value}
+                  value={
+                    valueSourceType === "browser_variable"
+                      ? browserVariableCurrentValue
+                      : value
+                  }
                   readOnly
                 />
               </div>

@@ -7,6 +7,8 @@ const browserMethods = {
     stop: async () => ipcRenderer.invoke("browser:stop"),
     executeActions: async (actions: Action[]) => ipcRenderer.invoke("browser:executeActions", actions),
     navigate: async (url: string, page_index?: number) => ipcRenderer.invoke("browser:navigate", url, page_index),
+    input: async (value: string, selectors: string[], page_index?: number) =>
+        ipcRenderer.invoke("browser:input", value, selectors, page_index),
     onAction: (handler: (action: Action) => void) => {
         const listener = (_: unknown, action: Action) => handler(action);
         ipcRenderer.on("browser:action", listener);
@@ -59,6 +61,7 @@ const browserMethods = {
     
   }) => ipcRenderer.invoke("browser:getBasicAuthFromStorage", payload),
     addBrowserStorage: async (storageType: BrowserStorageType, value: any, page_index?: number) => ipcRenderer.invoke("browser:addBrowserStorage", storageType, value, page_index),
+    setBrowserVariable: async (browserVariableId: string, selectors: string[], page_index?: number) => ipcRenderer.invoke("browser:setBrowserVariable", browserVariableId, selectors, page_index),
     reload: async (page_index?: number) => ipcRenderer.invoke("browser:reload", page_index),
     goBack: async (page_index?: number) => ipcRenderer.invoke("browser:goBack", page_index),
     goForward: async (page_index?: number) => ipcRenderer.invoke("browser:goForward", page_index),

@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { browserVariableService } from '../../../services/browser_variable';
+import { BrowserVariableListItem } from '../../../types/browser_variable';
 
 export interface SelectedPageInfo {
   page_index: number;
@@ -10,10 +12,17 @@ export interface SelectedPageInfo {
 interface NavigateModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (url: string, pageInfo?: SelectedPageInfo) => void;
+  onConfirm: (payload: NavigateConfirmPayload, pageInfo?: SelectedPageInfo) => void;
   selectedPageInfo?: SelectedPageInfo | null;
   onClearPage?: () => void;
+  projectId?: string;
 }
+
+export type NavigateInputMode = 'manual' | 'browser_variable';
+
+export type NavigateConfirmPayload =
+  | { mode: 'manual'; url: string }
+  | { mode: 'browser_variable'; selectedVariableId: string; selectedVariableName?: string };
 
 const isLikelyUrl = (text: string): boolean => {
   const t = text.trim();
@@ -27,14 +36,23 @@ const NavigateModal: React.FC<NavigateModalProps> = ({
   onClose, 
   onConfirm,
   selectedPageInfo,
-  onClearPage
+  onClearPage,
+  projectId
 }) => {
   const [input, setInput] = useState<string>('');
+  const [inputMode, setInputMode] = useState<NavigateInputMode>('manual');
+  const [browserVariables, setBrowserVariables] = useState<BrowserVariableListItem[]>([]);
+  const [selectedVariableId, setSelectedVariableId] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       setInput('');
+      setInputMode('manual');
+      setSelectedVariableId('');
+      setError(null);
     }
   }, [isOpen]);
 
@@ -53,41 +71,81 @@ const NavigateModal: React.FC<NavigateModalProps> = ({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || !projectId) return;
+    const load = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const resp = await browserVariableService.getBrowserVariablesByProject(projectId);
+        if (resp.success && resp.data) {
+          setBrowserVariables(resp.data.items || []);
+        } else {
+          setBrowserVariables([]);
+          setError(resp.error || 'Failed to load browser variables');
+        }
+      } catch (e) {
+        setError('Failed to load browser variables');
+        setBrowserVariables([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, [isOpen, projectId]);
+
   if (!isOpen) return null;
 
+  const selectedBrowserVariable = browserVariables.find(v => v.browser_variable_id === selectedVariableId);
   const normalized = input.trim();
   const valid = isLikelyUrl(normalized);
   const hasSelectedPage = !!selectedPageInfo;
-  const disabled = !valid || !hasSelectedPage;
+  const isManualMode = inputMode === 'manual';
+  const hasSelectedVariable = !!selectedVariableId;
+  const disabled = isManualMode ? (!valid || !hasSelectedPage) : (!hasSelectedVariable || !hasSelectedPage);
 
   const submit = () => {
-    if (!valid) {
-      toast.warning('Please enter a valid URL');
-      return;
-    }
     if (!hasSelectedPage) {
       toast.warning('Please select a page first');
       return;
     }
-    const url = normalized.startsWith('http') ? normalized : `https://${normalized}`;
-    onConfirm(url, selectedPageInfo || undefined);
+    if (isManualMode) {
+      if (!valid) {
+        toast.warning('Please enter a valid URL');
+        return;
+      }
+      const url = normalized.startsWith('http') ? normalized : `https://${normalized}`;
+      onConfirm({ mode: 'manual', url }, selectedPageInfo || undefined);
+    } else {
+      if (!hasSelectedVariable) {
+        toast.warning('Please select a browser variable');
+        return;
+      }
+      onConfirm({
+        mode: 'browser_variable',
+        selectedVariableId,
+        selectedVariableName: selectedBrowserVariable?.name,
+      }, selectedPageInfo || undefined);
+    }
     onClose();
   };
 
   const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (!valid) {
-        toast.warning('Please enter a valid URL');
-        return;
+      if (isManualMode) {
+        if (!valid) {
+          toast.warning('Please enter a valid URL');
+          return;
+        }
+        if (!hasSelectedPage) {
+          toast.warning('Please select a page first');
+          return;
+        }
+        const url = normalized.startsWith('http') ? normalized : `https://${normalized}`;
+        onConfirm({ mode: 'manual', url }, selectedPageInfo || undefined);
+        onClose();
       }
-      if (!hasSelectedPage) {
-        toast.warning('Please select a page first');
-        return;
-      }
-      const url = normalized.startsWith('http') ? normalized : `https://${normalized}`;
-      onConfirm(url, selectedPageInfo || undefined);
-      onClose();
     }
   };
 
@@ -180,23 +238,84 @@ const NavigateModal: React.FC<NavigateModalProps> = ({
           </div>
           
           <div>
-            <label style={{ display: 'block', fontSize: 14, color: '#374151', marginBottom: 8 }}>URL</label>
-            <input
-              ref={urlInputRef}
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="https://example.com or example.com"
-              style={{ 
-                width: '100%', 
-                padding: '10px 12px', 
-                border: '1px solid #d1d5db', 
-                borderRadius: 8, 
-                fontSize: 14,
-                boxSizing: 'border-box'
-              }}
-            />
+            <label style={{ display: 'block', fontSize: 14, color: '#374151', marginBottom: 8 }}>URL Source</label>
+            <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#374151', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="navigate-input-mode"
+                  checked={inputMode === 'manual'}
+                  onChange={() => {
+                    setInputMode('manual');
+                    setSelectedVariableId('');
+                  }}
+                />
+                Manual input
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#374151', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="navigate-input-mode"
+                  checked={inputMode === 'browser_variable'}
+                  onChange={() => {
+                    setInputMode('browser_variable');
+                    setInput('');
+                  }}
+                />
+                Browser variable
+              </label>
+            </div>
+
+            {inputMode === 'manual' ? (
+              <input
+                ref={urlInputRef}
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="https://example.com or example.com"
+                style={{ 
+                  width: '100%', 
+                  padding: '10px 12px', 
+                  border: '1px solid #d1d5db', 
+                  borderRadius: 8, 
+                  fontSize: 14,
+                  boxSizing: 'border-box'
+                }}
+              />
+            ) : (
+              <>
+                <select
+                  value={selectedVariableId}
+                  onChange={(e) => setSelectedVariableId(e.target.value)}
+                  disabled={isLoading || !!error || !projectId}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: 8,
+                    fontSize: 14,
+                    color: '#111827',
+                    background: '#fff',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="" disabled>
+                    {projectId
+                      ? (isLoading ? 'Loading...' : (error ? 'Failed to load browser variables' : 'Choose a browser variable...'))
+                      : 'Project is required'}
+                  </option>
+                  {browserVariables.map((v) => (
+                    <option key={v.browser_variable_id} value={v.browser_variable_id}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+                {error && (
+                  <div style={{ marginTop: 8, color: '#b91c1c', fontSize: 12 }}>{error}</div>
+                )}
+              </>
+            )}
           </div>
         </div>
         <div style={{ padding: '12px 20px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: 8, background: '#f9fafb' }}>
