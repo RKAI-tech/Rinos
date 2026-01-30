@@ -3,16 +3,15 @@
 
 import { Action, ActionType } from '../../types/actions';
 import { BasicAuthentication } from '../../types/actions';
-import { getResolveUniqueSelectorFunctionString, checkNeedResolveUniqueSelector, checkNeedForceAction, getForceActionFunctionString } from './selectorFuncs';
+import { checkNeedResolveUniqueSelector, checkNeedForceAction } from './selectorFuncs';
 import { getImportDb } from './base';
 import { checkNeedConnectDb } from './dbConnectionCode';
 import { generateActionCode } from './actionCodeGenerator';
-import { getImportBrowserJs } from './browserJsFuncs';
-import { needsApiRequestSupport, getExecuteApiRequestFunctionString } from './apiRequestFuncs';
+import { needsApiRequestSupport } from './apiRequestFuncs';
 import { getListAiFunctions } from './assertCodeGenerator';
 import { getBasicHttpAuthCode } from './basicHttpAuth';
-import { needsExcelExport, getExportDatabaseToExcelFunctionString } from './excelExport';
-import { needsApiExport, getExportApiToJsonFunctionString } from './apiExport';
+import { needsExcelExport } from './excelExport';
+import { needsApiExport } from './apiExport';
 
 export function actionsToCode(
   basicAuth: BasicAuthentication | null | undefined, 
@@ -40,34 +39,35 @@ export function actionsToCode(
 
   let code = '';
   code += "import { test, expect } from '@playwright/test';\n";
-  code += getImportBrowserJs();
+  const helperImports = new Set<string>();
+  helperImports.add('BrowserManager');
   
   if (checkNeedConnectDb(actions)) {
     code += getImportDb(actions);
   }
   
   if (checkNeedResolveUniqueSelector(actions)) {
-    code += getResolveUniqueSelectorFunctionString();
+    helperImports.add('resolveUniqueSelector');
   }
 
   if (checkNeedForceAction(actions)) {
-    code += '\n';
-    code += getForceActionFunctionString();
+    helperImports.add('forceAction');
   }
   
   if (needsApiRequestSupport(actions)) {
-    code += '\n';
-    code += getExecuteApiRequestFunctionString();
+    helperImports.add('executeApiRequest');
   }
   
   if (needsExcelExport(actions)) {
-    code += '\n';
-    code += getExportDatabaseToExcelFunctionString();
+    helperImports.add('exportDatabaseToExcel');
   }
   
   if (needsApiExport(actions)) {
-    code += '\n';
-    code += getExportApiToJsonFunctionString();
+    helperImports.add('exportApiToJson');
+  }
+  
+  if (helperImports.size > 0) {
+    code += `import { ${Array.from(helperImports).join(', ')} } from './helpers.js';`;
   }
   
   const aiFunctions = getListAiFunctions(actions);

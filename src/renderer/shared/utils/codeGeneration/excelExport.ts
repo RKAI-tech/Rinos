@@ -5,39 +5,7 @@
  * Similar to getExecuteApiRequestFunctionString()
  */
 export function getExportDatabaseToExcelFunctionString(): string {
-  return `async function exportDatabaseToExcel(result, stepIndex, queryString = '', queryIndex = null) {
-  const XLSXModule = await import('xlsx');
-  const XLSX = XLSXModule.default || XLSXModule;
-  const fsModule = await import('fs');
-  const fs = fsModule.default || fsModule;
-  const databaseFolder = 'databases';
-  if (!fs.existsSync(databaseFolder)) { fs.mkdirSync(databaseFolder, { recursive: true }); }
-  const fileSuffix = queryIndex !== null && queryIndex !== undefined ? \`_\${queryIndex}\` : '';
-  const excelFileName = \`\${databaseFolder}/Step_\${stepIndex}\${fileSuffix}.xlsx\`;
-  const workbook = XLSX.utils.book_new();
-  const dataRows = result.rows || [];
-  const worksheet = XLSX.utils.aoa_to_sheet([]);
-  XLSX.utils.sheet_add_aoa(worksheet, [[\`Query: \${queryString || ''}\`]], { origin: 'A1' })
-  let columnHeaders = [];
-  if (dataRows.length > 0) { columnHeaders = Object.keys(dataRows[0]); }
-  if (columnHeaders.length > 0) {
-    XLSX.utils.sheet_add_aoa(worksheet, [columnHeaders], { origin: 'A3' });
-    if (dataRows.length > 0) {
-      const dataValues = dataRows.map(row => columnHeaders.map(key => row[key] ?? ''));
-      XLSX.utils.sheet_add_aoa(worksheet, dataValues, { origin: 'A4' });
-    }
-  }
-  if (columnHeaders.length > 0) {
-    const colWidths = [{ wch: 80 }];
-    for (let i = 1; i <= columnHeaders.length; i++) { colWidths.push({ wch: 15 }); }
-    worksheet['!cols'] = colWidths;
-  } else {
-    worksheet['!cols'] = [{ wch: 80 }];
-  }
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
-  XLSX.writeFile(workbook, excelFileName);
-}
-`;
+  return "import { exportDatabaseToExcel } from './helpers.js';\n";
 }
 
 /**

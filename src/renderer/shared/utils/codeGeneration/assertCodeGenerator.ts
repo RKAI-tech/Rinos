@@ -126,7 +126,7 @@ export function generateAssertCode(action: Action, index: number): string {
   }
 
   const currentPage = pageIndex === null || pageIndex === 0 ? '' : String(pageIndex);
-  const captureScript = `await page${currentPage}.screenshot({ path: 'images/Step_${index}.png' });\n`;
+  const captureScript = `    await page${currentPage}.screenshot({ path: 'images/Step_${index}.png' });\n`;
 
   if (assertType === AssertType.toBeChecked) {
     return (

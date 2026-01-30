@@ -5,53 +5,7 @@
  * Similar to getExportDatabaseToExcelFunctionString()
  */
 export function getExportApiToJsonFunctionString(): string {
-  return `async function exportApiToJson(apiResult, stepIndex, requestIndex = null) {
-  const fsModule = await import('fs');
-  const fs = fsModule.default || fsModule;
-  const pathModule = await import('path');
-  const path = pathModule.default || pathModule;
-  const apiFolder = 'apis';  
-  if (!fs.existsSync(apiFolder)) { fs.mkdirSync(apiFolder, { recursive: true }); }
-  const fileSuffix = requestIndex !== null && requestIndex !== undefined ? \`_\${requestIndex}\` : '';
-  const jsonFileName = \`\${apiFolder}/Step_\${stepIndex}\${fileSuffix}.json\`;
-  let baseUrl = '';
-  let apiPath = '';
-  let queryParams = {};
-  const fullUrl = apiResult.endpoint || '';
-  try {
-    const urlObj = new URL(fullUrl);
-    baseUrl = urlObj.origin;
-    apiPath = urlObj.pathname;
-    queryParams = Object.fromEntries(urlObj.searchParams);
-  } catch (e) {
-    baseUrl = fullUrl;
-    apiPath = '';
-  }
-  const apiData = {
-    step_index: stepIndex,
-    request_index: requestIndex,
-    timestamp: new Date().toISOString(),
-    request: {
-      method: apiResult.method || 'GET',
-      url: fullUrl,
-      base_url: baseUrl,
-      path: apiPath,
-      query_params: queryParams,
-      headers: apiResult.headers || {},
-    },
-    response: {
-      status: apiResult.status || 0,
-      status_text: apiResult.status_text || '',
-      headers: apiResult.response_headers || apiResult.headers || {},
-      body: {
-        payload: apiResult.payload || null,
-      },
-      duration_ms: apiResult.duration_ms || 0
-    },
-  };
-  fs.writeFileSync(jsonFileName, JSON.stringify(apiData, null, 2), 'utf8');
-}
-`;
+  return "import { exportApiToJson } from './helpers.js';\n";
 }
 
 /**
