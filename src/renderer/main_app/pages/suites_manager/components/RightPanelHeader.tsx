@@ -12,16 +12,20 @@ interface RightPanelHeaderProps {
   isLoadingTestcases: boolean;
   isRunningSuite: boolean;
   isExportingSuite: boolean;
+  isExportMenuOpen: boolean;
   isCreatingTestcaseInSuite: boolean;
   isAddingCases: boolean;
   isNewTestcaseMenuOpen: boolean;
   onReloadTestcases: () => void;
   onRunAgain: () => void;
   onExport: () => void;
+  onExportScripts: () => void;
+  onExportSuite: () => void;
   onClearSuite: () => void;
   onOpenCreateTestcaseInSuite: () => void;
   onOpenAddExistedCase: () => void;
   onToggleNewTestcaseMenu: () => void;
+  onCloseExportMenu: () => void;
 }
 
 const RightPanelHeader: React.FC<RightPanelHeaderProps> = ({
@@ -33,16 +37,20 @@ const RightPanelHeader: React.FC<RightPanelHeaderProps> = ({
   isLoadingTestcases,
   isRunningSuite,
   isExportingSuite,
+  isExportMenuOpen,
   isCreatingTestcaseInSuite,
   isAddingCases,
   isNewTestcaseMenuOpen,
   onReloadTestcases,
   onRunAgain,
   onExport,
+  onExportScripts,
+  onExportSuite,
   onClearSuite,
   onOpenCreateTestcaseInSuite,
   onOpenAddExistedCase,
   onToggleNewTestcaseMenu,
+  onCloseExportMenu,
 }) => {
   return (
     <div className="suites-right-panel-header">
@@ -109,15 +117,39 @@ const RightPanelHeader: React.FC<RightPanelHeaderProps> = ({
                   'Run'
                 )}
               </button>
-              <button
-                className="suites-right-panel-action-btn suites-right-panel-export-btn"
-                onClick={onExport}
-                disabled={isExportingSuite || isLoadingTestcases}
-                aria-label="Export"
-                title="Export"
-              >
-                {isExportingSuite ? 'Exporting...' : 'Export'}
-              </button>
+              <div className="sm-export-wrapper">
+                <button
+                  className="suites-right-panel-action-btn suites-right-panel-export-btn"
+                  onClick={onExport}
+                  disabled={isExportingSuite || isLoadingTestcases}
+                  aria-label="Export"
+                  title="Export"
+                  aria-haspopup="true"
+                  aria-expanded={isExportMenuOpen}
+                >
+                  {isExportingSuite ? 'Exporting...' : 'Export'}
+                </button>
+                {isExportMenuOpen && (
+                  <div className="sm-new-menu" role="menu">
+                    <button 
+                      className="sm-new-item" 
+                      onClick={onExportScripts} 
+                      role="menuitem"
+                      disabled={isExportingSuite || isLoadingTestcases}
+                    >
+                      Export scripts
+                    </button>
+                    <button 
+                      className="sm-new-item" 
+                      onClick={onExportSuite} 
+                      role="menuitem"
+                      disabled={isExportingSuite || isLoadingTestcases}
+                    >
+                      Export suite
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="sm-new-testcase-wrapper">
                 <button
                   className="suites-right-panel-action-btn suites-right-panel-new-testcase-btn"

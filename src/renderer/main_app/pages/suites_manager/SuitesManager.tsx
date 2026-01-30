@@ -994,6 +994,7 @@ const SuitesManager: React.FC = () => {
     // Suite state
     isRunningSuite,
     isExportingSuite,
+    isExportMenuOpen,
     isDeleteSuiteModalOpen,
     deletingSuite,
     isDeletingSuite,
@@ -1008,6 +1009,8 @@ const SuitesManager: React.FC = () => {
     handleClearSuite,
     handleRunAgain,
     handleExport,
+    handleExportScripts,
+    handleExportSuite,
     handleReloadTestcases,
     handleDeleteSuite,
     handleCloseDeleteSuiteModal,
@@ -1023,6 +1026,7 @@ const SuitesManager: React.FC = () => {
     setAddingSuite: setAddingSuiteFromHook,
     setIsAddCasesModalOpen: setIsAddCasesModalOpenFromHook,
     setIsRunningSuite,
+    setIsExportMenuOpen,
   } = useSuiteHandlers({
     selectedSuiteId,
     selectedSuiteName,
@@ -1042,6 +1046,7 @@ const SuitesManager: React.FC = () => {
     updateSuiteInTree,
     removeSuiteFromTree,
     adjustSuiteCountInTree,
+    projectId: projectId || undefined,
   });
 
   const {
@@ -1336,6 +1341,11 @@ const SuitesManager: React.FC = () => {
       if (!target.closest('.sm-testcases-filter-wrapper')) {
         setIsFilterModalOpen(false);
       }
+
+      // Close export menu if clicking outside
+      if (!target.closest('.sm-export-wrapper')) {
+        setIsExportMenuOpen(false);
+      }
   
       // DO NOT unfocus if clicking in New button/menu
       if (target.closest('.sm-new-wrapper')) {
@@ -1349,6 +1359,11 @@ const SuitesManager: React.FC = () => {
 
       // DO NOT unfocus if clicking in Filter button/modal
       if (target.closest('.sm-testcases-filter-wrapper')) {
+        return;
+      }
+
+      // DO NOT unfocus if clicking in Export button/menu
+      if (target.closest('.sm-export-wrapper')) {
         return;
       }
   
@@ -1377,7 +1392,7 @@ const SuitesManager: React.FC = () => {
     };
     document.addEventListener('mousedown', handleClickOutside, true);
     return () => document.removeEventListener('mousedown', handleClickOutside, true);
-  }, [contextMenu.visible, suiteContextMenu.visible, groupContextMenu.visible, handleCloseContextMenu, handleCloseSuiteContextMenu, handleCloseGroupContextMenu]);
+  }, [contextMenu.visible, suiteContextMenu.visible, groupContextMenu.visible, handleCloseContextMenu, handleCloseSuiteContextMenu, handleCloseGroupContextMenu, setIsExportMenuOpen]);
 
   const hasData = (filteredGroups.length > 0) || (filteredRootSuites.length > 0);
 
@@ -1515,16 +1530,20 @@ const SuitesManager: React.FC = () => {
                 isLoadingTestcases={isLoadingTestcases}
                 isRunningSuite={isRunningSuite}
                 isExportingSuite={isExportingSuite}
+                isExportMenuOpen={isExportMenuOpen}
                 isCreatingTestcaseInSuite={isCreatingTestcaseInSuite}
                 isAddingCases={isAddingCases}
                 isNewTestcaseMenuOpen={isNewTestcaseMenuOpen}
                 onReloadTestcases={handleReloadTestcases}
                 onRunAgain={handleRunAgain}
                 onExport={handleExport}
+                onExportScripts={handleExportScripts}
+                onExportSuite={handleExportSuite}
                 onClearSuite={handleClearSuite}
                 onOpenCreateTestcaseInSuite={handleOpenCreateTestcaseInSuite}
                 onOpenAddExistedCase={handleOpenAddExistedCase}
                 onToggleNewTestcaseMenu={() => setIsNewTestcaseMenuOpen(!isNewTestcaseMenuOpen)}
+                onCloseExportMenu={() => setIsExportMenuOpen(false)}
               />
               <div className="suites-right-panel-content">
                 {!selectedSuiteId ? (

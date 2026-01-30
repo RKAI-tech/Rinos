@@ -441,6 +441,10 @@
   position: relative;
 }
 
+.sm-export-wrapper {
+  position: relative;
+}
+
 .sm-new-btn {
   display: inline-flex;
   align-items: center;

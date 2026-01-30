@@ -4,6 +4,7 @@ import { logErrorAndGetFriendlyMessage } from '../../../../shared/utils/friendly
 import { GroupSuiteItem } from '../../../types/group';
 import { TestcaseId } from '../../../types/testsuites';
 import { TestSuiteService } from '../../../services/testsuites';
+import { TestSuiteExportService } from '../../../services/testSuiteExportService';
 
 interface UseSuiteHandlersProps {
   selectedSuiteId: string | null;
@@ -27,6 +28,7 @@ interface UseSuiteHandlersProps {
   ) => void;
   removeSuiteFromTree: (suiteId: string) => void;
   adjustSuiteCountInTree: (suiteId: string, delta: number) => void;
+  projectId?: string;
 }
 
 export const useSuiteHandlers = ({
@@ -48,13 +50,16 @@ export const useSuiteHandlers = ({
   updateSuiteInTree,
   removeSuiteFromTree,
   adjustSuiteCountInTree,
+  projectId,
 }: UseSuiteHandlersProps) => {
   // Services
   const suiteService = useMemo(() => new TestSuiteService(), []);
+  const exportService = useMemo(() => new TestSuiteExportService(), []);
 
   // Suite state
   const [isRunningSuite, setIsRunningSuite] = useState(false);
   const [isExportingSuite, setIsExportingSuite] = useState(false);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [isDeleteSuiteModalOpen, setIsDeleteSuiteModalOpen] = useState(false);
   const [deletingSuite, setDeletingSuite] = useState<GroupSuiteItem | null>(null);
   const [isDeletingSuite, setIsDeletingSuite] = useState(false);
@@ -159,18 +164,29 @@ export const useSuiteHandlers = ({
     }
   }, [selectedSuiteId, isRunningSuite, selectedSuiteName, fetchTestcasesBySuite, suiteService]);
 
-  // Export suite handler
-  const handleExport = useCallback(async () => {
+  // Export menu handler - toggle menu
+  const handleExport = useCallback(() => {
+    if (!selectedSuiteId || isExportingSuite) return;
+    setIsExportMenuOpen((prev) => !prev);
+  }, [selectedSuiteId, isExportingSuite]);
+
+  // Export scripts handler
+  const handleExportScripts = useCallback(async () => {
     if (!selectedSuiteId || isExportingSuite) return;
     try {
       setIsExportingSuite(true);
-      const response = await suiteService.exportTestSuite({ test_suite_id: selectedSuiteId });
+      setIsExportMenuOpen(false);
+      const response = await exportService.exportScripts(
+        selectedSuiteId,
+        selectedSuiteName,
+        projectId
+      );
       
       if (!response.success) {
         const message = logErrorAndGetFriendlyMessage(
-          '[useSuiteHandlers] exportSuite',
+          '[useSuiteHandlers] exportScripts',
           response.error,
-          'Failed to export test suite. Please try again.'
+          'Failed to export scripts. Please try again.'
         );
         toast.error(message);
         return;
@@ -185,12 +201,64 @@ export const useSuiteHandlers = ({
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        // toast.success('Exported test suite to Excel');
+        toast.success('Exported scripts successfully');
+      } else {
+        const message = logErrorAndGetFriendlyMessage(
+          '[useSuiteHandlers] exportScripts',
+          response.error,
+          'No file received.'
+        );
+        toast.error(message);
+      }
+    } catch (e) {
+      const message = logErrorAndGetFriendlyMessage(
+        '[useSuiteHandlers] exportScripts',
+        e,
+        'Export scripts failed. Please try again.'
+      );
+      toast.error(message);
+    } finally {
+      setIsExportingSuite(false);
+    }
+  }, [selectedSuiteId, selectedSuiteName, isExportingSuite, projectId, exportService]);
+
+  // Export suite handler
+  const handleExportSuite = useCallback(async () => {
+    if (!selectedSuiteId || isExportingSuite) return;
+    try {
+      setIsExportingSuite(true);
+      setIsExportMenuOpen(false);
+      const response = await exportService.exportSuite(
+        selectedSuiteId,
+        selectedSuiteName,
+        projectId
+      );
+      
+      if (!response.success) {
+        const message = logErrorAndGetFriendlyMessage(
+          '[useSuiteHandlers] exportSuite',
+          response.error,
+          'Failed to export suite. Please try again.'
+        );
+        toast.error(message);
+        return;
+      }
+
+      if (response.blob && response.filename) {
+        const url = URL.createObjectURL(response.blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = response.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('Exported suite successfully');
       } else {
         const message = logErrorAndGetFriendlyMessage(
           '[useSuiteHandlers] exportSuite',
           response.error,
-          'No file received from server.'
+          'No file received.'
         );
         toast.error(message);
       }
@@ -198,13 +266,13 @@ export const useSuiteHandlers = ({
       const message = logErrorAndGetFriendlyMessage(
         '[useSuiteHandlers] exportSuite',
         e,
-        'Export failed. Please try again.'
+        'Export suite failed. Please try again.'
       );
       toast.error(message);
     } finally {
       setIsExportingSuite(false);
     }
-  }, [selectedSuiteId, isExportingSuite, suiteService]);
+  }, [selectedSuiteId, selectedSuiteName, isExportingSuite, projectId, exportService]);
 
   // Reload testcases handler
   const handleReloadTestcases = useCallback(() => {
@@ -360,6 +428,7 @@ export const useSuiteHandlers = ({
     // Suite state
     isRunningSuite,
     isExportingSuite,
+    isExportMenuOpen,
     isDeleteSuiteModalOpen,
     deletingSuite,
     isDeletingSuite,
@@ -374,6 +443,8 @@ export const useSuiteHandlers = ({
     handleClearSuite,
     handleRunAgain,
     handleExport,
+    handleExportScripts,
+    handleExportSuite,
     handleReloadTestcases,
     handleDeleteSuite,
     handleCloseDeleteSuiteModal,
@@ -389,6 +460,7 @@ export const useSuiteHandlers = ({
     setAddingSuite,
     setIsAddCasesModalOpen,
     setIsRunningSuite,
+    setIsExportMenuOpen,
   };
 };
 
