@@ -1049,14 +1049,15 @@ const Main: React.FC<MainProps> = ({ projectId, testcaseId, browserType, testSui
           pageSelection.setAssertWithValueSelectedElement(null);
         }}
       />
-      <CheckDuplicateElementModal
+      {/* Tạm thời comment modal check duplicate - tự động xử lý không cần confirm */}
+      {/* <CheckDuplicateElementModal
         isOpen={duplicateCheck.isModalOpen}
         duplicateGroup={duplicateCheck.currentGroup}
         currentGroupIndex={duplicateCheck.currentGroupIndex}
         totalGroups={duplicateCheck.totalGroups}
         onConfirm={duplicateCheck.handleConfirm}
         onCancel={duplicateCheck.handleCancel}
-      />
+      /> */}
     </div>
   );
 };

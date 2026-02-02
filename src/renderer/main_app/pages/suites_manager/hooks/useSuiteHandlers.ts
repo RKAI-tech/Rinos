@@ -60,6 +60,8 @@ export const useSuiteHandlers = ({
   const [isRunningSuite, setIsRunningSuite] = useState(false);
   const [isExportingSuite, setIsExportingSuite] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [exportProgressText, setExportProgressText] = useState('Exporting...');
   const [isDeleteSuiteModalOpen, setIsDeleteSuiteModalOpen] = useState(false);
   const [deletingSuite, setDeletingSuite] = useState<GroupSuiteItem | null>(null);
   const [isDeletingSuite, setIsDeletingSuite] = useState(false);
@@ -176,10 +178,15 @@ export const useSuiteHandlers = ({
     try {
       setIsExportingSuite(true);
       setIsExportMenuOpen(false);
+      setExportProgress(0);
+      setExportProgressText('Exporting scripts...');
       const response = await exportService.exportScripts(
         selectedSuiteId,
         selectedSuiteName,
-        projectId
+        projectId,
+        (progress) => {
+          setExportProgress(progress);
+        }
       );
       
       if (!response.success) {
@@ -228,10 +235,15 @@ export const useSuiteHandlers = ({
     try {
       setIsExportingSuite(true);
       setIsExportMenuOpen(false);
+      setExportProgress(0);
+      setExportProgressText('Exporting suite...');
       const response = await exportService.exportSuite(
         selectedSuiteId,
         selectedSuiteName,
-        projectId
+        projectId,
+        (progress) => {
+          setExportProgress(progress);
+        }
       );
       
       if (!response.success) {
@@ -429,6 +441,8 @@ export const useSuiteHandlers = ({
     isRunningSuite,
     isExportingSuite,
     isExportMenuOpen,
+    exportProgress,
+    exportProgressText,
     isDeleteSuiteModalOpen,
     deletingSuite,
     isDeletingSuite,

@@ -206,7 +206,8 @@ export class TestSuiteExportService {
   async exportScripts(
     suiteId: string,
     suiteName: string,
-    projectId?: string
+    projectId?: string,
+    onProgress?: (progress: number) => void
   ): Promise<{ success: boolean; blob?: Blob; filename?: string; error?: string }> {
     try {
       // Get all testcases in suite
@@ -258,15 +259,26 @@ export class TestSuiteExportService {
         'sandbox/reporter.ts',
       ];
 
+      const totalSteps = sandboxFiles.length + testcases.length;
+      let completedSteps = 0;
+
       for (const filePath of sandboxFiles) {
         try {
           const content = await readSandboxFile(filePath);
           // Extract filename from path
           const fileName = filePath.replace('sandbox/', '');
           zip.file(fileName, content);
+          completedSteps++;
+          if (onProgress) {
+            onProgress((completedSteps / totalSteps) * 100);
+          }
         } catch (error) {
           // Log error but continue (file might not exist)
           console.warn(`Failed to read ${filePath}:`, error);
+          completedSteps++;
+          if (onProgress) {
+            onProgress((completedSteps / totalSteps) * 100);
+          }
         }
       }
 
@@ -310,14 +322,28 @@ export class TestSuiteExportService {
 
             zip.file(finalFileName, code);
           }
+          completedSteps++;
+          if (onProgress) {
+            onProgress((completedSteps / totalSteps) * 100);
+          }
         } catch (error) {
           console.warn(`Failed to generate code for testcase ${testcase.testcase_id}:`, error);
           // Continue with other testcases
+          completedSteps++;
+          if (onProgress) {
+            onProgress((completedSteps / totalSteps) * 100);
+          }
         }
       }
 
       // Generate zip file
+      if (onProgress) {
+        onProgress(95); // Almost done
+      }
       const zipBlob = await zip.generateAsync({ type: 'blob' });
+      if (onProgress) {
+        onProgress(100); // Complete
+      }
 
       // Create filename
       const sanitizedSuiteName = sanitizeFileName(suiteName);
@@ -342,7 +368,8 @@ export class TestSuiteExportService {
   async exportSuite(
     suiteId: string,
     suiteName: string,
-    projectId?: string
+    projectId?: string,
+    onProgress?: (progress: number) => void
   ): Promise<{ success: boolean; blob?: Blob; filename?: string; error?: string }> {
     try {
       // Get all testcases in suite
@@ -397,10 +424,18 @@ export class TestSuiteExportService {
         'Updated',
       ]);
 
+      const totalTestcases = testcases.length;
+      
       // Process each testcase
       for (let i = 0; i < testcases.length; i++) {
         const testcase = testcases[i];
         const row: any[] = [];
+        
+        // Update progress
+        if (onProgress) {
+          const progress = ((i + 1) / (totalTestcases + 1)) * 90; // Reserve 10% for Excel generation
+          onProgress(progress);
+        }
 
         // No
         row.push(i + 1);
@@ -617,10 +652,16 @@ export class TestSuiteExportService {
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Testcases');
 
       // Generate Excel file as blob
+      if (onProgress) {
+        onProgress(95); // Almost done
+      }
       const excelBuffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
       const excelBlob = new Blob([excelBuffer], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
+      if (onProgress) {
+        onProgress(100); // Complete
+      }
 
       // Create filename
       const sanitizedSuiteName = sanitizeFileName(suiteName);

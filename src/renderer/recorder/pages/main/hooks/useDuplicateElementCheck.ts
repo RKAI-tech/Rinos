@@ -58,16 +58,30 @@ export const useDuplicateElementCheck = ({
         return;
       }
 
-      // Có duplicate, lưu actions và bắt đầu hiển thị popup
-      setPendingActions(actions);
-      setDuplicateGroups(groups);
-      setCurrentGroupIndex(0);
-      setIsModalOpen(true);
+      // Tạm thời comment phần hiển thị modal, tự động xử lý tất cả duplicate groups
+      // Có duplicate, tự động gán element_id cho tất cả các nhóm
+      let updatedActions = actions;
       
-      // Lưu resolve function để gọi sau khi xử lý xong
-      (window as any).__duplicateResolve = resolve;
+      // Xử lý tất cả các nhóm duplicate
+      groups.forEach((group) => {
+        updatedActions = assignSameElementId(updatedActions, group);
+      });
+      
+      // Resolve ngay với actions đã được cập nhật
+      resolve(updatedActions);
+      onDuplicateResolved(updatedActions);
+
+      // Code cũ - hiển thị modal để confirm với user
+      // // Có duplicate, lưu actions và bắt đầu hiển thị popup
+      // setPendingActions(actions);
+      // setDuplicateGroups(groups);
+      // setCurrentGroupIndex(0);
+      // setIsModalOpen(true);
+      // 
+      // // Lưu resolve function để gọi sau khi xử lý xong
+      // (window as any).__duplicateResolve = resolve;
     });
-  }, []);
+  }, [assignSameElementId, onDuplicateResolved]);
 
   /**
    * Xử lý khi user confirm duplicate

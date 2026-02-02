@@ -59,6 +59,7 @@ import GroupContextMenu from './components/GroupContextMenu';
 import DeleteGroupModal from './components/DeleteGroupModal';
 import LoadingOverlay from './components/LoadingOverlay';
 import TestcaseDataVersionModal from './components/TestcaseDataVersionModal';
+import ExportProgressModal from './components/ExportProgressModal';
 
 const SuitesManager: React.FC = () => {
   const location = useLocation();
@@ -995,6 +996,8 @@ const SuitesManager: React.FC = () => {
     isRunningSuite,
     isExportingSuite,
     isExportMenuOpen,
+    exportProgress,
+    exportProgressText,
     isDeleteSuiteModalOpen,
     deletingSuite,
     isDeletingSuite,
@@ -1830,6 +1833,13 @@ const SuitesManager: React.FC = () => {
         }
         isInstalling={isInstallingBrowsers}
         installProgress={installProgress}
+      />
+
+      {/* Export Progress Modal */}
+      <ExportProgressModal
+        visible={isExportingSuite}
+        progress={exportProgress}
+        text={exportProgressText}
       />
     </div>
   );

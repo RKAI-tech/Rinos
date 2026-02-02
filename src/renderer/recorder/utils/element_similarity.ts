@@ -45,7 +45,7 @@ const ATTRIBUTE_WEIGHTS: Record<string, number> = {
   pageUrl: 0.15,
 };
 
-export const SIMILARITY_THRESHOLD = 0.7;
+export const SIMILARITY_THRESHOLD = 0.8;
 
 // Các thuộc tính cần so sánh với tolerance (cho phép sai số)
 const POSITION_ATTRIBUTES = ['x', 'y', 'viewportTop', 'viewportLeft'];
