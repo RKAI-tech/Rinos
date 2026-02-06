@@ -111,8 +111,6 @@ playwright/.cache/
 # TypeScript
 *.tsbuildinfo
 
-# Readme
-README.md
 
 # Old versions
 oldversion/
