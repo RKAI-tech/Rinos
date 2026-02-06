@@ -3,25 +3,24 @@
 [![Electron](https://img.shields.io/badge/electron-38.1.2-47848F.svg)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/react-19.2.3-61DAFB.svg)](https://reactjs.org/)
 
+<div align="center">
+
 <a href="https://automation-test.rikkei.org" style="text-decoration: none; display: block;">
   <div style="
     background: linear-gradient(135deg, #ffffff 0%, #ffffff 10%, #f8fafc 20%, #f0f9ff 35%, #e0f2fe 60%, #bae6fd 85%, #7dd3fc 100%);
-    width: calc(100% + 100px);
     padding: 60px 30px;
-    margin: 30px -50px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s, box-shadow 0.2s;
-    cursor: pointer;
+    margin: 30px 0;
+    border-radius: 8px;
     text-align: center;
-  " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 12px rgba(0, 0, 0, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0, 0, 0, 0.1)'">
-    <h2 class="hero-title" style="
+  ">
+    <h2 style="
       color: #0c4a6e;
       font-size: 36px;
       font-weight: 700;
       margin: 0 0 20px 0;
       line-height: 1.3;
     ">Optimize software testing processes with <span style="color: #0284c7;">Rinos</span></h2>
-    <p class="hero-subtitle" style="
+    <p style="
       color: #075985;
       font-size: 18px;
       font-weight: 400;
@@ -30,6 +29,8 @@
     ">Enterprise-ready automated testing solution, seamlessly integrated into CI/CD processes.</p>
   </div>
 </a>
+
+</div>
 
 > An Electron-based desktop application for automated testing with browser automation, database connections, and comprehensive test case management.
 
@@ -501,8 +502,8 @@ See the [LICENSE](LICENSE) file for details.
 
 ## Homepage & Support
 
-- **Homepage**: [https://automation-test.rikkei.rikkei.org](https://automation-test.rikkei.rikkei.org)
-- **Contact**: pr@rikkeisoft.com
+- **Homepage**: [Rinos](https://automation-test.rikkei.org)
+- **Contact**: [chaunm@rikkeisoft.com](mailto:chaunm@rikkeisoft.com) | [vietdb@rikkeisoft.com](mailto:vietdb@rikkeisoft.com) | [hunghd@rikkeisoft.com](mailto:hunghd@rikkeisoft.com)
 - **Author**: Rikkeisoft Corporation
 
 ## Acknowledgments
@@ -514,5 +515,5 @@ See the [LICENSE](LICENSE) file for details.
 
 ---
 
-**Version**: 2.3.3  
-**Last Updated**: 2024
+**Version**: 2.4.0 
+**Last Updated**: 2026
