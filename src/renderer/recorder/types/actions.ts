@@ -53,7 +53,7 @@ export enum AssertType {
   toBeChecked = "toBeChecked",
   toBeUnchecked = "toBeUnchecked",
   toBeFocused = "toBeFocused",
-  toBeHidden = "toBeHidden",
+  // toBeHidden = "toBeHidden",
   toBeEditable = "toBeEditable",
   toBeReadOnly = "toBeReadOnly",
   toBeEmpty = "toBeEmpty"
