@@ -1,5 +1,4 @@
 [![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)](https://github.com/rikkeisoft/rinos)
-[![Rinos](https://img.shields.io/badge/homepage-https://automation-test.rikkei.org-blue.svg)](https://automation-test.rikkei.org)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-lightgrey.svg)](LICENSE)
 [![Electron](https://img.shields.io/badge/electron-38.1.2-47848F.svg)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/react-19.2.3-61DAFB.svg)](https://reactjs.org/)
