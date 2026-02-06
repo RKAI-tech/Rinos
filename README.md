@@ -1,34 +1,16 @@
-[![Version](https://img.shields.io/badge/version-2.3.3-blue.svg)](https://github.com/rikkeisoft/automation-test-execution)
+[![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)](https://github.com/rikkeisoft/rinos)
+[![Rinos](https://img.shields.io/badge/homepage-https://automation-test.rikkei.org-blue.svg)](https://automation-test.rikkei.org)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-lightgrey.svg)](LICENSE)
 [![Electron](https://img.shields.io/badge/electron-38.1.2-47848F.svg)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/react-19.2.3-61DAFB.svg)](https://reactjs.org/)
 
-<div align="center">
+<div align="center" style="background: linear-gradient(135deg, #ffffff 0%, #ffffff 10%, #f8fafc 20%, #f0f9ff 35%, #e0f2fe 60%, #bae6fd 85%, #7dd3fc 100%); padding: 50px 30px; margin: 30px 0; border-radius: 8px;">
 
-<a href="https://automation-test.rikkei.org" style="text-decoration: none; display: block;">
-  <div style="
-    background: linear-gradient(135deg, #ffffff 0%, #ffffff 10%, #f8fafc 20%, #f0f9ff 35%, #e0f2fe 60%, #bae6fd 85%, #7dd3fc 100%);
-    padding: 60px 30px;
-    margin: 30px 0;
-    border-radius: 8px;
-    text-align: center;
-  ">
-    <h2 style="
-      color: #0c4a6e;
-      font-size: 36px;
-      font-weight: 700;
-      margin: 0 0 20px 0;
-      line-height: 1.3;
-    ">Optimize software testing processes with <span style="color: #0284c7;">Rinos</span></h2>
-    <p style="
-      color: #075985;
-      font-size: 18px;
-      font-weight: 400;
-      margin: 0;
-      line-height: 1.6;
-    ">Enterprise-ready automated testing solution, seamlessly integrated into CI/CD processes.</p>
-  </div>
-</a>
+<h2 style="color: #0c4a6e; font-size: 32px; font-weight: 700; margin: 0 0 15px 0;">Optimize software testing processes with <span style="color: #0284c7;">Rinos</span></h2>
+
+<p style="color: #075985; font-size: 18px; margin: 0 0 20px 0;">Enterprise-ready automated testing solution, seamlessly integrated into CI/CD processes.</p>
+
+<a href="https://automation-test.rikkei.org" style="color: #0284c7; text-decoration: none; font-weight: 600; font-size: 16px;">Visit Homepage →</a>
 
 </div>
 
