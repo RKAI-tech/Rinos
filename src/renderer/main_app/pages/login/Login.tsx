@@ -73,7 +73,7 @@ const Login: React.FC = () => {
           
 
           <form onSubmit={handleSubmit} className="login-form">
-            <h1 className="login-title">Automation Test Execution</h1>
+            <h1 className="login-title">Rinos</h1>
             <p className="login-subtitle">Enter your credentials to access the tool.</p>
 
             {/* Errors are displayed via toast */}

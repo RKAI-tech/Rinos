@@ -561,12 +561,12 @@ const Variables: React.FC = () => {
                   <table className="vars-table">
                     <thead>
                       <tr>
-                        <th className={`sortable ${sortBy === 'user_defined_name' ? 'sorted' : ''}`} onClick={() => handleSort('user_defined_name')}><span className="th-content"><span className="th-text">Custom name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'user_defined_name' && order === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'user_defined_name' && order === 'desc' ? 'active' : ''}`}></span></span></span></th>
-                        <th className={`sortable ${sortBy === 'original_name' ? 'sorted' : ''}`} onClick={() => handleSort('original_name')}><span className="th-content"><span className="th-text">Original name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'original_name' && order === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'original_name' && order === 'desc' ? 'active' : ''}`}></span></span></span></th>
+                        <th className={`sortable ${sortBy === 'user_defined_name' ? 'sorted' : ''}`} onClick={() => handleSort('user_defined_name')}><span className="th-content"><span className="th-text">Name</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'user_defined_name' && order === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'user_defined_name' && order === 'desc' ? 'active' : ''}`}></span></span></span></th>
+                        <th className={`sortable ${sortBy === 'original_name' ? 'sorted' : ''}`} onClick={() => handleSort('original_name')}><span className="th-content"><span className="th-text">Column</span><span className="sort-arrows"><span className={`arrow up ${sortBy === 'original_name' && order === 'asc' ? 'active' : ''}`}></span><span className={`arrow down ${sortBy === 'original_name' && order === 'desc' ? 'active' : ''}`}></span></span></span></th>
                         <th className="th-content"><span className="th-text">Value</span></th>
-                        <th className="th-content"><span className="th-text">Database name</span></th>
-                        <th className="th-content"><span className="th-text">Database type</span></th>
-                        <th className="th-content"><span className="th-text">Query name</span></th>
+                        <th className="th-content"><span className="th-text">Database</span></th>
+                        <th className="th-content"><span className="th-text">Type</span></th>
+                        <th className="th-content"><span className="th-text">Query</span></th>
                         <th>Options</th>
                       </tr>
                     </thead>

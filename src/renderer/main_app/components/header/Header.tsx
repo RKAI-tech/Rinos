@@ -51,7 +51,7 @@ const Header: React.FC = () => {
               alt="Rikkei Logo" 
               className="rikkei-logo"
             />
-            <span className="logo-text">Automation Test Execution</span>
+            <span className="logo-text">Rinos</span>
           </div>
         </div>
 

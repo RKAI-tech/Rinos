@@ -81,7 +81,7 @@ export const VersionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const handleDownloadClick = async () => {
     try {
-      await (window as any).electronAPI?.system?.openExternalUrl?.('https://automation-test.rikkei.org/download');
+      await (window as any).electronAPI?.system?.openExternalUrl?.('https://rinos.rikkei.org/download');
     } catch (error) {
       /* console.error('Failed to open download URL:', error); */
     }

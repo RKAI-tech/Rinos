@@ -24,7 +24,7 @@ const CreateBrowserStorageModal: React.FC<CreateBrowserStorageModalProps> = ({ i
     if (type === BrowserStorageType.COOKIE) {
       return `[\n` +
         `  {\n` +
-        `    "domain": "automation-test.rikkei.org",\n` +
+        `    "domain": "rinos.rikkei.org",\n` +
         `    "hostOnly": true,\n` +
         `    "path": "/",\n` +
         `    "sameSite": "Lax",\n` +

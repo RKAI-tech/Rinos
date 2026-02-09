@@ -100,7 +100,7 @@ const Register: React.FC = () => {
         <div className="register-right">
           <form onSubmit={handleSubmit} className="register-form">
             <h1 className="register-title">Create New Account</h1>
-            <p className="register-subtitle">Register to use Automation Test Execution.</p>
+            <p className="register-subtitle">Register to use Rinos.</p>
 
             {/* Errors are displayed via toast */}
 

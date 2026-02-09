@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/header/Header';
 import Breadcrumb from '../../components/breadcumb/Breadcrumb';
@@ -43,6 +43,7 @@ const Testcases: React.FC = () => {
   const projectDataFromLocation = { projectId, projectName: (location.state as { projectName?: string } | null)?.projectName };
   const [resolvedProjectName, setResolvedProjectName] = useState<string>(projectDataFromLocation.projectName || 'Project');
   const [project, setProject] = useState<Project | null>(null);
+  const hasLoadedProject = useRef<string | null>(null);
   
   // Calculate canEditPermission from project data
   const canEditPermission = useMemo(() => {
@@ -225,7 +226,7 @@ const Testcases: React.FC = () => {
 
     loadTestcases();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, search, statusFilter, sortBy, order, projectId, testCaseService, mapApiResponseToTestcase]);
+  }, [page, pageSize, search, statusFilter, sortBy, order, projectId]);
 
   // Helper: reload testcases (for manual refresh and after operations)
   const reloadTestcases = useCallback(async () => {
@@ -296,7 +297,7 @@ const Testcases: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [projectId, page, pageSize, search, statusFilter, sortBy, order, testCaseService, mapApiResponseToTestcase]);
+  }, [projectId, page, pageSize, search, statusFilter, sortBy, order]);
 
   // Auto reload every 60 seconds (only when no modals are open and there are running testcases)
   useEffect(() => {
@@ -330,10 +331,19 @@ const Testcases: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
-  // Load project data from API (only once)
+  // Load project data from API (only once per projectId)
   useEffect(() => {
+    if (!projectId) return;
+    
+    // Reset ref if projectId changed
+    if (hasLoadedProject.current !== projectId) {
+      hasLoadedProject.current = null;
+    }
+    
+    // Skip if already loaded for this projectId
+    if (hasLoadedProject.current === projectId) return;
+    
     const loadProjectData = async () => {
-      if (!projectId) return;
       // If we have project name from location state, use it temporarily but still fetch full project data
       if (projectDataFromLocation.projectName) {
         setResolvedProjectName(projectDataFromLocation.projectName);
@@ -345,6 +355,8 @@ const Testcases: React.FC = () => {
         setResolvedProjectName(projectData.name || 'Project');
       }
     };
+    
+    hasLoadedProject.current = projectId;
     loadProjectData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
@@ -1161,7 +1173,7 @@ const Testcases: React.FC = () => {
                       const isClickingOnActions = target.closest('.actions-container') || target.closest('.actions-dropdown');
                       
                       // Don't open if any dropdown is open (to prevent accidental clicks)
-                      if (!isClickingOnActions && !openDropdownId && canEditPermission) {
+                      if (!isClickingOnActions && !openDropdownId ) { // && canEditPermission) {
                         handleOpenRecorder(testcase.testcase_id);
                       }
                     }}
