@@ -7,7 +7,7 @@
 
 <h2 style="color: #0c4a6e; font-size: 32px; font-weight: 700; margin: 0 0 15px 0;">Optimize software testing processes with <span style="color: #0284c7;">Rinos</span></h2>
 
-<p style="color: #075985; font-size: 18px; margin: 0 0 20px 0;">Enterprise-ready automated testing solution, seamlessly integrated into CI/CD processes.</p>
+<p style="color: #075985; font-size: 18px; margin: 0 0 20px 0;">The application that optimizes web testing processes for businesses, supporting modern and effective automated testing.</p>
 
 <a href="https://automation-test.rikkei.org" style="color: #0284c7; text-decoration: none; font-weight: 600; font-size: 16px;">Visit Homepage →</a>
 
@@ -98,7 +98,7 @@ Before you begin, ensure you have the following installed:
 
 ```bash
 git clone <repository-url>
-cd rikkei-automation-test-script-app
+cd rinos
 ```
 
 ### 2. Install Dependencies
@@ -289,7 +289,7 @@ The script will sign all executables, frameworks, and the app bundle for both x6
 ## Project Structure
 
 ```
-rikkei-automation-test-script-app/
+rinos/
 ├── build/                  # Build configuration files
 │   └── notarize.cjs       # macOS notarization script
 ├── build_mac/             # macOS-specific build files
